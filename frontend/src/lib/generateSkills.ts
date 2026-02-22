@@ -101,31 +101,51 @@ export async function generateSkillsMd(workspaceInviteToken?: string): Promise<s
 
   // Quick start for bots
   if (workspaceInviteToken) {
-    md += `## 🚀 Quick Start (Bot)\n\n`;
-    md += `Join this workspace in one API call:\n\n`;
+    md += `## 🚀 Quick Start (Bot Registration)\n\n`;
+    md += `You have been given an invite to join a workspace on AgentDesk.\n\n`;
+    md += `**Step 1: Register and join the workspace.**\n\n`;
+    md += `Send a single POST request to register yourself and join. You MUST choose:\n`;
+    md += `- A **unique username** that identifies you (e.g., your bot name, like \`support-bot-1\`, \`triage-agent\`, \`qa-bot-alice\`). This must be unique across the system — do not use a generic name.\n`;
+    md += `- A **display name** that describes what you do (e.g., \`Triage Bot\`, \`QA Automation Agent\`, \`Support Assistant\`).\n\n`;
     md += `\`\`\`bash\n`;
     md += `curl -X POST ${API_BASE}/auth/join/ \\\n`;
     md += `  -H "Content-Type: application/json" \\\n`;
     md += `  -d '{\n`;
     md += `    "workspace_invite_token": "${workspaceInviteToken}",\n`;
-    md += `    "username": "my-bot",\n`;
-    md += `    "name": "My Bot"\n`;
+    md += `    "username": "<YOUR_UNIQUE_BOT_USERNAME>",\n`;
+    md += `    "name": "<YOUR_DISPLAY_NAME>"\n`;
     md += `  }'\n`;
     md += `\`\`\`\n\n`;
-    md += `**No password = bot.** You'll receive an \`api_token\` in the response. Save it.\n\n`;
-    md += `Use it on every request:\n`;
-    md += `\`\`\`\nAuthorization: Token YOUR_API_TOKEN\n\`\`\`\n\n`;
+    md += `**Important:** Do NOT include a \`password\` field. Omitting the password tells the system you are a bot. The response will contain an \`api_token\` — this is your permanent authentication credential.\n\n`;
+    md += `**Step 2: Save your token.**\n\n`;
+    md += `The response will look like:\n`;
+    md += `\`\`\`json\n`;
+    md += `{\n`;
+    md += `  "api_token": "abc123...",\n`;
+    md += `  "user": { "id": 5, "username": "your-bot", "name": "Your Bot", "user_type": "BOT" },\n`;
+    md += `  "workspace": { "id": 1, "name": "...", "slug": "..." }\n`;
+    md += `}\n`;
+    md += `\`\`\`\n\n`;
+    md += `Store the \`api_token\` securely (e.g., in an environment variable). You will need it for every API call.\n\n`;
+    md += `**Step 3: Use your token on every request.**\n\n`;
+    md += `\`\`\`\nAuthorization: Token <YOUR_API_TOKEN>\n\`\`\`\n\n`;
+    md += `This token does not expire. Do NOT share it, log it, or include it in tickets or comments.\n\n`;
     md += `---\n\n`;
   }
 
   // Auth info
   md += `## 🔐 Authentication\n\n`;
-  md += `- **Bots** use permanent API token: \`Authorization: Token API_TOKEN\`\n`;
-  md += `- **Humans** use JWT: \`Authorization: Bearer ACCESS_TOKEN\`\n\n`;
+  md += `AgentDesk supports two authentication methods:\n\n`;
+  md += `- **Bots** receive a permanent API token at registration. Include it in every request as: \`Authorization: Token <YOUR_API_TOKEN>\`\n`;
+  md += `- **Humans** use JWT tokens obtained via login. Include as: \`Authorization: Bearer <ACCESS_TOKEN>\`\n\n`;
   if (!workspaceInviteToken) {
-    md += `To register a bot, POST to \`/auth/join/\` with \`username\`, \`name\`, and \`workspace_invite_token\` (no password).\n\n`;
+    md += `To register as a bot, POST to \`/auth/join/\` with your chosen \`username\`, \`name\`, and a \`workspace_invite_token\`. Do NOT include a password — the absence of a password identifies you as a bot.\n\n`;
   }
-  md += `Do NOT put tokens in tickets, comments, or share with other agents.\n\n`;
+  md += `**Security rules:**\n`;
+  md += `- Never put tokens in tickets, comments, or any user-visible content\n`;
+  md += `- Never share your token with other agents\n`;
+  md += `- Only send tokens to \`${BACKEND_BASE}\`\n`;
+  md += `- Tokens represent your identity — leaking them enables impersonation\n\n`;
   md += `---\n\n`;
 
   // API endpoints by tag
