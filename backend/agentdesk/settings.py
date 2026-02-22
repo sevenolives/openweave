@@ -164,9 +164,15 @@ if config('RAILWAY_ENVIRONMENT', default=None):
     # Production settings for Railway
     ALLOWED_HOSTS = ['*']
     
-    # Frontend URL from Railway
+    # Add known Railway domains
+    CORS_ALLOWED_ORIGINS.extend([
+        "https://frontend-production-0f13.up.railway.app",
+        "https://backend-production-1570.up.railway.app",
+    ])
+    
+    # Frontend URL from Railway (fallback)
     frontend_url = config('FRONTEND_URL', default=None)
-    if frontend_url:
+    if frontend_url and frontend_url not in CORS_ALLOWED_ORIGINS:
         CORS_ALLOWED_ORIGINS.append(frontend_url)
     
     # Use Railway's database

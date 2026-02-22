@@ -5,3 +5,4 @@ __pycache__/
 staticfiles/
 node_modules/
 .next/
+backend/test_env/
