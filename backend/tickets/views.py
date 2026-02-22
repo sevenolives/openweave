@@ -14,6 +14,7 @@ from .serializers import (
     UserSerializer, ProjectSerializer, TicketSerializer,
     CommentSerializer, AuditLogSerializer,
     WorkspaceSerializer, WorkspaceMemberSerializer, WorkspaceInviteSerializer,
+    InviteJoinRequestSerializer, RegisterRequestSerializer,
 )
 from .permissions import (
     IsAdminAgent, IsAdminOrReadOnly, IsAdminOrOwner,
@@ -30,10 +31,12 @@ def _jwt_tokens_for_user(user):
     return {'access': str(refresh.access_token), 'refresh': str(refresh)}
 
 
+@extend_schema(tags=['auth'])
 class RegisterView(APIView):
     """POST /api/auth/register/ — public registration for human users."""
     permission_classes = [AllowAny]
 
+    @extend_schema(request=RegisterRequestSerializer)
     def post(self, request):
         username = request.data.get('username')
         name = request.data.get('name')
@@ -318,7 +321,7 @@ class WorkspaceInviteViewSet(viewsets.ModelViewSet):
             if not membership:
                 self.permission_denied(request)
 
-    @extend_schema(summary="Join a workspace using an invite token")
+    @extend_schema(summary="Join a workspace using an invite token", request=InviteJoinRequestSerializer)
     @action(detail=False, methods=['post'], permission_classes=[AllowAny])
     def join(self, request):
         """

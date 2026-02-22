@@ -78,6 +78,21 @@ class WorkspaceInviteSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'token', 'created_by', 'use_count', 'created_at']
 
 
+class InviteJoinRequestSerializer(serializers.Serializer):
+    """Request serializer for the invite join endpoint."""
+    workspace_invite_token = serializers.UUIDField(required=True, help_text="The invite token UUID")
+    username = serializers.CharField(required=False, help_text="Username for new account (required if not authenticated)")
+    name = serializers.CharField(required=False, help_text="Display name for new account (required if not authenticated)")
+    password = serializers.CharField(required=False, help_text="Password for human users. Omit for bot users.")
+
+
+class RegisterRequestSerializer(serializers.Serializer):
+    """Request serializer for the register endpoint."""
+    username = serializers.CharField(required=True)
+    name = serializers.CharField(required=True)
+    password = serializers.CharField(required=True, write_only=True)
+
+
 class ProjectSerializer(serializers.ModelSerializer):
     """Serializer for Project model."""
     agents = UserSimpleSerializer(many=True, read_only=True)
