@@ -16,8 +16,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         # Get credentials from environment or use defaults
         username = config('SUPERUSER_USERNAME', default='admin')
-        email = config('SUPERUSER_EMAIL', default='admin@agent-desk.com')
-        password = config('SUPERUSER_PASSWORD', default='admin123')
+        email = config('SUPERUSER_EMAIL', default='admin@agentdesk.com')
+        password = config('SUPERUSER_PASSWORD', default='password123')
 
         # Check if a user with this email or username already exists
         existing_user = User.objects.filter(
