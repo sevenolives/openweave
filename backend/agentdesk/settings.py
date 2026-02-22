@@ -72,8 +72,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'agentdesk.wsgi.application'
 
 # Database
-
-import dj_database_url as djdb
+DATABASE_URL = config('DATABASE_URL', default='sqlite:///db.sqlite3')
 DATABASES = {
     'default': dj_database_url.parse(DATABASE_URL)
 }
@@ -184,8 +183,8 @@ if config('RAILWAY_ENVIRONMENT', default=None):
     
     # Add known Railway domains
     CORS_ALLOWED_ORIGINS.extend([
-        "https://frontend-production-0f13.up.railway.app",
-        "https://backend-production-1570.up.railway.app",
+        "https://frontend-production-e4b0.up.railway.app",
+        "https://backend-production-bc03.up.railway.app",
     ])
     
     # Frontend URL from Railway (fallback)
@@ -193,12 +192,7 @@ if config('RAILWAY_ENVIRONMENT', default=None):
     if frontend_url and frontend_url not in CORS_ALLOWED_ORIGINS:
         CORS_ALLOWED_ORIGINS.append(frontend_url)
     
-    # Use Railway's database (fall back to SQLite if no DATABASE_URL)
-    
-    import dj_database_url as djdb
-DATABASES = {
-        'default': dj_database_url.parse(DATABASE_URL)
-    }
+    # Database already configured above
 
 # Celery Configuration
 import os
