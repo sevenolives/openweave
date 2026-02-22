@@ -1,0 +1,14 @@
+test_venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.git
+.gitignore
+README.md
+.env
+.env.local
+*.log
+db.sqlite3
+.DS_Store
