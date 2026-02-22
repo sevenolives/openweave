@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef } from "react";
 
-const APP = "https://frontend-production-0f13.up.railway.app/";
+const APP = "https://frontend-production-e4b0.up.railway.app/";
 const GITHUB = "https://github.com/saltyprojects/agent-desk";
 
 const features = [
