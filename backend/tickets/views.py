@@ -356,7 +356,7 @@ class TicketViewSet(viewsets.ModelViewSet):
     """CRUD operations for tickets."""
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
-    permission_classes = [IsAdminOrOwner]
+    permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_class = TicketFilter
     search_fields = ['title', 'description', 'assigned_to__username', 'project__name']
@@ -420,8 +420,10 @@ class TicketViewSet(viewsets.ModelViewSet):
     def partial_update(self, request, *args, **kwargs):
         return super().partial_update(request, *args, **kwargs)
 
-    @extend_schema(summary="Delete ticket", description="Delete a ticket. Admin only.", responses={204: None})
+    @extend_schema(summary="Delete ticket", description="Delete a ticket. Admin only.", responses={204: None, 403: _error_detail})
     def destroy(self, request, *args, **kwargs):
+        if request.user.role != 'ADMIN':
+            return Response({'detail': 'Only admins can delete tickets.'}, status=status.HTTP_403_FORBIDDEN)
         return super().destroy(request, *args, **kwargs)
 
     def perform_create(self, serializer):
@@ -451,7 +453,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     """CRUD operations for comments."""
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
-    permission_classes = [IsAdminOrOwner]
+    permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_class = CommentFilter
     search_fields = ['body']
@@ -498,10 +500,16 @@ class CommentViewSet(viewsets.ModelViewSet):
         examples=[OpenApiExample('Update body', value={'body': 'Updated note.'}, request_only=True)],
     )
     def partial_update(self, request, *args, **kwargs):
+        obj = self.get_object()
+        if request.user.role != 'ADMIN' and obj.author != request.user:
+            return Response({'detail': 'You can only edit your own comments.'}, status=status.HTTP_403_FORBIDDEN)
         return super().partial_update(request, *args, **kwargs)
 
-    @extend_schema(summary="Delete comment", description="Delete a comment.", responses={204: None})
+    @extend_schema(summary="Delete comment", description="Delete a comment. Only the author or admin can delete.", responses={204: None, 403: _error_detail})
     def destroy(self, request, *args, **kwargs):
+        obj = self.get_object()
+        if request.user.role != 'ADMIN' and obj.author != request.user:
+            return Response({'detail': 'You can only delete your own comments.'}, status=status.HTTP_403_FORBIDDEN)
         return super().destroy(request, *args, **kwargs)
 
     def perform_create(self, serializer):
@@ -551,7 +559,7 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
     """CRUD operations for workspaces."""
     queryset = Workspace.objects.all()
     serializer_class = WorkspaceSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrReadOnly]
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def get_queryset(self):
@@ -656,7 +664,7 @@ class WorkspaceInviteViewSet(viewsets.ModelViewSet):
     """Manage workspace invite links."""
     queryset = WorkspaceInvite.objects.all()
     serializer_class = WorkspaceInviteSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend]
     filterset_class = WorkspaceInviteFilter
     http_method_names = ['get', 'post', 'head', 'options']
