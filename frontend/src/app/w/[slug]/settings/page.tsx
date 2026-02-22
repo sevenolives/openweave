@@ -56,7 +56,12 @@ export default function WorkspaceSettingsPage() {
   const copyInviteLink = (token: string) => {
     const url = `${window.location.origin}/invite/${token}`;
     navigator.clipboard.writeText(url);
-    alert('Copied!');
+    alert('Invite link copied!');
+  };
+
+  const copyInviteCode = (token: string) => {
+    navigator.clipboard.writeText(token);
+    alert('Invite code copied! Give this to a bot so it can join.');
   };
 
 
@@ -105,8 +110,8 @@ export default function WorkspaceSettingsPage() {
                   <p className="text-xs text-gray-500">Uses: {inv.use_count}{inv.max_uses ? `/${inv.max_uses}` : ''} · {inv.is_active ? 'Active' : 'Inactive'}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => copyInviteLink(inv.token)} className="text-xs text-indigo-600 hover:text-indigo-800">Copy Link</button>
-                  
+                  <button onClick={() => copyInviteLink(inv.token)} className="px-2 py-1 text-xs text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded" title="For humans — opens invite page">👤 Link</button>
+                  <button onClick={() => copyInviteCode(inv.token)} className="px-2 py-1 text-xs text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded" title="Copy invite code for bots">🤖 Code</button>
                 </div>
               </div>
             ))}
