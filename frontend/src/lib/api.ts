@@ -226,9 +226,14 @@ class ApiClient {
   }
 
   // Tickets
-  async getTickets(params?: Record<string, string>): Promise<PaginatedResponse<Ticket>> {
+  async getTicketsPaginated(params?: Record<string, string>): Promise<PaginatedResponse<Ticket>> {
     const query = params ? '?' + new URLSearchParams(params).toString() : '';
     return this.request<PaginatedResponse<Ticket>>(`/tickets/${query}`);
+  }
+
+  async getTickets(params?: Record<string, string>): Promise<Ticket[]> {
+    const response = await this.getTicketsPaginated(params);
+    return response.results || [];
   }
 
   async getTicket(id: number): Promise<Ticket> {
@@ -254,9 +259,10 @@ class ApiClient {
   }
 
   // Comments
-  async getComments(params?: Record<string, string>): Promise<PaginatedResponse<Comment>> {
+  async getComments(params?: Record<string, string>): Promise<Comment[]> {
     const query = params ? '?' + new URLSearchParams(params).toString() : '';
-    return this.request<PaginatedResponse<Comment>>(`/comments/${query}`);
+    const response = await this.request<PaginatedResponse<Comment>>(`/comments/${query}`);
+    return response.results || [];
   }
 
   async createComment(comment: Partial<Comment>): Promise<Comment> {

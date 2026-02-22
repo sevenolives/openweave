@@ -27,7 +27,7 @@ export default function ProjectsPage() {
       const counts: Record<number, any> = {};
       await Promise.all(projs.map(async (p) => {
         try {
-          const resp = await api.getTickets({ project: p.id.toString() });
+          const resp = await api.getTicketsPaginated({ project: p.id.toString() });
           const tickets = resp.results || [];
           counts[p.id] = {
             total: resp.count ?? tickets.length,

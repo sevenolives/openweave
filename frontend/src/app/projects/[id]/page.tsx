@@ -48,8 +48,7 @@ export default function ProjectDetailPage() {
 
   const fetchData = async () => {
     try {
-      const [p, tResp] = await Promise.all([api.getProject(projectId), api.getTickets({ project: projectId.toString() })]);
-      const t = tResp.results || [];
+      const [p, t] = await Promise.all([api.getProject(projectId), api.getTickets({ project: projectId.toString() })]);
       setProject(p); setTickets(t); setEditName(p.name); setEditDesc(p.description);
     } catch { toast('Failed to load project', 'error'); }
     finally { setLoading(false); }
