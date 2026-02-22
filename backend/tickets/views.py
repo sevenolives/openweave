@@ -14,7 +14,7 @@ from .serializers import (
     UserSerializer, ProjectSerializer, TicketSerializer,
     CommentSerializer, AuditLogSerializer,
     WorkspaceSerializer, WorkspaceMemberSerializer, WorkspaceInviteSerializer,
-    InviteJoinRequestSerializer, RegisterRequestSerializer,
+    JoinRequestSerializer,
 )
 from .permissions import (
     IsAdminAgent, IsAdminOrReadOnly, IsAdminOrOwner,
@@ -32,31 +32,90 @@ def _jwt_tokens_for_user(user):
 
 
 @extend_schema(tags=['auth'])
-class RegisterView(APIView):
-    """POST /api/auth/register/ — public registration for human users."""
+class JoinView(APIView):
+    """
+    POST /api/auth/join/ — unified entry point for registration and workspace joining.
+
+    Case 1: {username, name, password} → create HUMAN user, return JWT
+    Case 2: {username, name, password, workspace_invite_token} → create HUMAN + join workspace, return JWT + workspace
+    Case 3: {username, name, workspace_invite_token} → create BOT + join workspace, return {api_token, workspace, user}
+    Case 4: Authenticated user + {workspace_invite_token} → join existing user to workspace, return {workspace}
+    """
     permission_classes = [AllowAny]
 
-    @extend_schema(request=RegisterRequestSerializer)
+    @extend_schema(request=JoinRequestSerializer)
     def post(self, request):
+        invite_token = request.data.get('workspace_invite_token')
         username = request.data.get('username')
         name = request.data.get('name')
         password = request.data.get('password')
 
-        if not username or not name or not password:
-            return Response({'detail': 'username, name, and password are required.'}, status=status.HTTP_400_BAD_REQUEST)
+        invite = None
+        if invite_token:
+            try:
+                invite = WorkspaceInvite.objects.get(token=invite_token, is_active=True)
+            except WorkspaceInvite.DoesNotExist:
+                return Response({'detail': 'Invalid or inactive invite.'}, status=status.HTTP_404_NOT_FOUND)
+            if invite.expires_at and invite.expires_at < timezone.now():
+                return Response({'detail': 'Invite has expired.'}, status=status.HTTP_400_BAD_REQUEST)
+            if invite.max_uses and invite.use_count >= invite.max_uses:
+                return Response({'detail': 'Invite has reached maximum uses.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Case 4: Authenticated user joining a workspace
+        if request.user and request.user.is_authenticated:
+            if not invite:
+                return Response({'detail': 'workspace_invite_token is required.'}, status=status.HTTP_400_BAD_REQUEST)
+            if WorkspaceMember.objects.filter(workspace=invite.workspace, user=request.user).exists():
+                return Response({'detail': 'Already a member of this workspace.'}, status=status.HTTP_400_BAD_REQUEST)
+            WorkspaceMember.objects.create(workspace=invite.workspace, user=request.user, role='MEMBER')
+            invite.use_count += 1
+            invite.save()
+            return Response({'workspace': WorkspaceSerializer(invite.workspace).data}, status=status.HTTP_200_OK)
+
+        # Cases 1-3: Creating a new user
+        if not username or not name:
+            return Response({'detail': 'username and name are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if User.objects.filter(username=username).exists():
             return Response({'detail': 'Username already taken.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        user = User(username=username, name=name, user_type='HUMAN')
-        user.set_password(password)
-        user.save()
+        is_bot = not password
+        if is_bot and not invite:
+            return Response({'detail': 'Bot users require a workspace_invite_token.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        if password:
+            user = User(username=username, name=name, user_type='HUMAN')
+            user.set_password(password)
+            user.save()
+        else:
+            user = User(username=username, name=name, user_type='BOT')
+            user.set_unusable_password()
+            user.save()
+
+        workspace_data = None
+        if invite:
+            if WorkspaceMember.objects.filter(workspace=invite.workspace, user=user).exists():
+                return Response({'detail': 'Already a member of this workspace.'}, status=status.HTTP_400_BAD_REQUEST)
+            WorkspaceMember.objects.create(workspace=invite.workspace, user=user, role='MEMBER')
+            invite.use_count += 1
+            invite.save()
+            workspace_data = WorkspaceSerializer(invite.workspace).data
+
+        if is_bot:
+            # Case 3
+            token, _ = Token.objects.get_or_create(user=user)
+            return Response({
+                'api_token': token.key,
+                'workspace': workspace_data,
+                'user': UserSerializer(user).data,
+            }, status=status.HTTP_201_CREATED)
+
+        # Case 1 or 2
         tokens = _jwt_tokens_for_user(user)
-        return Response({
-            'user': UserSerializer(user).data,
-            **tokens,
-        }, status=status.HTTP_201_CREATED)
+        response_data = {'user': UserSerializer(user).data, **tokens}
+        if workspace_data:
+            response_data['workspace'] = workspace_data
+        return Response(response_data, status=status.HTTP_201_CREATED)
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -290,16 +349,13 @@ class WorkspaceInviteViewSet(viewsets.ModelViewSet):
 
     - **GET /invites/?workspace={id}** — list invites for a workspace
     - **POST /invites/** — create an invite (admin only)
-    - **PATCH /invites/{id}/** — update invite settings (admin only)
-    - **DELETE /invites/{id}/** — delete invite (admin only)
-    - **POST /invites/join/** — join a workspace using a token
     """
     queryset = WorkspaceInvite.objects.all()
     serializer_class = WorkspaceInviteSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_class = WorkspaceInviteFilter
-    http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
+    http_method_names = ['get', 'post', 'head', 'options']
 
     def get_queryset(self):
         return WorkspaceInvite.objects.filter(
@@ -313,94 +369,3 @@ class WorkspaceInviteViewSet(viewsets.ModelViewSet):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("Only workspace admins can create invites.")
         serializer.save(created_by=self.request.user)
-
-    def check_object_permissions(self, request, obj):
-        super().check_object_permissions(request, obj)
-        if request.method not in ('GET', 'HEAD', 'OPTIONS'):
-            membership = WorkspaceMember.objects.filter(workspace=obj.workspace, user=request.user, role='ADMIN').first()
-            if not membership:
-                self.permission_denied(request)
-
-    @extend_schema(summary="Join a workspace using an invite token", request=InviteJoinRequestSerializer)
-    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
-    def join(self, request):
-        """
-        Join a workspace using an invite token.
-
-        Three cases:
-        1. Authenticated user → join workspace
-        2. Unauthenticated + password → create HUMAN user, join, return JWT tokens
-        3. Unauthenticated + no password → create BOT user, join, return API token
-        """
-        invite_token = request.data.get('workspace_invite_token')
-        if not invite_token:
-            return Response({'detail': 'workspace_invite_token is required.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            invite = WorkspaceInvite.objects.get(token=invite_token, is_active=True)
-        except WorkspaceInvite.DoesNotExist:
-            return Response({'detail': 'Invalid or inactive invite.'}, status=status.HTTP_404_NOT_FOUND)
-
-        if invite.expires_at and invite.expires_at < timezone.now():
-            return Response({'detail': 'Invite has expired.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        if invite.max_uses and invite.use_count >= invite.max_uses:
-            return Response({'detail': 'Invite has reached maximum uses.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        created_user = False
-        is_bot = False
-
-        if request.user and request.user.is_authenticated:
-            user = request.user
-        else:
-            username = request.data.get('username')
-            name = request.data.get('name')
-            password = request.data.get('password')
-
-            if not username or not name:
-                return Response(
-                    {'detail': 'username and name are required for new users.'},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            if User.objects.filter(username=username).exists():
-                return Response({'detail': 'Username already taken.'}, status=status.HTTP_400_BAD_REQUEST)
-
-            if password:
-                user = User(username=username, name=name, user_type='HUMAN')
-                user.set_password(password)
-                user.save()
-                created_user = True
-            else:
-                user = User(username=username, name=name, user_type='BOT')
-                user.set_unusable_password()
-                user.save()
-                created_user = True
-                is_bot = True
-
-        # Check duplicate membership
-        if WorkspaceMember.objects.filter(workspace=invite.workspace, user=user).exists():
-            return Response({'detail': 'Already a member of this workspace.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        WorkspaceMember.objects.create(workspace=invite.workspace, user=user, role='MEMBER')
-        invite.use_count += 1
-        invite.save()
-
-        workspace_data = WorkspaceSerializer(invite.workspace).data
-
-        if is_bot:
-            token, _ = Token.objects.get_or_create(user=user)
-            return Response({
-                'api_token': token.key,
-                'workspace': workspace_data,
-                'user': UserSerializer(user).data,
-            }, status=status.HTTP_201_CREATED)
-        elif created_user:
-            tokens = _jwt_tokens_for_user(user)
-            return Response({
-                'user': UserSerializer(user).data,
-                'workspace': workspace_data,
-                **tokens,
-            }, status=status.HTTP_201_CREATED)
-        else:
-            return Response({'workspace': workspace_data}, status=status.HTTP_200_OK)

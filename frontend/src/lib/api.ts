@@ -226,7 +226,7 @@ class ApiClient {
   }
 
   async register(data: { username: string; name: string; password: string }): Promise<AuthTokens> {
-    const tokens = await this.request<AuthTokens>('/auth/register/', {
+    const tokens = await this.request<AuthTokens>('/auth/join/', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -391,14 +391,14 @@ class ApiClient {
   }
 
   async joinWorkspace(token: string): Promise<Workspace> {
-    return this.request<Workspace>('/invites/join/', {
+    return this.request<Workspace>('/auth/join/', {
       method: 'POST',
       body: JSON.stringify({ workspace_invite_token: token }),
     });
   }
 
   async registerAndJoin(data: { workspace_invite_token: string; username: string; name: string; password: string }): Promise<{ workspace: Workspace; user: User }> {
-    const response = await fetch(`${this.baseUrl}/invites/join/`, {
+    const response = await fetch(`${this.baseUrl}/auth/join/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),

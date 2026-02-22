@@ -5,7 +5,7 @@ from .views import (
     UserViewSet, ProjectViewSet, TicketViewSet,
     CommentViewSet, AuditLogViewSet,
     WorkspaceViewSet, WorkspaceMemberViewSet, WorkspaceInviteViewSet,
-    RegisterView,
+    JoinView,
 )
 
 router = DefaultRouter()
@@ -19,7 +19,7 @@ router.register(r'workspace-members', WorkspaceMemberViewSet)
 router.register(r'invites', WorkspaceInviteViewSet)
 
 urlpatterns = [
-    path('auth/register/', RegisterView.as_view(), name='register'),
+    path('auth/join/', JoinView.as_view(), name='join'),
     path('auth/login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('', include(router.urls)),
