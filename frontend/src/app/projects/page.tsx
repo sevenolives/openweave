@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { api, Project, Ticket } from '@/lib/api';
+import FormField, { parseFieldErrors, inputClass } from '@/components/FormField';
+import { api, Project, Ticket, ApiError } from '@/lib/api';
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -16,6 +17,7 @@ export default function ProjectsPage() {
   const [desc, setDesc] = useState('');
   const [creating, setCreating] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const router = useRouter();
   const { toast } = useToast();
 
@@ -55,14 +57,19 @@ export default function ProjectsPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFieldErrors({});
     if (!name.trim()) return;
     setCreating(true);
     try {
       await api.createProject({ name: name.trim(), description: desc.trim() });
       toast('Project created');
       setName(''); setDesc(''); setShowCreate(false);
+      setFieldErrors({});
       await fetchProjects();
-    } catch (e: any) { toast(e?.message || 'Failed to create project', 'error'); }
+    } catch (e: any) {
+      setFieldErrors(parseFieldErrors(e));
+      toast(e?.message || 'Failed to create project', 'error');
+    }
     finally { setCreating(false); }
   };
 
@@ -97,14 +104,12 @@ export default function ProjectsPage() {
             <div className="bg-white w-full sm:w-[28rem] sm:rounded-2xl rounded-t-2xl p-6" onClick={e => e.stopPropagation()}>
               <h2 className="text-lg font-bold text-gray-900 mb-4">New Project</h2>
               <form onSubmit={handleCreate} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                  <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="Project name" autoFocus />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <textarea value={desc} onChange={e => setDesc(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none" rows={3} placeholder="Optional description" />
-                </div>
+                <FormField label="Name" error={fieldErrors.name} required>
+                  <input type="text" value={name} onChange={e => setName(e.target.value)} className={inputClass(fieldErrors.name)} placeholder="Project name" autoFocus />
+                </FormField>
+                <FormField label="Description" error={fieldErrors.description}>
+                  <textarea value={desc} onChange={e => setDesc(e.target.value)} className={`${inputClass(fieldErrors.description)} resize-none`} rows={3} placeholder="Optional description" />
+                </FormField>
                 <div className="flex gap-3 pt-2">
                   <button type="button" onClick={() => setShowCreate(false)} className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
                   <button type="submit" disabled={creating || !name.trim()} className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed">{creating ? 'Creating…' : 'Create'}</button>

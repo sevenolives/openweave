@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { api, Ticket, Project } from '@/lib/api';
+import FormField, { parseFieldErrors, inputClass } from '@/components/FormField';
+import { api, Ticket, Project, ApiError } from '@/lib/api';
 
 const PRIORITY_COLORS: Record<string, string> = {
   LOW: 'bg-green-100 text-green-700', MEDIUM: 'bg-yellow-100 text-yellow-700',
@@ -29,6 +30,7 @@ export default function TicketsPage() {
   const [newDesc, setNewDesc] = useState('');
   const [newPriority, setNewPriority] = useState('MEDIUM');
   const [newProject, setNewProject] = useState<number | ''>('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [deleteTarget, setDeleteTarget] = useState<Ticket | null>(null);
 
   const router = useRouter();
@@ -71,6 +73,7 @@ export default function TicketsPage() {
 
   const handleCreateTicket = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFieldErrors({});
     if (!newTitle.trim() || !newProject) return;
     setCreating(true);
     try {
@@ -78,8 +81,12 @@ export default function TicketsPage() {
       toast('Ticket created');
       setShowCreate(false);
       setNewTitle(''); setNewDesc(''); setNewPriority('MEDIUM'); setNewProject('');
+      setFieldErrors({});
       loadData();
-    } catch (e: any) { toast(e?.message || 'Failed to create ticket', 'error'); }
+    } catch (e: any) {
+      setFieldErrors(parseFieldErrors(e));
+      toast(e?.message || 'Failed to create ticket', 'error');
+    }
     finally { setCreating(false); }
   };
 
@@ -232,27 +239,23 @@ export default function TicketsPage() {
             <div className="bg-white w-full sm:w-[28rem] sm:rounded-2xl rounded-t-2xl p-6" onClick={e => e.stopPropagation()}>
               <h2 className="text-lg font-bold text-gray-900 mb-4">New Ticket</h2>
               <form onSubmit={handleCreateTicket} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Project</label>
-                  <select value={newProject} onChange={e => setNewProject(Number(e.target.value) || '')} className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white" required>
+                <FormField label="Project" error={fieldErrors.project} required>
+                  <select value={newProject} onChange={e => setNewProject(Number(e.target.value) || '')} className={`${inputClass(fieldErrors.project)} bg-white`} required>
                     <option value="">Select a project</option>
                     {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                  <input type="text" value={newTitle} onChange={e => setNewTitle(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="Ticket title" autoFocus />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none" rows={3} placeholder="Describe the issue" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-                  <select value={newPriority} onChange={e => setNewPriority(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white">
+                </FormField>
+                <FormField label="Title" error={fieldErrors.title} required>
+                  <input type="text" value={newTitle} onChange={e => setNewTitle(e.target.value)} className={inputClass(fieldErrors.title)} placeholder="Ticket title" autoFocus />
+                </FormField>
+                <FormField label="Description" error={fieldErrors.description}>
+                  <textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} className={`${inputClass(fieldErrors.description)} resize-none`} rows={3} placeholder="Describe the issue" />
+                </FormField>
+                <FormField label="Priority" error={fieldErrors.priority}>
+                  <select value={newPriority} onChange={e => setNewPriority(e.target.value)} className={`${inputClass(fieldErrors.priority)} bg-white`}>
                     <option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option><option value="CRITICAL">Critical</option>
                   </select>
-                </div>
+                </FormField>
                 <div className="flex gap-3 pt-2">
                   <button type="button" onClick={() => setShowCreate(false)} className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
                   <button type="submit" disabled={creating || !newTitle.trim() || !newProject} className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed">{creating ? 'Creating…' : 'Create Ticket'}</button>

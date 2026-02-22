@@ -5,8 +5,9 @@ import { useRouter, useParams } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import FormField, { parseFieldErrors, inputClass } from '@/components/FormField';
 import { useAuth } from '@/hooks/useAuth';
-import { api, Ticket, Comment,User } from '@/lib/api';
+import { api, Ticket, Comment, User, ApiError } from '@/lib/api';
 
 const PRIORITY_COLORS: Record<string, string> = {
   LOW: 'bg-green-100 text-green-700', MEDIUM: 'bg-yellow-100 text-yellow-700',
@@ -34,6 +35,7 @@ export default function TicketDetailPage() {
   const [editAssigned, setEditAssigned] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [tab, setTab] = useState<'comments' | 'activity'>('comments');
 
   const router = useRouter();
@@ -66,6 +68,7 @@ export default function TicketDetailPage() {
   const handleSave = async () => {
     if (!ticket) return;
     setSaving(true);
+    setFieldErrors({});
     try {
       const updated = await api.updateTicket(ticket.id, {
         title: editTitle, description: editDesc,
@@ -73,8 +76,12 @@ export default function TicketDetailPage() {
         assigned_to: editAssigned ? parseInt(editAssigned) : null,
       });
       setTicket(updated); setEditing(false);
+      setFieldErrors({});
       toast('Ticket updated');
-    } catch (e: any) { toast(e?.message || 'Failed to update ticket', 'error'); }
+    } catch (e: any) {
+      setFieldErrors(parseFieldErrors(e));
+      toast(e?.message || 'Failed to update ticket', 'error');
+    }
     finally { setSaving(false); }
   };
 
@@ -117,35 +124,30 @@ export default function TicketDetailPage() {
               <div className="bg-white rounded-xl border border-gray-200 p-5 sm:p-6">
                 {editing ? (
                   <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                      <input type="text" value={editTitle} onChange={e => setEditTitle(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                      <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none" rows={4} />
-                    </div>
+                    <FormField label="Title" error={fieldErrors.title} required>
+                      <input type="text" value={editTitle} onChange={e => setEditTitle(e.target.value)} className={inputClass(fieldErrors.title)} />
+                    </FormField>
+                    <FormField label="Description" error={fieldErrors.description}>
+                      <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} className={`${inputClass(fieldErrors.description)} resize-none`} rows={4} />
+                    </FormField>
                     <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                        <select value={editStatus} onChange={e => setEditStatus(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500">
+                      <FormField label="Status" error={fieldErrors.status}>
+                        <select value={editStatus} onChange={e => setEditStatus(e.target.value)} className={`${inputClass(fieldErrors.status)} bg-white`}>
                           {ALL_STATUSES.map(s => <option key={s} value={s}>{s.replace('_',' ')}</option>)}
                         </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-                        <select value={editPriority} onChange={e => setEditPriority(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500">
+                      </FormField>
+                      <FormField label="Priority" error={fieldErrors.priority}>
+                        <select value={editPriority} onChange={e => setEditPriority(e.target.value)} className={`${inputClass(fieldErrors.priority)} bg-white`}>
                           {ALL_PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
                         </select>
-                      </div>
+                      </FormField>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Assigned To</label>
-                      <select value={editAssigned} onChange={e => setEditAssigned(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500">
+                    <FormField label="Assigned To" error={fieldErrors.assigned_to}>
+                      <select value={editAssigned} onChange={e => setEditAssigned(e.target.value)} className={`${inputClass(fieldErrors.assigned_to)} bg-white`}>
                         <option value="">Unassigned</option>
                         {agents.map(a => <option key={a.id} value={a.id}>{a.username} ({a.user_type})</option>)}
                       </select>
-                    </div>
+                    </FormField>
                     <div className="flex gap-3 pt-2">
                       <button onClick={() => setEditing(false)} className="px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
                       <button onClick={handleSave} disabled={saving} className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300">{saving ? 'Saving…' : 'Save Changes'}</button>

@@ -11,6 +11,7 @@ function LoginForm() {
   const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   
   const { login, register } = useAuth();
   const router = useRouter();
@@ -20,6 +21,7 @@ function LoginForm() {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    setFieldErrors({});
 
     try {
       if (mode === 'login') {
@@ -29,7 +31,15 @@ function LoginForm() {
       }
       const redirect = searchParams.get('redirect');
       router.push(redirect || '/dashboard');
-    } catch (err) {
+    } catch (err: any) {
+      // Parse field-level errors
+      if (err && typeof err === 'object' && 'fieldErrors' in err) {
+        const fe: Record<string, string> = {};
+        for (const [key, msgs] of Object.entries(err.fieldErrors as Record<string, string[]>)) {
+          fe[key] = (msgs as string[]).join(', ');
+        }
+        setFieldErrors(fe);
+      }
       setError(err instanceof Error ? err.message : (mode === 'login' ? 'Login failed' : 'Registration failed'));
     } finally {
       setIsLoading(false);
@@ -85,11 +95,12 @@ function LoginForm() {
                 type="text"
                 autoComplete="username"
                 required
-                className="block w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:bg-white transition-all text-sm"
+                className={`block w-full px-4 py-2.5 bg-gray-50 border rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:border-transparent focus:bg-white transition-all text-sm ${fieldErrors.username ? 'border-red-500 focus:ring-red-500 bg-red-50' : 'border-gray-200 focus:ring-indigo-500'}`}
                 placeholder="Enter your username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />
+              {fieldErrors.username && <p className="mt-1 text-sm text-red-600">{fieldErrors.username}</p>}
             </div>
 
             {mode === 'register' && (
@@ -102,11 +113,12 @@ function LoginForm() {
                   name="name"
                   type="text"
                   required
-                  className="block w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:bg-white transition-all text-sm"
+                  className={`block w-full px-4 py-2.5 bg-gray-50 border rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:border-transparent focus:bg-white transition-all text-sm ${fieldErrors.name ? 'border-red-500 focus:ring-red-500 bg-red-50' : 'border-gray-200 focus:ring-indigo-500'}`}
                   placeholder="Enter your display name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                 />
+                {fieldErrors.name && <p className="mt-1 text-sm text-red-600">{fieldErrors.name}</p>}
               </div>
             )}
             
@@ -120,11 +132,12 @@ function LoginForm() {
                 type="password"
                 autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                 required
-                className="block w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:bg-white transition-all text-sm"
+                className={`block w-full px-4 py-2.5 bg-gray-50 border rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:border-transparent focus:bg-white transition-all text-sm ${fieldErrors.password ? 'border-red-500 focus:ring-red-500 bg-red-50' : 'border-gray-200 focus:ring-indigo-500'}`}
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
+              {fieldErrors.password && <p className="mt-1 text-sm text-red-600">{fieldErrors.password}</p>}
             </div>
 
             {error && (

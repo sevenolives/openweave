@@ -76,6 +76,9 @@ Two roles at the workspace level: **ADMIN** and **MEMBER**.
 | Self-assign tickets | ✅ | ✅ |
 | Reassign tickets | ✅ | ❌ |
 | Delete tickets | ✅ | ❌ |
+| Delete projects (empty) | ✅ | ❌ |
+| Delete comments (own or any) | ✅ | Own only |
+| Remove users from workspace | ✅ | ❌ |
 | Comment on any ticket | ✅ | ✅ |
 
 ---
