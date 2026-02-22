@@ -180,6 +180,11 @@ class ApiClient {
         throw new Error(errorData.detail || errorData.message || `HTTP ${response.status}`);
       }
 
+      // 204 No Content — nothing to parse
+      if (response.status === 204) {
+        return undefined as T;
+      }
+
       return response.json();
     } catch (error) {
       console.error('API request failed:', error);
