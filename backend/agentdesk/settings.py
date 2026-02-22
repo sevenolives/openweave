@@ -73,7 +73,8 @@ TEMPLATES = [
 WSGI_APPLICATION = 'agentdesk.wsgi.application'
 
 # Database
-DATABASE_URL = config('DATABASE_URL', default='sqlite:///db.sqlite3')
+
+import dj_database_url as djdb
 DATABASES = {
     'default': dj_database_url.parse(DATABASE_URL)
 }
@@ -194,8 +195,9 @@ if config('RAILWAY_ENVIRONMENT', default=None):
         CORS_ALLOWED_ORIGINS.append(frontend_url)
     
     # Use Railway's database (fall back to SQLite if no DATABASE_URL)
-    DATABASE_URL = config('DATABASE_URL', default='sqlite:///db.sqlite3')
-    DATABASES = {
+    
+    import dj_database_url as djdb
+DATABASES = {
         'default': dj_database_url.parse(DATABASE_URL)
     }
 
