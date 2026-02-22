@@ -1,10 +1,13 @@
-from rest_framework import viewsets, status, permissions
+from rest_framework import viewsets, status, permissions, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
+from django_filters.rest_framework import DjangoFilterBackend
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
+from drf_spectacular.types import OpenApiTypes
 from .models import Agent, Project, Ticket, Comment, AuditLog, ProjectAgent
 from .serializers import (
     AgentSerializer, ProjectSerializer, TicketSerializer, 
@@ -14,6 +17,9 @@ from .serializers import (
 from .permissions import (
     IsAdminAgent, IsAdminOrReadOnly, IsAdminOrOwner, CanAssignTicket,
     IsProjectMember, CanManageProjectAgents
+)
+from .filters import (
+    TicketFilter, AgentFilter, ProjectFilter, CommentFilter, AuditLogFilter
 )
 
 
@@ -34,10 +40,17 @@ class AgentViewSet(viewsets.ModelViewSet):
     """
     ViewSet for Agent (User) management.
     Includes registration and user management endpoints.
+    
+    Provides CRUD operations for agents with search and filtering capabilities.
     """
     queryset = Agent.objects.all()
     serializer_class = AgentSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = AgentFilter
+    search_fields = ['username', 'email', 'first_name', 'last_name']
+    ordering_fields = ['username', 'email', 'created_at', 'is_active']
+    ordering = ['username']
     
     # Include all necessary HTTP methods for custom actions
     http_method_names = ['get', 'post', 'put', 'patch', 'delete']
@@ -53,12 +66,39 @@ class AgentViewSet(viewsets.ModelViewSet):
         
         return [permission() for permission in permission_classes]
     
+    @extend_schema(
+        summary="Get current user profile",
+        description="Retrieve the profile information for the currently authenticated user.",
+        responses={200: AgentSerializer}
+    )
     @action(detail=False, methods=['get'])
     def me(self, request):
         """Get current user profile."""
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
     
+    @extend_schema(
+        summary="Register new agent",
+        description="Register a new agent (user) in the system. This endpoint is publicly accessible.",
+        request=AgentSerializer,
+        responses={
+            201: AgentSerializer,
+            400: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Agent Registration',
+                value={
+                    'username': 'newagent',
+                    'email': 'newagent@example.com',
+                    'password': 'securepassword123',
+                    'first_name': 'John',
+                    'last_name': 'Doe',
+                    'agent_type': 'HUMAN'
+                }
+            )
+        ]
+    )
     @action(detail=False, methods=['post'])
     def register(self, request):
         """Agent registration endpoint."""
@@ -73,10 +113,17 @@ class ProjectViewSet(viewsets.ModelViewSet):
     """
     ViewSet for Project management.
     Admin-only for create/update/delete operations.
+    
+    Provides CRUD operations for projects with search and filtering capabilities.
     """
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
     permission_classes = [IsAdminOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = ProjectFilter
+    search_fields = ['name', 'description']
+    ordering_fields = ['name', 'created_at', 'updated_at']
+    ordering = ['name']
     
     http_method_names = ['get', 'post', 'put', 'patch', 'delete']
     
@@ -212,14 +259,25 @@ class ProjectViewSet(viewsets.ModelViewSet):
             )
 
 
+@extend_schema(tags=['tickets'])
 class TicketViewSet(viewsets.ModelViewSet):
     """
     ViewSet for Ticket management.
     Members can create and update own tickets, admins can update any ticket.
+    
+    Supports comprehensive search and filtering:
+    - Search across title, description, assigned agent, creator, and project
+    - Filter by status, priority, assignment, date ranges
+    - Order by any field
     """
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
     permission_classes = [IsAdminOrOwner]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = TicketFilter
+    search_fields = ['title', 'description', 'assigned_to__username', 'project__name']
+    ordering_fields = ['id', 'title', 'status', 'priority', 'created_at', 'updated_at']
+    ordering = ['-created_at']
     
     http_method_names = ['get', 'post', 'put', 'patch', 'delete']
     
@@ -265,6 +323,12 @@ class TicketViewSet(viewsets.ModelViewSet):
         instance._performed_by = self.request.user
         serializer.save()
     
+    @extend_schema(
+        summary="Assign ticket to agent",
+        description="Assign a ticket to an agent. Members can self-assign, admins can assign to anyone in the project.",
+        request=OpenApiTypes.OBJECT,
+        responses={200: OpenApiTypes.OBJECT, 400: OpenApiTypes.OBJECT, 403: OpenApiTypes.OBJECT}
+    )
     @action(detail=True, methods=['post'], permission_classes=[CanAssignTicket])
     def assign(self, request, pk=None):
         """
@@ -337,6 +401,12 @@ class TicketViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
     
+    @extend_schema(
+        summary="Change ticket status",
+        description="Change the status of a ticket. Supports BLOCKED ticket escalation workflow.",
+        request=OpenApiTypes.OBJECT,
+        responses={200: OpenApiTypes.OBJECT, 400: OpenApiTypes.OBJECT}
+    )
     @action(detail=True, methods=['post'], permission_classes=[IsAdminOrOwner])
     def change_status(self, request, pk=None):
         """
@@ -442,10 +512,17 @@ class CommentViewSet(viewsets.ModelViewSet):
     """
     ViewSet for Comment management.
     Users can comment on any ticket, but can only edit/delete their own comments.
+    
+    Supports search within comment body and filtering by ticket, author, and date.
     """
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
     permission_classes = [IsAdminOrOwner]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = CommentFilter
+    search_fields = ['body']
+    ordering_fields = ['created_at', 'updated_at']
+    ordering = ['-created_at']
     
     http_method_names = ['get', 'post', 'put', 'patch', 'delete']
     
@@ -472,26 +549,20 @@ class CommentViewSet(viewsets.ModelViewSet):
 class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     """
     ViewSet for AuditLog (read-only).
+    
+    Provides comprehensive audit trail with filtering by entity, action, and time range.
     """
     queryset = AuditLog.objects.all()
     serializer_class = AuditLogSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_class = AuditLogFilter
+    ordering_fields = ['timestamp']
+    ordering = ['-timestamp']
     
     def get_queryset(self):
         """Optimize queryset with select_related."""
-        queryset = AuditLog.objects.select_related('performed_by').all()
-        
-        # Filter by entity type if provided
-        entity_type = self.request.query_params.get('entity_type')
-        if entity_type:
-            queryset = queryset.filter(entity_type=entity_type)
-        
-        # Filter by entity id if provided
-        entity_id = self.request.query_params.get('entity_id')
-        if entity_id:
-            queryset = queryset.filter(entity_id=entity_id)
-        
-        return queryset
+        return AuditLog.objects.select_related('performed_by').all()
 
 
 class ProjectAgentViewSet(viewsets.ModelViewSet):

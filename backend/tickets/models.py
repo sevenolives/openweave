@@ -207,13 +207,25 @@ class AuditLog(models.Model):
 from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
 from django.forms.models import model_to_dict
+from django.core.serializers.json import DjangoJSONEncoder
+import json
+
+
+def serialize_model_for_audit(instance):
+    """
+    Serialize model instance for audit logging, handling datetime and other non-JSON types.
+    """
+    data = model_to_dict(instance)
+    # Convert the data to JSON and back to handle datetime serialization
+    json_string = json.dumps(data, cls=DjangoJSONEncoder)
+    return json.loads(json_string)
 
 
 @receiver(pre_save, sender=Ticket)
 def ticket_pre_save(sender, instance, **kwargs):
     """Store old values before save for audit logging."""
     if instance.pk:
-        instance._old_values = model_to_dict(Ticket.objects.get(pk=instance.pk))
+        instance._old_values = serialize_model_for_audit(Ticket.objects.get(pk=instance.pk))
     else:
         instance._old_values = None
 
@@ -231,12 +243,12 @@ def ticket_post_save(sender, instance, created, **kwargs):
             action='CREATE',
             performed_by=instance.created_by,
             old_value=None,
-            new_value=model_to_dict(instance)
+            new_value=serialize_model_for_audit(instance)
         )
     elif hasattr(instance, '_old_values') and instance._old_values is not None:
         # This is an update
         old_values = instance._old_values
-        new_values = model_to_dict(instance)
+        new_values = serialize_model_for_audit(instance)
         
         # Determine who performed the action (for now, use created_by, in real app this would come from request)
         performer = getattr(instance, '_performed_by', instance.created_by)
@@ -286,7 +298,7 @@ def comment_post_save(sender, instance, created, **kwargs):
             action='CREATE',
             performed_by=instance.author,
             old_value=None,
-            new_value=model_to_dict(instance)
+            new_value=serialize_model_for_audit(instance)
         )
         
         # Send email notifications for new comments
@@ -315,7 +327,7 @@ def project_agent_post_save(sender, instance, created, **kwargs):
             action='CREATE',
             performed_by=instance.agent,  # For now, assume agent added themselves
             old_value=None,
-            new_value=model_to_dict(instance)
+            new_value=serialize_model_for_audit(instance)
         )
         
         # Send email notification for project agent addition

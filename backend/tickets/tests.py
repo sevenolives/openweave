@@ -1,3 +1,9 @@
-from django.test import TestCase
+"""
+Test suite for the tickets app.
+"""
 
-# Create your tests here.
+# Import all test cases
+from .test_models import *
+from .test_api import *
+
+# Additional integration tests can go here

@@ -31,10 +31,12 @@
       "variables": {
         "PYTHONPATH": "/app",
         "DEBUG": "false",
-        "SECRET_KEY": "${{RAILWAY_STATIC_URL}}",
+        "SECRET_KEY": "${{Hex(32)}}",
         "DATABASE_URL": "${{DATABASE_URL}}",
+        "REDIS_URL": "${{redis.REDIS_URL}}",
         "FRONTEND_URL": "${{frontend.RAILWAY_STATIC_URL}}",
-        "CORS_ALLOWED_ORIGINS": "${{frontend.RAILWAY_STATIC_URL}}"
+        "CORS_ALLOWED_ORIGINS": "${{frontend.RAILWAY_STATIC_URL}}",
+        "EMAIL_BACKEND": "django.core.mail.backends.console.EmailBackend"
       }
     },
     {
@@ -64,10 +66,11 @@
       "variables": {
         "PYTHONPATH": "/app",
         "DEBUG": "false",
-        "SECRET_KEY": "${{RAILWAY_STATIC_URL}}",
+        "SECRET_KEY": "${{Hex(32)}}",
         "DATABASE_URL": "${{DATABASE_URL}}",
-        "REDIS_URL": "${{REDIS_URL}}",
-        "FRONTEND_URL": "${{frontend.RAILWAY_STATIC_URL}}"
+        "REDIS_URL": "${{redis.REDIS_URL}}",
+        "FRONTEND_URL": "${{frontend.RAILWAY_STATIC_URL}}",
+        "EMAIL_BACKEND": "django.core.mail.backends.console.EmailBackend"
       }
     },
     {
