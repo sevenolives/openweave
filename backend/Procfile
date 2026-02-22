@@ -1,1 +1,1 @@
-web: python manage.py collectstatic --noinput && python manage.py migrate --noinput && python manage.py createsuperadmin && python manage.py seed && gunicorn agentdesk.wsgi --bind 0.0.0.0:$PORT
+web: python manage.py collectstatic --noinput && python manage.py migrate --noinput && gunicorn agentdesk.wsgi --bind 0.0.0.0:$PORT
