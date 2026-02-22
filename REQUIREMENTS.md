@@ -198,4 +198,114 @@ PATCH only — no PUT. No custom action endpoints. Filter via query params.
 
 ---
 
+## Testing Criteria
+
+Used by automated cron checks and manual QA. Each section lists what to verify and expected results.
+
+### Health & Availability
+| # | Check | Method | Expected |
+|---|-------|--------|----------|
+| 1.1 | Backend root responds | `GET /api/` | 200 |
+| 1.2 | Frontend loads | `GET /` | 200, HTML |
+| 1.3 | Admin panel loads | `GET /admin/` | 200 or 302 |
+| 1.4 | Swagger docs | `GET /api/docs/` | 200 |
+| 1.5 | OpenAPI schema | `GET /api/schema/` | 200 |
+| 1.6 | skills.md (backend) | `GET /api/skills/skills.md` | 200 |
+| 1.7 | heartbeat.md (backend) | `GET /api/skills/heartbeat.md` | 200 |
+| 1.8 | skills.md (frontend proxy) | `GET /skills.md` | 200 |
+| 1.9 | heartbeat.md (frontend proxy) | `GET /heartbeat.md` | 200 |
+
+### Authentication
+| # | Check | Method | Expected |
+|---|-------|--------|----------|
+| 2.1 | Login valid creds | `POST /api/auth/login/` | 200, `access` + `refresh` |
+| 2.2 | Login bad password | `POST /api/auth/login/` | 401 |
+| 2.3 | Token refresh | `POST /api/auth/refresh/` | 200, new access token |
+| 2.4 | Register human (no invite) | `POST /api/auth/join/` with password | 201, JWT tokens |
+| 2.5 | Register bot (no invite) | `POST /api/auth/join/` without password | 201, `api_token` |
+| 2.6 | Register + join with invite | `POST /api/auth/join/` with `workspace_invite_token` | 201, user in workspace |
+| 2.7 | Invalid invite token | `POST /api/auth/join/` with bad token | 400 |
+| 2.8 | Duplicate username | `POST /api/auth/join/` existing username | 400 |
+| 2.9 | Authed user join workspace | `POST /api/auth/join/` authed + invite token | 200 |
+
+### Users API
+| # | Check | Method | Expected |
+|---|-------|--------|----------|
+| 3.1 | List users (authed) | `GET /api/users/` | 200 |
+| 3.2 | Get current user | `GET /api/users/me/` | 200 |
+| 3.3 | Patch self | `PATCH /api/users/{id}/` own | 200 |
+| 3.4 | Patch other | `PATCH /api/users/{id}/` other | 403 |
+| 3.5 | POST rejected | `POST /api/users/` | 405 |
+| 3.6 | Unauthed access | `GET /api/users/` no auth | 401 |
+
+### Workspaces
+| # | Check | Method | Expected |
+|---|-------|--------|----------|
+| 4.1 | List workspaces | `GET /api/workspaces/` | 200 |
+| 4.2 | List members | `GET /api/workspace-members/?workspace={id}` | 200 |
+| 4.3 | Remove member | `DELETE /api/workspace-members/{id}/` | 204 |
+| 4.4 | Remove owner blocked | `DELETE /api/workspace-members/{owner_id}/` | 400 |
+| 4.5 | List invites | `GET /api/invites/?workspace={id}` | 200 |
+| 4.6 | Create invite | `POST /api/invites/` | 201 |
+
+### Projects
+| # | Check | Method | Expected |
+|---|-------|--------|----------|
+| 5.1 | List projects | `GET /api/projects/` | 200 |
+| 5.2 | Create project | `POST /api/projects/` | 201 |
+| 5.3 | Get project | `GET /api/projects/{id}/` | 200 |
+| 5.4 | Update project | `PATCH /api/projects/{id}/` | 200 |
+| 5.5 | Delete project | `DELETE /api/projects/{id}/` | 204 |
+| 5.6 | Filter by workspace | `GET /api/projects/?workspace={id}` | 200, filtered |
+
+### Tickets
+| # | Check | Method | Expected |
+|---|-------|--------|----------|
+| 6.1 | List tickets | `GET /api/tickets/` | 200 |
+| 6.2 | Create ticket | `POST /api/tickets/` | 201 |
+| 6.3 | Get ticket | `GET /api/tickets/{id}/` | 200 |
+| 6.4 | Update ticket | `PATCH /api/tickets/{id}/` | 200 |
+| 6.5 | Delete ticket | `DELETE /api/tickets/{id}/` | 204 |
+| 6.6 | Filter by project | `GET /api/tickets/?project={id}` | 200, filtered |
+| 6.7 | Filter by status | `GET /api/tickets/?status=OPEN` | 200, only OPEN |
+| 6.8 | Assign ticket | `PATCH /api/tickets/{id}/` with `assigned_to` | 200 |
+| 6.9 | Invalid status transition | `PATCH /api/tickets/{id}/` bad status | 400 (not 500) |
+
+### Comments
+| # | Check | Method | Expected |
+|---|-------|--------|----------|
+| 7.1 | List comments | `GET /api/comments/?ticket={id}` | 200 |
+| 7.2 | Create comment | `POST /api/comments/` | 201 |
+| 7.3 | Filter by ticket | `GET /api/comments/?ticket={id}` | 200, filtered |
+
+### Project-Level Access Control
+| # | Check | Method | Expected |
+|---|-------|--------|----------|
+| 8.1 | Non-admin sees only assigned projects | `GET /api/projects/` | Only member projects |
+| 8.2 | Tickets scoped to visible projects | `GET /api/tickets/` | Only from assigned projects |
+| 8.3 | Comments scoped | `GET /api/comments/` | Only on visible tickets |
+| 8.4 | Admin sees all | `GET /api/projects/` as admin | All projects |
+
+### Frontend Pages
+| # | Check | Method | Expected |
+|---|-------|--------|----------|
+| 9.1 | Landing page | `GET /` | 200, join tabs |
+| 9.2 | Login page | `GET /login` | 200, sign in/create tabs |
+| 9.3 | Dashboard | `GET /dashboard` (authed) | 200 |
+| 9.4 | Projects | `GET /projects` | 200 |
+| 9.5 | Tickets | `GET /tickets` | 200 |
+| 9.6 | Agents | `GET /agents` | 200 |
+| 9.7 | Workspace settings | `GET /w/{slug}/settings` | 200, invites |
+| 9.8 | Invite page | `GET /invite/{token}` | 200, registration form |
+
+### Known Bugs
+| # | Bug | Status |
+|---|-----|--------|
+| 10.1 | Status transition returns 500 instead of 400 | OPEN |
+| 10.2 | `?status=OPEN` filter returns empty | OPEN |
+| 10.3 | Audit trail endpoint missing (removed in REST refactor) | OPEN |
+| 10.4 | Project-level access control not implemented | OPEN |
+
+---
+
 *This document reflects the current state of agent-desk. Update when requirements change.*

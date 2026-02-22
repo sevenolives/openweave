@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { api, Ticket, Project } from '@/lib/api';
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -28,6 +29,7 @@ export default function TicketsPage() {
   const [newDesc, setNewDesc] = useState('');
   const [newPriority, setNewPriority] = useState('MEDIUM');
   const [newProject, setNewProject] = useState<number | ''>('');
+  const [deleteTarget, setDeleteTarget] = useState<Ticket | null>(null);
 
   const router = useRouter();
   const { toast } = useToast();
@@ -79,6 +81,16 @@ export default function TicketsPage() {
       loadData();
     } catch { toast('Failed to create ticket', 'error'); }
     finally { setCreating(false); }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await api.deleteTicket(deleteTarget.id);
+      toast('Ticket deleted');
+      setDeleteTarget(null);
+      loadData();
+    } catch { toast('Failed to delete ticket', 'error'); }
   };
 
   const hasFilters = search || filterStatus || filterPriority;
@@ -195,8 +207,15 @@ export default function TicketsPage() {
                             {ticket.priority}
                           </span>
                         </td>
-                        <td className="px-5 py-3 text-right">
-                          <span className="text-xs text-gray-400">{new Date(ticket.created_at).toLocaleDateString()}</span>
+                        <td className="px-3 py-3 text-right whitespace-nowrap">
+                          <span className="text-xs text-gray-400 mr-2">{new Date(ticket.created_at).toLocaleDateString()}</span>
+                          <button
+                            onClick={e => { e.stopPropagation(); setDeleteTarget(ticket); }}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                            title="Delete ticket"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -242,6 +261,15 @@ export default function TicketsPage() {
             </div>
           </div>
         )}
+
+        {/* Delete Confirmation */}
+        <ConfirmDialog
+          open={!!deleteTarget}
+          title="Delete Ticket"
+          message={`Are you sure you want to delete "${deleteTarget?.title}"? This action cannot be undone.`}
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteTarget(null)}
+        />
 
         {/* Mobile FAB */}
         <button onClick={() => setShowCreate(true)} className="sm:hidden fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-700 active:scale-95 transition-all z-40">
