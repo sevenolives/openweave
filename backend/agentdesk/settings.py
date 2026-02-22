@@ -96,7 +96,6 @@ STORAGES = {
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOWED_ORIGINS = [
-    'https://frontend-production-7e76.up.railway.app',
     'http://localhost:3000',
 ]
 
@@ -104,8 +103,8 @@ CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://backend-production-b0f99.up.railway.app',
-    'https://frontend-production-7e76.up.railway.app',
+    'https://*.up.railway.app',
+    'https://*.railway.app',
     'http://localhost:3000',
     'http://localhost:8000',
 ]
