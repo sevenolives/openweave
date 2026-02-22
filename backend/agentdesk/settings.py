@@ -66,7 +66,6 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
             ],
         },
-    },
 ]
 
 WSGI_APPLICATION = 'agentdesk.wsgi.application'
@@ -84,16 +83,12 @@ AUTH_USER_MODEL = 'tickets.Agent'
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
     {
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
 ]
 
 # Internationalization
@@ -124,14 +119,6 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ],
-    'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle'
-    ],
-    'DEFAULT_THROTTLE_RATES': {
-        'anon': '100/day',
-        'user': '1000/day'
-    },
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
         'rest_framework.filters.SearchFilter',
@@ -220,7 +207,6 @@ LOGGING = {
             'format': '{levelname} {message}',
             'style': '{',
         },
-    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
@@ -231,14 +217,12 @@ LOGGING = {
             'filename': 'debug.log',
             'formatter': 'verbose',
         },
-    },
     'loggers': {
         'tickets.tasks': {
             'handlers': ['console', 'file'],
             'level': 'INFO',
             'propagate': True,
         },
-    },
 }
 
 # API Documentation Settings (drf-spectacular)
@@ -251,9 +235,3 @@ SPECTACULAR_SETTINGS = {
     'SCHEMA_PATH_PREFIX': '/api/',
 }
 
-# Cache Configuration (for rate limiting)
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-    }
-}
