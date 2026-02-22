@@ -100,10 +100,14 @@ export default function Layout({ children }: { children: ReactNode }) {
                 ))}
               </select>
               <button
-                onClick={() => router.push(`/w/${currentWorkspace.slug}/settings`)}
-                className="w-full mt-1 text-xs text-gray-500 hover:text-gray-700 text-left px-1"
+                onClick={() => {
+                  if (currentWorkspace?.slug) {
+                    router.push(`/w/${currentWorkspace.slug}/settings`);
+                  }
+                }}
+                className="w-full mt-2 text-xs text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 text-left px-3 py-2 rounded-lg transition-colors font-medium"
               >
-                Workspace Settings
+                ⚙️ Workspace Settings
               </button>
             </div>
           )}

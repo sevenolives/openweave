@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
+import { useAuth } from '@/hooks/useAuth';
 import { api, Project, Ticket, User } from '@/lib/api';
 
 const STATUS_COLUMNS = [
