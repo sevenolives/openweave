@@ -14,12 +14,8 @@ interface AuthContextType {
 
 interface RegisterData {
   username: string;
-  email: string;
+  name: string;
   password: string;
-  first_name: string;
-  last_name: string;
-  user_type: 'HUMAN' | 'BOT';
-  role: 'ADMIN' | 'MEMBER';
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -64,9 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (userData: RegisterData) => {
     try {
-      const newUser = await api.register(userData);
-      // Auto-login after registration
-      await login(userData.username || userData.email, userData.password);
+      const tokens = await api.register(userData);
+      if (tokens.user) setUser(tokens.user);
     } catch (error) {
       console.error('Registration failed:', error);
       throw error;

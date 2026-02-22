@@ -135,10 +135,10 @@ export default function Layout({ children }: { children: ReactNode }) {
           <div className="border-t border-gray-100 p-4 flex-shrink-0">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 bg-indigo-100 rounded-full flex items-center justify-center text-sm font-bold text-indigo-600">
-                {(user?.first_name?.[0] || user?.username?.[0] || '?').toUpperCase()}
+                {(user?.name?.[0] || user?.username?.[0] || '?').toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{user?.first_name || user?.username}</p>
+                <p className="text-sm font-medium text-gray-900 truncate">{user?.name || user?.username}</p>
                 <p className="text-xs text-gray-500 truncate">{user?.email}</p>
               </div>
             </div>
@@ -189,9 +189,9 @@ export default function Layout({ children }: { children: ReactNode }) {
             {/* User menu */}
             <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-gray-200 ml-1">
               <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-xs font-bold text-indigo-600">
-                {(user?.first_name?.[0] || user?.username?.[0] || '?').toUpperCase()}
+                {(user?.name?.[0] || user?.username?.[0] || '?').toUpperCase()}
               </div>
-              <span className="text-sm font-medium text-gray-700">{user?.first_name || user?.username}</span>
+              <span className="text-sm font-medium text-gray-700">{user?.name || user?.username}</span>
             </div>
 
             <button

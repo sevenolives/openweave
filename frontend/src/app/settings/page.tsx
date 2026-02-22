@@ -15,10 +15,10 @@ export default function SettingsPage() {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Profile</h2>
           <div className="flex items-center gap-4 mb-6">
             <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white ${user?.user_type === 'BOT' ? 'bg-purple-500' : 'bg-indigo-500'}`}>
-              {(user?.first_name?.[0] || user?.username?.[0] || '?').toUpperCase()}
+              {(user?.name?.[0] || user?.username?.[0] || '?').toUpperCase()}
             </div>
             <div>
-              <p className="text-lg font-semibold text-gray-900">{user?.first_name} {user?.last_name}</p>
+              <p className="text-lg font-semibold text-gray-900">{user?.name || user?.username}</p>
               <p className="text-sm text-gray-500">{user?.email}</p>
               <div className="flex gap-2 mt-1">
                 <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${user?.user_type === 'BOT' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>{user?.user_type}</span>

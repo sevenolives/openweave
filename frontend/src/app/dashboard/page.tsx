@@ -56,7 +56,7 @@ export default function DashboardPage() {
         {/* Welcome */}
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-            Welcome back, {user?.first_name || user?.username} 👋
+            Welcome back, {user?.name || user?.username} 👋
           </h1>
           <p className="text-sm text-gray-500 mt-1">Here&apos;s what&apos;s happening with your tickets today.</p>
         </div>

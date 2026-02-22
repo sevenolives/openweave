@@ -5,12 +5,14 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 
 function LoginForm() {
-  const [email, setEmail] = useState('');
+  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const { login } = useAuth();
+  const { login, register } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -20,11 +22,15 @@ function LoginForm() {
     setError('');
 
     try {
-      await login(email, password);
+      if (mode === 'login') {
+        await login(username, password);
+      } else {
+        await register({ username, name, password });
+      }
       const redirect = searchParams.get('redirect');
       router.push(redirect || '/dashboard');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : (mode === 'login' ? 'Login failed' : 'Registration failed'));
     } finally {
       setIsLoading(false);
     }
@@ -48,25 +54,61 @@ function LoginForm() {
           </p>
         </div>
 
-        {/* Login Card */}
+        {/* Card */}
         <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 p-6 sm:p-8">
+          {/* Tabs */}
+          <div className="flex mb-6 bg-gray-100 rounded-xl p-1">
+            <button
+              type="button"
+              onClick={() => { setMode('login'); setError(''); }}
+              className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-colors ${mode === 'login' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Sign in
+            </button>
+            <button
+              type="button"
+              onClick={() => { setMode('register'); setError(''); }}
+              className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-colors ${mode === 'register' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Create account
+            </button>
+          </div>
+
           <form className="space-y-5" onSubmit={handleSubmit}>
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
-                Email or username
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1.5">
+                Username
               </label>
               <input
-                id="email"
-                name="email"
+                id="username"
+                name="username"
                 type="text"
-                autoComplete="email"
+                autoComplete="username"
                 required
                 className="block w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:bg-white transition-all text-sm"
-                placeholder="Enter your email or username"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
               />
             </div>
+
+            {mode === 'register' && (
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Display name
+                </label>
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  required
+                  className="block w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:bg-white transition-all text-sm"
+                  placeholder="Enter your display name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+            )}
             
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -76,7 +118,7 @@ function LoginForm() {
                 id="password"
                 name="password"
                 type="password"
-                autoComplete="current-password"
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                 required
                 className="block w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:bg-white transition-all text-sm"
                 placeholder="Enter your password"
@@ -105,45 +147,47 @@ function LoginForm() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  Signing in…
+                  {mode === 'login' ? 'Signing in…' : 'Creating account…'}
                 </span>
-              ) : 'Sign in'}
+              ) : (mode === 'login' ? 'Sign in' : 'Create account')}
             </button>
           </form>
         </div>
 
         {/* Demo credentials */}
-        <div className="mt-6">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200" />
+        {mode === 'login' && (
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200" />
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="px-3 bg-gradient-to-br from-indigo-50 via-white to-blue-50 text-gray-400 uppercase tracking-wider font-medium">
+                  Demo credentials
+                </span>
+              </div>
             </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="px-3 bg-gradient-to-br from-indigo-50 via-white to-blue-50 text-gray-400 uppercase tracking-wider font-medium">
-                Demo credentials
-              </span>
-            </div>
-          </div>
 
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => { setEmail('admin'); setPassword('password123'); }}
-              className="p-3 bg-white border border-gray-200 rounded-xl text-left hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors group"
-            >
-              <div className="text-xs font-semibold text-gray-900 group-hover:text-indigo-700">Admin</div>
-              <div className="text-xs text-gray-500 mt-0.5">admin / password123</div>
-            </button>
-            <button
-              type="button"
-              onClick={() => { setEmail('alice_agent'); setPassword('password123'); }}
-              className="p-3 bg-white border border-gray-200 rounded-xl text-left hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors group"
-            >
-              <div className="text-xs font-semibold text-gray-900 group-hover:text-indigo-700">Agent</div>
-              <div className="text-xs text-gray-500 mt-0.5">alice_agent / password123</div>
-            </button>
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => { setUsername('admin'); setPassword('password123'); }}
+                className="p-3 bg-white border border-gray-200 rounded-xl text-left hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors group"
+              >
+                <div className="text-xs font-semibold text-gray-900 group-hover:text-indigo-700">Admin</div>
+                <div className="text-xs text-gray-500 mt-0.5">admin / password123</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setUsername('alice_agent'); setPassword('password123'); }}
+                className="p-3 bg-white border border-gray-200 rounded-xl text-left hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors group"
+              >
+                <div className="text-xs font-semibold text-gray-900 group-hover:text-indigo-700">Agent</div>
+                <div className="text-xs text-gray-500 mt-0.5">alice_agent / password123</div>
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

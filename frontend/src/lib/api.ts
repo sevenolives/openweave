@@ -6,8 +6,7 @@ export interface User {
   id: number;
   username: string;
   email: string;
-  first_name: string;
-  last_name: string;
+  name: string;
   user_type: 'HUMAN' | 'BOT';
   role: 'ADMIN' | 'MEMBER';
   skills: string[];
@@ -226,11 +225,17 @@ class ApiClient {
     return tokens;
   }
 
-  async register(userData: Partial<User> & { password: string }): Promise<User> {
-    return this.request<User>('/users/', {
+  async register(data: { username: string; name: string; password: string }): Promise<AuthTokens> {
+    const tokens = await this.request<AuthTokens>('/auth/register/', {
       method: 'POST',
-      body: JSON.stringify(userData),
+      body: JSON.stringify(data),
     });
+    if (tokens.access) {
+      tokenStorage.setTokens(tokens);
+      const user = await this.getCurrentUser();
+      tokens.user = user;
+    }
+    return tokens;
   }
 
   // Projects
@@ -388,8 +393,27 @@ class ApiClient {
   async joinWorkspace(token: string): Promise<Workspace> {
     return this.request<Workspace>('/invites/join/', {
       method: 'POST',
-      body: JSON.stringify({ token }),
+      body: JSON.stringify({ workspace_invite_token: token }),
     });
+  }
+
+  async registerAndJoin(data: { workspace_invite_token: string; username: string; name: string; password: string }): Promise<{ workspace: Workspace; user: User }> {
+    const response = await fetch(`${this.baseUrl}/invites/join/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || errorData.message || `HTTP ${response.status}`);
+    }
+    const result = await response.json();
+    if (result.access) {
+      tokenStorage.setTokens({ access: result.access, refresh: result.refresh });
+      const user = await this.getCurrentUser();
+      return { workspace: result.workspace, user };
+    }
+    return result;
   }
 }
 

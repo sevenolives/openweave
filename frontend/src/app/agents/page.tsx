@@ -79,8 +79,8 @@ export default function AgentsPage() {
                       {agent.username[0].toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 truncate">{agent.first_name && agent.last_name ? `${agent.first_name} ${agent.last_name}` : agent.username}</h3>
-                      <p className="text-xs text-gray-500 truncate">{agent.email}</p>
+                      <h3 className="font-semibold text-gray-900 truncate">{agent.name || agent.username}</h3>
+                      <p className="text-xs text-gray-500 truncate">@{agent.username}</p>
                     </div>
                   </div>
 
