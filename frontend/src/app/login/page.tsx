@@ -116,12 +116,12 @@ export default function LoginPage() {
             <div className="mt-4 space-y-2 text-sm text-gray-600">
               <div className="p-3 bg-gray-100 rounded-md">
                 <div className="font-medium">Admin:</div>
-                <div>Email: admin@agent-desk.com</div>
-                <div>Password: admin123</div>
+                <div>Username: admin</div>
+                <div>Password: password123</div>
               </div>
               <div className="p-3 bg-gray-100 rounded-md">
                 <div className="font-medium">Agent:</div>
-                <div>Email: alice@agent-desk.com</div>
+                <div>Username: alice_agent</div>
                 <div>Password: password123</div>
               </div>
             </div>
