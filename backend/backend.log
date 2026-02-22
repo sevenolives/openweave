@@ -112,3 +112,13 @@ Starting development server at http://127.0.0.1:8000/
 Quit the server with CONTROL-C.
 
 Watching for file changes with StatReloader
+/root/.openclaw/workspace-supporty/agent-desk/backend/agentdesk/settings.py changed, reloading.
+Performing system checks...
+
+System check identified no issues (0 silenced).
+February 22, 2026 - 02:43:49
+Django version 5.0.1, using settings 'agentdesk.settings'
+Starting development server at http://127.0.0.1:8000/
+Quit the server with CONTROL-C.
+
+Watching for file changes with StatReloader

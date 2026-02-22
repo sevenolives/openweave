@@ -1,0 +1,27 @@
+TICKET STATUS CHANGED
+
+Hi {{ agent.first_name|default:agent.username }},
+
+The status of ticket #{{ ticket.id }} has been changed{% if changed_by %} by {{ changed_by.first_name|default:changed_by.username }}{% endif %}.
+
+STATUS UPDATE
+-------------
+{{ old_status }} → {{ new_status }}
+
+{% if new_status == 'BLOCKED' %}*** THIS TICKET IS NOW BLOCKED AND REQUIRES IMMEDIATE ATTENTION! ***
+
+{% endif %}TICKET DETAILS
+--------------
+Ticket #{{ ticket.id }}: {{ ticket.title }}
+Project: {{ ticket.project.name }}
+Priority: {{ ticket.get_priority_display }}
+Assigned to: {{ ticket.assigned_to.first_name|default:ticket.assigned_to.username|default:"Unassigned" }}
+Updated: {{ ticket.updated_at|date:"M j, Y g:i A" }}
+
+VIEW TICKET
+-----------
+{{ site_url }}/tickets/{{ ticket.id }}
+
+---
+This is an automated email from Agent Desk. Please do not reply to this email.
+You can manage your notification preferences in your profile settings: {{ site_url }}/profile

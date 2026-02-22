@@ -20,9 +20,21 @@ class Agent(AbstractUser):
         ('MEMBER', 'Member'),
     ]
     
+    NOTIFICATION_PREFERENCES = [
+        ('ALL', 'All Notifications'),
+        ('CRITICAL', 'Critical Only (High/Critical Priority + Blocked Tickets)'),
+        ('NONE', 'No Notifications'),
+    ]
+    
     agent_type = models.CharField(max_length=10, choices=AGENT_TYPES, default='HUMAN')
     role = models.CharField(max_length=10, choices=ROLES, default='MEMBER')
     skills = models.JSONField(default=list, blank=True, help_text="List of skill tags")
+    notification_preference = models.CharField(
+        max_length=10, 
+        choices=NOTIFICATION_PREFERENCES, 
+        default='ALL',
+        help_text="Email notification preference level"
+    )
     is_active = models.BooleanField(default=True)
     
     # Keep the username field as per best practices
@@ -208,7 +220,9 @@ def ticket_pre_save(sender, instance, **kwargs):
 
 @receiver(post_save, sender=Ticket)
 def ticket_post_save(sender, instance, created, **kwargs):
-    """Create audit log entry for ticket changes."""
+    """Create audit log entry for ticket changes and trigger email notifications."""
+    from .tasks import send_ticket_assignment_notification, send_ticket_status_change_notification
+    
     if hasattr(instance, '_state') and hasattr(instance._state, 'adding') and instance._state.adding:
         # This is a new instance
         AuditLog.objects.create(
@@ -219,8 +233,11 @@ def ticket_post_save(sender, instance, created, **kwargs):
             old_value=None,
             new_value=model_to_dict(instance)
         )
-    elif hasattr(instance, '_old_values'):
+    elif hasattr(instance, '_old_values') and instance._old_values is not None:
         # This is an update
+        old_values = instance._old_values
+        new_values = model_to_dict(instance)
+        
         # Determine who performed the action (for now, use created_by, in real app this would come from request)
         performer = getattr(instance, '_performed_by', instance.created_by)
         
@@ -229,14 +246,39 @@ def ticket_post_save(sender, instance, created, **kwargs):
             entity_id=instance.pk,
             action='UPDATE',
             performed_by=performer,
-            old_value=instance._old_values,
-            new_value=model_to_dict(instance)
+            old_value=old_values,
+            new_value=new_values
         )
+        
+        # Check for assignment changes
+        old_assigned_to = old_values.get('assigned_to')
+        new_assigned_to = new_values.get('assigned_to')
+        
+        if old_assigned_to != new_assigned_to and new_assigned_to:
+            # Ticket was assigned or reassigned
+            send_ticket_assignment_notification.delay(
+                ticket_id=instance.pk,
+                assigned_to_id=new_assigned_to,
+                assigned_by_id=performer.pk
+            )
+        
+        # Check for status changes
+        old_status = old_values.get('status')
+        new_status = new_values.get('status')
+        
+        if old_status != new_status:
+            # Status changed
+            send_ticket_status_change_notification.delay(
+                ticket_id=instance.pk,
+                old_status=old_status,
+                new_status=new_status,
+                changed_by_id=performer.pk
+            )
 
 
 @receiver(post_save, sender=Comment)
 def comment_post_save(sender, instance, created, **kwargs):
-    """Create audit log entry for comment changes."""
+    """Create audit log entry for comment changes and trigger email notifications."""
     if created:
         AuditLog.objects.create(
             entity_type='Comment',
@@ -246,6 +288,10 @@ def comment_post_save(sender, instance, created, **kwargs):
             old_value=None,
             new_value=model_to_dict(instance)
         )
+        
+        # Send email notifications for new comments
+        from .tasks import send_comment_notification
+        send_comment_notification.delay(comment_id=instance.pk)
 
 
 @receiver(post_save, sender=Project)
@@ -257,6 +303,28 @@ def project_post_save(sender, instance, created, **kwargs):
         # For now, we'll skip audit logging for project creation in signals
         # and handle it in the API views instead
         pass
+
+
+@receiver(post_save, sender=ProjectAgent)
+def project_agent_post_save(sender, instance, created, **kwargs):
+    """Create audit log entry for project agent changes and trigger email notifications."""
+    if created:
+        AuditLog.objects.create(
+            entity_type='ProjectAgent',
+            entity_id=instance.pk,
+            action='CREATE',
+            performed_by=instance.agent,  # For now, assume agent added themselves
+            old_value=None,
+            new_value=model_to_dict(instance)
+        )
+        
+        # Send email notification for project agent addition
+        from .tasks import send_project_agent_added_notification
+        send_project_agent_added_notification.delay(
+            project_id=instance.project.pk,
+            agent_id=instance.agent.pk,
+            added_by_id=getattr(instance, '_added_by_id', None)
+        )
 
 
 @receiver(post_delete, sender=Ticket)

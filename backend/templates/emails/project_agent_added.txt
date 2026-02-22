@@ -1,0 +1,23 @@
+ADDED TO PROJECT
+
+Hi {{ agent.first_name|default:agent.username }},
+
+You have been added to a new project{% if added_by %} by {{ added_by.first_name|default:added_by.username }}{% endif %}!
+
+PROJECT DETAILS
+---------------
+Project: {{ project.name }}
+{% if project.description %}
+Description: {{ project.description }}
+{% endif %}
+Created: {{ project.created_at|date:"M j, Y g:i A" }}
+
+You can now view and work on tickets for this project. Welcome to the team!
+
+VIEW PROJECT
+------------
+{{ site_url }}/projects/{{ project.id }}
+
+---
+This is an automated email from Agent Desk. Please do not reply to this email.
+You can manage your notification preferences in your profile settings: {{ site_url }}/profile

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Ticket Status Changed</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #17a2b8;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .header.blocked {
+            background-color: #dc3545;
+        }
+        .content {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border: 1px solid #dee2e6;
+            border-top: none;
+        }
+        .ticket-info {
+            background-color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .status-change {
+            background-color: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+            margin: 15px 0;
+        }
+        .status-change.blocked {
+            background-color: #f8d7da;
+            border-left-color: #dc3545;
+        }
+        .priority-high, .priority-critical {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .priority-medium {
+            color: #fd7e14;
+            font-weight: bold;
+        }
+        .priority-low {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #17a2b8;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+        .btn.blocked {
+            background-color: #dc3545;
+        }
+        .footer {
+            background-color: #e9ecef;
+            padding: 15px;
+            text-align: center;
+            font-size: 12px;
+            color: #6c757d;
+            border-radius: 0 0 5px 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header{% if new_status == 'BLOCKED' %} blocked{% endif %}">
+        <h1>{% if new_status == 'BLOCKED' %}🚫{% else %}🔄{% endif %} Ticket Status Changed</h1>
+    </div>
+    
+    <div class="content">
+        <p>Hi {{ agent.first_name|default:agent.username }},</p>
+        
+        <p>The status of ticket #{{ ticket.id }} has been changed{% if changed_by %} by {{ changed_by.first_name|default:changed_by.username }}{% endif %}.</p>
+        
+        <div class="status-change{% if new_status == 'BLOCKED' %} blocked{% endif %}">
+            <h3>Status Update</h3>
+            <p><strong>{{ old_status }}</strong> → <strong>{{ new_status }}</strong></p>
+            {% if new_status == 'BLOCKED' %}
+            <p><strong>⚠️ This ticket is now blocked and requires immediate attention!</strong></p>
+            {% endif %}
+        </div>
+        
+        <div class="ticket-info">
+            <h3>Ticket #{{ ticket.id }}: {{ ticket.title }}</h3>
+            <p><strong>Project:</strong> {{ ticket.project.name }}</p>
+            <p><strong>Priority:</strong> <span class="priority-{{ ticket.priority|lower }}">{{ ticket.get_priority_display }}</span></p>
+            <p><strong>Assigned to:</strong> {{ ticket.assigned_to.first_name|default:ticket.assigned_to.username|default:"Unassigned" }}</p>
+            <p><strong>Updated:</strong> {{ ticket.updated_at|date:"M j, Y g:i A" }}</p>
+        </div>
+        
+        <a href="{{ site_url }}/tickets/{{ ticket.id }}" class="btn{% if new_status == 'BLOCKED' %} blocked{% endif %}">View Ticket</a>
+    </div>
+    
+    <div class="footer">
+        <p>This is an automated email from Agent Desk. Please do not reply to this email.</p>
+        <p>You can manage your notification preferences in your <a href="{{ site_url }}/profile">profile settings</a>.</p>
+    </div>
+</body>
+</html>

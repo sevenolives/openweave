@@ -50,6 +50,31 @@
       "variables": {
         "NEXT_PUBLIC_API_URL": "${{backend.RAILWAY_STATIC_URL}}/api"
       }
+    },
+    {
+      "name": "celery-worker",
+      "source": {
+        "repo": "saltyprojects/agent-desk",
+        "rootDirectory": "backend"
+      },
+      "build": {
+        "buildCommand": "pip install -r requirements.txt",
+        "startCommand": "celery -A agentdesk worker --loglevel=info"
+      },
+      "variables": {
+        "PYTHONPATH": "/app",
+        "DEBUG": "false",
+        "SECRET_KEY": "${{RAILWAY_STATIC_URL}}",
+        "DATABASE_URL": "${{DATABASE_URL}}",
+        "REDIS_URL": "${{REDIS_URL}}",
+        "FRONTEND_URL": "${{frontend.RAILWAY_STATIC_URL}}"
+      }
+    },
+    {
+      "name": "redis",
+      "source": {
+        "image": "redis:7-alpine"
+      }
     }
   ]
 }

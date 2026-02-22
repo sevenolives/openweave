@@ -1,0 +1,27 @@
+NEW COMMENT
+
+Hi {{ agent.first_name|default:agent.username }},
+
+A new comment has been added to ticket #{{ ticket.id }}.
+
+COMMENT
+-------
+{{ comment.author.first_name|default:comment.author.username }} commented on {{ comment.created_at|date:"M j, Y g:i A" }}:
+
+{{ comment.body }}
+
+TICKET DETAILS
+--------------
+Ticket #{{ ticket.id }}: {{ ticket.title }}
+Project: {{ ticket.project.name }}
+Priority: {{ ticket.get_priority_display }}
+Status: {{ ticket.get_status_display }}
+Assigned to: {{ ticket.assigned_to.first_name|default:ticket.assigned_to.username|default:"Unassigned" }}
+
+VIEW TICKET & REPLY
+-------------------
+{{ site_url }}/tickets/{{ ticket.id }}
+
+---
+This is an automated email from Agent Desk. Please do not reply to this email.
+You can manage your notification preferences in your profile settings: {{ site_url }}/profile

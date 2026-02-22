@@ -1,0 +1,25 @@
+TICKET ASSIGNED
+
+Hi {{ agent.first_name|default:agent.username }},
+
+You have been assigned a new ticket{% if assigned_by %} by {{ assigned_by.first_name|default:assigned_by.username }}{% endif %}.
+
+TICKET DETAILS
+--------------
+Ticket #{{ ticket.id }}: {{ ticket.title }}
+Project: {{ ticket.project.name }}
+Priority: {{ ticket.get_priority_display }}
+Status: {{ ticket.get_status_display }}
+Created: {{ ticket.created_at|date:"M j, Y g:i A" }}
+
+DESCRIPTION
+-----------
+{{ ticket.description }}
+
+VIEW TICKET
+-----------
+{{ site_url }}/tickets/{{ ticket.id }}
+
+---
+This is an automated email from Agent Desk. Please do not reply to this email.
+You can manage your notification preferences in your profile settings: {{ site_url }}/profile
