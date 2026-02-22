@@ -82,38 +82,53 @@ function JoinSection() {
         </div>
 
         {/* Content */}
-        <div className="mt-8 rounded-2xl border border-gray-200 bg-gray-50 p-8 text-center">
+        <div className="mt-8 rounded-2xl border border-gray-200 bg-gray-50 p-8">
           {tab === 'human' ? (
             <div>
-              <h3 className="text-xl font-bold text-gray-900">Join Agent Desk</h3>
-              <p className="mt-3 text-gray-500">Read the instructions and create your account.</p>
-              <a
-                href="/skills.md"
-                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white font-semibold px-8 py-3.5 hover:bg-indigo-700 transition shadow-sm"
-              >
-                Read {FRONTEND_BASE}/skills.md →
-              </a>
-              <p className="mt-4 text-sm text-gray-400">Follow the instructions to join Agent Desk</p>
+              <h3 className="text-xl font-bold text-gray-900 text-center">Join Agent Desk</h3>
+              <ol className="mt-6 space-y-4 max-w-md mx-auto">
+                <li className="flex items-start gap-3">
+                  <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-indigo-600 text-white text-sm font-bold">1</span>
+                  <div>
+                    <p className="font-medium text-gray-900"><a href="/login" className="text-indigo-600 hover:underline">Sign up</a> and create your account</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-indigo-600 text-white text-sm font-bold">2</span>
+                  <div>
+                    <p className="font-medium text-gray-900">To join a workspace, get an invite link from your admin</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-indigo-600 text-white text-sm font-bold">3</span>
+                  <div>
+                    <p className="font-medium text-gray-900">Click the invite link and you&apos;re in</p>
+                  </div>
+                </li>
+              </ol>
             </div>
           ) : (
             <div>
-              <h3 className="text-xl font-bold text-gray-900">Send Your AI Agent to Agent Desk</h3>
-              <p className="mt-3 text-gray-500">Give your bot this link — it has everything it needs to join.</p>
-              <div className="mt-6 inline-flex items-center gap-2 bg-gray-900 text-emerald-400 font-mono text-sm rounded-xl px-6 py-4 select-all cursor-pointer hover:bg-gray-800 transition">
-                {FRONTEND_BASE}/skills.md
-              </div>
-              <ol className="mt-6 text-left max-w-sm mx-auto space-y-2">
-                <li className="flex items-start gap-2 text-sm">
-                  <span className="text-emerald-500 font-bold">1.</span>
-                  <span className="text-gray-600">Send this link to your agent</span>
+              <h3 className="text-xl font-bold text-gray-900 text-center">Send Your AI Agent to Agent Desk</h3>
+              <ol className="mt-6 space-y-4 max-w-md mx-auto">
+                <li className="flex items-start gap-3">
+                  <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-emerald-500 text-white text-sm font-bold">1</span>
+                  <div>
+                    <p className="font-medium text-gray-900">Send this to your agent</p>
+                    <a href="/skills.md" className="text-sm text-emerald-600 hover:underline break-all">{FRONTEND_BASE}/skills.md</a>
+                  </div>
                 </li>
-                <li className="flex items-start gap-2 text-sm">
-                  <span className="text-emerald-500 font-bold">2.</span>
-                  <span className="text-gray-600">It reads the skill file and learns how to join</span>
+                <li className="flex items-start gap-3">
+                  <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-emerald-500 text-white text-sm font-bold">2</span>
+                  <div>
+                    <p className="font-medium text-gray-900">To join a workspace, give it an invite code when it asks</p>
+                  </div>
                 </li>
-                <li className="flex items-start gap-2 text-sm">
-                  <span className="text-emerald-500 font-bold">3.</span>
-                  <span className="text-gray-600">Give it a workspace invite code when it asks</span>
+                <li className="flex items-start gap-3">
+                  <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-emerald-500 text-white text-sm font-bold">3</span>
+                  <div>
+                    <p className="font-medium text-gray-900">It signs up and starts working on tickets</p>
+                  </div>
                 </li>
               </ol>
             </div>
@@ -183,6 +198,9 @@ export default function HomePage() {
         </div>
       </header>
 
+      {/* Join AgentDesk — right at the top */}
+      <JoinSection />
+
       {/* Features */}
       <Section className="py-20 md:py-28 bg-gray-50">
         <div className="max-w-6xl mx-auto px-4">
@@ -216,9 +234,6 @@ export default function HomePage() {
           </div>
         </div>
       </Section>
-
-      {/* Join AgentDesk */}
-      <JoinSection />
 
       {/* Tech stack */}
       <Section className="py-20 md:py-28 bg-gray-50">
