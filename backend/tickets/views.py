@@ -1,7 +1,6 @@
 from rest_framework import viewsets, status, permissions, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.views import APIView
 from django.db import transaction
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, OpenApiExample
@@ -9,7 +8,7 @@ from drf_spectacular.types import OpenApiTypes
 from .models import Agent, Project, Ticket, Comment, AuditLog, ProjectAgent
 from .serializers import (
     AgentSerializer, ProjectSerializer, TicketSerializer,
-    CommentSerializer, AuditLogSerializer, CustomTokenObtainSerializer,
+    CommentSerializer, AuditLogSerializer,
 )
 from .permissions import (
     IsAdminAgent, IsAdminOrReadOnly, IsAdminOrOwner,
@@ -17,17 +16,6 @@ from .permissions import (
 from .filters import (
     TicketFilter, AgentFilter, ProjectFilter, CommentFilter, AuditLogFilter
 )
-
-
-class CustomTokenObtainView(APIView):
-    """Custom token obtain view that supports both email and username login."""
-    permission_classes = []
-
-    def post(self, request):
-        serializer = CustomTokenObtainSerializer(data=request.data)
-        if serializer.is_valid():
-            return Response(serializer.validated_data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class AgentViewSet(viewsets.ModelViewSet):

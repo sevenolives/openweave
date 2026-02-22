@@ -1,6 +1,4 @@
 from rest_framework import serializers
-from django.contrib.auth import authenticate
-from rest_framework_simplejwt.tokens import RefreshToken
 from .models import Agent, Project, Ticket, Comment, AuditLog
 
 
@@ -146,46 +144,4 @@ class AuditLogSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['timestamp']
 
-
-class CustomTokenObtainSerializer(serializers.Serializer):
-    """
-    Custom token obtain serializer that supports both email and username login.
-    Following best practices from BEST_PRACTICES.md.
-    """
-    email = serializers.CharField()
-    password = serializers.CharField(style={'input_type': 'password'})
-    
-    def validate(self, attrs):
-        email = attrs.get('email')
-        password = attrs.get('password')
-        
-        if email and password:
-            # Try to find user by email or username
-            user = None
-            try:
-                # First try by email
-                user = Agent.objects.get(email=email)
-            except Agent.DoesNotExist:
-                # Then try by username
-                try:
-                    user = Agent.objects.get(username=email)
-                except Agent.DoesNotExist:
-                    pass
-            
-            if user and user.check_password(password):
-                if user.is_active:
-                    refresh = RefreshToken.for_user(user)
-                    return {
-                        'refresh': str(refresh),
-                        'access': str(refresh.access_token),
-                        'user': AgentSerializer(user).data
-                    }
-                else:
-                    raise serializers.ValidationError('User account is disabled.')
-            else:
-                raise serializers.ValidationError('Invalid email/username or password.')
-        else:
-            raise serializers.ValidationError('Must include email and password.')
-
-
-# ProjectAgentSerializer removed — use ProjectSerializer with agent_ids instead
+# Auth uses vanilla SimpleJWT TokenObtainPairView (username + password)

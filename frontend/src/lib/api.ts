@@ -54,7 +54,7 @@ export interface Comment {
 export interface AuthTokens {
   access: string;
   refresh: string;
-  user: Agent;
+  user?: Agent;
 }
 
 export interface PaginatedResponse<T> {
@@ -183,11 +183,18 @@ class ApiClient {
   }
 
   // Auth
-  async login(email: string, password: string): Promise<AuthTokens> {
-    return this.request<AuthTokens>('/auth/login/', {
+  async login(username: string, password: string): Promise<AuthTokens> {
+    const tokens = await this.request<AuthTokens>('/auth/login/', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ username, password }),
     });
+    // SimpleJWT only returns access + refresh, fetch user separately
+    if (tokens.access) {
+      tokenStorage.setTokens(tokens);
+      const user = await this.getCurrentUser();
+      tokens.user = user;
+    }
+    return tokens;
   }
 
   async register(userData: Partial<Agent> & { password: string }): Promise<Agent> {

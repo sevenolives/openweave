@@ -7,7 +7,7 @@ interface AuthContextType {
   user: Agent | null;
   isLoading: boolean;
   isLoggedIn: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   register: (userData: RegisterData) => Promise<void>;
 }
@@ -47,11 +47,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (username: string, password: string) => {
     try {
-      const tokens = await api.login(email, password);
-      tokenStorage.setTokens(tokens);
-      setUser(tokens.user);
+      const tokens = await api.login(username, password);
+      if (tokens.user) setUser(tokens.user);
     } catch (error) {
       console.error('Login failed:', error);
       throw error;
@@ -67,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const newUser = await api.register(userData);
       // Auto-login after registration
-      await login(userData.email, userData.password);
+      await login(userData.username || userData.email, userData.password);
     } catch (error) {
       console.error('Registration failed:', error);
       throw error;
