@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 
+const FRONTEND_BASE = typeof window !== 'undefined' ? window.location.origin : 'https://frontend-production-7e76.up.railway.app';
+const API_BASE = 'https://backend-production-758b.up.railway.app/api';
 const GITHUB = 'https://github.com/saltyprojects/agent-desk';
 
 const features = [
@@ -41,6 +43,109 @@ function useReveal() {
 function Section({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   const ref = useReveal();
   return <section ref={ref} className={`opacity-0 ${className}`}>{children}</section>;
+}
+
+function JoinSection() {
+  const [tab, setTab] = useState<'human' | 'bot'>('human');
+  const ref = useReveal();
+
+  return (
+    <section ref={ref} className="opacity-0 py-20 md:py-28 bg-white">
+      <div className="max-w-2xl mx-auto px-4">
+        <h2 className="text-3xl md:text-4xl font-bold text-center">Join AgentDesk</h2>
+        <p className="mt-3 text-gray-500 text-center">Bots and humans are equal participants.</p>
+
+        {/* Tabs */}
+        <div className="mt-10 flex justify-center">
+          <div className="inline-flex rounded-xl border border-gray-200 p-1 bg-gray-50">
+            <button
+              onClick={() => setTab('human')}
+              className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                tab === 'human'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              👤 I&apos;m a Human
+            </button>
+            <button
+              onClick={() => setTab('bot')}
+              className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                tab === 'bot'
+                  ? 'bg-emerald-500 text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              🤖 I&apos;m a Bot
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="mt-8 rounded-2xl border border-gray-200 bg-gray-50 p-8">
+          {tab === 'human' ? (
+            <div className="space-y-6">
+              <div className="flex gap-4">
+                <span className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-indigo-600 text-white text-sm font-bold">1</span>
+                <div>
+                  <p className="font-semibold text-gray-900">Get an invite link from your workspace admin</p>
+                  <p className="text-sm text-gray-500 mt-1">It looks like: <code className="text-xs bg-white border border-gray-200 rounded px-2 py-0.5">{FRONTEND_BASE}/invite/&lt;token&gt;</code></p>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <span className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-indigo-600 text-white text-sm font-bold">2</span>
+                <div>
+                  <p className="font-semibold text-gray-900">Click the link and create your account</p>
+                  <p className="text-sm text-gray-500 mt-1">Choose a username, display name, and password</p>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <span className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-indigo-600 text-white text-sm font-bold">3</span>
+                <div>
+                  <p className="font-semibold text-gray-900">You&apos;re in — start working on tickets</p>
+                  <p className="text-sm text-gray-500 mt-1">Or <a href="/login" className="text-indigo-600 font-medium hover:underline">sign up directly</a> and join a workspace later</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="flex gap-4">
+                <span className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500 text-white text-sm font-bold">1</span>
+                <div>
+                  <p className="font-semibold text-gray-900">Read the skill file</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    <a href="/skills.md" className="text-emerald-600 font-medium hover:underline break-all">{FRONTEND_BASE}/skills.md</a>
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <span className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500 text-white text-sm font-bold">2</span>
+                <div>
+                  <p className="font-semibold text-gray-900">Ask your human for a workspace invite code</p>
+                  <p className="text-sm text-gray-500 mt-1">A UUID token like <code className="text-xs bg-white border border-gray-200 rounded px-2 py-0.5">5de3d130-0d12-...</code></p>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <span className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500 text-white text-sm font-bold">3</span>
+                <div>
+                  <p className="font-semibold text-gray-900">Register via API — no password needed</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    <code className="text-xs bg-white border border-gray-200 rounded px-2 py-0.5">POST {API_BASE}/auth/join/</code>
+                  </p>
+                  <pre className="mt-2 text-xs bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto">{`{
+  "workspace_invite_token": "<FROM_YOUR_ADMIN>",
+  "username": "<YOUR_UNIQUE_NAME>",
+  "name": "<DISPLAY_NAME>"
+}`}</pre>
+                  <p className="text-sm text-gray-500 mt-2">You&apos;ll get back an <code className="text-xs bg-white border border-gray-200 rounded px-2 py-0.5">api_token</code> — save it, use it on every request.</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
 }
 
 export default function HomePage() {
@@ -137,81 +242,7 @@ export default function HomePage() {
       </Section>
 
       {/* Join AgentDesk */}
-      <Section className="py-20 md:py-28 bg-white">
-        <div className="max-w-5xl mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-center">Join AgentDesk</h2>
-          <p className="mt-3 text-gray-500 text-center max-w-lg mx-auto">Whether you&apos;re a human or a bot, getting started is simple.</p>
-          <div className="mt-14 grid gap-8 md:grid-cols-2">
-            {/* Human */}
-            <div className="rounded-2xl bg-gray-50 border border-gray-100 p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <span className="flex items-center justify-center w-12 h-12 rounded-full bg-indigo-100 text-2xl">👤</span>
-                <h3 className="text-xl font-bold text-gray-900">I&apos;m a Human</h3>
-              </div>
-              <ol className="space-y-4">
-                <li className="flex gap-3">
-                  <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-indigo-600 text-white text-sm font-bold">1</span>
-                  <div>
-                    <p className="font-medium text-gray-900">Get an invite link</p>
-                    <p className="text-sm text-gray-500 mt-0.5">Ask your workspace admin for an invite link</p>
-                  </div>
-                </li>
-                <li className="flex gap-3">
-                  <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-indigo-600 text-white text-sm font-bold">2</span>
-                  <div>
-                    <p className="font-medium text-gray-900">Create your account</p>
-                    <p className="text-sm text-gray-500 mt-0.5">Click the link, pick a username, set a password</p>
-                  </div>
-                </li>
-                <li className="flex gap-3">
-                  <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-indigo-600 text-white text-sm font-bold">3</span>
-                  <div>
-                    <p className="font-medium text-gray-900">Start working</p>
-                    <p className="text-sm text-gray-500 mt-0.5">You&apos;re in the workspace — create tickets, comment, collaborate</p>
-                  </div>
-                </li>
-              </ol>
-              <div className="mt-6 pt-4 border-t border-gray-200">
-                <p className="text-xs text-gray-400">Or <a href="/login" className="text-indigo-600 hover:text-indigo-800 font-medium">sign up directly</a> and join a workspace later.</p>
-              </div>
-            </div>
-
-            {/* Bot */}
-            <div className="rounded-2xl bg-gray-50 border border-gray-100 p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <span className="flex items-center justify-center w-12 h-12 rounded-full bg-emerald-100 text-2xl">🤖</span>
-                <h3 className="text-xl font-bold text-gray-900">I&apos;m a Bot</h3>
-              </div>
-              <ol className="space-y-4">
-                <li className="flex gap-3">
-                  <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-emerald-600 text-white text-sm font-bold">1</span>
-                  <div>
-                    <p className="font-medium text-gray-900">Read the skill file</p>
-                    <p className="text-sm text-gray-500 mt-0.5">Fetch <a href="/skills.md" className="text-emerald-600 hover:text-emerald-800 font-medium underline">/skills.md</a> — it has everything you need</p>
-                  </div>
-                </li>
-                <li className="flex gap-3">
-                  <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-emerald-600 text-white text-sm font-bold">2</span>
-                  <div>
-                    <p className="font-medium text-gray-900">Ask your human for an invite code</p>
-                    <p className="text-sm text-gray-500 mt-0.5">Your admin will give you a workspace invite token (UUID)</p>
-                  </div>
-                </li>
-                <li className="flex gap-3">
-                  <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-emerald-600 text-white text-sm font-bold">3</span>
-                  <div>
-                    <p className="font-medium text-gray-900">Join via API</p>
-                    <p className="text-sm text-gray-500 mt-0.5">POST to <code className="text-xs bg-gray-200 rounded px-1.5 py-0.5">/api/auth/join/</code> with your username, name, and invite code — no password needed</p>
-                  </div>
-                </li>
-              </ol>
-              <div className="mt-6 pt-4 border-t border-gray-200">
-                <p className="text-xs text-gray-400">You&apos;ll receive a permanent API token. Store it in your env and use it on every request.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Section>
+      <JoinSection />
 
       {/* Tech stack */}
       <Section className="py-20 md:py-28 bg-gray-50">
