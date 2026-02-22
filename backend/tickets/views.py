@@ -5,17 +5,20 @@ from django.db import transaction
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, OpenApiExample
 from drf_spectacular.types import OpenApiTypes
-from .models import User, Project, Ticket, Comment, AuditLog, ProjectAgent
+from .models import User, Project, Ticket, Comment, AuditLog, ProjectAgent, Workspace, WorkspaceMember, WorkspaceInvite
 from .serializers import (
     UserSerializer, ProjectSerializer, TicketSerializer,
     CommentSerializer, AuditLogSerializer,
+    WorkspaceSerializer, WorkspaceMemberSerializer, WorkspaceInviteSerializer,
 )
 from .permissions import (
     IsAdminAgent, IsAdminOrReadOnly, IsAdminOrOwner,
 )
 from .filters import (
-    TicketFilter, UserFilter, ProjectFilter, CommentFilter, AuditLogFilter
+    TicketFilter, UserFilter, ProjectFilter, CommentFilter, AuditLogFilter,
+    WorkspaceMemberFilter, WorkspaceInviteFilter,
 )
+from django.utils import timezone
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -197,3 +200,131 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         return AuditLog.objects.select_related('performed_by').all()
+
+
+class WorkspaceViewSet(viewsets.ModelViewSet):
+    """
+    CRUD operations for workspaces.
+
+    - **GET /workspaces/** — list workspaces the current user is a member of
+    - **POST /workspaces/** — create a workspace (auto-adds creator as ADMIN, creates invite link)
+    - **GET /workspaces/{id}/** — retrieve workspace details
+    - **PATCH /workspaces/{id}/** — update workspace name/slug
+    - **DELETE /workspaces/{id}/** — delete workspace
+    """
+    queryset = Workspace.objects.all()
+    serializer_class = WorkspaceSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
+
+    def get_queryset(self):
+        return Workspace.objects.filter(members__user=self.request.user)
+
+    def perform_create(self, serializer):
+        with transaction.atomic():
+            workspace = serializer.save(owner=self.request.user)
+            WorkspaceMember.objects.create(workspace=workspace, user=self.request.user, role='ADMIN')
+            WorkspaceInvite.objects.create(workspace=workspace, created_by=self.request.user)
+
+    def check_object_permissions(self, request, obj):
+        super().check_object_permissions(request, obj)
+        if request.method not in ('GET', 'HEAD', 'OPTIONS'):
+            membership = WorkspaceMember.objects.filter(workspace=obj, user=request.user).first()
+            if not membership or (membership.role != 'ADMIN' and obj.owner != request.user):
+                self.permission_denied(request)
+
+
+class WorkspaceMemberViewSet(viewsets.ModelViewSet):
+    """
+    Manage workspace members.
+
+    - **GET /workspace-members/?workspace={id}** — list members of a workspace
+    - **PATCH /workspace-members/{id}/** — update member role (admin only)
+    - **DELETE /workspace-members/{id}/** — remove member (admin only)
+    """
+    queryset = WorkspaceMember.objects.all()
+    serializer_class = WorkspaceMemberSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = WorkspaceMemberFilter
+    http_method_names = ['get', 'patch', 'delete', 'head', 'options']
+
+    def get_queryset(self):
+        return WorkspaceMember.objects.select_related('user', 'workspace').filter(
+            workspace__members__user=self.request.user
+        ).distinct()
+
+    def check_object_permissions(self, request, obj):
+        super().check_object_permissions(request, obj)
+        if request.method not in ('GET', 'HEAD', 'OPTIONS'):
+            membership = WorkspaceMember.objects.filter(workspace=obj.workspace, user=request.user, role='ADMIN').first()
+            if not membership:
+                self.permission_denied(request)
+
+
+class WorkspaceInviteViewSet(viewsets.ModelViewSet):
+    """
+    Manage workspace invite links.
+
+    - **GET /invites/?workspace={id}** — list invites for a workspace
+    - **POST /invites/** — create an invite (admin only)
+    - **PATCH /invites/{id}/** — update invite settings (admin only)
+    - **DELETE /invites/{id}/** — delete invite (admin only)
+    - **POST /invites/join/** — join a workspace using a token
+    """
+    queryset = WorkspaceInvite.objects.all()
+    serializer_class = WorkspaceInviteSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = WorkspaceInviteFilter
+    http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
+
+    def get_queryset(self):
+        return WorkspaceInvite.objects.filter(
+            workspace__members__user=self.request.user
+        ).distinct()
+
+    def perform_create(self, serializer):
+        workspace = serializer.validated_data['workspace']
+        membership = WorkspaceMember.objects.filter(workspace=workspace, user=self.request.user, role='ADMIN').first()
+        if not membership:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Only workspace admins can create invites.")
+        serializer.save(created_by=self.request.user)
+
+    def check_object_permissions(self, request, obj):
+        super().check_object_permissions(request, obj)
+        if request.method not in ('GET', 'HEAD', 'OPTIONS'):
+            membership = WorkspaceMember.objects.filter(workspace=obj.workspace, user=request.user, role='ADMIN').first()
+            if not membership:
+                self.permission_denied(request)
+
+    @extend_schema(summary="Join a workspace using an invite token")
+    @action(detail=False, methods=['post'])
+    def join(self, request):
+        """Join a workspace using an invite token."""
+        token = request.data.get('token')
+        if not token:
+            return Response({'detail': 'Token is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            invite = WorkspaceInvite.objects.get(token=token, is_active=True)
+        except WorkspaceInvite.DoesNotExist:
+            return Response({'detail': 'Invalid or inactive invite.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if invite.expires_at and invite.expires_at < timezone.now():
+            return Response({'detail': 'Invite has expired.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if invite.max_uses and invite.use_count >= invite.max_uses:
+            return Response({'detail': 'Invite has reached maximum uses.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        membership, created = WorkspaceMember.objects.get_or_create(
+            workspace=invite.workspace, user=request.user,
+            defaults={'role': 'MEMBER'}
+        )
+
+        if created:
+            invite.use_count += 1
+            invite.save()
+
+        return Response(WorkspaceSerializer(invite.workspace).data, status=status.HTTP_200_OK)

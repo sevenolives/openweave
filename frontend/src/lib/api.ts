@@ -51,6 +51,35 @@ export interface Comment {
   updated_at: string;
 }
 
+export interface Workspace {
+  id: number;
+  name: string;
+  slug: string;
+  owner: number;
+  member_count: number;
+  created_at: string;
+}
+
+export interface WorkspaceMember {
+  id: number;
+  workspace: number;
+  user: User;
+  role: 'ADMIN' | 'MEMBER';
+  joined_at: string;
+}
+
+export interface WorkspaceInvite {
+  id: number;
+  workspace: number;
+  token: string;
+  created_by: number;
+  expires_at: string | null;
+  max_uses: number | null;
+  use_count: number;
+  is_active: boolean;
+  created_at: string;
+}
+
 export interface AuthTokens {
   access: string;
   refresh: string;
@@ -287,6 +316,80 @@ class ApiClient {
 
   async getCurrentUser(): Promise<User> {
     return this.request<User>('/users/me/');
+  }
+
+  // Workspaces
+  async getWorkspaces(): Promise<Workspace[]> {
+    const response = await this.request<PaginatedResponse<Workspace>>('/workspaces/');
+    return response.results || [];
+  }
+
+  async createWorkspace(data: { name: string; slug: string }): Promise<Workspace> {
+    return this.request<Workspace>('/workspaces/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateWorkspace(id: number, data: Partial<Workspace>): Promise<Workspace> {
+    return this.request<Workspace>(`/workspaces/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteWorkspace(id: number): Promise<void> {
+    await this.request(`/workspaces/${id}/`, { method: 'DELETE' });
+  }
+
+  // Workspace Members
+  async getWorkspaceMembers(params?: Record<string, string>): Promise<WorkspaceMember[]> {
+    const query = params ? '?' + new URLSearchParams(params).toString() : '';
+    const response = await this.request<PaginatedResponse<WorkspaceMember>>(`/workspace-members/${query}`);
+    return response.results || [];
+  }
+
+  async updateWorkspaceMember(id: number, data: { role: string }): Promise<WorkspaceMember> {
+    return this.request<WorkspaceMember>(`/workspace-members/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async removeWorkspaceMember(id: number): Promise<void> {
+    await this.request(`/workspace-members/${id}/`, { method: 'DELETE' });
+  }
+
+  // Invites
+  async getInvites(params?: Record<string, string>): Promise<WorkspaceInvite[]> {
+    const query = params ? '?' + new URLSearchParams(params).toString() : '';
+    const response = await this.request<PaginatedResponse<WorkspaceInvite>>(`/invites/${query}`);
+    return response.results || [];
+  }
+
+  async createInvite(data: { workspace: number; expires_at?: string; max_uses?: number }): Promise<WorkspaceInvite> {
+    return this.request<WorkspaceInvite>('/invites/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateInvite(id: number, data: Partial<WorkspaceInvite>): Promise<WorkspaceInvite> {
+    return this.request<WorkspaceInvite>(`/invites/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteInvite(id: number): Promise<void> {
+    await this.request(`/invites/${id}/`, { method: 'DELETE' });
+  }
+
+  async joinWorkspace(token: string): Promise<Workspace> {
+    return this.request<Workspace>('/invites/join/', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
   }
 }
 

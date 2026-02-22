@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Project, Ticket, Comment, AuditLog
+from .models import User, Project, Ticket, Comment, AuditLog, Workspace, WorkspaceMember, WorkspaceInvite
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -44,6 +44,38 @@ class UserSimpleSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email', 'agent_type', 'role']
 
 
+class WorkspaceSerializer(serializers.ModelSerializer):
+    """Serializer for Workspace model."""
+    member_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Workspace
+        fields = ['id', 'name', 'slug', 'owner', 'member_count', 'created_at']
+        read_only_fields = ['id', 'owner', 'created_at']
+
+    def get_member_count(self, obj):
+        return obj.members.count()
+
+
+class WorkspaceMemberSerializer(serializers.ModelSerializer):
+    """Serializer for WorkspaceMember model."""
+    user = UserSimpleSerializer(read_only=True)
+
+    class Meta:
+        model = WorkspaceMember
+        fields = ['id', 'workspace', 'user', 'role', 'joined_at']
+        read_only_fields = ['id', 'workspace', 'user', 'joined_at']
+
+
+class WorkspaceInviteSerializer(serializers.ModelSerializer):
+    """Serializer for WorkspaceInvite model."""
+
+    class Meta:
+        model = WorkspaceInvite
+        fields = ['id', 'workspace', 'token', 'created_by', 'expires_at', 'max_uses', 'use_count', 'is_active', 'created_at']
+        read_only_fields = ['id', 'token', 'created_by', 'use_count', 'created_at']
+
+
 class ProjectSerializer(serializers.ModelSerializer):
     """Serializer for Project model."""
     agents = UserSimpleSerializer(many=True, read_only=True)
@@ -55,7 +87,7 @@ class ProjectSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Project
-        fields = ['id', 'name', 'description', 'created_at', 'updated_at', 'agents', 'agent_ids']
+        fields = ['id', 'name', 'description', 'workspace', 'created_at', 'updated_at', 'agents', 'agent_ids']
         read_only_fields = ['created_at', 'updated_at']
     
     def create(self, validated_data):

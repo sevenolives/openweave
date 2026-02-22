@@ -3,6 +3,7 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 import json
+import uuid
 
 
 class User(AbstractUser):
@@ -47,10 +48,71 @@ class User(AbstractUser):
         db_table = 'users'
 
 
+class Workspace(models.Model):
+    """
+    A workspace groups projects, members, and invite links for multi-tenant isolation.
+    """
+    name = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=255, unique=True)
+    owner = models.ForeignKey("User", on_delete=models.CASCADE, related_name='owned_workspaces')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        db_table = 'workspaces'
+        ordering = ['name']
+
+
+class WorkspaceMember(models.Model):
+    """
+    Membership join table between Workspace and User with a role.
+    """
+    ROLE_CHOICES = [
+        ('ADMIN', 'Admin'),
+        ('MEMBER', 'Member'),
+    ]
+
+    workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name='members')
+    user = models.ForeignKey("User", on_delete=models.CASCADE, related_name='workspace_memberships')
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='MEMBER')
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} in {self.workspace.name} ({self.role})"
+
+    class Meta:
+        db_table = 'workspace_members'
+        unique_together = ('workspace', 'user')
+
+
+class WorkspaceInvite(models.Model):
+    """
+    Invite link for joining a workspace.
+    """
+    workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name='invites')
+    token = models.UUIDField(unique=True, default=uuid.uuid4)
+    created_by = models.ForeignKey("User", on_delete=models.CASCADE, related_name='created_invites')
+    expires_at = models.DateTimeField(null=True, blank=True)
+    max_uses = models.PositiveIntegerField(null=True, blank=True)
+    use_count = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Invite to {self.workspace.name} ({self.token})"
+
+    class Meta:
+        db_table = 'workspace_invites'
+
+
 class Project(models.Model):
     """
     Groups related tickets and agents.
     """
+    workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name='projects', null=True, blank=True)
     name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

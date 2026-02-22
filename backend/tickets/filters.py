@@ -3,7 +3,7 @@ Filters for API endpoints to enable search and filtering capabilities.
 """
 import django_filters
 from django.db.models import Q
-from .models import Ticket, User, Project, Comment, AuditLog
+from .models import Ticket, User, Project, Comment, AuditLog, WorkspaceMember, WorkspaceInvite
 
 
 class TicketFilter(django_filters.FilterSet):
@@ -276,3 +276,21 @@ class AuditLogFilter(django_filters.FilterSet):
     class Meta:
         model = AuditLog
         fields = ['entity_type', 'entity_id', 'action', 'performed_by']
+
+
+class WorkspaceMemberFilter(django_filters.FilterSet):
+    """FilterSet for WorkspaceMember model."""
+    workspace = django_filters.NumberFilter(field_name='workspace')
+
+    class Meta:
+        model = WorkspaceMember
+        fields = ['workspace']
+
+
+class WorkspaceInviteFilter(django_filters.FilterSet):
+    """FilterSet for WorkspaceInvite model."""
+    workspace = django_filters.NumberFilter(field_name='workspace')
+
+    class Meta:
+        model = WorkspaceInvite
+        fields = ['workspace']

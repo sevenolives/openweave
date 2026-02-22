@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from django.db.models import Q
-from tickets.models import Project, Ticket, Comment
+from tickets.models import Project, Ticket, Comment, Workspace, WorkspaceMember, WorkspaceInvite
 import json
 
 User = get_user_model()
@@ -20,6 +20,9 @@ class Command(BaseCommand):
         # Create sample agents
         self.create_agents()
         
+        # Create default workspace
+        self.create_workspace()
+
         # Create sample projects
         self.create_projects()
         
@@ -86,6 +89,42 @@ class Command(BaseCommand):
             else:
                 self.stdout.write(f'  - Agent already exists: {agent_data["username"]}')
 
+    def create_workspace(self):
+        """Create default workspace and add all users."""
+        admin = User.objects.filter(is_superuser=True).first()
+        if not admin:
+            admin = User.objects.first()
+
+        workspace, created = Workspace.objects.get_or_create(
+            slug='default',
+            defaults={'name': 'Default Workspace', 'owner': admin}
+        )
+
+        if created:
+            self.stdout.write(f'  ✓ Created workspace: {workspace.name}')
+        else:
+            self.stdout.write(f'  - Workspace already exists: {workspace.name}')
+
+        # Add all users as members
+        for user in User.objects.all():
+            role = 'ADMIN' if user.is_superuser or user.role == 'ADMIN' else 'MEMBER'
+            _, member_created = WorkspaceMember.objects.get_or_create(
+                workspace=workspace, user=user,
+                defaults={'role': role}
+            )
+            if member_created:
+                self.stdout.write(f'  ✓ Added {user.username} to workspace as {role}')
+
+        # Create default invite
+        if not WorkspaceInvite.objects.filter(workspace=workspace).exists():
+            WorkspaceInvite.objects.create(workspace=workspace, created_by=admin)
+            self.stdout.write('  ✓ Created default invite link')
+
+        # Associate existing projects
+        Project.objects.filter(workspace__isnull=True).update(workspace=workspace)
+
+        self.workspace = workspace
+
     def create_projects(self):
         """Create sample projects."""
         projects_data = [
@@ -104,9 +143,10 @@ class Command(BaseCommand):
         ]
 
         for project_data in projects_data:
+            workspace = getattr(self, 'workspace', None)
             project, created = Project.objects.get_or_create(
                 name=project_data['name'],
-                defaults={'description': project_data['description']}
+                defaults={'description': project_data['description'], 'workspace': workspace}
             )
 
             if created:

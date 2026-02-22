@@ -3,6 +3,7 @@
 import { useState, useEffect, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { useWorkspace } from '@/hooks/useWorkspace';
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
@@ -30,6 +31,7 @@ function getBreadcrumbs(pathname: string): { label: string; href?: string }[] {
 export default function Layout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, isLoggedIn, isLoading, logout } = useAuth();
+  const { workspaces, currentWorkspace, setCurrentWorkspace } = useWorkspace();
   const router = useRouter();
   const pathname = usePathname();
   const breadcrumbs = getBreadcrumbs(pathname);
@@ -81,6 +83,30 @@ export default function Layout({ children }: { children: ReactNode }) {
             </div>
             <span className="text-lg font-bold text-gray-900">Agent Desk</span>
           </div>
+
+          {/* Workspace switcher */}
+          {currentWorkspace && (
+            <div className="px-3 py-2 border-b border-gray-100">
+              <select
+                value={currentWorkspace.id}
+                onChange={e => {
+                  const ws = workspaces.find(w => w.id === Number(e.target.value));
+                  if (ws) setCurrentWorkspace(ws);
+                }}
+                className="w-full text-sm font-medium text-gray-900 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2"
+              >
+                {workspaces.map(ws => (
+                  <option key={ws.id} value={ws.id}>{ws.name}</option>
+                ))}
+              </select>
+              <button
+                onClick={() => router.push(`/w/${currentWorkspace.slug}/settings`)}
+                className="w-full mt-1 text-xs text-gray-500 hover:text-gray-700 text-left px-1"
+              >
+                Workspace Settings
+              </button>
+            </div>
+          )}
 
           {/* Nav items */}
           <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
