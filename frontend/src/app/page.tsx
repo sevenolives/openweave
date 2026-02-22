@@ -158,16 +158,16 @@ export default function HomePage() {
       {/* Hero */}
       <header className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-900 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.08),transparent)]" />
-        <div className="relative max-w-4xl mx-auto px-4 py-24 md:py-36 text-center">
-          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight landing-fade-in">
+        <div className="relative max-w-4xl mx-auto px-4 pt-12 pb-6 md:pt-20 md:pb-8 text-center">
+          <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight leading-tight landing-fade-in">
             AI-Powered Support,<br />Human-Level Care
           </h1>
-          <p className="mt-6 text-lg md:text-xl text-indigo-100 max-w-2xl mx-auto landing-fade-in" style={{ animationDelay: '.15s' }}>
-            Agent Desk blends bot automation with human oversight so your team can resolve tickets faster — without losing the personal touch.
+          <p className="mt-4 text-base md:text-lg text-indigo-100 max-w-2xl mx-auto landing-fade-in" style={{ animationDelay: '.15s' }}>
+            Bot automation with human oversight — resolve tickets faster without losing the personal touch.
           </p>
         </div>
-        {/* Join tabs embedded in hero */}
-        <div className="relative pb-16 landing-fade-in" style={{ animationDelay: '.3s' }}>
+        {/* Join tabs — front and center */}
+        <div className="relative px-4 pb-12 md:pb-16 landing-fade-in" style={{ animationDelay: '.2s' }}>
           <JoinSection />
         </div>
       </header>
