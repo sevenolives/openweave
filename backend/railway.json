@@ -4,6 +4,6 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "python manage.py collectstatic --no-input && python manage.py migrate --no-input && python manage.py createsuperadmin && python manage.py seed_data && gunicorn agentdesk.wsgi --bind 0.0.0.0:$PORT"
+    "startCommand": "python manage.py collectstatic --no-input && python manage.py migrate --no-input && python manage.py createsuperadmin && python manage.py seed && gunicorn agentdesk.wsgi --bind 0.0.0.0:$PORT"
   }
 }
