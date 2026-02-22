@@ -120,12 +120,10 @@ class JoinView(APIView):
 
 class UserViewSet(viewsets.ModelViewSet):
     """
-    CRUD operations for users.
+    User operations.
 
     - **GET /users/** — list all users (searchable, filterable)
-    - **POST /users/** — register a new user (public)
-    - **GET /users/{id}/** — retrieve user details
-    - **PATCH /users/{id}/** — update user fields
+    - **PATCH /users/{id}/** — update user fields (admin only)
     - **GET /users/me/** — current authenticated user profile
     """
     queryset = User.objects.all()
@@ -136,10 +134,11 @@ class UserViewSet(viewsets.ModelViewSet):
     search_fields = ['username', 'email', 'name']
     ordering_fields = ['username', 'email', 'created_at', 'is_active']
     ordering = ['username']
-    http_method_names = ['get', 'post', 'patch', 'head', 'options']
+    http_method_names = ['get', 'patch', 'head', 'options']
 
-    def get_permissions(self):
-        return [permissions.IsAuthenticated()]
+    def retrieve(self, request, *args, **kwargs):
+        """Individual user retrieval disabled. Use /users/me/ or /workspace-members/."""
+        return Response({'detail': 'Use /users/me/ for your profile or /workspace-members/ for member info.'}, status=status.HTTP_404_NOT_FOUND)
 
     @extend_schema(summary="Get current user profile", responses={200: UserSerializer})
     @action(detail=False, methods=['get'])
@@ -320,7 +319,6 @@ class WorkspaceMemberViewSet(viewsets.ModelViewSet):
     Manage workspace members.
 
     - **GET /workspace-members/?workspace={id}** — list members of a workspace
-    - **PATCH /workspace-members/{id}/** — update member role (admin only)
     - **DELETE /workspace-members/{id}/** — remove member (admin only)
     """
     queryset = WorkspaceMember.objects.all()
@@ -329,6 +327,9 @@ class WorkspaceMemberViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_class = WorkspaceMemberFilter
     http_method_names = ['get', 'delete', 'head', 'options']
+
+    def retrieve(self, request, *args, **kwargs):
+        return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
 
     def get_queryset(self):
         return WorkspaceMember.objects.select_related('user', 'workspace').filter(
@@ -356,6 +357,9 @@ class WorkspaceInviteViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_class = WorkspaceInviteFilter
     http_method_names = ['get', 'post', 'head', 'options']
+
+    def retrieve(self, request, *args, **kwargs):
+        return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
 
     def get_queryset(self):
         return WorkspaceInvite.objects.filter(
