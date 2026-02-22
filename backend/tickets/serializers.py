@@ -12,7 +12,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'username', 'email', 'name',
-            'agent_type', 'role', 'skills', 'is_active', 'password'
+            'user_type', 'role', 'skills', 'is_active', 'password'
         ]
         extra_kwargs = {
             'password': {'write_only': True}
@@ -43,7 +43,7 @@ class UserSimpleSerializer(serializers.ModelSerializer):
     """Simplified user serializer for nested usage."""
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'name', 'agent_type', 'role']
+        fields = ['id', 'username', 'email', 'name', 'user_type', 'role']
 
 
 class WorkspaceSerializer(serializers.ModelSerializer):

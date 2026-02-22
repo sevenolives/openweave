@@ -18,7 +18,7 @@ interface RegisterData {
   password: string;
   first_name: string;
   last_name: string;
-  agent_type: 'HUMAN' | 'BOT';
+  user_type: 'HUMAN' | 'BOT';
   role: 'ADMIN' | 'MEMBER';
 }
 

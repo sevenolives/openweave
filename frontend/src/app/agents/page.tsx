@@ -27,7 +27,7 @@ export default function AgentsPage() {
   const filtered = useMemo(() => {
     let result = agents;
     if (filterRole) result = result.filter(a => a.role === filterRole);
-    if (filterType) result = result.filter(a => a.agent_type === filterType);
+    if (filterType) result = result.filter(a => a.user_type === filterType);
     return result;
   }, [agents, filterRole, filterType]);
 
@@ -75,7 +75,7 @@ export default function AgentsPage() {
               return (
                 <div key={agent.id} onClick={() => setSelectedAgent(selectedAgent?.id === agent.id ? null : agent)} className="bg-white rounded-xl border border-gray-200 p-5 hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-50 transition-all cursor-pointer group">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold text-white ${agent.agent_type === 'BOT' ? 'bg-purple-500' : 'bg-indigo-500'}`}>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold text-white ${agent.user_type === 'BOT' ? 'bg-purple-500' : 'bg-indigo-500'}`}>
                       {agent.username[0].toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -85,7 +85,7 @@ export default function AgentsPage() {
                   </div>
 
                   <div className="flex flex-wrap gap-2 mb-3">
-                    <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${agent.agent_type === 'BOT' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>{agent.agent_type}</span>
+                    <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${agent.user_type === 'BOT' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>{agent.user_type}</span>
                     <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${agent.role === 'ADMIN' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-700'}`}>{agent.role}</span>
                     <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${agent.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{agent.is_active ? 'Active' : 'Inactive'}</span>
                   </div>

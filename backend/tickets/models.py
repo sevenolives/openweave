@@ -11,7 +11,7 @@ class User(AbstractUser):
     Custom user model extending AbstractUser (not AbstractBaseUser per best practices).
     Represents both human agents and bot agents.
     """
-    AGENT_TYPES = [
+    USER_TYPES = [
         ('HUMAN', 'Human'),
         ('BOT', 'Bot'),
     ]
@@ -28,7 +28,7 @@ class User(AbstractUser):
     ]
     
     name = models.CharField(max_length=255)
-    agent_type = models.CharField(max_length=10, choices=AGENT_TYPES, default='HUMAN')
+    user_type = models.CharField(max_length=10, choices=USER_TYPES, default='HUMAN')
     role = models.CharField(max_length=10, choices=ROLES, default='MEMBER')
     skills = models.JSONField(default=list, blank=True, help_text="List of skill tags")
     notification_preference = models.CharField(
@@ -43,7 +43,7 @@ class User(AbstractUser):
     # Email is already included in AbstractUser
     
     def __str__(self):
-        return f"{self.username} ({self.get_agent_type_display()})"
+        return f"{self.username} ({self.get_user_type_display()})"
     
     class Meta:
         db_table = 'users'

@@ -120,9 +120,9 @@ class UserFilter(django_filters.FilterSet):
     """
     search = django_filters.CharFilter(method='search_agents', label='Search')
     
-    agent_type = django_filters.ChoiceFilter(
-        choices=User.AGENT_TYPES,
-        field_name='agent_type'
+    user_type = django_filters.ChoiceFilter(
+        choices=User.USER_TYPES,
+        field_name='user_type'
     )
     
     role = django_filters.ChoiceFilter(
@@ -140,7 +140,7 @@ class UserFilter(django_filters.FilterSet):
 
     class Meta:
         model = User
-        fields = ['agent_type', 'role', 'is_active']
+        fields = ['user_type', 'role', 'is_active']
 
     def search_agents(self, queryset, name, value):
         """

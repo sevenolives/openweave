@@ -45,7 +45,7 @@ class Command(BaseCommand):
                 'name': 'Alice Agent',
                 'first_name': 'Alice',
                 'last_name': 'Johnson',
-                'agent_type': 'HUMAN',
+                'user_type': 'HUMAN',
                 'role': 'MEMBER',
                 'skills': ['python', 'django', 'frontend']
             },
@@ -55,7 +55,7 @@ class Command(BaseCommand):
                 'name': 'Bob Agent',
                 'first_name': 'Bob',
                 'last_name': 'Smith',
-                'agent_type': 'HUMAN',
+                'user_type': 'HUMAN',
                 'role': 'MEMBER',
                 'skills': ['javascript', 'react', 'backend']
             },
@@ -65,7 +65,7 @@ class Command(BaseCommand):
                 'name': 'Charlie Bot',
                 'first_name': 'Support',
                 'last_name': 'Bot',
-                'agent_type': 'BOT',
+                'user_type': 'BOT',
                 'role': 'MEMBER',
                 'skills': ['automated_responses', 'ticket_triage']
             },
@@ -85,7 +85,7 @@ class Command(BaseCommand):
                     name=agent_data['name'],
                     first_name=agent_data['first_name'],
                     last_name=agent_data['last_name'],
-                    agent_type=agent_data['agent_type'],
+                    user_type=agent_data['user_type'],
                     role=agent_data['role'],
                     skills=agent_data['skills']
                 )
@@ -155,7 +155,7 @@ class Command(BaseCommand):
 
             if created:
                 # Add some agents to the project
-                agents = User.objects.filter(agent_type='HUMAN')[:2]
+                agents = User.objects.filter(user_type='HUMAN')[:2]
                 project.agents.set(agents)
                 self.stdout.write(f'  ✓ Created project: {project.name}')
             else:

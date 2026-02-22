@@ -147,7 +147,7 @@ export default function ProjectDetailPage() {
                 <span className="text-xs font-medium text-gray-500">Members:</span>
                 {project.agents.map(a => (
                   <span key={a.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-gray-200 rounded-full text-xs font-medium text-gray-700">
-                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white ${a.agent_type === 'BOT' ? 'bg-purple-500' : 'bg-indigo-500'}`}>
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white ${a.user_type === 'BOT' ? 'bg-purple-500' : 'bg-indigo-500'}`}>
                       {a.username[0].toUpperCase()}
                     </span>
                     {a.username}

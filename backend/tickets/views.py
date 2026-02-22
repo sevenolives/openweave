@@ -1,6 +1,10 @@
 from rest_framework import viewsets, status, permissions, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny
+from rest_framework.authtoken.models import Token
+from rest_framework_simplejwt.tokens import RefreshToken
 from django.db import transaction
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, OpenApiExample
@@ -19,6 +23,37 @@ from .filters import (
     WorkspaceMemberFilter, WorkspaceInviteFilter,
 )
 from django.utils import timezone
+
+
+def _jwt_tokens_for_user(user):
+    refresh = RefreshToken.for_user(user)
+    return {'access': str(refresh.access_token), 'refresh': str(refresh)}
+
+
+class RegisterView(APIView):
+    """POST /api/auth/register/ — public registration for human users."""
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        username = request.data.get('username')
+        name = request.data.get('name')
+        password = request.data.get('password')
+
+        if not username or not name or not password:
+            return Response({'detail': 'username, name, and password are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if User.objects.filter(username=username).exists():
+            return Response({'detail': 'Username already taken.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User(username=username, name=name, user_type='HUMAN')
+        user.set_password(password)
+        user.save()
+
+        tokens = _jwt_tokens_for_user(user)
+        return Response({
+            'user': UserSerializer(user).data,
+            **tokens,
+        }, status=status.HTTP_201_CREATED)
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -42,8 +77,6 @@ class UserViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'head', 'options']
 
     def get_permissions(self):
-        if self.action == 'create':
-            return [IsAdminAgent()]
         return [permissions.IsAuthenticated()]
 
     @extend_schema(summary="Get current user profile", responses={200: UserSerializer})
@@ -286,20 +319,22 @@ class WorkspaceInviteViewSet(viewsets.ModelViewSet):
                 self.permission_denied(request)
 
     @extend_schema(summary="Join a workspace using an invite token")
-    @action(detail=False, methods=['post'], permission_classes=[])
+    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
     def join(self, request):
         """
         Join a workspace using an invite token.
-        
-        If authenticated, joins the current user.
-        If not authenticated, requires username, name, and password to create an account first.
+
+        Three cases:
+        1. Authenticated user → join workspace
+        2. Unauthenticated + password → create HUMAN user, join, return JWT tokens
+        3. Unauthenticated + no password → create BOT user, join, return API token
         """
-        token = request.data.get('token')
-        if not token:
-            return Response({'detail': 'Token is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        invite_token = request.data.get('workspace_invite_token')
+        if not invite_token:
+            return Response({'detail': 'workspace_invite_token is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            invite = WorkspaceInvite.objects.get(token=token, is_active=True)
+            invite = WorkspaceInvite.objects.get(token=invite_token, is_active=True)
         except WorkspaceInvite.DoesNotExist:
             return Response({'detail': 'Invalid or inactive invite.'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -309,38 +344,60 @@ class WorkspaceInviteViewSet(viewsets.ModelViewSet):
         if invite.max_uses and invite.use_count >= invite.max_uses:
             return Response({'detail': 'Invite has reached maximum uses.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Determine the user
+        created_user = False
+        is_bot = False
+
         if request.user and request.user.is_authenticated:
             user = request.user
         else:
-            # Create a new account
             username = request.data.get('username')
             name = request.data.get('name')
             password = request.data.get('password')
 
-            if not username or not name or not password:
+            if not username or not name:
                 return Response(
-                    {'detail': 'username, name, and password are required for new users.'},
+                    {'detail': 'username and name are required for new users.'},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
             if User.objects.filter(username=username).exists():
-                return Response(
-                    {'detail': 'Username already taken.'},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+                return Response({'detail': 'Username already taken.'}, status=status.HTTP_400_BAD_REQUEST)
 
-            user = User(username=username, name=name)
-            user.set_password(password)
-            user.save()
+            if password:
+                user = User(username=username, name=name, user_type='HUMAN')
+                user.set_password(password)
+                user.save()
+                created_user = True
+            else:
+                user = User(username=username, name=name, user_type='BOT')
+                user.set_unusable_password()
+                user.save()
+                created_user = True
+                is_bot = True
 
-        membership, created = WorkspaceMember.objects.get_or_create(
-            workspace=invite.workspace, user=user,
-            defaults={'role': 'MEMBER'}
-        )
+        # Check duplicate membership
+        if WorkspaceMember.objects.filter(workspace=invite.workspace, user=user).exists():
+            return Response({'detail': 'Already a member of this workspace.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if created:
-            invite.use_count += 1
-            invite.save()
+        WorkspaceMember.objects.create(workspace=invite.workspace, user=user, role='MEMBER')
+        invite.use_count += 1
+        invite.save()
 
-        return Response(WorkspaceSerializer(invite.workspace).data, status=status.HTTP_200_OK)
+        workspace_data = WorkspaceSerializer(invite.workspace).data
+
+        if is_bot:
+            token, _ = Token.objects.get_or_create(user=user)
+            return Response({
+                'api_token': token.key,
+                'workspace': workspace_data,
+                'user': UserSerializer(user).data,
+            }, status=status.HTTP_201_CREATED)
+        elif created_user:
+            tokens = _jwt_tokens_for_user(user)
+            return Response({
+                'user': UserSerializer(user).data,
+                'workspace': workspace_data,
+                **tokens,
+            }, status=status.HTTP_201_CREATED)
+        else:
+            return Response({'workspace': workspace_data}, status=status.HTTP_200_OK)

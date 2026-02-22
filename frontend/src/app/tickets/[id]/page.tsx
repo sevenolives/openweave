@@ -143,7 +143,7 @@ export default function TicketDetailPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">Assigned To</label>
                       <select value={editAssigned} onChange={e => setEditAssigned(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500">
                         <option value="">Unassigned</option>
-                        {agents.map(a => <option key={a.id} value={a.id}>{a.username} ({a.agent_type})</option>)}
+                        {agents.map(a => <option key={a.id} value={a.id}>{a.username} ({a.user_type})</option>)}
                       </select>
                     </div>
                     <div className="flex gap-3 pt-2">
@@ -211,13 +211,13 @@ export default function TicketDetailPage() {
                           <p className="text-gray-400 text-center py-6 text-sm">No comments yet — be the first!</p>
                         ) : comments.map(comment => (
                           <div key={comment.id} className="flex gap-3">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold text-white ${comment.author_details.agent_type === 'BOT' ? 'bg-purple-500' : 'bg-indigo-500'}`}>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold text-white ${comment.author_details.user_type === 'BOT' ? 'bg-purple-500' : 'bg-indigo-500'}`}>
                               {comment.author_details.username[0].toUpperCase()}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1 flex-wrap">
                                 <span className="font-medium text-sm text-gray-900">{comment.author_details.username}</span>
-                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${comment.author_details.agent_type === 'BOT' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>{comment.author_details.agent_type}</span>
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${comment.author_details.user_type === 'BOT' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>{comment.author_details.user_type}</span>
                                 <span className="text-xs text-gray-400">{new Date(comment.created_at).toLocaleString()}</span>
                               </div>
                               <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{comment.body}</p>
@@ -293,7 +293,7 @@ export default function TicketDetailPage() {
                     <dd className="text-sm text-gray-700">
                       {ticket.assigned_to_details ? (
                         <span className="inline-flex items-center gap-1.5">
-                          <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white ${ticket.assigned_to_details.agent_type === 'BOT' ? 'bg-purple-500' : 'bg-indigo-500'}`}>
+                          <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white ${ticket.assigned_to_details.user_type === 'BOT' ? 'bg-purple-500' : 'bg-indigo-500'}`}>
                             {ticket.assigned_to_details.username[0].toUpperCase()}
                           </span>
                           {ticket.assigned_to_details.username}
@@ -332,7 +332,7 @@ export default function TicketDetailPage() {
                   className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="">Unassigned</option>
-                  {agents.map(a => <option key={a.id} value={a.id}>{a.username} ({a.agent_type})</option>)}
+                  {agents.map(a => <option key={a.id} value={a.id}>{a.username} ({a.user_type})</option>)}
                 </select>
               </div>
             </div>
