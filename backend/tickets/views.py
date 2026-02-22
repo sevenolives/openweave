@@ -7,8 +7,9 @@ from rest_framework.authtoken.models import Token
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.db import transaction
 from django_filters.rest_framework import DjangoFilterBackend
-from drf_spectacular.utils import extend_schema, OpenApiExample
+from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiParameter, inline_serializer
 from drf_spectacular.types import OpenApiTypes
+from rest_framework import serializers as drf_serializers
 from .models import User, Project, Ticket, Comment, AuditLog, ProjectAgent, Workspace, WorkspaceMember, WorkspaceInvite
 from .serializers import (
     UserSerializer, ProjectSerializer, TicketSerializer,
@@ -31,6 +32,10 @@ def _jwt_tokens_for_user(user):
     return {'access': str(refresh.access_token), 'refresh': str(refresh)}
 
 
+# Reusable error response schema
+_error_detail = inline_serializer('ErrorDetail', fields={'detail': drf_serializers.CharField()})
+
+
 @extend_schema(tags=['auth'])
 class JoinView(APIView):
     """
@@ -43,7 +48,99 @@ class JoinView(APIView):
     """
     permission_classes = [AllowAny]
 
-    @extend_schema(request=JoinRequestSerializer)
+    @extend_schema(
+        summary="Register or join a workspace",
+        description=(
+            "Unified endpoint for user registration and workspace joining. Supports 4 cases:\n\n"
+            "**Case 1 — Register human (no workspace):** Send `{username, name, password}`. "
+            "Returns `{user, access, refresh}` (HTTP 201).\n\n"
+            "**Case 2 — Register human + join workspace:** Send `{username, name, password, workspace_invite_token}`. "
+            "Returns `{user, workspace, access, refresh}` (HTTP 201).\n\n"
+            "**Case 3 — Register bot + join workspace:** Send `{username, name, workspace_invite_token}` (no password). "
+            "Returns `{user, workspace, api_token}` (HTTP 201).\n\n"
+            "**Case 4 — Authenticated user joins workspace:** Send `{workspace_invite_token}` with a valid JWT. "
+            "Returns `{workspace}` (HTTP 200).\n\n"
+            "**Errors:** 400 for missing fields, username taken, expired/maxed invite, already a member. "
+            "404 for invalid invite token."
+        ),
+        request=JoinRequestSerializer,
+        responses={
+            201: OpenApiTypes.OBJECT,
+            200: OpenApiTypes.OBJECT,
+            400: _error_detail,
+            404: _error_detail,
+        },
+        examples=[
+            OpenApiExample(
+                'Case 1: Register human',
+                value={'username': 'alice', 'name': 'Alice', 'password': 's3cret123'},
+                request_only=True,
+            ),
+            OpenApiExample(
+                'Case 1: Response',
+                value={
+                    'user': {'id': 1, 'username': 'alice', 'email': '', 'name': 'Alice', 'user_type': 'HUMAN', 'role': 'MEMBER', 'skills': [], 'is_active': True},
+                    'access': 'eyJ...access_token',
+                    'refresh': 'eyJ...refresh_token',
+                },
+                response_only=True, status_codes=['201'],
+            ),
+            OpenApiExample(
+                'Case 2: Register human + join workspace',
+                value={'username': 'bob', 'name': 'Bob', 'password': 's3cret123', 'workspace_invite_token': 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'},
+                request_only=True,
+            ),
+            OpenApiExample(
+                'Case 2: Response',
+                value={
+                    'user': {'id': 2, 'username': 'bob', 'email': '', 'name': 'Bob', 'user_type': 'HUMAN', 'role': 'MEMBER', 'skills': [], 'is_active': True},
+                    'workspace': {'id': 1, 'name': 'Acme', 'slug': 'acme', 'owner': 1, 'member_count': 2, 'created_at': '2025-01-01T00:00:00Z'},
+                    'access': 'eyJ...access_token',
+                    'refresh': 'eyJ...refresh_token',
+                },
+                response_only=True, status_codes=['201'],
+            ),
+            OpenApiExample(
+                'Case 3: Register bot',
+                value={'username': 'support-bot', 'name': 'Support Bot', 'workspace_invite_token': 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'},
+                request_only=True,
+            ),
+            OpenApiExample(
+                'Case 3: Response',
+                value={
+                    'api_token': 'abc123tokenkey',
+                    'workspace': {'id': 1, 'name': 'Acme', 'slug': 'acme', 'owner': 1, 'member_count': 3, 'created_at': '2025-01-01T00:00:00Z'},
+                    'user': {'id': 3, 'username': 'support-bot', 'email': '', 'name': 'Support Bot', 'user_type': 'BOT', 'role': 'MEMBER', 'skills': [], 'is_active': True},
+                },
+                response_only=True, status_codes=['201'],
+            ),
+            OpenApiExample(
+                'Case 4: Join workspace (authed)',
+                value={'workspace_invite_token': 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'},
+                request_only=True,
+            ),
+            OpenApiExample(
+                'Case 4: Response',
+                value={'workspace': {'id': 1, 'name': 'Acme', 'slug': 'acme', 'owner': 1, 'member_count': 4, 'created_at': '2025-01-01T00:00:00Z'}},
+                response_only=True, status_codes=['200'],
+            ),
+            OpenApiExample(
+                'Error: username taken',
+                value={'detail': 'Username already taken.'},
+                response_only=True, status_codes=['400'],
+            ),
+            OpenApiExample(
+                'Error: invite expired',
+                value={'detail': 'Invite has expired.'},
+                response_only=True, status_codes=['400'],
+            ),
+            OpenApiExample(
+                'Error: invalid invite',
+                value={'detail': 'Invalid or inactive invite.'},
+                response_only=True, status_codes=['404'],
+            ),
+        ],
+    )
     def post(self, request):
         invite_token = request.data.get('workspace_invite_token')
         username = request.data.get('username')
@@ -118,14 +215,9 @@ class JoinView(APIView):
         return Response(response_data, status=status.HTTP_201_CREATED)
 
 
+@extend_schema(tags=['users'])
 class UserViewSet(viewsets.ModelViewSet):
-    """
-    User operations.
-
-    - **GET /users/** — list all users (searchable, filterable)
-    - **PATCH /users/{id}/** — update user fields (admin only)
-    - **GET /users/me/** — current authenticated user profile
-    """
+    """User operations."""
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -136,28 +228,54 @@ class UserViewSet(viewsets.ModelViewSet):
     ordering = ['username']
     http_method_names = ['get', 'patch', 'head', 'options']
 
+    @extend_schema(
+        summary="List users",
+        description="List all users. Supports search by username/email/name and filtering by user_type, role, is_active.",
+        parameters=[
+            OpenApiParameter(name='search', description='Search in username, email, name', type=str),
+            OpenApiParameter(name='user_type', description='Filter by user_type (HUMAN, BOT)', type=str),
+            OpenApiParameter(name='role', description='Filter by role (ADMIN, MEMBER)', type=str),
+            OpenApiParameter(name='is_active', description='Filter by active status', type=bool),
+        ],
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @extend_schema(exclude=True)
     def retrieve(self, request, *args, **kwargs):
         """Individual user retrieval disabled. Use /users/me/ or /workspace-members/."""
         return Response({'detail': 'Use /users/me/ for your profile or /workspace-members/ for member info.'}, status=status.HTTP_404_NOT_FOUND)
 
-    @extend_schema(summary="Get current user profile", responses={200: UserSerializer})
+    @extend_schema(
+        summary="Get current user profile",
+        description="Returns the profile of the currently authenticated user.",
+        responses={200: UserSerializer},
+    )
     @action(detail=False, methods=['get'])
     def me(self, request):
         """Get current user profile."""
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
 
+    @extend_schema(
+        summary="Update user",
+        description="Update user fields. Admin only. Editable fields: name, email, role, skills, is_active.",
+        responses={200: UserSerializer, 400: _error_detail},
+        examples=[
+            OpenApiExample(
+                'Update role',
+                value={'role': 'ADMIN'},
+                request_only=True,
+            ),
+        ],
+    )
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
 
+
+@extend_schema(tags=['projects'])
 class ProjectViewSet(viewsets.ModelViewSet):
-    """
-    CRUD operations for projects.
-
-    - **GET /projects/** — list projects (searchable, filterable)
-    - **POST /projects/** — create a project (admin only)
-    - **GET /projects/{id}/** — retrieve project with agents list
-    - **PATCH /projects/{id}/** — update name, description, or agents list (send agent_ids)
-    - **DELETE /projects/{id}/** — delete project (admin only)
-    """
+    """CRUD operations for projects."""
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
     permission_classes = [IsAdminOrReadOnly]
@@ -170,6 +288,51 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Project.objects.prefetch_related('agents').all()
+
+    @extend_schema(
+        summary="List projects",
+        description="List all projects with their agents. Supports search by name/description and filtering by workspace.",
+        parameters=[
+            OpenApiParameter(name='search', description='Search in name, description', type=str),
+            OpenApiParameter(name='workspace', description='Filter by workspace ID', type=int),
+        ],
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="Create project",
+        description="Create a new project. Admin only. Optionally assign agents via agent_ids.",
+        responses={201: ProjectSerializer, 400: _error_detail},
+        examples=[
+            OpenApiExample(
+                'Create project',
+                value={'name': 'Billing', 'description': 'Billing support', 'workspace': 1, 'agent_ids': [2, 3]},
+                request_only=True,
+            ),
+        ],
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @extend_schema(summary="Get project detail", description="Retrieve a project with its agents list.")
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="Update project",
+        description="Update project name, description, or agents (via agent_ids). Admin only.",
+        responses={200: ProjectSerializer, 400: _error_detail},
+        examples=[
+            OpenApiExample('Update agents', value={'agent_ids': [2, 3, 4]}, request_only=True),
+        ],
+    )
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
+
+    @extend_schema(summary="Delete project", description="Delete a project. Admin only.", responses={204: None})
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         with transaction.atomic():
@@ -186,15 +349,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
 @extend_schema(tags=['tickets'])
 class TicketViewSet(viewsets.ModelViewSet):
-    """
-    CRUD operations for tickets.
-
-    - **GET /tickets/** — list tickets (filterable by project, status, priority, assigned_to)
-    - **POST /tickets/** — create a ticket
-    - **GET /tickets/{id}/** — retrieve ticket details
-    - **PATCH /tickets/{id}/** — update any field: title, description, status, priority, assigned_to, project
-    - **DELETE /tickets/{id}/** — delete ticket (admin only)
-    """
+    """CRUD operations for tickets."""
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
     permission_classes = [IsAdminOrOwner]
@@ -207,6 +362,59 @@ class TicketViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Ticket.objects.select_related('project', 'assigned_to', 'created_by').all()
+
+    @extend_schema(
+        summary="List tickets",
+        description="List tickets. Filterable by project, status, priority, assigned_to. Searchable by title, description, assigned_to username, project name.",
+        parameters=[
+            OpenApiParameter(name='project', description='Filter by project ID', type=int),
+            OpenApiParameter(name='status', description='Filter by status (OPEN, IN_PROGRESS, RESOLVED, CLOSED, BLOCKED)', type=str),
+            OpenApiParameter(name='priority', description='Filter by priority (LOW, MEDIUM, HIGH, CRITICAL)', type=str),
+            OpenApiParameter(name='assigned_to', description='Filter by assigned user ID', type=int),
+            OpenApiParameter(name='search', description='Search in title, description, assigned_to username, project name', type=str),
+        ],
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="Create ticket",
+        description="Create a new ticket. You must be a member of the project (or ADMIN). created_by is set automatically.",
+        responses={201: TicketSerializer, 400: _error_detail, 403: _error_detail},
+        examples=[
+            OpenApiExample(
+                'Create ticket',
+                value={'project': 1, 'title': 'Login broken', 'description': 'Cannot log in with valid creds', 'priority': 'HIGH'},
+                request_only=True,
+            ),
+        ],
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @extend_schema(summary="Get ticket detail", description="Retrieve full ticket details including project, assigned_to, and created_by.")
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="Update ticket",
+        description=(
+            "Update ticket fields: title, description, status, priority, assigned_to, project. "
+            "Status transitions: OPEN → IN_PROGRESS → RESOLVED → CLOSED, BLOCKED ↔ IN_PROGRESS. "
+            "assigned_to must be a member of the project."
+        ),
+        responses={200: TicketSerializer, 400: _error_detail},
+        examples=[
+            OpenApiExample('Update status', value={'status': 'IN_PROGRESS'}, request_only=True),
+            OpenApiExample('Assign ticket', value={'assigned_to': 2, 'status': 'IN_PROGRESS'}, request_only=True),
+        ],
+    )
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
+
+    @extend_schema(summary="Delete ticket", description="Delete a ticket. Admin only.", responses={204: None})
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         project = serializer.validated_data.get('project')
@@ -230,16 +438,9 @@ class TicketViewSet(viewsets.ModelViewSet):
         serializer.save()
 
 
+@extend_schema(tags=['comments'])
 class CommentViewSet(viewsets.ModelViewSet):
-    """
-    CRUD operations for comments.
-
-    - **GET /comments/** — list comments (filterable by ?ticket={id})
-    - **POST /comments/** — create a comment (send ticket and body)
-    - **GET /comments/{id}/** — retrieve comment
-    - **PATCH /comments/{id}/** — update comment body
-    - **DELETE /comments/{id}/** — delete comment
-    """
+    """CRUD operations for comments."""
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
     permission_classes = [IsAdminOrOwner]
@@ -253,6 +454,44 @@ class CommentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Comment.objects.select_related('ticket', 'author').all()
 
+    @extend_schema(
+        summary="List comments",
+        description="List comments. Filter by ticket ID with ?ticket={id}.",
+        parameters=[
+            OpenApiParameter(name='ticket', description='Filter by ticket ID', type=int),
+        ],
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="Create comment",
+        description="Create a comment on a ticket. You must be a member of the ticket's project (or ADMIN). Author is set automatically.",
+        responses={201: CommentSerializer, 400: _error_detail, 403: _error_detail},
+        examples=[
+            OpenApiExample('Create comment', value={'ticket': 1, 'body': 'Looking into this now.'}, request_only=True),
+        ],
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @extend_schema(summary="Get comment detail", description="Retrieve a single comment.")
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="Update comment",
+        description="Update comment body. Only the author or admin can update.",
+        responses={200: CommentSerializer, 400: _error_detail},
+        examples=[OpenApiExample('Update body', value={'body': 'Updated note.'}, request_only=True)],
+    )
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
+
+    @extend_schema(summary="Delete comment", description="Delete a comment.", responses={204: None})
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
+
     def perform_create(self, serializer):
         ticket = serializer.validated_data.get('ticket')
         if not ProjectAgent.objects.filter(
@@ -263,13 +502,9 @@ class CommentViewSet(viewsets.ModelViewSet):
         serializer.save(author=self.request.user)
 
 
+@extend_schema(tags=['audit'])
 class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    Read-only audit trail.
-
-    - **GET /audit-logs/** — list audit entries (filterable by entity_type, entity_id, action)
-    - **GET /audit-logs/{id}/** — retrieve single audit entry
-    """
+    """Read-only audit trail."""
     queryset = AuditLog.objects.all()
     serializer_class = AuditLogSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -281,17 +516,27 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         return AuditLog.objects.select_related('performed_by').all()
 
+    @extend_schema(
+        summary="List audit logs",
+        description="List audit log entries. Filterable by entity_type, entity_id, action, performed_by.",
+        parameters=[
+            OpenApiParameter(name='entity_type', description='Filter by entity type (Ticket, Project, etc.)', type=str),
+            OpenApiParameter(name='entity_id', description='Filter by entity ID', type=int),
+            OpenApiParameter(name='action', description='Filter by action (CREATE, UPDATE, DELETE, STATUS_CHANGE)', type=str),
+            OpenApiParameter(name='performed_by', description='Filter by user ID', type=int),
+        ],
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
+    @extend_schema(summary="Get audit log entry", description="Retrieve a single audit log entry.")
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
+
+@extend_schema(tags=['workspaces'])
 class WorkspaceViewSet(viewsets.ModelViewSet):
-    """
-    CRUD operations for workspaces.
-
-    - **GET /workspaces/** — list workspaces the current user is a member of
-    - **POST /workspaces/** — create a workspace (auto-adds creator as ADMIN, creates invite link)
-    - **GET /workspaces/{id}/** — retrieve workspace details
-    - **PATCH /workspaces/{id}/** — update workspace name/slug
-    - **DELETE /workspaces/{id}/** — delete workspace
-    """
+    """CRUD operations for workspaces."""
     queryset = Workspace.objects.all()
     serializer_class = WorkspaceSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -299,6 +544,38 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Workspace.objects.filter(members__user=self.request.user)
+
+    @extend_schema(summary="List workspaces", description="List workspaces the current user belongs to.")
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="Create workspace",
+        description="Create a new workspace. The creator is automatically added as ADMIN and a default invite link is created.",
+        responses={201: WorkspaceSerializer, 400: _error_detail},
+        examples=[
+            OpenApiExample('Create workspace', value={'name': 'Acme Corp', 'slug': 'acme-corp'}, request_only=True),
+        ],
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @extend_schema(summary="Get workspace detail", description="Retrieve workspace details.")
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="Update workspace",
+        description="Update workspace name or slug. Only workspace admins or owner can update.",
+        responses={200: WorkspaceSerializer, 400: _error_detail},
+        examples=[OpenApiExample('Update name', value={'name': 'Acme Inc'}, request_only=True)],
+    )
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
+
+    @extend_schema(summary="Delete workspace", description="Delete a workspace. Admin or owner only.", responses={204: None})
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         with transaction.atomic():
@@ -314,13 +591,9 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
                 self.permission_denied(request)
 
 
+@extend_schema(tags=['members'])
 class WorkspaceMemberViewSet(viewsets.ModelViewSet):
-    """
-    Manage workspace members.
-
-    - **GET /workspace-members/?workspace={id}** — list members of a workspace
-    - **DELETE /workspace-members/{id}/** — remove member (admin only)
-    """
+    """Manage workspace members."""
     queryset = WorkspaceMember.objects.all()
     serializer_class = WorkspaceMemberSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -328,8 +601,27 @@ class WorkspaceMemberViewSet(viewsets.ModelViewSet):
     filterset_class = WorkspaceMemberFilter
     http_method_names = ['get', 'delete', 'head', 'options']
 
+    @extend_schema(
+        summary="List workspace members",
+        description="List members of a workspace. Filter by workspace ID.",
+        parameters=[
+            OpenApiParameter(name='workspace', description='Filter by workspace ID (required)', type=int),
+        ],
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @extend_schema(exclude=True)
     def retrieve(self, request, *args, **kwargs):
         return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    @extend_schema(
+        summary="Remove workspace member",
+        description="Remove a member from a workspace. Only workspace admins can remove members.",
+        responses={204: None, 403: _error_detail},
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
 
     def get_queryset(self):
         return WorkspaceMember.objects.select_related('user', 'workspace').filter(
@@ -344,13 +636,9 @@ class WorkspaceMemberViewSet(viewsets.ModelViewSet):
                 self.permission_denied(request)
 
 
+@extend_schema(tags=['invites'])
 class WorkspaceInviteViewSet(viewsets.ModelViewSet):
-    """
-    Manage workspace invite links.
-
-    - **GET /invites/?workspace={id}** — list invites for a workspace
-    - **POST /invites/** — create an invite (admin only)
-    """
+    """Manage workspace invite links."""
     queryset = WorkspaceInvite.objects.all()
     serializer_class = WorkspaceInviteSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -358,8 +646,31 @@ class WorkspaceInviteViewSet(viewsets.ModelViewSet):
     filterset_class = WorkspaceInviteFilter
     http_method_names = ['get', 'post', 'head', 'options']
 
+    @extend_schema(
+        summary="List invites",
+        description="List invite links for a workspace. Filter by workspace ID.",
+        parameters=[
+            OpenApiParameter(name='workspace', description='Filter by workspace ID', type=int),
+        ],
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @extend_schema(exclude=True)
     def retrieve(self, request, *args, **kwargs):
         return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    @extend_schema(
+        summary="Create invite",
+        description="Create a workspace invite link. Only workspace admins can create invites.",
+        responses={201: WorkspaceInviteSerializer, 400: _error_detail, 403: _error_detail},
+        examples=[
+            OpenApiExample('Create invite', value={'workspace': 1, 'max_uses': 10, 'expires_at': '2025-12-31T23:59:59Z'}, request_only=True),
+            OpenApiExample('Unlimited invite', value={'workspace': 1}, request_only=True),
+        ],
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
 
     def get_queryset(self):
         return WorkspaceInvite.objects.filter(

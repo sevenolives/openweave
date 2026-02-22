@@ -129,9 +129,20 @@ REST_FRAMEWORK = {
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Agent Desk API',
-    'DESCRIPTION': 'Support and ticketing system.',
+    'DESCRIPTION': 'Agentic Support & Ticketing System API. All authentication is via JWT (humans) or Token (bots). Use POST /api/auth/join/ to register and join workspaces.',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
+    'TAGS': [
+        {'name': 'auth', 'description': 'Authentication & Registration'},
+        {'name': 'users', 'description': 'User management'},
+        {'name': 'workspaces', 'description': 'Workspace management'},
+        {'name': 'members', 'description': 'Workspace membership'},
+        {'name': 'invites', 'description': 'Workspace invite links'},
+        {'name': 'projects', 'description': 'Project management'},
+        {'name': 'tickets', 'description': 'Ticket management'},
+        {'name': 'comments', 'description': 'Ticket comments'},
+        {'name': 'audit', 'description': 'Audit trail (read-only)'},
+    ],
 }
 
 SIMPLE_JWT = {
