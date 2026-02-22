@@ -151,8 +151,8 @@ class JoinView(APIView):
         if invite_token:
             try:
                 invite = WorkspaceInvite.objects.get(token=invite_token, is_active=True)
-            except WorkspaceInvite.DoesNotExist:
-                return Response({'detail': 'Invalid or inactive invite.'}, status=status.HTTP_404_NOT_FOUND)
+            except (WorkspaceInvite.DoesNotExist, ValueError, Exception):
+                return Response({'detail': 'Invalid or inactive invite.'}, status=status.HTTP_400_BAD_REQUEST)
             if invite.expires_at and invite.expires_at < timezone.now():
                 return Response({'detail': 'Invite has expired.'}, status=status.HTTP_400_BAD_REQUEST)
             if invite.max_uses and invite.use_count >= invite.max_uses:
