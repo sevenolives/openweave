@@ -11,6 +11,10 @@ from .serializers import (
     CommentSerializer, AuditLogSerializer, CustomTokenObtainSerializer,
     ProjectAgentSerializer
 )
+from .permissions import (
+    IsAdminAgent, IsAdminOrReadOnly, IsAdminOrOwner, CanAssignTicket,
+    IsProjectMember, CanManageProjectAgents
+)
 
 
 class CustomTokenObtainView(APIView):
@@ -68,10 +72,11 @@ class AgentViewSet(viewsets.ModelViewSet):
 class ProjectViewSet(viewsets.ModelViewSet):
     """
     ViewSet for Project management.
+    Admin-only for create/update/delete operations.
     """
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrReadOnly]
     
     http_method_names = ['get', 'post', 'put', 'patch', 'delete']
     
@@ -111,9 +116,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
         serializer = TicketSerializer(tickets, many=True)
         return Response(serializer.data)
     
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[CanManageProjectAgents])
     def add_agent(self, request, pk=None):
-        """Add an agent to a project."""
+        """Add an agent to a project. Admin only."""
         project = self.get_object()
         agent_id = request.data.get('agent_id')
         
@@ -125,6 +130,14 @@ class ProjectViewSet(viewsets.ModelViewSet):
         
         try:
             agent = Agent.objects.get(id=agent_id)
+            
+            # Check if agent is already in project
+            if project.agents.filter(id=agent_id).exists():
+                return Response(
+                    {'error': 'Agent is already a member of this project'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
             project.agents.add(agent)
             
             # Create audit log entry
@@ -144,9 +157,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
     
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[CanManageProjectAgents])
     def remove_agent(self, request, pk=None):
-        """Remove an agent from a project."""
+        """Remove an agent from a project. Admin only."""
         project = self.get_object()
         agent_id = request.data.get('agent_id')
         
@@ -158,6 +171,27 @@ class ProjectViewSet(viewsets.ModelViewSet):
         
         try:
             agent = Agent.objects.get(id=agent_id)
+            
+            # Check if agent is in project
+            if not project.agents.filter(id=agent_id).exists():
+                return Response(
+                    {'error': 'Agent is not a member of this project'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Check if agent has assigned tickets in this project
+            assigned_tickets = Ticket.objects.filter(
+                project=project,
+                assigned_to=agent,
+                status__in=['OPEN', 'IN_PROGRESS', 'BLOCKED']
+            ).count()
+            
+            if assigned_tickets > 0:
+                return Response(
+                    {'error': f'Cannot remove agent. They have {assigned_tickets} active ticket(s) assigned.'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
             project.agents.remove(agent)
             
             # Create audit log entry
@@ -181,10 +215,11 @@ class ProjectViewSet(viewsets.ModelViewSet):
 class TicketViewSet(viewsets.ModelViewSet):
     """
     ViewSet for Ticket management.
+    Members can create and update own tickets, admins can update any ticket.
     """
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrOwner]
     
     http_method_names = ['get', 'post', 'put', 'patch', 'delete']
     
@@ -195,19 +230,48 @@ class TicketViewSet(viewsets.ModelViewSet):
         ).all()
     
     def perform_create(self, serializer):
-        """Set created_by to current user."""
+        """Set created_by to current user and validate project membership."""
+        project = serializer.validated_data.get('project')
+        
+        # Check if user belongs to the project
+        if not ProjectAgent.objects.filter(
+            project=project,
+            agent=self.request.user
+        ).exists() and self.request.user.role != 'ADMIN':
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("You must be a member of this project to create tickets in it.")
+        
         ticket = serializer.save(created_by=self.request.user)
         # Audit log is created by post_save signal
     
+    def get_permissions(self):
+        """
+        Different permissions for different actions.
+        """
+        if self.action == 'destroy':
+            # Only admins can delete tickets
+            permission_classes = [IsAdminAgent]
+        elif self.action in ['create', 'list', 'retrieve']:
+            permission_classes = [permissions.IsAuthenticated]
+        else:
+            # Update operations use IsAdminOrOwner
+            permission_classes = [IsAdminOrOwner]
+        
+        return [permission() for permission in permission_classes]
+
     def perform_update(self, serializer):
         """Add performer info for audit logging."""
         instance = serializer.instance
         instance._performed_by = self.request.user
         serializer.save()
     
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[CanAssignTicket])
     def assign(self, request, pk=None):
-        """Assign ticket to an agent."""
+        """
+        Assign ticket to an agent.
+        Members can self-assign, admins can reassign to anyone.
+        Agent must belong to the project.
+        """
         ticket = self.get_object()
         agent_id = request.data.get('agent_id')
         
@@ -218,18 +282,31 @@ class TicketViewSet(viewsets.ModelViewSet):
             )
         
         try:
+            agent_id = int(agent_id)
             agent = Agent.objects.get(id=agent_id)
             
             # Verify agent belongs to project
             if not ticket.project.agents.filter(id=agent_id).exists():
                 return Response(
                     {'error': 'Agent must belong to the project'}, 
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Check if member is trying to assign to someone else
+            if request.user.role != 'ADMIN' and agent_id != request.user.id:
+                return Response(
+                    {'error': 'Members can only self-assign tickets'}, 
+                    status=status.HTTP_403_FORBIDDEN
                 )
             
             old_assigned_to = ticket.assigned_to
             ticket.assigned_to = agent
             ticket._performed_by = request.user
+            
+            # If ticket was OPEN, move to IN_PROGRESS when assigned
+            if ticket.status == 'OPEN':
+                ticket.status = 'IN_PROGRESS'
+            
             ticket.save()
             
             # Create specific audit log for assignment
@@ -238,22 +315,37 @@ class TicketViewSet(viewsets.ModelViewSet):
                 entity_id=ticket.id,
                 action='ASSIGN',
                 performed_by=request.user,
-                old_value={'assigned_to': old_assigned_to.id if old_assigned_to else None},
-                new_value={'assigned_to': agent.id}
+                old_value={
+                    'assigned_to': old_assigned_to.id if old_assigned_to else None,
+                    'status': 'OPEN' if ticket.status == 'IN_PROGRESS' else ticket.status
+                },
+                new_value={
+                    'assigned_to': agent.id,
+                    'status': ticket.status
+                }
             )
             
             return Response({'success': f'Ticket assigned to {agent.username}'})
+        except (ValueError, TypeError):
+            return Response(
+                {'error': 'Invalid agent_id'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
         except Agent.DoesNotExist:
             return Response(
                 {'error': 'Agent not found'}, 
                 status=status.HTTP_404_NOT_FOUND
             )
     
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminOrOwner])
     def change_status(self, request, pk=None):
-        """Change ticket status."""
+        """
+        Change ticket status.
+        Implements BLOCKED ticket escalation flow.
+        """
         ticket = self.get_object()
         new_status = request.data.get('status')
+        escalation_reason = request.data.get('escalation_reason', '')
         
         if not new_status:
             return Response(
@@ -267,12 +359,63 @@ class TicketViewSet(viewsets.ModelViewSet):
         
         try:
             ticket.save()  # This will trigger validation
+            
+            # Handle BLOCKED ticket escalation
+            if new_status == 'BLOCKED':
+                self._handle_blocked_escalation(ticket, escalation_reason, request.user)
+            
             return Response({'success': f'Status changed from {old_status} to {new_status}'})
         except Exception as e:
             return Response(
                 {'error': str(e)}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
+    
+    def _handle_blocked_escalation(self, ticket, reason, performed_by):
+        """
+        Handle escalation when a ticket is marked as BLOCKED.
+        Bot agents escalate to humans, humans escalate to admins.
+        """
+        # Create escalation audit log
+        AuditLog.objects.create(
+            entity_type='Ticket',
+            entity_id=ticket.id,
+            action='ESCALATE_BLOCKED',
+            performed_by=performed_by,
+            old_value={'status': ticket.status, 'reason': None},
+            new_value={'status': 'BLOCKED', 'reason': reason}
+        )
+        
+        # Find escalation targets
+        escalation_targets = []
+        
+        if performed_by.agent_type == 'BOT':
+            # Bot escalates to human agents in the same project
+            escalation_targets = Agent.objects.filter(
+                agent_type='HUMAN',
+                is_active=True,
+                projectagent__project=ticket.project
+            ).distinct()
+        else:
+            # Human escalates to admin agents in the same project
+            escalation_targets = Agent.objects.filter(
+                role='ADMIN',
+                is_active=True,
+                projectagent__project=ticket.project
+            ).distinct()
+        
+        # Create notification comments for escalation targets
+        escalation_message = f"🚨 ESCALATION: Ticket #{ticket.id} has been blocked by {performed_by.username} ({performed_by.get_agent_type_display()})"
+        if reason:
+            escalation_message += f"\n\nReason: {reason}"
+        escalation_message += f"\n\nTicket: {ticket.title}\nProject: {ticket.project.name}"
+        
+        # Create a system comment for the escalation
+        Comment.objects.create(
+            ticket=ticket,
+            author=performed_by,
+            body=escalation_message
+        )
     
     @action(detail=True, methods=['get'])
     def comments(self, request, pk=None):
@@ -298,10 +441,11 @@ class TicketViewSet(viewsets.ModelViewSet):
 class CommentViewSet(viewsets.ModelViewSet):
     """
     ViewSet for Comment management.
+    Users can comment on any ticket, but can only edit/delete their own comments.
     """
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrOwner]
     
     http_method_names = ['get', 'post', 'put', 'patch', 'delete']
     
@@ -310,7 +454,17 @@ class CommentViewSet(viewsets.ModelViewSet):
         return Comment.objects.select_related('ticket', 'author').all()
     
     def perform_create(self, serializer):
-        """Set author to current user."""
+        """Set author to current user and validate project membership."""
+        ticket = serializer.validated_data.get('ticket')
+        
+        # Check if user belongs to the ticket's project
+        if not ProjectAgent.objects.filter(
+            project=ticket.project,
+            agent=self.request.user
+        ).exists() and self.request.user.role != 'ADMIN':
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("You must be a member of this project to comment on its tickets.")
+        
         serializer.save(author=self.request.user)
         # Audit log is created by post_save signal
 
