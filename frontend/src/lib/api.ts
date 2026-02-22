@@ -57,12 +57,11 @@ export interface AuthTokens {
   user: Agent;
 }
 
-export interface ApiResponse<T> {
-  count?: number;
-  next?: string | null;
-  previous?: string | null;
-  results?: T[];
-  data?: T;
+export interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
 }
 
 // Token management
@@ -71,32 +70,32 @@ export const tokenStorage = {
     if (typeof window === 'undefined') return null;
     return localStorage.getItem('accessToken');
   },
-  
+
   getRefreshToken: (): string | null => {
     if (typeof window === 'undefined') return null;
     return localStorage.getItem('refreshToken');
   },
-  
+
   setTokens: (tokens: AuthTokens) => {
     if (typeof window === 'undefined') return;
     localStorage.setItem('accessToken', tokens.access);
     localStorage.setItem('refreshToken', tokens.refresh);
     localStorage.setItem('user', JSON.stringify(tokens.user));
   },
-  
+
   clearTokens: () => {
     if (typeof window === 'undefined') return;
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
   },
-  
+
   getUser: (): Agent | null => {
     if (typeof window === 'undefined') return null;
     const user = localStorage.getItem('user');
     return user ? JSON.parse(user) : null;
   },
-  
+
   isLoggedIn: (): boolean => {
     return !!tokenStorage.getAccessToken();
   }
@@ -111,7 +110,7 @@ class ApiClient {
   }
 
   private async request<T>(
-    endpoint: string, 
+    endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
@@ -128,12 +127,10 @@ class ApiClient {
 
     try {
       const response = await fetch(url, config);
-      
-      // Handle 401 Unauthorized - try to refresh token
+
       if (response.status === 401 && token) {
         const refreshed = await this.refreshToken();
         if (refreshed) {
-          // Retry the original request with new token
           config.headers = {
             ...config.headers,
             Authorization: `Bearer ${tokenStorage.getAccessToken()}`,
@@ -143,7 +140,6 @@ class ApiClient {
             return retryResponse.json();
           }
         }
-        // If refresh failed, clear tokens and redirect to login
         tokenStorage.clearTokens();
         if (typeof window !== 'undefined') {
           window.location.href = '/login';
@@ -182,11 +178,11 @@ class ApiClient {
     } catch (error) {
       console.error('Token refresh failed:', error);
     }
-    
+
     return false;
   }
 
-  // Auth endpoints
+  // Auth
   async login(email: string, password: string): Promise<AuthTokens> {
     return this.request<AuthTokens>('/auth/login/', {
       method: 'POST',
@@ -203,7 +199,7 @@ class ApiClient {
 
   // Projects
   async getProjects(): Promise<Project[]> {
-    const response = await this.request<ApiResponse<Project>>('/projects/');
+    const response = await this.request<PaginatedResponse<Project>>('/projects/');
     return response.results || [];
   }
 
@@ -218,13 +214,21 @@ class ApiClient {
     });
   }
 
+  async updateProject(id: number, data: Partial<Project> & { agent_ids?: number[] }): Promise<Project> {
+    return this.request<Project>(`/projects/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteProject(id: number): Promise<void> {
+    await this.request(`/projects/${id}/`, { method: 'DELETE' });
+  }
+
   // Tickets
-  async getProjectTickets(projectId: number, status?: string): Promise<Ticket[]> {
-    const params = status ? `?status=${status}` : '';
-    const response = await this.request<Ticket[] | ApiResponse<Ticket>>(`/projects/${projectId}/tickets/${params}`);
-    // API returns plain array (not paginated) for project tickets
-    if (Array.isArray(response)) return response;
-    return response.results || [];
+  async getTickets(params?: Record<string, string>): Promise<PaginatedResponse<Ticket>> {
+    const query = params ? '?' + new URLSearchParams(params).toString() : '';
+    return this.request<PaginatedResponse<Ticket>>(`/tickets/${query}`);
   }
 
   async getTicket(id: number): Promise<Ticket> {
@@ -245,24 +249,14 @@ class ApiClient {
     });
   }
 
-  async assignTicket(id: number, agentId: number): Promise<void> {
-    await this.request(`/tickets/${id}/assign/`, {
-      method: 'POST',
-      body: JSON.stringify({ agent_id: agentId }),
-    });
-  }
-
-  async changeTicketStatus(id: number, status: string): Promise<void> {
-    await this.request(`/tickets/${id}/change_status/`, {
-      method: 'POST',
-      body: JSON.stringify({ status }),
-    });
+  async deleteTicket(id: number): Promise<void> {
+    await this.request(`/tickets/${id}/`, { method: 'DELETE' });
   }
 
   // Comments
-  async getTicketComments(ticketId: number): Promise<Comment[]> {
-    const response = await this.request<ApiResponse<Comment>>(`/tickets/${ticketId}/comments/`);
-    return response.results || [];
+  async getComments(params?: Record<string, string>): Promise<PaginatedResponse<Comment>> {
+    const query = params ? '?' + new URLSearchParams(params).toString() : '';
+    return this.request<PaginatedResponse<Comment>>(`/comments/${query}`);
   }
 
   async createComment(comment: Partial<Comment>): Promise<Comment> {
@@ -273,29 +267,8 @@ class ApiClient {
   }
 
   // Agents
-  async getTickets(params?: Record<string, string>): Promise<Ticket[]> {
-    const query = params ? '?' + new URLSearchParams(params).toString() : '';
-    const response = await this.request<ApiResponse<Ticket>>(`/tickets/${query}`);
-    return response.results || [];
-  }
-
-  async deleteTicket(id: number): Promise<void> {
-    await this.request(`/tickets/${id}/`, { method: 'DELETE' });
-  }
-
-  async updateProject(id: number, data: Partial<Project>): Promise<Project> {
-    return this.request<Project>(`/projects/${id}/`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async deleteProject(id: number): Promise<void> {
-    await this.request(`/projects/${id}/`, { method: 'DELETE' });
-  }
-
   async getAgents(): Promise<Agent[]> {
-    const response = await this.request<ApiResponse<Agent>>('/agents/');
+    const response = await this.request<PaginatedResponse<Agent>>('/agents/');
     return response.results || [];
   }
 
@@ -304,5 +277,4 @@ class ApiClient {
   }
 }
 
-// Export singleton instance
 export const api = new ApiClient(API_BASE_URL);

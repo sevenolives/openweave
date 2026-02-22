@@ -44,7 +44,8 @@ export default function TicketDetailPage() {
 
   const fetchData = async () => {
     try {
-      const [t, c, a] = await Promise.all([api.getTicket(ticketId), api.getTicketComments(ticketId), api.getAgents()]);
+      const [t, cResp, a] = await Promise.all([api.getTicket(ticketId), api.getComments({ ticket: ticketId.toString() }), api.getAgents()]);
+      const c = cResp.results || [];
       setTicket(t); setComments(c); setAgents(a);
       setEditTitle(t.title); setEditDesc(t.description); setEditStatus(t.status);
       setEditPriority(t.priority); setEditAssigned(t.assigned_to?.toString() || '');

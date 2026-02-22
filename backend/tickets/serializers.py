@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import Agent, Project, Ticket, Comment, AuditLog, ProjectAgent
+from .models import Agent, Project, Ticket, Comment, AuditLog
 
 
 class AgentSerializer(serializers.ModelSerializer):
@@ -188,12 +188,4 @@ class CustomTokenObtainSerializer(serializers.Serializer):
             raise serializers.ValidationError('Must include email and password.')
 
 
-class ProjectAgentSerializer(serializers.ModelSerializer):
-    """Serializer for ProjectAgent model."""
-    agent_details = AgentSimpleSerializer(source='agent', read_only=True)
-    project_name = serializers.CharField(source='project.name', read_only=True)
-    
-    class Meta:
-        model = ProjectAgent
-        fields = ['id', 'project', 'project_name', 'agent', 'agent_details', 'joined_at']
-        read_only_fields = ['joined_at']
+# ProjectAgentSerializer removed — use ProjectSerializer with agent_ids instead

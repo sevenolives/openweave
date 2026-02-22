@@ -27,9 +27,10 @@ export default function ProjectsPage() {
       const counts: Record<number, any> = {};
       await Promise.all(projs.map(async (p) => {
         try {
-          const tickets = await api.getProjectTickets(p.id);
+          const resp = await api.getTickets({ project: p.id.toString() });
+          const tickets = resp.results || [];
           counts[p.id] = {
-            total: tickets.length,
+            total: resp.count ?? tickets.length,
             open: tickets.filter(t => t.status === 'OPEN').length,
             inProgress: tickets.filter(t => t.status === 'IN_PROGRESS').length,
             blocked: tickets.filter(t => t.status === 'BLOCKED').length,
