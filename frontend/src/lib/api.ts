@@ -221,7 +221,9 @@ class ApiClient {
   // Tickets
   async getProjectTickets(projectId: number, status?: string): Promise<Ticket[]> {
     const params = status ? `?status=${status}` : '';
-    const response = await this.request<ApiResponse<Ticket>>(`/projects/${projectId}/tickets/${params}`);
+    const response = await this.request<Ticket[] | ApiResponse<Ticket>>(`/projects/${projectId}/tickets/${params}`);
+    // API returns plain array (not paginated) for project tickets
+    if (Array.isArray(response)) return response;
     return response.results || [];
   }
 
