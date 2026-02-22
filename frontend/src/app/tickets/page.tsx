@@ -7,6 +7,7 @@ import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import FormField, { parseFieldErrors, inputClass } from '@/components/FormField';
 import { api, Ticket, Project, ApiError } from '@/lib/api';
+import { useWorkspace } from '@/hooks/useWorkspace';
 
 const PRIORITY_COLORS: Record<string, string> = {
   LOW: 'bg-green-100 text-green-700', MEDIUM: 'bg-yellow-100 text-yellow-700',
@@ -35,13 +36,15 @@ export default function TicketsPage() {
 
   const router = useRouter();
   const { toast } = useToast();
+  const { currentWorkspace } = useWorkspace();
 
   useEffect(() => {
-    Promise.all([api.getTickets(), api.getProjects()])
+    const wsParams = currentWorkspace ? { workspace: String(currentWorkspace.id) } : {};
+    Promise.all([api.getTickets(wsParams), api.getProjects(wsParams)])
       .then(([t, p]) => { setTickets(t); setProjects(p); })
       .catch((e: any) => toast(e?.message || 'Failed to load data', 'error'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [currentWorkspace?.id]);
 
   const filtered = useMemo(() => {
     return tickets.filter(t => {
@@ -66,7 +69,8 @@ export default function TicketsPage() {
   }, [filtered, projects]);
 
   const loadData = () => {
-    Promise.all([api.getTickets(), api.getProjects()])
+    const wsParams = currentWorkspace ? { workspace: String(currentWorkspace.id) } : {};
+    Promise.all([api.getTickets(wsParams), api.getProjects(wsParams)])
       .then(([t, p]) => { setTickets(t); setProjects(p); })
       .catch((e: any) => toast(e?.message || 'Failed to load data', 'error'));
   };

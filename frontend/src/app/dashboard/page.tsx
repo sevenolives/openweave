@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { api, Ticket, Project } from '@/lib/api';
+import { useWorkspace } from '@/hooks/useWorkspace';
 
 export default function DashboardPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -12,13 +13,15 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const router = useRouter();
+  const { currentWorkspace } = useWorkspace();
 
   useEffect(() => {
-    Promise.all([api.getTickets(), api.getProjects()])
+    const wsParams = currentWorkspace ? { workspace: String(currentWorkspace.id) } : {};
+    Promise.all([api.getTickets(wsParams), api.getProjects(wsParams)])
       .then(([t, p]) => { setTickets(t); setProjects(p); })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [currentWorkspace?.id]);
 
   const totalTickets = tickets.length;
   const openTickets = tickets.filter(t => t.status === 'OPEN').length;

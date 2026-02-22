@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import { api, User, Ticket } from '@/lib/api';
+import { useWorkspace } from '@/hooks/useWorkspace';
 
 export default function AgentsPage() {
   const [agents, setAgents] = useState<User[]>([]);
@@ -16,13 +17,15 @@ export default function AgentsPage() {
 
   const router = useRouter();
   const { toast } = useToast();
+  const { currentWorkspace } = useWorkspace();
 
   useEffect(() => {
-    Promise.all([api.getUsers(), api.getTickets()])
+    const wsParams = currentWorkspace ? { workspace: String(currentWorkspace.id) } : {};
+    Promise.all([api.getUsers(), api.getTickets(wsParams)])
       .then(([a, t]) => { setAgents(a); setTickets(t); })
       .catch((e: any) => toast(e?.message || 'Failed to load agents', 'error'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [currentWorkspace?.id]);
 
   const filtered = useMemo(() => {
     let result = agents;

@@ -7,6 +7,7 @@ import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import FormField, { parseFieldErrors, inputClass } from '@/components/FormField';
 import { api, Project, Ticket, ApiError } from '@/lib/api';
+import { useWorkspace } from '@/hooks/useWorkspace';
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -20,10 +21,12 @@ export default function ProjectsPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const router = useRouter();
   const { toast } = useToast();
+  const { currentWorkspace } = useWorkspace();
 
   const fetchProjects = async () => {
     try {
-      const projs = await api.getProjects();
+      const params = currentWorkspace ? { workspace: String(currentWorkspace.id) } : {};
+      const projs = await api.getProjects(params);
       setProjects(projs);
       // Fetch ticket counts for each project
       const counts: Record<number, any> = {};
@@ -46,7 +49,7 @@ export default function ProjectsPage() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchProjects(); }, []);
+  useEffect(() => { fetchProjects(); }, [currentWorkspace?.id]);
 
   useEffect(() => {
     if (!showCreate) return;
@@ -61,7 +64,7 @@ export default function ProjectsPage() {
     if (!name.trim()) return;
     setCreating(true);
     try {
-      await api.createProject({ name: name.trim(), description: desc.trim() });
+      await api.createProject({ name: name.trim(), description: desc.trim(), workspace: currentWorkspace?.id });
       toast('Project created');
       setName(''); setDesc(''); setShowCreate(false);
       setFieldErrors({});

@@ -274,8 +274,9 @@ class ApiClient {
   }
 
   // Projects
-  async getProjects(): Promise<Project[]> {
-    const response = await this.request<PaginatedResponse<Project>>('/projects/');
+  async getProjects(params?: Record<string, string>): Promise<Project[]> {
+    const query = params ? '?' + new URLSearchParams(params).toString() : '';
+    const response = await this.request<PaginatedResponse<Project>>(`/projects/${query}`);
     return response.results || [];
   }
 
