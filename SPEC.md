@@ -6,59 +6,114 @@
 
 ## System Overview
 
-A support and ticketing system where **human agents and bot agents** are first-class citizens. Tickets are created via a **channel bot**, managed through a **web dashboard**, and notifications are sent via **email** asynchronously.
+A multi-tenant support and ticketing system where **human agents and bot agents** are first-class citizens. Each team operates in its own **workspace**. Tickets flow through statuses, every action is logged, and onboarding is via **invite links**.
 
 ### Principles
 
 - Agents are first-class — bots and humans share the same model and capabilities.
+- Workspaces provide isolation — each team gets its own projects, tickets, and members.
+- Invite links for onboarding — no admin manually creating accounts. Share a link, they're in.
 - No sprints or phases in the product. Tickets flow through statuses.
 - Every action is logged in an audit trail.
+- Strict REST API — PATCH only, no custom endpoints, filter via query params.
+- Vanilla Django — no unnecessary dependencies or customizations.
 
 ### Terminology
 
-- **Agent** — any entity (human or bot) that can work on tickets.
-- **Project** — groups related tickets and agents.
-- **Ticket** — a unit of work, assigned to exactly one agent at a time.
-- **Comment** — a timestamped message on a ticket from any agent.
+- **Workspace** — a tenant container. All projects, tickets, and members belong to a workspace.
+- **User** — any entity (human or bot) that can work on tickets. Standard Django User model with extra columns.
+- **Project** — groups related tickets and users within a workspace.
+- **Ticket** — a unit of work, assigned to exactly one user at a time.
+- **Comment** — a timestamped message on a ticket from any user.
+- **Invite** — a shareable link that lets humans or bots join a workspace.
 
 ---
 
 ## Data Models
 
-### Project
-- id, name (unique), description, created_at, updated_at
-- Has many tickets. Has many agents (via join table).
+### Workspace
+- id, name, slug (unique, URL-safe), owner (FK to User), created_at, updated_at
+- Has many projects. Has many members (via WorkspaceMember).
 
-### Agent
-- id, name, type (HUMAN | BOT), email, role (ADMIN | MEMBER), skills (tags), is_active, created_at, updated_at
+### WorkspaceMember
+- id, workspace (FK), user (FK), role (ADMIN | MEMBER), joined_at
+- Unique together: (workspace, user)
+- The workspace owner is automatically an ADMIN member.
+
+### WorkspaceInvite
+- id, workspace (FK), token (UUID, unique), created_by (FK to User)
+- expires_at (nullable — null means never expires)
+- max_uses (nullable — null means unlimited)
+- use_count (default 0)
+- is_active (default true)
+- created_at
+
+### User (Django AbstractUser + extra columns)
+- Standard Django fields: id, username, email, password, is_active, etc.
+- Extra columns: agent_type (HUMAN | BOT), role (ADMIN | MEMBER), skills (JSON/tags), notification_preference
+- A user can belong to multiple workspaces.
+
+### Project
+- id, workspace (FK), name, description, created_at, updated_at
+- Has many tickets. Has many users (via join table).
+- Unique together: (workspace, name)
 
 ### Ticket
-- id, project_id, title, description, status, priority, assigned_to (one agent or null), created_by, created_at, updated_at, resolved_at, closed_at
+- id, project (FK), title, description, status, priority, assigned_to (FK to User, nullable), created_by (FK to User), created_at, updated_at, resolved_at, closed_at
 - **Statuses:** OPEN → IN_PROGRESS → RESOLVED → CLOSED. Can move to BLOCKED from IN_PROGRESS and back.
 - **Priorities:** LOW, MEDIUM, HIGH, CRITICAL
 
 ### Comment
-- id, ticket_id, author_id, body, created_at, updated_at
+- id, ticket (FK), author (FK to User), body, created_at, updated_at
 
 ### AuditLog
-- id, entity_type, entity_id, action, performed_by, old_value (JSON), new_value (JSON), timestamp
+- id, entity_type, entity_id, action, performed_by (FK to User), old_value (JSON), new_value (JSON), timestamp
+
+---
+
+## Workspace Flow
+
+### Creating a Workspace
+1. Any authenticated user can create a workspace.
+2. The creator becomes the workspace owner and is added as an ADMIN member.
+3. A default invite link is generated automatically.
+
+### Joining a Workspace
+1. Someone shares an invite link: `/invite/{token}`
+2. If not authenticated → redirect to register/login, then join.
+3. If authenticated → join the workspace as MEMBER.
+4. If already a member → redirect to workspace dashboard.
+5. Invite validation: check is_active, not expired, use_count < max_uses.
+
+### Invite Links
+- Workspace ADMINs can create invite links.
+- Each link has an optional expiry and optional max uses.
+- ADMINs can deactivate links.
+- The same link works for both humans and bots — a bot just authenticates via API instead of browser.
+
+### Workspace Switching
+- Users who belong to multiple workspaces see a workspace switcher in the nav.
+- All API calls are scoped to the current workspace.
+- URL structure: `/w/{workspace-slug}/dashboard`, `/w/{workspace-slug}/projects`, etc.
 
 ---
 
 ## Core Capabilities
 
-- **Web dashboard** with project list, ticket board (kanban by status), ticket detail with comments and audit trail, and agent management (admin only).
-- **Assignment** — one agent per ticket. Members self-assign, admins can reassign. Bots that get stuck set BLOCKED and tag a human.
-- **Email notifications** — async on assignment, comments, status changes, and escalation. Per-agent preferences (all, critical-only, none).
+- **Web dashboard** with workspace selector, project list, ticket board (kanban by status), ticket detail with comments, and member management (workspace admin only).
+- **Assignment** — one user per ticket. Members self-assign, admins can reassign. Bots that get stuck set BLOCKED and tag a human.
+- **Invite-based onboarding** — share a link, join a workspace. No email invites needed.
 
 ---
 
 ## Permissions
 
-| Action | ADMIN | MEMBER |
-|--------|-------|--------|
+| Action | Workspace ADMIN | Workspace MEMBER |
+|--------|----------------|-----------------|
 | Create/delete projects | ✅ | ❌ |
-| Manage project agents | ✅ | ❌ |
+| Manage project members | ✅ | ❌ |
+| Create/manage invite links | ✅ | ❌ |
+| Remove workspace members | ✅ | ❌ |
 | Create tickets | ✅ | ✅ |
 | Update own tickets | ✅ | ✅ |
 | Update others' tickets | ✅ | ❌ |
@@ -69,32 +124,99 @@ A support and ticketing system where **human agents and bot agents** are first-c
 
 ---
 
-## API Surface
+## API Surface (Strict REST)
 
-- **Projects** — CRUD, manage agents per project.
-- **Tickets** — CRUD, assign, change status. Nested under projects.
-- **Comments** — CRUD on tickets.
-- **Agents** — Register, list, get, update.
-- **Audit** — Trail per ticket or per project.
+All endpoints use standard HTTP methods. PATCH only (no PUT). Filter via query params. No custom action endpoints.
+
+### Auth
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/login/` | Get JWT tokens (username + password) — vanilla SimpleJWT |
+| POST | `/api/auth/token/refresh/` | Refresh access token |
+
+### Workspaces
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/workspaces/` | List user's workspaces |
+| POST | `/api/workspaces/` | Create workspace |
+| GET | `/api/workspaces/:id/` | Workspace detail |
+| PATCH | `/api/workspaces/:id/` | Update workspace (owner/admin) |
+| DELETE | `/api/workspaces/:id/` | Delete workspace (owner only) |
+
+### Workspace Members
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/workspace-members/?workspace=:id` | List members |
+| PATCH | `/api/workspace-members/:id/` | Update member role (admin) |
+| DELETE | `/api/workspace-members/:id/` | Remove member (admin) |
+
+### Invites
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/invites/?workspace=:id` | List workspace invites (admin) |
+| POST | `/api/invites/` | Create invite (admin) |
+| PATCH | `/api/invites/:id/` | Update invite (deactivate, etc.) |
+| DELETE | `/api/invites/:id/` | Delete invite |
+| POST | `/api/invites/join/` | Join workspace via invite token |
+
+### Users
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/users/` | List users |
+| POST | `/api/users/` | Register new user |
+| GET | `/api/users/:id/` | User detail |
+| PATCH | `/api/users/:id/` | Update user |
+| GET | `/api/users/me/` | Current user profile |
+
+### Projects (workspace-scoped)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/projects/?workspace=:id` | List projects in workspace |
+| POST | `/api/projects/` | Create project (admin) |
+| GET | `/api/projects/:id/` | Project detail |
+| PATCH | `/api/projects/:id/` | Update project (admin) |
+| DELETE | `/api/projects/:id/` | Delete project (admin) |
+
+### Tickets
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/tickets/?project=:id` | List tickets (filterable by status, priority, assigned_to) |
+| POST | `/api/tickets/` | Create ticket |
+| GET | `/api/tickets/:id/` | Ticket detail |
+| PATCH | `/api/tickets/:id/` | Update any fields (status, assigned_to, priority, etc.) |
+| DELETE | `/api/tickets/:id/` | Delete ticket (admin) |
+
+### Comments
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/comments/?ticket=:id` | List comments |
+| POST | `/api/comments/` | Add comment |
+| PATCH | `/api/comments/:id/` | Edit comment |
+| DELETE | `/api/comments/:id/` | Delete comment |
+
+### Audit Logs
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/audit-logs/?entity_type=ticket&entity_id=:id` | Filter audit trail |
 
 ---
 
 ## Build Phases
 
-### Phase 1: Foundation
+### Phase 1: Foundation ✅
 Database schema, migrations, seed data. CRUD API for all models. Ticket status validation. Audit logging.
 
-### Phase 2: Roles & Permissions
-RBAC at the API layer. Assignment validation (agent must belong to project). Escalation flow for BLOCKED tickets.
+### Phase 2: Roles & Permissions ✅
+RBAC at the API layer. Assignment validation (user must belong to project). Escalation flow for BLOCKED tickets.
 
-### Phase 3: Web Dashboard
-Project list, ticket board/list, ticket detail with comments and audit trail, auth, agent management.
+### Phase 3: Web Dashboard ✅
+Project list, ticket board/list, ticket detail with comments, auth, user management.
 
-### Phase 4: Email Notifications
-Background job queue. Sends on assignment, comments, status changes, escalation. Per-agent preferences. Retry logic.
+### Phase 4: Simplification ✅
+Removed Celery/Redis. Strict REST API. Vanilla Django. No custom auth.
 
-### Phase 5: Polish & Scale
-Pagination, rate limiting, search, error handling, API docs, tests, deployment config.
+### Phase 5: Workspaces & Invites ← NEXT
+Workspace model, WorkspaceMember, WorkspaceInvite. All projects/tickets scoped to workspace. Invite link join flow. Workspace switcher in frontend. Multi-tenant isolation.
 
 ---
 
