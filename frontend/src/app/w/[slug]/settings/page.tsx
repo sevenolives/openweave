@@ -56,14 +56,9 @@ export default function WorkspaceSettingsPage() {
   const copyInviteLink = (token: string) => {
     const url = `${window.location.origin}/invite/${token}`;
     navigator.clipboard.writeText(url);
-    alert('Human invite link copied!');
+    alert('Copied!');
   };
 
-  const copyBotLink = (token: string) => {
-    const url = `${window.location.origin}/invites/${token}/skills.md`;
-    navigator.clipboard.writeText(url);
-    alert('Bot skills link copied!');
-  };
 
   if (!workspace) return <Layout><div className="p-8 text-center text-gray-500">Workspace not found</div></Layout>;
 
@@ -110,8 +105,8 @@ export default function WorkspaceSettingsPage() {
                   <p className="text-xs text-gray-500">Uses: {inv.use_count}{inv.max_uses ? `/${inv.max_uses}` : ''} · {inv.is_active ? 'Active' : 'Inactive'}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => copyInviteLink(inv.token)} className="px-2 py-1 text-xs text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded" title="For humans — opens invite page">👤 Human</button>
-                  <button onClick={() => copyBotLink(inv.token)} className="px-2 py-1 text-xs text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded" title="For bots — skills.md with invite token">🤖 Bot</button>
+                  <button onClick={() => copyInviteLink(inv.token)} className="text-xs text-indigo-600 hover:text-indigo-800">Copy Link</button>
+                  
                 </div>
               </div>
             ))}
