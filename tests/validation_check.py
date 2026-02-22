@@ -223,7 +223,7 @@ if AUTH:
 
     # Find a project to create ticket in
     proj_id = projects[0]["id"] if projects else 1
-    ok, r = post(f"{BACKEND}/api/tickets/", {"title": f"CronTest_{uuid.uuid4().hex[:4]}", "description": "Auto-created by validation cron", "project": proj_id, "priority": "LOW", "created_by": my_id or 1}, AUTH)
+    ok, r = post(f"{BACKEND}/api/tickets/", {"title": f"CronTest_{uuid.uuid4().hex[:4]}", "description": "Auto-created by validation cron", "project": proj_id, "priority": "LOW"}, AUTH)
     check("6.2", "Create ticket", ok)
     test_ticket_id = r.json().get("id") if ok else None
 

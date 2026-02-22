@@ -161,7 +161,7 @@ class TicketSerializer(serializers.ModelSerializer):
             'created_by', 'created_by_details', 'created_at', 'updated_at',
             'resolved_at', 'closed_at'
         ]
-        read_only_fields = ['created_at', 'updated_at', 'resolved_at', 'closed_at']
+        read_only_fields = ['created_by', 'created_at', 'updated_at', 'resolved_at', 'closed_at']
         extra_kwargs = {
             'project': {'help_text': 'Project ID.'},
             'title': {'help_text': 'Ticket title.'},
@@ -169,7 +169,7 @@ class TicketSerializer(serializers.ModelSerializer):
             'status': {'help_text': 'OPEN, IN_PROGRESS, RESOLVED, CLOSED, or BLOCKED.'},
             'priority': {'help_text': 'LOW, MEDIUM, HIGH, or CRITICAL.'},
             'assigned_to': {'help_text': 'User ID of the assignee (must be a project member).'},
-            'created_by': {'help_text': 'User ID of the creator (auto-set).'},
+            'created_by': {'help_text': 'Auto-set to the authenticated user.'},
         }
 
     def validate_assigned_to(self, value):
