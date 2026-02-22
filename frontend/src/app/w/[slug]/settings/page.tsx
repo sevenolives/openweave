@@ -135,10 +135,26 @@ export default function WorkspaceSettingsPage() {
         {/* Members */}
         <div className="bg-white border border-gray-200 rounded-xl mb-6">
           <div className="px-5 py-4 border-b border-gray-100">
-            <h2 className="font-semibold text-gray-900">Members ({members.length})</h2>
+            <h2 className="font-semibold text-gray-900">Members ({members.length + 1})</h2>
           </div>
           <div className="divide-y divide-gray-50">
-            {members.map(m => (
+            {/* Owner — always first, not removable */}
+            {(workspace as any).owner_details && (
+              <div className="px-5 py-3 flex items-center justify-between bg-amber-50/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0 bg-amber-500">
+                    {(workspace as any).owner_details.username[0].toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{(workspace as any).owner_details.username}</p>
+                    <p className="text-xs text-gray-500">{(workspace as any).owner_details.email}</p>
+                  </div>
+                </div>
+                <span className="px-3 py-1.5 text-sm font-semibold text-amber-700 bg-amber-100 rounded-lg">Owner</span>
+              </div>
+            )}
+            {/* Regular members */}
+            {members.filter(m => m.user.id !== workspace.owner).map(m => (
               <div key={m.id} className="px-5 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0 ${m.user.user_type === 'BOT' ? 'bg-purple-500' : 'bg-indigo-500'}`}>

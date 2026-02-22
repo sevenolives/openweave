@@ -51,12 +51,13 @@ class UserSimpleSerializer(serializers.ModelSerializer):
 
 class WorkspaceSerializer(serializers.ModelSerializer):
     """Serializer for Workspace model."""
-    member_count = serializers.SerializerMethodField(help_text="Number of members in the workspace.")
+    member_count = serializers.SerializerMethodField(help_text="Number of members in the workspace (including owner).")
+    owner_details = UserSimpleSerializer(source='owner', read_only=True)
 
     class Meta:
         model = Workspace
-        fields = ['id', 'name', 'slug', 'owner', 'member_count', 'created_at']
-        read_only_fields = ['id', 'owner', 'created_at']
+        fields = ['id', 'name', 'slug', 'owner', 'owner_details', 'member_count', 'created_at']
+        read_only_fields = ['id', 'owner', 'owner_details', 'created_at']
         extra_kwargs = {
             'name': {'help_text': 'Workspace display name.'},
             'slug': {'help_text': 'URL-friendly identifier.'},
@@ -64,7 +65,7 @@ class WorkspaceSerializer(serializers.ModelSerializer):
         }
 
     def get_member_count(self, obj):
-        return obj.members.count()
+        return obj.members.count() + 1  # +1 for owner
 
 
 class WorkspaceMemberSerializer(serializers.ModelSerializer):

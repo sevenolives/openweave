@@ -33,8 +33,9 @@ class Command(BaseCommand):
         else:
             self.stdout.write(f'  - Workspace exists: {workspace.name}')
 
-        # Ensure all users are workspace members
-        for user in User.objects.all():
+        # Ensure all users (except owner) are workspace members
+        # Owner is on the workspace record itself, not in the members table
+        for user in User.objects.exclude(id=admin.id):
             role = 'ADMIN' if user.is_superuser or user.role == 'ADMIN' else 'MEMBER'
             _, member_created = WorkspaceMember.objects.get_or_create(
                 workspace=workspace, user=user,
@@ -42,6 +43,9 @@ class Command(BaseCommand):
             )
             if member_created:
                 self.stdout.write(f'  ✓ Added {user.username} to workspace as {role}')
+
+        # Remove owner from members table if they're there (cleanup)
+        WorkspaceMember.objects.filter(workspace=workspace, user=admin).delete()
 
         # Ensure at least one invite link exists
         if not WorkspaceInvite.objects.filter(workspace=workspace).exists():

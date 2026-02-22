@@ -162,6 +162,8 @@ class JoinView(APIView):
         if request.user and request.user.is_authenticated:
             if not invite:
                 return Response({'detail': 'workspace_invite_token is required.'}, status=status.HTTP_400_BAD_REQUEST)
+            if invite.workspace.owner_id == request.user.id:
+                return Response({'detail': 'You are the owner of this workspace.'}, status=status.HTTP_400_BAD_REQUEST)
             if WorkspaceMember.objects.filter(workspace=invite.workspace, user=request.user).exists():
                 return Response({'detail': 'Already a member of this workspace.'}, status=status.HTTP_400_BAD_REQUEST)
             WorkspaceMember.objects.create(workspace=invite.workspace, user=request.user, role='MEMBER')
@@ -566,7 +568,10 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def get_queryset(self):
-        return Workspace.objects.filter(members__user=self.request.user)
+        from django.db.models import Q
+        return Workspace.objects.filter(
+            Q(members__user=self.request.user) | Q(owner=self.request.user)
+        ).distinct()
 
     @extend_schema(summary="List workspaces", description="List workspaces the current user belongs to.")
     def list(self, request, *args, **kwargs):
@@ -603,14 +608,17 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         with transaction.atomic():
             workspace = serializer.save(owner=self.request.user)
-            WorkspaceMember.objects.create(workspace=workspace, user=self.request.user, role='ADMIN')
+            # Owner is on the workspace record — NOT in the members table
             WorkspaceInvite.objects.create(workspace=workspace, created_by=self.request.user)
 
     def check_object_permissions(self, request, obj):
         super().check_object_permissions(request, obj)
         if request.method not in ('GET', 'HEAD', 'OPTIONS'):
-            membership = WorkspaceMember.objects.filter(workspace=obj, user=request.user).first()
-            if not membership or (membership.role != 'ADMIN' and obj.owner != request.user):
+            # Owner always has full access
+            if obj.owner == request.user:
+                return
+            membership = WorkspaceMember.objects.filter(workspace=obj, user=request.user, role='ADMIN').first()
+            if not membership:
                 self.permission_denied(request)
 
 
@@ -650,13 +658,17 @@ class WorkspaceMemberViewSet(viewsets.ModelViewSet):
         return super().destroy(request, *args, **kwargs)
 
     def get_queryset(self):
+        from django.db.models import Q
         return WorkspaceMember.objects.select_related('user', 'workspace').filter(
-            workspace__members__user=self.request.user
+            Q(workspace__members__user=self.request.user) | Q(workspace__owner=self.request.user)
         ).distinct()
 
     def check_object_permissions(self, request, obj):
         super().check_object_permissions(request, obj)
         if request.method not in ('GET', 'HEAD', 'OPTIONS'):
+            # Owner always has full access
+            if obj.workspace.owner == request.user:
+                return
             membership = WorkspaceMember.objects.filter(workspace=obj.workspace, user=request.user, role='ADMIN').first()
             if not membership:
                 self.permission_denied(request)
@@ -699,14 +711,19 @@ class WorkspaceInviteViewSet(viewsets.ModelViewSet):
         return super().create(request, *args, **kwargs)
 
     def get_queryset(self):
+        from django.db.models import Q
         return WorkspaceInvite.objects.filter(
-            workspace__members__user=self.request.user
+            Q(workspace__members__user=self.request.user) | Q(workspace__owner=self.request.user)
         ).distinct()
 
     def perform_create(self, serializer):
         workspace = serializer.validated_data['workspace']
+        # Owner or admin can create invites
+        if workspace.owner == self.request.user:
+            serializer.save(created_by=self.request.user)
+            return
         membership = WorkspaceMember.objects.filter(workspace=workspace, user=self.request.user, role='ADMIN').first()
         if not membership:
             from rest_framework.exceptions import PermissionDenied
-            raise PermissionDenied("Only workspace admins can create invites.")
+            raise PermissionDenied("Only workspace admins or owner can create invites.")
         serializer.save(created_by=self.request.user)
