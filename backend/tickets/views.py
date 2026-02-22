@@ -287,7 +287,11 @@ class ProjectViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def get_queryset(self):
-        return Project.objects.prefetch_related('agents').all()
+        qs = Project.objects.prefetch_related('agents')
+        user = self.request.user
+        if user.is_superuser or user.role == 'ADMIN':
+            return qs.all()
+        return qs.filter(agents=user).distinct()
 
     @extend_schema(
         summary="List projects",
@@ -361,7 +365,11 @@ class TicketViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def get_queryset(self):
-        return Ticket.objects.select_related('project', 'assigned_to', 'created_by').all()
+        qs = Ticket.objects.select_related('project', 'assigned_to', 'created_by')
+        user = self.request.user
+        if user.is_superuser or user.role == 'ADMIN':
+            return qs.all()
+        return qs.filter(project__agents=user).distinct()
 
     @extend_schema(
         summary="List tickets",
@@ -452,7 +460,11 @@ class CommentViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def get_queryset(self):
-        return Comment.objects.select_related('ticket', 'author').all()
+        qs = Comment.objects.select_related('ticket', 'author')
+        user = self.request.user
+        if user.is_superuser or user.role == 'ADMIN':
+            return qs.all()
+        return qs.filter(ticket__project__agents=user).distinct()
 
     @extend_schema(
         summary="List comments",
