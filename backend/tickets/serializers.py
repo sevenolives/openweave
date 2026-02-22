@@ -65,7 +65,8 @@ class WorkspaceSerializer(serializers.ModelSerializer):
         }
 
     def get_member_count(self, obj):
-        return obj.members.count() + 1  # +1 for owner
+        # Count members excluding owner (owner is on workspace record, not members table)
+        return obj.members.exclude(user=obj.owner).count() + 1  # +1 for owner
 
 
 class WorkspaceMemberSerializer(serializers.ModelSerializer):

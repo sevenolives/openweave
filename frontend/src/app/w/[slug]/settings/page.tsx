@@ -135,7 +135,7 @@ export default function WorkspaceSettingsPage() {
         {/* Members */}
         <div className="bg-white border border-gray-200 rounded-xl mb-6">
           <div className="px-5 py-4 border-b border-gray-100">
-            <h2 className="font-semibold text-gray-900">Members ({members.length + 1})</h2>
+            <h2 className="font-semibold text-gray-900">Members ({members.filter(m => m.user.id !== workspace?.owner).length + 1})</h2>
           </div>
           <div className="divide-y divide-gray-50">
             {/* Owner — always first, not removable */}

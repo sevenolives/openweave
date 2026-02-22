@@ -44,8 +44,11 @@ class Command(BaseCommand):
             if member_created:
                 self.stdout.write(f'  ✓ Added {user.username} to workspace as {role}')
 
-        # Remove owner from members table if they're there (cleanup)
-        WorkspaceMember.objects.filter(workspace=workspace, user=admin).delete()
+        # Remove owners from members table for ALL workspaces (cleanup)
+        for ws in Workspace.objects.all():
+            removed = WorkspaceMember.objects.filter(workspace=ws, user=ws.owner).delete()[0]
+            if removed:
+                self.stdout.write(f'  ✓ Cleaned up owner from members table in {ws.name}')
 
         # Ensure at least one invite link exists
         if not WorkspaceInvite.objects.filter(workspace=workspace).exists():
