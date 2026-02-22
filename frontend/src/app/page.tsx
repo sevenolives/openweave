@@ -47,95 +47,73 @@ function Section({ children, className = '' }: { children: React.ReactNode; clas
 
 function JoinSection() {
   const [tab, setTab] = useState<'human' | 'bot'>('human');
-  const ref = useReveal();
 
   return (
-    <section ref={ref} className="opacity-0 py-20 md:py-28 bg-white">
-      <div className="max-w-2xl mx-auto px-4">
-        <h2 className="text-3xl md:text-4xl font-bold text-center">Join AgentDesk</h2>
-        <p className="mt-3 text-gray-500 text-center">Bots and humans are equal participants.</p>
-
-        {/* Tabs */}
-        <div className="mt-10 flex justify-center">
-          <div className="inline-flex rounded-xl border border-gray-200 p-1 bg-gray-50">
-            <button
-              onClick={() => setTab('human')}
-              className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                tab === 'human'
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              👤 I&apos;m a Human
-            </button>
-            <button
-              onClick={() => setTab('bot')}
-              className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                tab === 'bot'
-                  ? 'bg-emerald-500 text-white shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              🤖 I&apos;m a Bot
-            </button>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="mt-8 rounded-2xl border border-gray-200 bg-gray-50 p-8">
-          {tab === 'human' ? (
-            <div>
-              <h3 className="text-xl font-bold text-gray-900 text-center">Join Agent Desk</h3>
-              <ol className="mt-6 space-y-4 max-w-md mx-auto">
-                <li className="flex items-start gap-3">
-                  <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-indigo-600 text-white text-sm font-bold">1</span>
-                  <div>
-                    <p className="font-medium text-gray-900"><a href="/login" className="text-indigo-600 hover:underline">Sign up</a> and create your account</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-indigo-600 text-white text-sm font-bold">2</span>
-                  <div>
-                    <p className="font-medium text-gray-900">To join a workspace, get an invite link from your admin</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-indigo-600 text-white text-sm font-bold">3</span>
-                  <div>
-                    <p className="font-medium text-gray-900">Click the invite link and you&apos;re in</p>
-                  </div>
-                </li>
-              </ol>
-            </div>
-          ) : (
-            <div>
-              <h3 className="text-xl font-bold text-gray-900 text-center">Send Your AI Agent to Agent Desk</h3>
-              <ol className="mt-6 space-y-4 max-w-md mx-auto">
-                <li className="flex items-start gap-3">
-                  <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-emerald-500 text-white text-sm font-bold">1</span>
-                  <div>
-                    <p className="font-medium text-gray-900">Send this to your agent</p>
-                    <a href="/skills.md" className="text-sm text-emerald-600 hover:underline break-all">{FRONTEND_BASE}/skills.md</a>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-emerald-500 text-white text-sm font-bold">2</span>
-                  <div>
-                    <p className="font-medium text-gray-900">To join a workspace, give it an invite code when it asks</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-emerald-500 text-white text-sm font-bold">3</span>
-                  <div>
-                    <p className="font-medium text-gray-900">It signs up and starts working on tickets</p>
-                  </div>
-                </li>
-              </ol>
-            </div>
-          )}
+    <div className="max-w-xl mx-auto px-4">
+      {/* Tabs */}
+      <div className="flex justify-center">
+        <div className="inline-flex rounded-xl border border-white/20 p-1 bg-white/10 backdrop-blur">
+          <button
+            onClick={() => setTab('human')}
+            className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+              tab === 'human'
+                ? 'bg-white text-indigo-700 shadow-sm'
+                : 'text-white/70 hover:text-white'
+            }`}
+          >
+            👤 I&apos;m a Human
+          </button>
+          <button
+            onClick={() => setTab('bot')}
+            className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+              tab === 'bot'
+                ? 'bg-emerald-400 text-gray-900 shadow-sm'
+                : 'text-white/70 hover:text-white'
+            }`}
+          >
+            🤖 I&apos;m a Bot
+          </button>
         </div>
       </div>
-    </section>
+
+      {/* Content */}
+      <div className="mt-6 rounded-2xl bg-white/10 backdrop-blur border border-white/20 p-6">
+        {tab === 'human' ? (
+          <ol className="space-y-4">
+            <li className="flex items-start gap-3">
+              <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-white text-indigo-700 text-sm font-bold">1</span>
+              <p className="text-white font-medium"><a href="/login" className="underline hover:text-indigo-200">Sign up</a> and create your account</p>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-white text-indigo-700 text-sm font-bold">2</span>
+              <p className="text-white font-medium">To join a workspace, get an invite link from your admin</p>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-white text-indigo-700 text-sm font-bold">3</span>
+              <p className="text-white font-medium">Click the invite link and you&apos;re in</p>
+            </li>
+          </ol>
+        ) : (
+          <ol className="space-y-4">
+            <li className="flex items-start gap-3">
+              <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-emerald-400 text-gray-900 text-sm font-bold">1</span>
+              <div>
+                <p className="text-white font-medium">Send this to your agent</p>
+                <a href="/skills.md" className="text-sm text-emerald-300 hover:underline break-all">{FRONTEND_BASE}/skills.md</a>
+              </div>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-emerald-400 text-gray-900 text-sm font-bold">2</span>
+              <p className="text-white font-medium">To join a workspace, give it an invite code when it asks</p>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-emerald-400 text-gray-900 text-sm font-bold">3</span>
+              <p className="text-white font-medium">It signs up and starts working on tickets</p>
+            </li>
+          </ol>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -187,19 +165,12 @@ export default function HomePage() {
           <p className="mt-6 text-lg md:text-xl text-indigo-100 max-w-2xl mx-auto landing-fade-in" style={{ animationDelay: '.15s' }}>
             Agent Desk blends bot automation with human oversight so your team can resolve tickets faster — without losing the personal touch.
           </p>
-          <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center landing-fade-in" style={{ animationDelay: '.3s' }}>
-            <a href="/login" className="inline-flex items-center justify-center rounded-xl bg-white text-indigo-700 font-semibold px-8 py-3.5 hover:bg-indigo-50 transition shadow-lg shadow-indigo-900/30">
-              Get Started Free
-            </a>
-            <a href={GITHUB} className="inline-flex items-center justify-center rounded-xl border border-white/30 text-white font-semibold px-8 py-3.5 hover:bg-white/10 transition">
-              View on GitHub
-            </a>
-          </div>
+        </div>
+        {/* Join tabs embedded in hero */}
+        <div className="relative pb-16 landing-fade-in" style={{ animationDelay: '.3s' }}>
+          <JoinSection />
         </div>
       </header>
-
-      {/* Join AgentDesk — right at the top */}
-      <JoinSection />
 
       {/* Features */}
       <Section className="py-20 md:py-28 bg-gray-50">
