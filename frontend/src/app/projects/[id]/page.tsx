@@ -41,11 +41,16 @@ export default function ProjectDetailPage() {
   const [sortCol, setSortCol] = useState<'title' | 'status' | 'priority' | 'created_at'>('created_at');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [movingTicket, setMovingTicket] = useState<number | null>(null);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [memberSaving, setMemberSaving] = useState(false);
 
   const router = useRouter();
   const params = useParams();
   const projectId = parseInt(params.id as string);
   const { toast } = useToast();
+  const { user: currentUser } = useAuth();
+  const isAdmin = currentUser?.role === 'ADMIN';
 
   const fetchData = async () => {
     try {
@@ -56,6 +61,7 @@ export default function ProjectDetailPage() {
   };
 
   useEffect(() => { fetchData(); }, [projectId]);
+  useEffect(() => { api.getUsers().then(setAllUsers).catch(() => {}); }, []);
 
   const handleCreateTicket = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,6 +95,33 @@ export default function ProjectDetailPage() {
     } catch { toast('Failed to update project', 'error'); }
     finally { setSaving(false); }
   };
+
+  const handleAddMember = async () => {
+    if (!project || !selectedUserId) return;
+    setMemberSaving(true);
+    try {
+      const newIds = [...project.agents.map(a => a.id), parseInt(selectedUserId)];
+      const updated = await api.updateProject(project.id, { agent_ids: newIds });
+      setProject(updated);
+      setSelectedUserId('');
+      toast('Member added');
+    } catch { toast('Failed to add member', 'error'); }
+    finally { setMemberSaving(false); }
+  };
+
+  const handleRemoveMember = async (userId: number) => {
+    if (!project) return;
+    setMemberSaving(true);
+    try {
+      const newIds = project.agents.filter(a => a.id !== userId).map(a => a.id);
+      const updated = await api.updateProject(project.id, { agent_ids: newIds });
+      setProject(updated);
+      toast('Member removed');
+    } catch { toast('Failed to remove member', 'error'); }
+    finally { setMemberSaving(false); }
+  };
+
+  const availableUsers = allUsers.filter(u => !project?.agents.some(a => a.id === u.id));
 
   const sortedTickets = [...tickets].sort((a, b) => {
     let cmp = 0;
@@ -254,21 +287,86 @@ export default function ProjectDetailPage() {
 
             {/* Settings Tab */}
             {tab === 'settings' && (
-              <div className="bg-white rounded-xl border border-gray-200 p-6 max-w-lg">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Project Settings</h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                    <input type="text" value={editName} onChange={e => setEditName(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+              <div className="space-y-6 max-w-lg">
+                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Project Settings</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                      <input type="text" value={editName} onChange={e => setEditName(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                      <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none" rows={4} />
+                    </div>
+                    <button onClick={handleSaveSettings} disabled={saving} className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 transition-colors">
+                      {saving ? 'Saving…' : 'Save Changes'}
+                    </button>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none" rows={4} />
-                  </div>
-                  <button onClick={handleSaveSettings} disabled={saving} className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 transition-colors">
-                    {saving ? 'Saving…' : 'Save Changes'}
-                  </button>
                 </div>
+
+                {isAdmin && (
+                  <div className="bg-white rounded-xl border border-gray-200 p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Members</h3>
+
+                    {/* Current members */}
+                    <div className="space-y-2 mb-4">
+                      {project.agents.length === 0 ? (
+                        <p className="text-sm text-gray-400">No members yet.</p>
+                      ) : (
+                        project.agents.map(agent => (
+                          <div key={agent.id} className="flex items-center justify-between px-3 py-2.5 bg-gray-50 rounded-xl">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 ${agent.user_type === 'BOT' ? 'bg-purple-500' : 'bg-indigo-500'}`}>
+                                {agent.username[0].toUpperCase()}
+                              </span>
+                              <div className="min-w-0">
+                                <div className="text-sm font-medium text-gray-900 truncate">{agent.username}</div>
+                                {agent.name && (
+                                  <div className="text-xs text-gray-500 truncate">{agent.name}</div>
+                                )}
+                              </div>
+                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold flex-shrink-0 ${agent.user_type === 'BOT' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                                {agent.user_type}
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => handleRemoveMember(agent.id)}
+                              disabled={memberSaving}
+                              className="ml-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                              title="Remove member"
+                            >
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    {/* Add member */}
+                    {availableUsers.length > 0 && (
+                      <div className="flex gap-2">
+                        <select
+                          value={selectedUserId}
+                          onChange={e => setSelectedUserId(e.target.value)}
+                          className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white min-h-[44px]"
+                        >
+                          <option value="">Select a user…</option>
+                          {availableUsers.map(u => (
+                            <option key={u.id} value={u.id}>{u.username} ({u.user_type})</option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={handleAddMember}
+                          disabled={!selectedUserId || memberSaving}
+                          className="px-5 py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors min-h-[44px]"
+                        >
+                          Add
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </>
