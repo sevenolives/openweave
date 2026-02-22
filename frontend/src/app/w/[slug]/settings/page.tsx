@@ -97,12 +97,12 @@ export default function WorkspaceSettingsPage() {
   const copyInviteLink = (token: string) => {
     const url = `${window.location.origin}/invite/${token}`;
     navigator.clipboard.writeText(url);
-    alert('Invite link copied!');
+    toast('Invite link copied!');
   };
 
   const copyInviteCode = (token: string) => {
     navigator.clipboard.writeText(token);
-    alert('Invite code copied! Give this to a bot so it can join.');
+    toast('Invite code copied for bot!');
   };
 
 
@@ -140,16 +140,23 @@ export default function WorkspaceSettingsPage() {
           <div className="divide-y divide-gray-50">
             {members.map(m => (
               <div key={m.id} className="px-5 py-3 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{m.user.username}</p>
-                  <p className="text-xs text-gray-500">{m.user.email}</p>
+                <div className="flex items-center gap-3">
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0 ${m.user.user_type === 'BOT' ? 'bg-purple-500' : 'bg-indigo-500'}`}>
+                    {m.user.username[0].toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{m.user.username}</p>
+                    <p className="text-xs text-gray-500">{m.user.email} · <span className={m.user.user_type === 'BOT' ? 'text-purple-600' : ''}>{m.user.user_type}</span></p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <select value={m.role} onChange={e => handleRoleChange(m.id, e.target.value)} className="text-xs border border-gray-300 rounded px-2 py-1">
+                <div className="flex items-center gap-3">
+                  <select value={m.role} onChange={e => handleRoleChange(m.id, e.target.value)} className="text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white">
                     <option value="ADMIN">Admin</option>
                     <option value="MEMBER">Member</option>
                   </select>
-                  <button onClick={() => handleRemoveMember(m.id)} className="text-xs text-red-600 hover:text-red-800">Remove</button>
+                  <button onClick={() => handleRemoveMember(m.id)} className="px-3 py-2 text-sm font-medium text-red-600 hover:text-white hover:bg-red-600 border border-red-200 hover:border-red-600 rounded-lg transition-colors min-w-[80px]">
+                    Remove
+                  </button>
                 </div>
               </div>
             ))}
