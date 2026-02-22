@@ -1,7 +1,7 @@
+import os
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from django.db.models import Q
-from decouple import config
 
 User = get_user_model()
 
@@ -15,9 +15,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # Get credentials from environment or use defaults
-        username = config('SUPERUSER_USERNAME', default='admin')
-        email = config('SUPERUSER_EMAIL', default='admin@agentdesk.com')
-        password = config('SUPERUSER_PASSWORD', default='password123')
+        username = os.environ.get('SUPERUSER_USERNAME', 'admin')
+        email = os.environ.get('SUPERUSER_EMAIL', 'admin@agentdesk.com')
+        password = os.environ.get('SUPERUSER_PASSWORD', 'password123')
 
         # Check if a user with this email or username already exists
         existing_user = User.objects.filter(
