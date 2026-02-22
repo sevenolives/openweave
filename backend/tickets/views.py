@@ -617,10 +617,13 @@ class WorkspaceMemberViewSet(viewsets.ModelViewSet):
 
     @extend_schema(
         summary="Remove workspace member",
-        description="Remove a member from a workspace. Only workspace admins can remove members.",
-        responses={204: None, 403: _error_detail},
+        description="Remove a member from a workspace. Only workspace admins can remove members. Workspace owner cannot be removed.",
+        responses={204: None, 400: _error_detail, 403: _error_detail},
     )
     def destroy(self, request, *args, **kwargs):
+        obj = self.get_object()
+        if obj.user_id == obj.workspace.owner_id:
+            return Response({'detail': 'Cannot remove the workspace owner.'}, status=status.HTTP_400_BAD_REQUEST)
         return super().destroy(request, *args, **kwargs)
 
     def get_queryset(self):
