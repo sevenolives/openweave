@@ -21,6 +21,15 @@ def skills_md_view(request):
     return HttpResponse(_skills_cache['content'], content_type='text/markdown; charset=utf-8')
 
 
+def heartbeat_md_view(request):
+    """Serve heartbeat.md static file."""
+    import os
+    heartbeat_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'tickets', 'heartbeat.md')
+    with open(heartbeat_path, 'r') as f:
+        content = f.read()
+    return HttpResponse(content, content_type='text/markdown; charset=utf-8')
+
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('tickets.urls')),
@@ -32,4 +41,5 @@ urlpatterns = [
 
     # Skills document (generated from schema)
     path('api/skills.md', skills_md_view, name='skills-md'),
+    path('api/heartbeat.md', heartbeat_md_view, name='heartbeat-md'),
 ]
