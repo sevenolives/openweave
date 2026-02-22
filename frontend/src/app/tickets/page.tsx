@@ -22,6 +22,12 @@ export default function TicketsPage() {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterPriority, setFilterPriority] = useState('');
+  const [showCreate, setShowCreate] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newDesc, setNewDesc] = useState('');
+  const [newPriority, setNewPriority] = useState('MEDIUM');
+  const [newProject, setNewProject] = useState<number | ''>('');
 
   const router = useRouter();
   const { toast } = useToast();
@@ -55,6 +61,26 @@ export default function TicketsPage() {
     return Object.values(groups).sort((a, b) => (a.project?.name || '').localeCompare(b.project?.name || ''));
   }, [filtered, projects]);
 
+  const loadData = () => {
+    Promise.all([api.getTickets(), api.getProjects()])
+      .then(([t, p]) => { setTickets(t); setProjects(p); })
+      .catch(() => toast('Failed to load data', 'error'));
+  };
+
+  const handleCreateTicket = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTitle.trim() || !newProject) return;
+    setCreating(true);
+    try {
+      await api.createTicket({ project: newProject as number, title: newTitle, description: newDesc, priority: newPriority as any });
+      toast('Ticket created');
+      setShowCreate(false);
+      setNewTitle(''); setNewDesc(''); setNewPriority('MEDIUM'); setNewProject('');
+      loadData();
+    } catch { toast('Failed to create ticket', 'error'); }
+    finally { setCreating(false); }
+  };
+
   const hasFilters = search || filterStatus || filterPriority;
 
   return (
@@ -69,6 +95,10 @@ export default function TicketsPage() {
               {hasFilters && <span className="text-indigo-500"> (filtered)</span>}
             </p>
           </div>
+          <button onClick={() => setShowCreate(true)} className="hidden sm:inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+            New Ticket
+          </button>
         </div>
 
         {/* Filters */}
@@ -176,6 +206,47 @@ export default function TicketsPage() {
             ))}
           </div>
         )}
+
+        {/* Create Ticket Modal */}
+        {showCreate && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setShowCreate(false)}>
+            <div className="bg-white w-full sm:w-[28rem] sm:rounded-2xl rounded-t-2xl p-6" onClick={e => e.stopPropagation()}>
+              <h2 className="text-lg font-bold text-gray-900 mb-4">New Ticket</h2>
+              <form onSubmit={handleCreateTicket} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Project</label>
+                  <select value={newProject} onChange={e => setNewProject(Number(e.target.value) || '')} className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white" required>
+                    <option value="">Select a project</option>
+                    {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                  <input type="text" value={newTitle} onChange={e => setNewTitle(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="Ticket title" autoFocus />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none" rows={3} placeholder="Describe the issue" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                  <select value={newPriority} onChange={e => setNewPriority(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white">
+                    <option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option><option value="CRITICAL">Critical</option>
+                  </select>
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button type="button" onClick={() => setShowCreate(false)} className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+                  <button type="submit" disabled={creating || !newTitle.trim() || !newProject} className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed">{creating ? 'Creating…' : 'Create Ticket'}</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Mobile FAB */}
+        <button onClick={() => setShowCreate(true)} className="sm:hidden fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-700 active:scale-95 transition-all z-40">
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+        </button>
       </div>
     </Layout>
   );
