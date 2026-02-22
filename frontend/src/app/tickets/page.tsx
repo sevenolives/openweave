@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
-import { api, Ticket, Project, Agent } from '@/lib/api';
+import { api, Ticket, Project } from '@/lib/api';
 
 const PRIORITY_COLORS: Record<string, string> = {
   LOW: 'bg-green-100 text-green-700', MEDIUM: 'bg-yellow-100 text-yellow-700',
@@ -18,151 +18,162 @@ const STATUS_COLORS: Record<string, string> = {
 export default function TicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterPriority, setFilterPriority] = useState('');
-  const [filterProject, setFilterProject] = useState('');
-  const [filterAgent, setFilterAgent] = useState('');
-  const [sortCol, setSortCol] = useState<'created_at' | 'priority' | 'status'>('created_at');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
-  const [selected, setSelected] = useState<Set<number>>(new Set());
 
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
-    Promise.all([api.getTickets(), api.getProjects(), api.getAgents()])
-      .then(([t, p, a]) => { setTickets(t); setProjects(p); setAgents(a); })
+    Promise.all([api.getTickets(), api.getProjects()])
+      .then(([t, p]) => { setTickets(t); setProjects(p); })
       .catch(() => toast('Failed to load data', 'error'))
       .finally(() => setLoading(false));
   }, []);
 
   const filtered = useMemo(() => {
-    let result = tickets;
-    if (search) result = result.filter(t => t.title.toLowerCase().includes(search.toLowerCase()) || `#${t.id}`.includes(search));
-    if (filterStatus) result = result.filter(t => t.status === filterStatus);
-    if (filterPriority) result = result.filter(t => t.priority === filterPriority);
-    if (filterProject) result = result.filter(t => t.project === parseInt(filterProject));
-    if (filterAgent) result = result.filter(t => t.assigned_to === parseInt(filterAgent));
-
-    result.sort((a, b) => {
-      let cmp = 0;
-      if (sortCol === 'priority') {
-        const order = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
-        cmp = (order[a.priority] ?? 4) - (order[b.priority] ?? 4);
-      } else if (sortCol === 'status') cmp = a.status.localeCompare(b.status);
-      else cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-      return sortDir === 'asc' ? cmp : -cmp;
+    return tickets.filter(t => {
+      if (search && !t.title.toLowerCase().includes(search.toLowerCase()) && !t.description?.toLowerCase().includes(search.toLowerCase())) return false;
+      if (filterStatus && t.status !== filterStatus) return false;
+      if (filterPriority && t.priority !== filterPriority) return false;
+      return true;
     });
-    return result;
-  }, [tickets, search, filterStatus, filterPriority, filterProject, filterAgent, sortCol, sortDir]);
+  }, [tickets, search, filterStatus, filterPriority]);
 
-  const toggleSelect = (id: number) => {
-    setSelected(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
+  // Group tickets by project
+  const grouped = useMemo(() => {
+    const groups: Record<number, { project: Project | null; tickets: Ticket[] }> = {};
+    for (const t of filtered) {
+      const pid = t.project;
+      if (!groups[pid]) {
+        groups[pid] = { project: projects.find(p => p.id === pid) || null, tickets: [] };
+      }
+      groups[pid].tickets.push(t);
+    }
+    return Object.values(groups).sort((a, b) => (a.project?.name || '').localeCompare(b.project?.name || ''));
+  }, [filtered, projects]);
 
-  const toggleAll = () => {
-    if (selected.size === filtered.length) setSelected(new Set());
-    else setSelected(new Set(filtered.map(t => t.id)));
-  };
-
-  const handleSort = (col: typeof sortCol) => {
-    if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-    else { setSortCol(col); setSortDir('asc'); }
-  };
-
-  const SortIcon = ({ col }: { col: string }) => sortCol === col ? <span className="ml-1">{sortDir === 'asc' ? '↑' : '↓'}</span> : null;
+  const hasFilters = search || filterStatus || filterPriority;
 
   return (
     <Layout>
       <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Tickets</h1>
-            <p className="text-sm text-gray-500 mt-1">{filtered.length} of {tickets.length} ticket{tickets.length !== 1 ? 's' : ''}</p>
+            <h1 className="text-2xl font-bold text-gray-900">All Tickets</h1>
+            <p className="text-sm text-gray-500 mt-1">
+              {filtered.length} ticket{filtered.length !== 1 ? 's' : ''} across {grouped.length} project{grouped.length !== 1 ? 's' : ''}
+              {hasFilters && <span className="text-indigo-500"> (filtered)</span>}
+            </p>
           </div>
         </div>
 
         {/* Filters */}
         <div className="flex flex-wrap gap-3 mb-6">
-          <div className="relative flex-1 min-w-[200px] max-w-md">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-            <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tickets..." className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
-          </div>
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="px-3 py-2.5 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500">
-            <option value="">All Statuses</option>
-            {['OPEN','IN_PROGRESS','BLOCKED','RESOLVED','CLOSED'].map(s => <option key={s} value={s}>{s.replace('_',' ')}</option>)}
+          <input
+            type="text" value={search} onChange={e => setSearch(e.target.value)}
+            className="px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-full sm:w-64"
+            placeholder="Search tickets..."
+          />
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
+            <option value="">All statuses</option>
+            <option value="OPEN">Open</option>
+            <option value="IN_PROGRESS">In Progress</option>
+            <option value="BLOCKED">Blocked</option>
+            <option value="RESOLVED">Resolved</option>
+            <option value="CLOSED">Closed</option>
           </select>
-          <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)} className="px-3 py-2.5 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500">
-            <option value="">All Priorities</option>
-            {['LOW','MEDIUM','HIGH','CRITICAL'].map(p => <option key={p} value={p}>{p}</option>)}
+          <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)} className="px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
+            <option value="">All priorities</option>
+            <option value="LOW">Low</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="HIGH">High</option>
+            <option value="CRITICAL">Critical</option>
           </select>
-          <select value={filterProject} onChange={e => setFilterProject(e.target.value)} className="hidden sm:block px-3 py-2.5 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500">
-            <option value="">All Projects</option>
-            {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-          <select value={filterAgent} onChange={e => setFilterAgent(e.target.value)} className="hidden sm:block px-3 py-2.5 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500">
-            <option value="">All Agents</option>
-            {agents.map(a => <option key={a.id} value={a.id}>{a.username}</option>)}
-          </select>
+          {hasFilters && (
+            <button onClick={() => { setSearch(''); setFilterStatus(''); setFilterPriority(''); }} className="px-3 py-2.5 text-sm text-gray-500 hover:text-gray-700">
+              Clear filters
+            </button>
+          )}
         </div>
 
-        {/* Selected count */}
-        {selected.size > 0 && (
-          <div className="mb-4 px-4 py-2.5 bg-indigo-50 rounded-xl text-sm text-indigo-700 font-medium flex items-center gap-3">
-            {selected.size} ticket{selected.size > 1 ? 's' : ''} selected
-            <button onClick={() => setSelected(new Set())} className="text-indigo-500 hover:text-indigo-700 underline text-xs">Clear</button>
-          </div>
-        )}
-
+        {/* Content grouped by project */}
         {loading ? (
-          <div className="bg-white rounded-xl border border-gray-200 p-8 animate-pulse space-y-3">
-            {[1,2,3,4,5].map(i => <div key={i} className="h-12 bg-gray-100 rounded-lg"></div>)}
+          <div className="space-y-4">
+            {[1,2].map(i => <div key={i} className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse"><div className="h-5 bg-gray-200 rounded w-40 mb-4"></div><div className="h-12 bg-gray-100 rounded mb-2"></div><div className="h-12 bg-gray-100 rounded"></div></div>)}
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-20">
             <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">{tickets.length === 0 ? 'No tickets yet' : 'No matching tickets'}</h3>
-            <p className="text-sm text-gray-500">{tickets.length === 0 ? 'Create a ticket from a project to get started.' : 'Try adjusting your filters.'}</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">{hasFilters ? 'No matching tickets' : 'No tickets yet'}</h3>
+            <p className="text-sm text-gray-500 mb-4">{hasFilters ? 'Try adjusting your filters.' : 'Create tickets from within a project.'}</p>
+            {!hasFilters && (
+              <button onClick={() => router.push('/projects')} className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700">
+                Go to Projects
+              </button>
+            )}
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden overflow-x-auto">
-            <table className="w-full min-w-[700px]">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="pl-5 py-3 w-10"><input type="checkbox" checked={selected.size === filtered.length && filtered.length > 0} onChange={toggleAll} className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" /></th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Ticket</th>
-                  <th onClick={() => handleSort('status')} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700">Status<SortIcon col="status" /></th>
-                  <th onClick={() => handleSort('priority')} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700">Priority<SortIcon col="priority" /></th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Project</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Assigned</th>
-                  <th onClick={() => handleSort('created_at')} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 hidden sm:table-cell">Date<SortIcon col="created_at" /></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filtered.map(ticket => (
-                  <tr key={ticket.id} className="hover:bg-gray-50 group">
-                    <td className="pl-5 py-3"><input type="checkbox" checked={selected.has(ticket.id)} onChange={() => toggleSelect(ticket.id)} className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" /></td>
-                    <td className="px-4 py-3 cursor-pointer" onClick={() => router.push(`/tickets/${ticket.id}`)}>
-                      <p className="text-sm font-medium text-gray-900 group-hover:text-indigo-700 transition-colors">#{ticket.id} {ticket.title}</p>
-                    </td>
-                    <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-md text-xs font-medium ${STATUS_COLORS[ticket.status]}`}>{ticket.status.replace('_',' ')}</span></td>
-                    <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-md text-xs font-medium ${PRIORITY_COLORS[ticket.priority]}`}>{ticket.priority}</span></td>
-                    <td className="px-4 py-3 text-sm text-gray-500 hidden md:table-cell">{ticket.project_name}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500 hidden md:table-cell">{ticket.assigned_to_details?.username || 'Unassigned'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-400 hidden sm:table-cell">{new Date(ticket.created_at).toLocaleDateString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="space-y-6">
+            {grouped.map(({ project, tickets: groupTickets }) => (
+              <div key={project?.id || 0} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                {/* Project header */}
+                <div
+                  className="px-5 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors"
+                  onClick={() => project && router.push(`/projects/${project.id}`)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
+                      <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-semibold text-gray-900">{project?.name || 'Unknown Project'}</h2>
+                      <p className="text-xs text-gray-500">{groupTickets.length} ticket{groupTickets.length !== 1 ? 's' : ''}</p>
+                    </div>
+                  </div>
+                  <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                </div>
+                
+                {/* Tickets table */}
+                <table className="w-full">
+                  <tbody className="divide-y divide-gray-100">
+                    {groupTickets.map(ticket => (
+                      <tr key={ticket.id} onClick={() => router.push(`/tickets/${ticket.id}`)} className="hover:bg-gray-50 cursor-pointer">
+                        <td className="px-5 py-3">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs text-gray-400 font-mono w-8">#{ticket.id}</span>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">{ticket.title}</p>
+                              {ticket.assigned_to_details && (
+                                <p className="text-xs text-gray-500 mt-0.5">→ {ticket.assigned_to_details.username}</p>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 hidden sm:table-cell">
+                          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[ticket.status]}`}>
+                            {ticket.status.replace('_', ' ')}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3 hidden md:table-cell">
+                          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${PRIORITY_COLORS[ticket.priority]}`}>
+                            {ticket.priority}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3 text-right">
+                          <span className="text-xs text-gray-400">{new Date(ticket.created_at).toLocaleDateString()}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
           </div>
         )}
       </div>
