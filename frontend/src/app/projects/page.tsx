@@ -114,7 +114,7 @@ export default function ProjectsPage() {
           </div>
         )}
 
-        <ConfirmDialog open={!!deleteId} title="Delete Project" message="Are you sure? This will permanently delete this project and all its tickets." onConfirm={handleDelete} onCancel={() => setDeleteId(null)} />
+        <ConfirmDialog open={!!deleteId} title="Delete Project" message="Are you sure? The project must have no tickets before it can be deleted." onConfirm={handleDelete} onCancel={() => setDeleteId(null)} />
 
         {/* Content */}
         {loading ? (

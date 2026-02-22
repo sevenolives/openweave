@@ -334,8 +334,11 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def partial_update(self, request, *args, **kwargs):
         return super().partial_update(request, *args, **kwargs)
 
-    @extend_schema(summary="Delete project", description="Delete a project. Admin only.", responses={204: None})
+    @extend_schema(summary="Delete project", description="Delete a project. Admin only. Project must have no tickets.", responses={204: None, 400: _error_detail})
     def destroy(self, request, *args, **kwargs):
+        project = self.get_object()
+        if project.tickets.exists():
+            return Response({'detail': 'Cannot delete a project that still has tickets. Delete or move all tickets first.'}, status=status.HTTP_400_BAD_REQUEST)
         return super().destroy(request, *args, **kwargs)
 
     def perform_create(self, serializer):
