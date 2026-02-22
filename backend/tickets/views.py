@@ -5,34 +5,34 @@ from django.db import transaction
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, OpenApiExample
 from drf_spectacular.types import OpenApiTypes
-from .models import Agent, Project, Ticket, Comment, AuditLog, ProjectAgent
+from .models import User, Project, Ticket, Comment, AuditLog, ProjectAgent
 from .serializers import (
-    AgentSerializer, ProjectSerializer, TicketSerializer,
+    UserSerializer, ProjectSerializer, TicketSerializer,
     CommentSerializer, AuditLogSerializer,
 )
 from .permissions import (
     IsAdminAgent, IsAdminOrReadOnly, IsAdminOrOwner,
 )
 from .filters import (
-    TicketFilter, AgentFilter, ProjectFilter, CommentFilter, AuditLogFilter
+    TicketFilter, UserFilter, ProjectFilter, CommentFilter, AuditLogFilter
 )
 
 
-class AgentViewSet(viewsets.ModelViewSet):
+class UserViewSet(viewsets.ModelViewSet):
     """
-    CRUD operations for agents (users).
+    CRUD operations for users.
 
-    - **GET /agents/** — list all agents (searchable, filterable)
-    - **POST /agents/** — register a new agent (public)
-    - **GET /agents/{id}/** — retrieve agent details
-    - **PATCH /agents/{id}/** — update agent fields
-    - **GET /agents/me/** — current authenticated user profile
+    - **GET /users/** — list all users (searchable, filterable)
+    - **POST /users/** — register a new user (public)
+    - **GET /users/{id}/** — retrieve user details
+    - **PATCH /users/{id}/** — update user fields
+    - **GET /users/me/** — current authenticated user profile
     """
-    queryset = Agent.objects.all()
-    serializer_class = AgentSerializer
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_class = AgentFilter
+    filterset_class = UserFilter
     search_fields = ['username', 'email', 'first_name', 'last_name']
     ordering_fields = ['username', 'email', 'created_at', 'is_active']
     ordering = ['username']
@@ -43,7 +43,7 @@ class AgentViewSet(viewsets.ModelViewSet):
             return []
         return [permissions.IsAuthenticated()]
 
-    @extend_schema(summary="Get current user profile", responses={200: AgentSerializer})
+    @extend_schema(summary="Get current user profile", responses={200: UserSerializer})
     @action(detail=False, methods=['get'])
     def me(self, request):
         """Get current user profile."""
@@ -51,13 +51,13 @@ class AgentViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     @extend_schema(
-        summary="Register new agent",
-        request=AgentSerializer,
-        responses={201: AgentSerializer, 400: OpenApiTypes.OBJECT},
+        summary="Register new user",
+        request=UserSerializer,
+        responses={201: UserSerializer, 400: OpenApiTypes.OBJECT},
     )
     @action(detail=False, methods=['post'])
     def register(self, request):
-        """Agent registration endpoint."""
+        """User registration endpoint."""
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             serializer.save()

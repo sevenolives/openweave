@@ -6,7 +6,7 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import Agent, Project, Ticket, Comment, AuditLog
+from .models import User, Project, Ticket, Comment, AuditLog
 
 
 class BaseAPITestCase(TestCase):
@@ -17,21 +17,21 @@ class BaseAPITestCase(TestCase):
         self.client = APIClient()
         
         # Create test users
-        self.admin_user = Agent.objects.create_user(
+        self.admin_user = User.objects.create_user(
             username='admin',
             email='admin@example.com',
             password='adminpass123',
             role='ADMIN'
         )
         
-        self.member_user = Agent.objects.create_user(
+        self.member_user = User.objects.create_user(
             username='member',
             email='member@example.com',
             password='memberpass123',
             role='MEMBER'
         )
         
-        self.bot_user = Agent.objects.create_user(
+        self.bot_user = User.objects.create_user(
             username='bot',
             email='bot@example.com',
             password='botpass123',
@@ -79,7 +79,7 @@ class AuthenticationAPITest(BaseAPITestCase):
         
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Agent.objects.filter(username='newuser').count(), 1)
+        self.assertEqual(User.objects.filter(username='newuser').count(), 1)
     
     def test_login(self):
         """Test user login."""
@@ -115,7 +115,7 @@ class AuthenticationAPITest(BaseAPITestCase):
         self.assertEqual(response.data['username'], 'member')
 
 
-class AgentAPITest(BaseAPITestCase):
+class UserAPITest(BaseAPITestCase):
     """Test Agent API endpoints."""
     
     def test_list_agents(self):
@@ -194,7 +194,7 @@ class ProjectAPITest(BaseAPITestCase):
     
     def test_add_agent_to_project(self):
         """Test adding agent to project."""
-        new_agent = Agent.objects.create_user(
+        new_agent = User.objects.create_user(
             username='newagent',
             email='newagent@example.com',
             password='pass123'

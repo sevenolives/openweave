@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
-import { api, Project, Ticket, Agent } from '@/lib/api';
+import { api, Project, Ticket, User } from '@/lib/api';
 
 const STATUS_COLUMNS = [
   { status: 'OPEN', title: 'Open', accent: 'bg-gray-400', bg: 'bg-gray-50' },

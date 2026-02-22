@@ -4,21 +4,21 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
-import { api, Agent, Ticket } from '@/lib/api';
+import { api, User, Ticket } from '@/lib/api';
 
 export default function AgentsPage() {
-  const [agents, setAgents] = useState<Agent[]>([]);
+  const [agents, setAgents] = useState<User[]>([]);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterRole, setFilterRole] = useState('');
   const [filterType, setFilterType] = useState('');
-  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
+  const [selectedAgent, setSelectedAgent] = useState<User | null>(null);
 
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
-    Promise.all([api.getAgents(), api.getTickets()])
+    Promise.all([api.getUsers(), api.getTickets()])
       .then(([a, t]) => { setAgents(a); setTickets(t); })
       .catch(() => toast('Failed to load agents', 'error'))
       .finally(() => setLoading(false));

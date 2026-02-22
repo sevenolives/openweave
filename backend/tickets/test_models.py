@@ -4,10 +4,10 @@ Test cases for ticket models.
 from django.test import TestCase
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
-from .models import Agent, Project, Ticket, Comment, AuditLog, ProjectAgent
+from .models import User, Project, Ticket, Comment, AuditLog, ProjectAgent
 
 
-class AgentModelTest(TestCase):
+class UserModelTest(TestCase):
     """Test cases for Agent model."""
     
     def setUp(self):
@@ -22,7 +22,7 @@ class AgentModelTest(TestCase):
     
     def test_create_agent(self):
         """Test creating an agent."""
-        agent = Agent.objects.create_user(**self.agent_data)
+        agent = User.objects.create_user(**self.agent_data)
         self.assertEqual(agent.username, 'testuser')
         self.assertEqual(agent.email, 'test@example.com')
         self.assertEqual(agent.agent_type, 'HUMAN')
@@ -33,38 +33,38 @@ class AgentModelTest(TestCase):
     def test_create_admin_agent(self):
         """Test creating an admin agent."""
         self.agent_data['role'] = 'ADMIN'
-        agent = Agent.objects.create_user(**self.agent_data)
+        agent = User.objects.create_user(**self.agent_data)
         self.assertEqual(agent.role, 'ADMIN')
     
     def test_create_bot_agent(self):
         """Test creating a bot agent."""
         self.agent_data['agent_type'] = 'BOT'
-        agent = Agent.objects.create_user(**self.agent_data)
+        agent = User.objects.create_user(**self.agent_data)
         self.assertEqual(agent.agent_type, 'BOT')
     
     def test_agent_str(self):
         """Test string representation of agent."""
-        agent = Agent.objects.create_user(**self.agent_data)
+        agent = User.objects.create_user(**self.agent_data)
         self.assertEqual(str(agent), 'testuser (Human)')
     
     def test_unique_username(self):
         """Test that username must be unique."""
-        Agent.objects.create_user(**self.agent_data)
+        User.objects.create_user(**self.agent_data)
         
         # Try to create another user with same username
         with self.assertRaises(Exception):
-            Agent.objects.create_user(**self.agent_data)
+            User.objects.create_user(**self.agent_data)
     
     def test_unique_email(self):
         """Test that email must be unique."""
-        Agent.objects.create_user(**self.agent_data)
+        User.objects.create_user(**self.agent_data)
         
         # Try to create another user with same email
         agent_data_2 = self.agent_data.copy()
         agent_data_2['username'] = 'testuser2'
         # Note: Django doesn't enforce unique emails by default in AbstractUser
         # This test would need to be implemented if we add unique constraint
-        agent2 = Agent.objects.create_user(**agent_data_2)
+        agent2 = User.objects.create_user(**agent_data_2)
         self.assertIsNotNone(agent2)  # Should succeed without unique constraint
 
 
@@ -73,7 +73,7 @@ class ProjectModelTest(TestCase):
     
     def setUp(self):
         """Set up test data."""
-        self.agent = Agent.objects.create_user(
+        self.agent = User.objects.create_user(
             username='testuser',
             email='test@example.com',
             password='testpass123'
@@ -117,7 +117,7 @@ class TicketModelTest(TestCase):
     
     def setUp(self):
         """Set up test data."""
-        self.agent = Agent.objects.create_user(
+        self.agent = User.objects.create_user(
             username='testuser',
             email='test@example.com',
             password='testpass123'
@@ -205,7 +205,7 @@ class CommentModelTest(TestCase):
     
     def setUp(self):
         """Set up test data."""
-        self.agent = Agent.objects.create_user(
+        self.agent = User.objects.create_user(
             username='testuser',
             email='test@example.com',
             password='testpass123'
@@ -250,7 +250,7 @@ class AuditLogModelTest(TestCase):
     
     def setUp(self):
         """Set up test data."""
-        self.agent = Agent.objects.create_user(
+        self.agent = User.objects.create_user(
             username='testuser',
             email='test@example.com',
             password='testpass123'
@@ -292,7 +292,7 @@ class ProjectAgentModelTest(TestCase):
     
     def setUp(self):
         """Set up test data."""
-        self.agent = Agent.objects.create_user(
+        self.agent = User.objects.create_user(
             username='testuser',
             email='test@example.com',
             password='testpass123'
@@ -304,7 +304,7 @@ class ProjectAgentModelTest(TestCase):
     
     def test_create_project_agent(self):
         """Test creating a project-agent relationship."""
-        project_agent = ProjectAgent.objects.create(
+        project_agent = ProjectUser.objects.create(
             project=self.project,
             agent=self.agent
         )
@@ -315,7 +315,7 @@ class ProjectAgentModelTest(TestCase):
     
     def test_project_agent_str(self):
         """Test string representation of project-agent."""
-        project_agent = ProjectAgent.objects.create(
+        project_agent = ProjectUser.objects.create(
             project=self.project,
             agent=self.agent
         )
@@ -324,13 +324,13 @@ class ProjectAgentModelTest(TestCase):
     
     def test_unique_project_agent(self):
         """Test that project-agent combination must be unique."""
-        ProjectAgent.objects.create(
+        ProjectUser.objects.create(
             project=self.project,
             agent=self.agent
         )
         
         with self.assertRaises(Exception):
-            ProjectAgent.objects.create(
+            ProjectUser.objects.create(
                 project=self.project,
                 agent=self.agent
             )

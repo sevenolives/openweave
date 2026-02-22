@@ -1,12 +1,12 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import Agent, Project, Ticket, Comment, AuditLog, ProjectAgent
+from .models import User, Project, Ticket, Comment, AuditLog, ProjectAgent
 
 
-@admin.register(Agent)
-class AgentAdmin(UserAdmin):
+@admin.register(User)
+class CustomUserAdmin(UserAdmin):
     """
-    Admin for Agent model (custom user).
+    Admin for User model (custom user).
     Following best practices with search, filters, and select_related.
     """
     list_display = ('username', 'email', 'first_name', 'last_name', 'agent_type', 'role', 'is_active', 'date_joined')
@@ -48,7 +48,7 @@ class ProjectAgentAdmin(admin.ModelAdmin):
     list_display = ('project', 'agent', 'joined_at')
     list_filter = ('joined_at',)
     search_fields = ('project__name', 'agent__username', 'agent__email')
-    list_select_related = ('project', 'agent')  # Prevent N+1 queries
+    list_select_related = ('project', 'agent')
     list_per_page = 50
 
 
@@ -56,7 +56,6 @@ class ProjectAgentAdmin(admin.ModelAdmin):
 class TicketAdmin(admin.ModelAdmin):
     """
     Admin for Ticket model.
-    Following best practices with select_related for ForeignKey fields.
     """
     list_display = (
         'id', 'title', 'project', 'status', 'priority', 
@@ -64,7 +63,7 @@ class TicketAdmin(admin.ModelAdmin):
     )
     list_filter = ('status', 'priority', 'created_at', 'project')
     search_fields = ('title', 'description', 'project__name')
-    list_select_related = ('project', 'assigned_to', 'created_by')  # Prevent N+1 queries
+    list_select_related = ('project', 'assigned_to', 'created_by')
     list_per_page = 50
     readonly_fields = ('created_at', 'updated_at', 'resolved_at', 'closed_at')
     
@@ -82,7 +81,6 @@ class TicketAdmin(admin.ModelAdmin):
     )
     
     def get_queryset(self, request):
-        """Optimize queryset with select_related."""
         return super().get_queryset(request).select_related(
             'project', 'assigned_to', 'created_by'
         )
@@ -94,7 +92,7 @@ class CommentAdmin(admin.ModelAdmin):
     list_display = ('id', 'ticket', 'author', 'created_at', 'body_preview')
     list_filter = ('created_at',)
     search_fields = ('body', 'ticket__title', 'author__username')
-    list_select_related = ('ticket', 'author')  # Prevent N+1 queries
+    list_select_related = ('ticket', 'author')
     list_per_page = 50
     readonly_fields = ('created_at', 'updated_at')
     
@@ -103,7 +101,6 @@ class CommentAdmin(admin.ModelAdmin):
     body_preview.short_description = 'Body Preview'
     
     def get_queryset(self, request):
-        """Optimize queryset with select_related."""
         return super().get_queryset(request).select_related('ticket', 'author')
 
 
@@ -113,22 +110,18 @@ class AuditLogAdmin(admin.ModelAdmin):
     list_display = ('id', 'entity_type', 'entity_id', 'action', 'performed_by', 'timestamp')
     list_filter = ('entity_type', 'action', 'timestamp')
     search_fields = ('entity_type', 'action', 'performed_by__username')
-    list_select_related = ('performed_by',)  # Prevent N+1 queries
+    list_select_related = ('performed_by',)
     list_per_page = 50
     readonly_fields = ('entity_type', 'entity_id', 'action', 'performed_by', 'old_value', 'new_value', 'timestamp')
     
     def has_add_permission(self, request):
-        """Audit logs should not be manually created."""
         return False
     
     def has_change_permission(self, request, obj=None):
-        """Audit logs should not be modified."""
         return False
     
     def has_delete_permission(self, request, obj=None):
-        """Audit logs should not be deleted."""
         return False
     
     def get_queryset(self, request):
-        """Optimize queryset with select_related."""
         return super().get_queryset(request).select_related('performed_by')

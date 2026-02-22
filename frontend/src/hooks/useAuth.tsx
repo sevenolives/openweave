@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
-import { api, tokenStorage, Agent, AuthTokens } from '@/lib/api';
+import { api, tokenStorage, User, AuthTokens } from '@/lib/api';
 
 interface AuthContextType {
-  user: Agent | null;
+  user: User | null;
   isLoading: boolean;
   isLoggedIn: boolean;
   login: (username: string, password: string) => Promise<void>;
@@ -25,7 +25,7 @@ interface RegisterData {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<Agent | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {

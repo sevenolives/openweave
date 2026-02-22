@@ -1,13 +1,13 @@
 from rest_framework import serializers
-from .models import Agent, Project, Ticket, Comment, AuditLog
+from .models import User, Project, Ticket, Comment, AuditLog
 
 
-class AgentSerializer(serializers.ModelSerializer):
-    """Serializer for Agent model."""
+class UserSerializer(serializers.ModelSerializer):
+    """Serializer for User model."""
     password = serializers.CharField(write_only=True)
     
     class Meta:
-        model = Agent
+        model = User
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name',
             'agent_type', 'role', 'skills', 'is_active', 'password'
@@ -17,15 +17,15 @@ class AgentSerializer(serializers.ModelSerializer):
         }
     
     def create(self, validated_data):
-        """Create agent with hashed password."""
+        """Create user with hashed password."""
         password = validated_data.pop('password')
-        agent = Agent(**validated_data)
-        agent.set_password(password)
-        agent.save()
-        return agent
+        user = User(**validated_data)
+        user.set_password(password)
+        user.save()
+        return user
     
     def update(self, instance, validated_data):
-        """Update agent, handling password separately."""
+        """Update user, handling password separately."""
         password = validated_data.pop('password', None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -37,16 +37,16 @@ class AgentSerializer(serializers.ModelSerializer):
         return instance
 
 
-class AgentSimpleSerializer(serializers.ModelSerializer):
-    """Simplified agent serializer for nested usage."""
+class UserSimpleSerializer(serializers.ModelSerializer):
+    """Simplified user serializer for nested usage."""
     class Meta:
-        model = Agent
+        model = User
         fields = ['id', 'username', 'email', 'agent_type', 'role']
 
 
 class ProjectSerializer(serializers.ModelSerializer):
     """Serializer for Project model."""
-    agents = AgentSimpleSerializer(many=True, read_only=True)
+    agents = UserSimpleSerializer(many=True, read_only=True)
     agent_ids = serializers.ListField(
         child=serializers.IntegerField(),
         write_only=True,
@@ -64,7 +64,7 @@ class ProjectSerializer(serializers.ModelSerializer):
         project = Project.objects.create(**validated_data)
         
         if agent_ids:
-            agents = Agent.objects.filter(id__in=agent_ids)
+            agents = User.objects.filter(id__in=agent_ids)
             project.agents.set(agents)
         
         return project
@@ -78,7 +78,7 @@ class ProjectSerializer(serializers.ModelSerializer):
         instance.save()
         
         if agent_ids is not None:
-            agents = Agent.objects.filter(id__in=agent_ids)
+            agents = User.objects.filter(id__in=agent_ids)
             instance.agents.set(agents)
         
         return instance
@@ -86,8 +86,8 @@ class ProjectSerializer(serializers.ModelSerializer):
 
 class TicketSerializer(serializers.ModelSerializer):
     """Serializer for Ticket model."""
-    assigned_to_details = AgentSimpleSerializer(source='assigned_to', read_only=True)
-    created_by_details = AgentSimpleSerializer(source='created_by', read_only=True)
+    assigned_to_details = UserSimpleSerializer(source='assigned_to', read_only=True)
+    created_by_details = UserSimpleSerializer(source='created_by', read_only=True)
     project_name = serializers.CharField(source='project.name', read_only=True)
     
     class Meta:
@@ -101,12 +101,12 @@ class TicketSerializer(serializers.ModelSerializer):
         read_only_fields = ['created_at', 'updated_at', 'resolved_at', 'closed_at']
     
     def validate_assigned_to(self, value):
-        """Ensure assigned agent belongs to the project."""
+        """Ensure assigned user belongs to the project."""
         if value and self.instance:
             project = self.instance.project
             if not project.agents.filter(id=value.id).exists():
                 raise serializers.ValidationError(
-                    "Assigned agent must belong to the project."
+                    "Assigned user must belong to the project."
                 )
         return value
     
@@ -120,7 +120,7 @@ class TicketSerializer(serializers.ModelSerializer):
 
 class CommentSerializer(serializers.ModelSerializer):
     """Serializer for Comment model."""
-    author_details = AgentSimpleSerializer(source='author', read_only=True)
+    author_details = UserSimpleSerializer(source='author', read_only=True)
     
     class Meta:
         model = Comment
@@ -133,7 +133,7 @@ class CommentSerializer(serializers.ModelSerializer):
 
 class AuditLogSerializer(serializers.ModelSerializer):
     """Serializer for AuditLog model."""
-    performed_by_details = AgentSimpleSerializer(source='performed_by', read_only=True)
+    performed_by_details = UserSimpleSerializer(source='performed_by', read_only=True)
     
     class Meta:
         model = AuditLog

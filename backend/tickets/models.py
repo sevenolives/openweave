@@ -5,7 +5,7 @@ from django.utils import timezone
 import json
 
 
-class Agent(AbstractUser):
+class User(AbstractUser):
     """
     Custom user model extending AbstractUser (not AbstractBaseUser per best practices).
     Represents both human agents and bot agents.
@@ -44,7 +44,7 @@ class Agent(AbstractUser):
         return f"{self.username} ({self.get_agent_type_display()})"
     
     class Meta:
-        db_table = 'agents'
+        db_table = 'users'
 
 
 class Project(models.Model):
@@ -57,7 +57,7 @@ class Project(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     # Many-to-many relationship with agents through ProjectAgent
-    agents = models.ManyToManyField(Agent, through='ProjectAgent', blank=True)
+    agents = models.ManyToManyField("User", through='ProjectAgent', blank=True)
     
     def __str__(self):
         return self.name
@@ -72,7 +72,7 @@ class ProjectAgent(models.Model):
     Join table for Project-Agent many-to-many relationship.
     """
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
-    agent = models.ForeignKey(Agent, on_delete=models.CASCADE)
+    agent = models.ForeignKey("User", on_delete=models.CASCADE)
     joined_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
@@ -118,14 +118,14 @@ class Ticket(models.Model):
     
     # Assignment - one agent or null
     assigned_to = models.ForeignKey(
-        Agent, 
+        "User", 
         on_delete=models.SET_NULL, 
         null=True, 
         blank=True,
         related_name='assigned_tickets'
     )
     
-    created_by = models.ForeignKey(Agent, on_delete=models.CASCADE, related_name='created_tickets')
+    created_by = models.ForeignKey("User", on_delete=models.CASCADE, related_name='created_tickets')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     resolved_at = models.DateTimeField(null=True, blank=True)
@@ -170,7 +170,7 @@ class Comment(models.Model):
     A timestamped message on a ticket from any agent.
     """
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='comments')
-    author = models.ForeignKey(Agent, on_delete=models.CASCADE)
+    author = models.ForeignKey("User", on_delete=models.CASCADE)
     body = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -190,7 +190,7 @@ class AuditLog(models.Model):
     entity_type = models.CharField(max_length=50)  # e.g., 'Ticket', 'Project', 'Comment'
     entity_id = models.PositiveIntegerField()
     action = models.CharField(max_length=50)  # e.g., 'CREATE', 'UPDATE', 'DELETE'
-    performed_by = models.ForeignKey(Agent, on_delete=models.CASCADE)
+    performed_by = models.ForeignKey("User", on_delete=models.CASCADE)
     old_value = models.JSONField(null=True, blank=True)
     new_value = models.JSONField(null=True, blank=True)
     timestamp = models.DateTimeField(auto_now_add=True)

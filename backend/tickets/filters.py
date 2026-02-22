@@ -3,7 +3,7 @@ Filters for API endpoints to enable search and filtering capabilities.
 """
 import django_filters
 from django.db.models import Q
-from .models import Ticket, Agent, Project, Comment, AuditLog
+from .models import Ticket, User, Project, Comment, AuditLog
 
 
 class TicketFilter(django_filters.FilterSet):
@@ -29,13 +29,13 @@ class TicketFilter(django_filters.FilterSet):
     
     # Filter by assigned agent
     assigned_to = django_filters.ModelChoiceFilter(
-        queryset=Agent.objects.filter(is_active=True),
+        queryset=User.objects.filter(is_active=True),
         field_name='assigned_to'
     )
     
     # Filter by created by agent
     created_by = django_filters.ModelChoiceFilter(
-        queryset=Agent.objects.filter(is_active=True),
+        queryset=User.objects.filter(is_active=True),
         field_name='created_by'
     )
     
@@ -114,19 +114,19 @@ class TicketFilter(django_filters.FilterSet):
         return queryset
 
 
-class AgentFilter(django_filters.FilterSet):
+class UserFilter(django_filters.FilterSet):
     """
     FilterSet for Agent model.
     """
     search = django_filters.CharFilter(method='search_agents', label='Search')
     
     agent_type = django_filters.ChoiceFilter(
-        choices=Agent.AGENT_TYPES,
+        choices=User.AGENT_TYPES,
         field_name='agent_type'
     )
     
     role = django_filters.ChoiceFilter(
-        choices=Agent.ROLES,
+        choices=User.ROLES,
         field_name='role'
     )
     
@@ -139,7 +139,7 @@ class AgentFilter(django_filters.FilterSet):
     )
 
     class Meta:
-        model = Agent
+        model = User
         fields = ['agent_type', 'role', 'is_active']
 
     def search_agents(self, queryset, name, value):
@@ -173,7 +173,7 @@ class ProjectFilter(django_filters.FilterSet):
     
     # Filter by agent membership
     agent = django_filters.ModelChoiceFilter(
-        queryset=Agent.objects.filter(is_active=True),
+        queryset=User.objects.filter(is_active=True),
         method='filter_by_agent'
     )
 
@@ -214,7 +214,7 @@ class CommentFilter(django_filters.FilterSet):
     )
     
     author = django_filters.ModelChoiceFilter(
-        queryset=Agent.objects.filter(is_active=True),
+        queryset=User.objects.filter(is_active=True),
         field_name='author'
     )
     
@@ -260,7 +260,7 @@ class AuditLogFilter(django_filters.FilterSet):
     action = django_filters.CharFilter(field_name='action', lookup_expr='icontains')
     
     performed_by = django_filters.ModelChoiceFilter(
-        queryset=Agent.objects.filter(is_active=True),
+        queryset=User.objects.filter(is_active=True),
         field_name='performed_by'
     )
     

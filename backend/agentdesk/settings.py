@@ -63,7 +63,7 @@ DATABASES = {
     )
 }
 
-AUTH_USER_MODEL = 'tickets.Agent'
+AUTH_USER_MODEL = 'tickets.User'
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},

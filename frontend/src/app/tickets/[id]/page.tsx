@@ -6,7 +6,7 @@ import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useAuth } from '@/hooks/useAuth';
-import { api, Ticket, Comment, Agent } from '@/lib/api';
+import { api, Ticket, Comment,User } from '@/lib/api';
 
 const PRIORITY_COLORS: Record<string, string> = {
   LOW: 'bg-green-100 text-green-700', MEDIUM: 'bg-yellow-100 text-yellow-700',
@@ -22,7 +22,7 @@ const ALL_PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 export default function TicketDetailPage() {
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
-  const [agents, setAgents] = useState<Agent[]>([]);
+  const [agents, setAgents] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -44,7 +44,7 @@ export default function TicketDetailPage() {
 
   const fetchData = async () => {
     try {
-      const [t, c, a] = await Promise.all([api.getTicket(ticketId), api.getComments({ ticket: ticketId.toString() }), api.getAgents()]);
+      const [t, c, a] = await Promise.all([api.getTicket(ticketId), api.getComments({ ticket: ticketId.toString() }), api.getUsers()]);
       setTicket(t); setComments(c); setAgents(a);
       setEditTitle(t.title); setEditDesc(t.description); setEditStatus(t.status);
       setEditPriority(t.priority); setEditAssigned(t.assigned_to?.toString() || '');

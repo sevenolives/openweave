@@ -2,7 +2,7 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
 // Types
-export interface Agent {
+export interface User {
   id: number;
   username: string;
   email: string;
@@ -20,7 +20,7 @@ export interface Project {
   description: string;
   created_at: string;
   updated_at: string;
-  agents: Agent[];
+  agents: User[];
 }
 
 export interface Ticket {
@@ -32,9 +32,9 @@ export interface Ticket {
   status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED' | 'BLOCKED';
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   assigned_to: number | null;
-  assigned_to_details: Agent | null;
+  assigned_to_details: User | null;
   created_by: number;
-  created_by_details: Agent;
+  created_by_details: User;
   created_at: string;
   updated_at: string;
   resolved_at: string | null;
@@ -45,7 +45,7 @@ export interface Comment {
   id: number;
   ticket: number;
   author: number;
-  author_details: Agent;
+  author_details: User;
   body: string;
   created_at: string;
   updated_at: string;
@@ -54,7 +54,7 @@ export interface Comment {
 export interface AuthTokens {
   access: string;
   refresh: string;
-  user?: Agent;
+  user?: User;
 }
 
 export interface PaginatedResponse<T> {
@@ -90,7 +90,7 @@ export const tokenStorage = {
     localStorage.removeItem('user');
   },
 
-  getUser: (): Agent | null => {
+  getUser: (): User | null => {
     if (typeof window === 'undefined') return null;
     const user = localStorage.getItem('user');
     return user ? JSON.parse(user) : null;
@@ -197,8 +197,8 @@ class ApiClient {
     return tokens;
   }
 
-  async register(userData: Partial<Agent> & { password: string }): Promise<Agent> {
-    return this.request<Agent>('/agents/', {
+  async register(userData: Partial<User> & { password: string }): Promise<User> {
+    return this.request<User>('/users/', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
@@ -280,13 +280,13 @@ class ApiClient {
   }
 
   // Agents
-  async getAgents(): Promise<Agent[]> {
-    const response = await this.request<PaginatedResponse<Agent>>('/agents/');
+  async getUsers(): Promise<User[]> {
+    const response = await this.request<PaginatedResponse<User>>('/users/');
     return response.results || [];
   }
 
-  async getCurrentUser(): Promise<Agent> {
-    return this.request<Agent>('/agents/me/');
+  async getCurrentUser(): Promise<User> {
+    return this.request<User>('/users/me/');
   }
 }
 

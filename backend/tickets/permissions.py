@@ -2,7 +2,7 @@
 Custom permission classes for Agent Desk RBAC.
 """
 from rest_framework import permissions
-from .models import Agent, ProjectAgent
+from .models import User, ProjectAgent
 
 
 class IsAdminAgent(permissions.BasePermission):
