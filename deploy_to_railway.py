@@ -62,32 +62,25 @@ def get_project_info():
     
     return railway_query(query)
 
-def deploy_service(service_id, service_name):
+def deploy_service(service_id, service_name, environment_id):
     """Deploy a specific service."""
     print(f"🚀 Deploying {service_name}...")
     
     mutation = """
-    mutation ServiceInstanceDeploy($input: ServiceInstanceDeployInput!) {
-        serviceInstanceDeploy(input: $input) {
-            id
-            status
-            url
-        }
+    mutation ServiceInstanceDeploy($serviceId: String!, $environmentId: String!) {
+        serviceInstanceDeploy(serviceId: $serviceId, environmentId: $environmentId)
     }
     """
     
     variables = {
-        "input": {
-            "serviceId": service_id,
-            "latestCommit": True
-        }
+        "serviceId": service_id,
+        "environmentId": environment_id
     }
     
     result = railway_query(mutation, variables)
     if result and "serviceInstanceDeploy" in result:
-        deployment = result["serviceInstanceDeploy"]
-        print(f"✅ {service_name} deployment initiated: {deployment['id']}")
-        return deployment
+        print(f"✅ {service_name} deployment initiated")
+        return {"id": "deployed", "status": "INITIATED"}
     else:
         print(f"❌ Failed to deploy {service_name}")
         return None
@@ -170,21 +163,24 @@ def main():
     
     print(f"📦 Available services: {list(services.keys())}")
     
+    # Use the environment ID from the instructions
+    environment_id = "26d70692-0d42-4f8f-bdaf-50ae02387e70"
+    
     # Deploy backend service
     backend_id = services.get("backend")
     if backend_id:
-        backend_deployment = deploy_service(backend_id, "backend")
+        backend_deployment = deploy_service(backend_id, "backend", environment_id)
         if backend_deployment:
-            wait_for_deployment(backend_deployment["id"], "backend")
+            print("✅ Backend deployment triggered successfully")
     else:
         print("⚠️ Backend service not found")
     
-    # Deploy frontend service
+    # Deploy frontend service  
     frontend_id = services.get("frontend")
     if frontend_id:
-        frontend_deployment = deploy_service(frontend_id, "frontend")
+        frontend_deployment = deploy_service(frontend_id, "frontend", environment_id)
         if frontend_deployment:
-            wait_for_deployment(frontend_deployment["id"], "frontend")
+            print("✅ Frontend deployment triggered successfully")
     else:
         print("⚠️ Frontend service not found")
     
