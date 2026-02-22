@@ -56,7 +56,7 @@ export default function ProjectDetailPage() {
     try {
       const [p, t] = await Promise.all([api.getProject(projectId), api.getTickets({ project: projectId.toString() })]);
       setProject(p); setTickets(t); setEditName(p.name); setEditDesc(p.description);
-    } catch { toast('Failed to load project', 'error'); }
+    } catch (e: any) { toast(e?.message || 'Failed to load project', 'error'); }
     finally { setLoading(false); }
   };
 
@@ -72,7 +72,7 @@ export default function ProjectDetailPage() {
       toast('Ticket created');
       setTitle(''); setDesc(''); setPriority('MEDIUM'); setShowCreate(false);
       await fetchData();
-    } catch { toast('Failed to create ticket', 'error'); }
+    } catch (e: any) { toast(e?.message || 'Failed to create ticket', 'error'); }
     finally { setCreating(false); }
   };
 
@@ -82,7 +82,7 @@ export default function ProjectDetailPage() {
       await api.updateTicket(ticketId, { status: newStatus as Ticket['status'] });
       setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: newStatus as Ticket['status'] } : t));
       toast('Status updated');
-    } catch { toast('Failed to update status', 'error'); }
+    } catch (e: any) { toast(e?.message || 'Failed to update status', 'error'); }
   };
 
   const handleSaveSettings = async () => {
@@ -92,7 +92,7 @@ export default function ProjectDetailPage() {
       const updated = await api.updateProject(project.id, { name: editName, description: editDesc });
       setProject(updated);
       toast('Project updated');
-    } catch { toast('Failed to update project', 'error'); }
+    } catch (e: any) { toast(e?.message || 'Failed to update project', 'error'); }
     finally { setSaving(false); }
   };
 
@@ -105,7 +105,7 @@ export default function ProjectDetailPage() {
       setProject(updated);
       setSelectedUserId('');
       toast('Member added');
-    } catch { toast('Failed to add member', 'error'); }
+    } catch (e: any) { toast(e?.message || 'Failed to add member', 'error'); }
     finally { setMemberSaving(false); }
   };
 
@@ -117,7 +117,7 @@ export default function ProjectDetailPage() {
       const updated = await api.updateProject(project.id, { agent_ids: newIds });
       setProject(updated);
       toast('Member removed');
-    } catch { toast('Failed to remove member', 'error'); }
+    } catch (e: any) { toast(e?.message || 'Failed to remove member', 'error'); }
     finally { setMemberSaving(false); }
   };
 

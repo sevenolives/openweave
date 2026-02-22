@@ -40,7 +40,7 @@ export default function ProjectsPage() {
         } catch { counts[p.id] = { total: 0, open: 0, inProgress: 0, blocked: 0, resolved: 0, closed: 0 }; }
       }));
       setTicketCounts(counts);
-    } catch { toast('Failed to load projects', 'error'); }
+    } catch (e: any) { toast(e?.message || 'Failed to load projects', 'error'); }
     finally { setLoading(false); }
   };
 
@@ -62,7 +62,7 @@ export default function ProjectsPage() {
       toast('Project created');
       setName(''); setDesc(''); setShowCreate(false);
       await fetchProjects();
-    } catch { toast('Failed to create project', 'error'); }
+    } catch (e: any) { toast(e?.message || 'Failed to create project', 'error'); }
     finally { setCreating(false); }
   };
 
@@ -73,7 +73,7 @@ export default function ProjectsPage() {
       toast('Project deleted');
       setDeleteId(null);
       await fetchProjects();
-    } catch { toast('Failed to delete project', 'error'); }
+    } catch (e: any) { toast(e?.message || 'Failed to delete project', 'error'); }
   };
 
   return (

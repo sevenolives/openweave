@@ -20,7 +20,7 @@ export default function AgentsPage() {
   useEffect(() => {
     Promise.all([api.getUsers(), api.getTickets()])
       .then(([a, t]) => { setAgents(a); setTickets(t); })
-      .catch(() => toast('Failed to load agents', 'error'))
+      .catch((e: any) => toast(e?.message || 'Failed to load agents', 'error'))
       .finally(() => setLoading(false));
   }, []);
 

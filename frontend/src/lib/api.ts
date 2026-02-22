@@ -1,6 +1,21 @@
 // API client for the Agent Desk backend
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
+// Custom error class with field-level errors from DRF
+export class ApiError extends Error {
+  status: number;
+  data: Record<string, unknown>;
+  fieldErrors: Record<string, string[]>;
+
+  constructor(message: string, status: number, data: Record<string, unknown> = {}, fieldErrors: Record<string, string[]> = {}) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.data = data;
+    this.fieldErrors = fieldErrors;
+  }
+}
+
 // Types
 export interface User {
   id: number;
@@ -177,7 +192,22 @@ class ApiClient {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || errorData.message || `HTTP ${response.status}`);
+        // DRF returns field-level errors as {field: [errors]} or {detail: "msg"}
+        if (errorData.detail) {
+          throw new ApiError(errorData.detail, response.status, errorData);
+        }
+        // Build readable message from field errors
+        const fieldErrors: Record<string, string[]> = {};
+        const messages: string[] = [];
+        for (const [key, value] of Object.entries(errorData)) {
+          const errs = Array.isArray(value) ? value.map(String) : [String(value)];
+          fieldErrors[key] = errs;
+          messages.push(`${key}: ${errs.join(', ')}`);
+        }
+        if (messages.length > 0) {
+          throw new ApiError(messages.join('; '), response.status, errorData, fieldErrors);
+        }
+        throw new ApiError(`HTTP ${response.status}`, response.status, errorData);
       }
 
       // 204 No Content — nothing to parse

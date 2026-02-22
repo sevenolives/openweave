@@ -48,7 +48,7 @@ export default function TicketDetailPage() {
       setTicket(t); setComments(c); setAgents(a);
       setEditTitle(t.title); setEditDesc(t.description); setEditStatus(t.status);
       setEditPriority(t.priority); setEditAssigned(t.assigned_to?.toString() || '');
-    } catch { toast('Failed to load ticket', 'error'); }
+    } catch (e: any) { toast(e?.message || 'Failed to load ticket', 'error'); }
     finally { setLoading(false); }
   };
 
@@ -60,7 +60,7 @@ export default function TicketDetailPage() {
       await api.updateTicket(ticket.id, { status: status as Ticket['status'] });
       setTicket({ ...ticket, status: status as Ticket['status'] });
       toast('Status updated');
-    } catch { toast('Failed to update status', 'error'); }
+    } catch (e: any) { toast(e?.message || 'Failed to update status', 'error'); }
   };
 
   const handleSave = async () => {
@@ -74,7 +74,7 @@ export default function TicketDetailPage() {
       });
       setTicket(updated); setEditing(false);
       toast('Ticket updated');
-    } catch { toast('Failed to update ticket', 'error'); }
+    } catch (e: any) { toast(e?.message || 'Failed to update ticket', 'error'); }
     finally { setSaving(false); }
   };
 
@@ -87,7 +87,7 @@ export default function TicketDetailPage() {
       setComments([...comments, comment]);
       setNewComment('');
       toast('Comment added');
-    } catch { toast('Failed to add comment', 'error'); }
+    } catch (e: any) { toast(e?.message || 'Failed to add comment', 'error'); }
     finally { setSubmitting(false); }
   };
 
@@ -97,7 +97,7 @@ export default function TicketDetailPage() {
       await api.deleteTicket(ticket.id);
       toast('Ticket deleted');
       router.push(`/projects/${ticket.project}`);
-    } catch { toast('Failed to delete ticket', 'error'); }
+    } catch (e: any) { toast(e?.message || 'Failed to delete ticket', 'error'); }
   };
 
   return (
@@ -327,7 +327,7 @@ export default function TicketDetailPage() {
                       const updated = await api.updateTicket(ticket.id, { assigned_to: val ? parseInt(val) : null });
                       setTicket(updated);
                       toast('Assignment updated');
-                    } catch { toast('Failed to assign', 'error'); }
+                    } catch (e: any) { toast(e?.message || 'Failed to assign', 'error'); }
                   }}
                   className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500"
                 >

@@ -37,7 +37,7 @@ export default function TicketsPage() {
   useEffect(() => {
     Promise.all([api.getTickets(), api.getProjects()])
       .then(([t, p]) => { setTickets(t); setProjects(p); })
-      .catch(() => toast('Failed to load data', 'error'))
+      .catch((e: any) => toast(e?.message || 'Failed to load data', 'error'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -66,7 +66,7 @@ export default function TicketsPage() {
   const loadData = () => {
     Promise.all([api.getTickets(), api.getProjects()])
       .then(([t, p]) => { setTickets(t); setProjects(p); })
-      .catch(() => toast('Failed to load data', 'error'));
+      .catch((e: any) => toast(e?.message || 'Failed to load data', 'error'));
   };
 
   const handleCreateTicket = async (e: React.FormEvent) => {
@@ -79,7 +79,7 @@ export default function TicketsPage() {
       setShowCreate(false);
       setNewTitle(''); setNewDesc(''); setNewPriority('MEDIUM'); setNewProject('');
       loadData();
-    } catch { toast('Failed to create ticket', 'error'); }
+    } catch (e: any) { toast(e?.message || 'Failed to create ticket', 'error'); }
     finally { setCreating(false); }
   };
 
@@ -90,7 +90,7 @@ export default function TicketsPage() {
       toast('Ticket deleted');
       setDeleteTarget(null);
       loadData();
-    } catch { toast('Failed to delete ticket', 'error'); }
+    } catch (e: any) { toast(e?.message || 'Failed to delete ticket', 'error'); }
   };
 
   const hasFilters = search || filterStatus || filterPriority;
