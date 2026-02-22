@@ -9,3 +9,4 @@ whitenoise==6.11.0
 psycopg2-binary==2.9.11
 django-filter==25.2
 drf-spectacular==0.29.0
+# Cache bust 1771740007
