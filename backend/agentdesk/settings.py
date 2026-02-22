@@ -175,8 +175,8 @@ if config('RAILWAY_ENVIRONMENT', default=None):
     if frontend_url and frontend_url not in CORS_ALLOWED_ORIGINS:
         CORS_ALLOWED_ORIGINS.append(frontend_url)
     
-    # Use Railway's database
-    DATABASE_URL = config('DATABASE_URL')
+    # Use Railway's database (fall back to SQLite if no DATABASE_URL)
+    DATABASE_URL = config('DATABASE_URL', default='sqlite:///db.sqlite3')
     DATABASES = {
         'default': dj_database_url.parse(DATABASE_URL)
     }
