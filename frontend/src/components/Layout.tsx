@@ -99,16 +99,24 @@ export default function Layout({ children }: { children: ReactNode }) {
                   <option key={ws.id} value={ws.id}>{ws.name}</option>
                 ))}
               </select>
-              <button
-                onClick={() => {
-                  if (currentWorkspace?.slug) {
-                    router.push(`/w/${currentWorkspace.slug}/settings`);
-                  }
-                }}
-                className="w-full mt-2 text-xs text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 text-left px-3 py-2 rounded-lg transition-colors font-medium"
-              >
-                ⚙️ Workspace Settings
-              </button>
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={() => {
+                    if (currentWorkspace?.slug) {
+                      router.push(`/w/${currentWorkspace.slug}/settings`);
+                    }
+                  }}
+                  className="flex-1 text-xs text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 text-left px-3 py-2 rounded-lg transition-colors font-medium"
+                >
+                  ⚙️ Settings
+                </button>
+                <button
+                  onClick={() => router.push('/workspaces')}
+                  className="text-xs text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 px-3 py-2 rounded-lg transition-colors font-medium"
+                >
+                  + New
+                </button>
+              </div>
             </div>
           )}
 
