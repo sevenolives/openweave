@@ -50,7 +50,7 @@ A multi-tenant support and ticketing system where **human agents and bot agents*
 
 ### User (Django AbstractUser + extra columns)
 - Standard Django fields: id, username, email, password, is_active, etc.
-- Extra columns: agent_type (HUMAN | BOT), role (ADMIN | MEMBER), skills (JSON/tags), notification_preference
+- Extra columns: name (required display name), user_type (HUMAN | BOT), role (ADMIN | MEMBER), skills (JSON/tags), notification_preference
 - A user can belong to multiple workspaces.
 
 ### Project
@@ -128,76 +128,91 @@ A multi-tenant support and ticketing system where **human agents and bot agents*
 
 All endpoints use standard HTTP methods. PATCH only (no PUT). Filter via query params. No custom action endpoints.
 
+**Authentication:** Humans use JWT (Bearer token). Bots use permanent API token (Token auth). Both are accepted on all authenticated endpoints.
+
+**Swagger docs:** `/api/docs/` | **Raw schema:** `/api/schema/` | **ReDoc:** `/api/redoc/`
+
 ### Auth
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/login/` | Get JWT tokens (username + password) — vanilla SimpleJWT |
-| POST | `/api/auth/token/refresh/` | Refresh access token |
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/auth/login/` | Public | Login: `{username, password}` → `{access, refresh}` JWT tokens |
+| POST | `/api/auth/token/refresh/` | Public | Refresh: `{refresh}` → `{access}` |
+| POST | `/api/auth/join/` | Public | **Single entry point for registration & workspace joining.** See below. |
 
-### Workspaces
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/workspaces/` | List user's workspaces |
-| POST | `/api/workspaces/` | Create workspace |
-| GET | `/api/workspaces/:id/` | Workspace detail |
-| PATCH | `/api/workspaces/:id/` | Update workspace (owner/admin) |
-| DELETE | `/api/workspaces/:id/` | Delete workspace (owner only) |
+#### POST /api/auth/join/ — The Join Endpoint
 
-### Workspace Members
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/workspace-members/?workspace=:id` | List members |
-| PATCH | `/api/workspace-members/:id/` | Update member role (admin) |
-| DELETE | `/api/workspace-members/:id/` | Remove member (admin) |
+One endpoint, four cases:
 
-### Invites
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/invites/?workspace=:id` | List workspace invites (admin) |
-| POST | `/api/invites/` | Create invite (admin) |
-| PATCH | `/api/invites/:id/` | Update invite (deactivate, etc.) |
-| DELETE | `/api/invites/:id/` | Delete invite |
-| POST | `/api/invites/join/` | Join workspace via invite token |
+| Case | Request Body | Response |
+|------|-------------|----------|
+| Register human (no workspace) | `{username, name, password}` | `{user, access, refresh}` |
+| Register human + join workspace | `{username, name, password, workspace_invite_token}` | `{user, workspace, access, refresh}` |
+| Register bot + join workspace | `{username, name, workspace_invite_token}` (no password) | `{user, workspace, api_token}` |
+| Existing user joins workspace | `{workspace_invite_token}` (with auth header) | `{workspace}` |
+
+**Errors (400):** Missing required fields, username already taken, invalid/expired/maxed-out invite, already a workspace member.
 
 ### Users
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/users/` | List users |
-| POST | `/api/users/` | Register new user |
-| GET | `/api/users/:id/` | User detail |
-| PATCH | `/api/users/:id/` | Update user |
-| GET | `/api/users/me/` | Current user profile |
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/users/` | Auth | List all users (searchable: username, email, name; filterable: user_type, role, is_active) |
+| GET | `/api/users/me/` | Auth | Current authenticated user's profile |
+| PATCH | `/api/users/{id}/` | Admin | Update user fields (name, user_type, role, skills, is_active) |
 
-### Projects (workspace-scoped)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/projects/?workspace=:id` | List projects in workspace |
-| POST | `/api/projects/` | Create project (admin) |
-| GET | `/api/projects/:id/` | Project detail |
-| PATCH | `/api/projects/:id/` | Update project (admin) |
-| DELETE | `/api/projects/:id/` | Delete project (admin) |
+No `GET /users/{id}/`, no `POST /users/`. Use `/users/me/` for own profile, `/auth/join/` for registration.
+
+### Workspaces
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/workspaces/` | Auth | List workspaces the user belongs to |
+| POST | `/api/workspaces/` | Auth | Create workspace: `{name, slug}`. Auto-adds creator as ADMIN + generates default invite. |
+| PATCH | `/api/workspaces/{id}/` | Admin | Update workspace name/slug |
+| DELETE | `/api/workspaces/{id}/` | Owner | Delete workspace |
+
+### Workspace Members
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/workspace-members/?workspace={id}` | Auth | List members of a workspace (includes user details + role) |
+| DELETE | `/api/workspace-members/{id}/` | Admin | Remove a member from the workspace |
+
+No `POST` (members created via `/auth/join/`), no `PATCH` (roles are set at join), no individual `GET`.
+
+### Invites
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/invites/?workspace={id}` | Auth | List invites for a workspace |
+| POST | `/api/invites/` | Admin | Create invite: `{workspace, expires_at?, max_uses?}` |
+
+No `PATCH`, no `DELETE`, no individual `GET`. Invites are immutable once created.
+
+### Projects
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/projects/` | Auth | List projects (filterable by workspace) |
+| POST | `/api/projects/` | Admin | Create project: `{name, description, workspace, agent_ids?}` |
+| GET | `/api/projects/{id}/` | Auth | Project detail with agents list |
+| PATCH | `/api/projects/{id}/` | Admin | Update name, description, agents (send `agent_ids`) |
+| DELETE | `/api/projects/{id}/` | Admin | Delete project |
 
 ### Tickets
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/tickets/?project=:id` | List tickets (filterable by status, priority, assigned_to) |
-| POST | `/api/tickets/` | Create ticket |
-| GET | `/api/tickets/:id/` | Ticket detail |
-| PATCH | `/api/tickets/:id/` | Update any fields (status, assigned_to, priority, etc.) |
-| DELETE | `/api/tickets/:id/` | Delete ticket (admin) |
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/tickets/?project={id}` | Auth | List tickets. Filters: `status`, `priority`, `assigned_to`, `created_by`, `project`. Search: `title`, `description`. |
+| POST | `/api/tickets/` | Auth | Create ticket: `{project, title, description, priority?, assigned_to?}` |
+| GET | `/api/tickets/{id}/` | Auth | Ticket detail with assigned_to/created_by details |
+| PATCH | `/api/tickets/{id}/` | Auth | Update fields. **Status transitions:** OPEN→IN_PROGRESS→RESOLVED→CLOSED, BLOCKED↔IN_PROGRESS |
+| DELETE | `/api/tickets/{id}/` | Admin | Delete ticket |
 
 ### Comments
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/comments/?ticket=:id` | List comments |
-| POST | `/api/comments/` | Add comment |
-| PATCH | `/api/comments/:id/` | Edit comment |
-| DELETE | `/api/comments/:id/` | Delete comment |
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/comments/?ticket={id}` | Auth | List comments for a ticket |
+| POST | `/api/comments/` | Auth | Add comment: `{ticket, body}` (author set automatically) |
 
 ### Audit Logs
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/audit-logs/?entity_type=ticket&entity_id=:id` | Filter audit trail |
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/audit-logs/` | Auth | List audit entries. Filters: `entity_type`, `entity_id`, `action`, `performed_by`. Read-only. |
 
 ---
 
@@ -215,8 +230,8 @@ Project list, ticket board/list, ticket detail with comments, auth, user managem
 ### Phase 4: Simplification ✅
 Removed Celery/Redis. Strict REST API. Vanilla Django. No custom auth.
 
-### Phase 5: Workspaces & Invites ← NEXT
-Workspace model, WorkspaceMember, WorkspaceInvite. All projects/tickets scoped to workspace. Invite link join flow. Workspace switcher in frontend. Multi-tenant isolation.
+### Phase 5: Workspaces & Invites ✅
+Workspace model, WorkspaceMember, WorkspaceInvite. All projects/tickets scoped to workspace. Invite link join flow. Workspace switcher in frontend. Multi-tenant isolation. Single `/auth/join/` endpoint for all registration and workspace joining. Bot token support via DRF TokenAuthentication.
 
 ---
 
