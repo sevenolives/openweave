@@ -11,7 +11,7 @@ export default function HomePage() {
   useEffect(() => {
     if (!isLoading) {
       if (isLoggedIn) {
-        router.push('/projects');
+        router.push('/dashboard');
       } else {
         router.push('/login');
       }

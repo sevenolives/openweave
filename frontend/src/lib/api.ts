@@ -271,6 +271,27 @@ class ApiClient {
   }
 
   // Agents
+  async getTickets(params?: Record<string, string>): Promise<Ticket[]> {
+    const query = params ? '?' + new URLSearchParams(params).toString() : '';
+    const response = await this.request<ApiResponse<Ticket>>(`/tickets/${query}`);
+    return response.results || [];
+  }
+
+  async deleteTicket(id: number): Promise<void> {
+    await this.request(`/tickets/${id}/`, { method: 'DELETE' });
+  }
+
+  async updateProject(id: number, data: Partial<Project>): Promise<Project> {
+    return this.request<Project>(`/projects/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteProject(id: number): Promise<void> {
+    await this.request(`/projects/${id}/`, { method: 'DELETE' });
+  }
+
   async getAgents(): Promise<Agent[]> {
     const response = await this.request<ApiResponse<Agent>>('/agents/');
     return response.results || [];
