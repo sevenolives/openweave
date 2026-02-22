@@ -1,6 +1,39 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, Project, Ticket, Comment, AuditLog, ProjectAgent
+from .models import User, Project, Ticket, Comment, AuditLog, ProjectAgent, Workspace, WorkspaceMember, WorkspaceInvite
+
+
+@admin.register(Workspace)
+class WorkspaceAdmin(admin.ModelAdmin):
+    list_display = ('name', 'slug', 'owner', 'member_count', 'created_at')
+    search_fields = ('name', 'slug')
+    list_filter = ('created_at',)
+    list_select_related = ('owner',)
+    list_per_page = 50
+    readonly_fields = ('created_at', 'updated_at')
+
+    def member_count(self, obj):
+        return obj.members.count()
+    member_count.short_description = 'Members'
+
+
+@admin.register(WorkspaceMember)
+class WorkspaceMemberAdmin(admin.ModelAdmin):
+    list_display = ('workspace', 'user', 'role', 'joined_at')
+    list_filter = ('role', 'joined_at')
+    search_fields = ('workspace__name', 'user__username', 'user__email')
+    list_select_related = ('workspace', 'user')
+    list_per_page = 50
+
+
+@admin.register(WorkspaceInvite)
+class WorkspaceInviteAdmin(admin.ModelAdmin):
+    list_display = ('workspace', 'token', 'created_by', 'is_active', 'use_count', 'max_uses', 'expires_at', 'created_at')
+    list_filter = ('is_active', 'created_at')
+    search_fields = ('workspace__name', 'token')
+    list_select_related = ('workspace', 'created_by')
+    list_per_page = 50
+    readonly_fields = ('token', 'created_at')
 
 
 @admin.register(User)
