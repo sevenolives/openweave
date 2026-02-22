@@ -20,7 +20,7 @@ export default function AgentsPage() {
   const { currentWorkspace } = useWorkspace();
 
   useEffect(() => {
-    const wsParams = currentWorkspace ? { workspace: String(currentWorkspace.id) } : {};
+    const wsParams: Record<string, string> = currentWorkspace ? { workspace: String(currentWorkspace.id) } : {};
     Promise.all([api.getUsers(), api.getTickets(wsParams)])
       .then(([a, t]) => { setAgents(a); setTickets(t); })
       .catch((e: any) => toast(e?.message || 'Failed to load agents', 'error'))

@@ -16,7 +16,7 @@ export default function DashboardPage() {
   const { currentWorkspace } = useWorkspace();
 
   useEffect(() => {
-    const wsParams = currentWorkspace ? { workspace: String(currentWorkspace.id) } : {};
+    const wsParams: Record<string, string> = currentWorkspace ? { workspace: String(currentWorkspace.id) } : {};
     Promise.all([api.getTickets(wsParams), api.getProjects(wsParams)])
       .then(([t, p]) => { setTickets(t); setProjects(p); })
       .catch(() => {})

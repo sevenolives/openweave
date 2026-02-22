@@ -25,7 +25,7 @@ export default function ProjectsPage() {
 
   const fetchProjects = async () => {
     try {
-      const params = currentWorkspace ? { workspace: String(currentWorkspace.id) } : {};
+      const params: Record<string, string> = currentWorkspace ? { workspace: String(currentWorkspace.id) } : {};
       const projs = await api.getProjects(params);
       setProjects(projs);
       // Fetch ticket counts for each project
