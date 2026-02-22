@@ -42,15 +42,15 @@ class CustomUserAdmin(UserAdmin):
     Admin for User model (custom user).
     Following best practices with search, filters, and select_related.
     """
-    list_display = ('username', 'email', 'first_name', 'last_name', 'agent_type', 'role', 'is_active', 'date_joined')
+    list_display = ('username', 'email', 'name', 'agent_type', 'role', 'is_active', 'date_joined')
     list_filter = ('agent_type', 'role', 'is_active', 'date_joined')
-    search_fields = ('username', 'email', 'first_name', 'last_name')
+    search_fields = ('username', 'email', 'name')
     list_per_page = 50
     
     # Extend the default UserAdmin fieldsets
     fieldsets = UserAdmin.fieldsets + (
         ('Agent Info', {
-            'fields': ('agent_type', 'role', 'skills')
+            'fields': ('name', 'agent_type', 'role', 'skills')
         }),
     )
     

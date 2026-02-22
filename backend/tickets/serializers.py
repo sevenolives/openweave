@@ -5,11 +5,13 @@ from .models import User, Project, Ticket, Comment, AuditLog, Workspace, Workspa
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for User model."""
     password = serializers.CharField(write_only=True)
+    name = serializers.CharField(required=True)
+    username = serializers.CharField(required=True)
     
     class Meta:
         model = User
         fields = [
-            'id', 'username', 'email', 'first_name', 'last_name',
+            'id', 'username', 'email', 'name',
             'agent_type', 'role', 'skills', 'is_active', 'password'
         ]
         extra_kwargs = {
@@ -41,7 +43,7 @@ class UserSimpleSerializer(serializers.ModelSerializer):
     """Simplified user serializer for nested usage."""
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'agent_type', 'role']
+        fields = ['id', 'username', 'email', 'name', 'agent_type', 'role']
 
 
 class WorkspaceSerializer(serializers.ModelSerializer):

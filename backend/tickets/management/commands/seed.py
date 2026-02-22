@@ -42,6 +42,7 @@ class Command(BaseCommand):
             {
                 'username': 'alice_agent',
                 'email': 'alice@agent-desk.com',
+                'name': 'Alice Agent',
                 'first_name': 'Alice',
                 'last_name': 'Johnson',
                 'agent_type': 'HUMAN',
@@ -51,6 +52,7 @@ class Command(BaseCommand):
             {
                 'username': 'bob_agent',
                 'email': 'bob@agent-desk.com',
+                'name': 'Bob Agent',
                 'first_name': 'Bob',
                 'last_name': 'Smith',
                 'agent_type': 'HUMAN',
@@ -60,6 +62,7 @@ class Command(BaseCommand):
             {
                 'username': 'support_bot',
                 'email': 'bot@agent-desk.com',
+                'name': 'Charlie Bot',
                 'first_name': 'Support',
                 'last_name': 'Bot',
                 'agent_type': 'BOT',
@@ -79,6 +82,7 @@ class Command(BaseCommand):
                     username=agent_data['username'],
                     email=agent_data['email'],
                     password='password123',  # Default password for dev
+                    name=agent_data['name'],
                     first_name=agent_data['first_name'],
                     last_name=agent_data['last_name'],
                     agent_type=agent_data['agent_type'],

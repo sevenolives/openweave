@@ -36,14 +36,14 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_class = UserFilter
-    search_fields = ['username', 'email', 'first_name', 'last_name']
+    search_fields = ['username', 'email', 'name']
     ordering_fields = ['username', 'email', 'created_at', 'is_active']
     ordering = ['username']
     http_method_names = ['get', 'post', 'patch', 'head', 'options']
 
     def get_permissions(self):
         if self.action == 'create':
-            return []
+            return [IsAdminAgent()]
         return [permissions.IsAuthenticated()]
 
     @extend_schema(summary="Get current user profile", responses={200: UserSerializer})
@@ -52,20 +52,6 @@ class UserViewSet(viewsets.ModelViewSet):
         """Get current user profile."""
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
-
-    @extend_schema(
-        summary="Register new user",
-        request=UserSerializer,
-        responses={201: UserSerializer, 400: OpenApiTypes.OBJECT},
-    )
-    @action(detail=False, methods=['post'])
-    def register(self, request):
-        """User registration endpoint."""
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ProjectViewSet(viewsets.ModelViewSet):
@@ -300,9 +286,14 @@ class WorkspaceInviteViewSet(viewsets.ModelViewSet):
                 self.permission_denied(request)
 
     @extend_schema(summary="Join a workspace using an invite token")
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['post'], permission_classes=[])
     def join(self, request):
-        """Join a workspace using an invite token."""
+        """
+        Join a workspace using an invite token.
+        
+        If authenticated, joins the current user.
+        If not authenticated, requires username, name, and password to create an account first.
+        """
         token = request.data.get('token')
         if not token:
             return Response({'detail': 'Token is required.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -318,8 +309,33 @@ class WorkspaceInviteViewSet(viewsets.ModelViewSet):
         if invite.max_uses and invite.use_count >= invite.max_uses:
             return Response({'detail': 'Invite has reached maximum uses.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Determine the user
+        if request.user and request.user.is_authenticated:
+            user = request.user
+        else:
+            # Create a new account
+            username = request.data.get('username')
+            name = request.data.get('name')
+            password = request.data.get('password')
+
+            if not username or not name or not password:
+                return Response(
+                    {'detail': 'username, name, and password are required for new users.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if User.objects.filter(username=username).exists():
+                return Response(
+                    {'detail': 'Username already taken.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            user = User(username=username, name=name)
+            user.set_password(password)
+            user.save()
+
         membership, created = WorkspaceMember.objects.get_or_create(
-            workspace=invite.workspace, user=request.user,
+            workspace=invite.workspace, user=user,
             defaults={'role': 'MEMBER'}
         )
 

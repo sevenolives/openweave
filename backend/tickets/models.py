@@ -27,6 +27,7 @@ class User(AbstractUser):
         ('NONE', 'No Notifications'),
     ]
     
+    name = models.CharField(max_length=255)
     agent_type = models.CharField(max_length=10, choices=AGENT_TYPES, default='HUMAN')
     role = models.CharField(max_length=10, choices=ROLES, default='MEMBER')
     skills = models.JSONField(default=list, blank=True, help_text="List of skill tags")
