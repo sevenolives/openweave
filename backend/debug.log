@@ -1,8 +1,0 @@
-ERROR 2026-02-22 03:17:50,640 tasks 513006 136843187163264 Failed to send ticket assignment notification: Object of type Agent is not JSON serializable
-ERROR 2026-02-22 03:17:50,648 tasks 513006 136843187163264 Failed to send ticket status change notification: Object of type Agent is not JSON serializable
-ERROR 2026-02-22 03:17:50,658 tasks 513006 136843187163264 Failed to send project agent added notification: Object of type Agent is not JSON serializable
-INFO 2026-02-22 03:19:32,780 tasks 513030 134717483901056 Email sent successfully to test@test.com: Test Email
-INFO 2026-02-22 03:19:32,831 tasks 513030 134717483901056 Email sent successfully to agent@test.com: Ticket Assigned: #1 - Test Ticket for Email Notifications
-ERROR 2026-02-22 03:19:32,835 tasks 513030 134717483901056 Failed to send email to admin@agentdesk.com: Failed lookup for key [username] in None
-INFO 2026-02-22 03:19:32,835 tasks 513030 134717483901056 Retrying email send in 60 seconds (attempt 1/3)
-INFO 2026-02-22 03:19:32,850 tasks 513030 134717483901056 Email sent successfully to agent@test.com: Added to Project: Test Project
