@@ -3,7 +3,23 @@ URL configuration for agentdesk project.
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.http import HttpResponse
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
+
+# Cache for generated skills.md
+_skills_cache = {'content': None}
+
+
+def skills_md_view(request):
+    """Serve skills.md generated from the OpenAPI schema. ?refresh=true to rebuild."""
+    refresh = request.GET.get('refresh') == 'true'
+
+    if refresh or _skills_cache['content'] is None:
+        from tickets.skills_generator import generate_skills_md
+        _skills_cache['content'] = generate_skills_md()
+
+    return HttpResponse(_skills_cache['content'], content_type='text/markdown; charset=utf-8')
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -13,4 +29,7 @@ urlpatterns = [
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+
+    # Skills document (generated from schema)
+    path('api/skills.md', skills_md_view, name='skills-md'),
 ]
