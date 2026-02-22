@@ -233,7 +233,6 @@ def ticket_pre_save(sender, instance, **kwargs):
 @receiver(post_save, sender=Ticket)
 def ticket_post_save(sender, instance, created, **kwargs):
     """Create audit log entry for ticket changes and trigger email notifications."""
-    from .tasks import send_ticket_assignment_notification, send_ticket_status_change_notification
     
     if hasattr(instance, '_state') and hasattr(instance._state, 'adding') and instance._state.adding:
         # This is a new instance
@@ -262,30 +261,6 @@ def ticket_post_save(sender, instance, created, **kwargs):
             new_value=new_values
         )
         
-        # Check for assignment changes
-        old_assigned_to = old_values.get('assigned_to')
-        new_assigned_to = new_values.get('assigned_to')
-        
-        if old_assigned_to != new_assigned_to and new_assigned_to:
-            # Ticket was assigned or reassigned
-            send_ticket_assignment_notification.delay(
-                ticket_id=instance.pk,
-                assigned_to_id=new_assigned_to,
-                assigned_by_id=performer.pk
-            )
-        
-        # Check for status changes
-        old_status = old_values.get('status')
-        new_status = new_values.get('status')
-        
-        if old_status != new_status:
-            # Status changed
-            send_ticket_status_change_notification.delay(
-                ticket_id=instance.pk,
-                old_status=old_status,
-                new_status=new_status,
-                changed_by_id=performer.pk
-            )
 
 
 @receiver(post_save, sender=Comment)
@@ -301,9 +276,6 @@ def comment_post_save(sender, instance, created, **kwargs):
             new_value=serialize_model_for_audit(instance)
         )
         
-        # Send email notifications for new comments
-        from .tasks import send_comment_notification
-        send_comment_notification.delay(comment_id=instance.pk)
 
 
 @receiver(post_save, sender=Project)
@@ -330,13 +302,6 @@ def project_agent_post_save(sender, instance, created, **kwargs):
             new_value=serialize_model_for_audit(instance)
         )
         
-        # Send email notification for project agent addition
-        from .tasks import send_project_agent_added_notification
-        send_project_agent_added_notification.delay(
-            project_id=instance.project.pk,
-            agent_id=instance.agent.pk,
-            added_by_id=getattr(instance, '_added_by_id', None)
-        )
 
 
 @receiver(post_delete, sender=Ticket)

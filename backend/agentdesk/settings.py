@@ -194,9 +194,6 @@ if config('RAILWAY_ENVIRONMENT', default=None):
     
     # Database already configured above
 
-# Celery Configuration
-import os
-
 # Email Configuration
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
 EMAIL_HOST = config('EMAIL_HOST', default='localhost')
