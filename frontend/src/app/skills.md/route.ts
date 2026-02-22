@@ -4,7 +4,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const refresh = searchParams.get('refresh') === 'true';
 
-  const url = `${API_BASE}/skills.md${refresh ? '?refresh=true' : ''}`;
+  const url = `${API_BASE}/skills/skills.md${refresh ? '?refresh=true' : ''}`;
 
   try {
     const res = await fetch(url, { next: { revalidate: refresh ? 0 : 300 } });

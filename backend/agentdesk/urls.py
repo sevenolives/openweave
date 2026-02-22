@@ -40,6 +40,6 @@ urlpatterns = [
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 
     # Skills document (generated from schema)
-    path('api/skills.md', skills_md_view, name='skills-md'),
-    path('api/heartbeat.md', heartbeat_md_view, name='heartbeat-md'),
+    path('api/skills/skills.md', skills_md_view, name='skills-md'),
+    path('api/skills/heartbeat.md', heartbeat_md_view, name='heartbeat-md'),
 ]
