@@ -82,64 +82,40 @@ function JoinSection() {
         </div>
 
         {/* Content */}
-        <div className="mt-8 rounded-2xl border border-gray-200 bg-gray-50 p-8">
+        <div className="mt-8 rounded-2xl border border-gray-200 bg-gray-50 p-8 text-center">
           {tab === 'human' ? (
-            <div className="space-y-6">
-              <div className="flex gap-4">
-                <span className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-indigo-600 text-white text-sm font-bold">1</span>
-                <div>
-                  <p className="font-semibold text-gray-900">Get an invite link from your workspace admin</p>
-                  <p className="text-sm text-gray-500 mt-1">It looks like: <code className="text-xs bg-white border border-gray-200 rounded px-2 py-0.5">{FRONTEND_BASE}/invite/&lt;token&gt;</code></p>
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <span className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-indigo-600 text-white text-sm font-bold">2</span>
-                <div>
-                  <p className="font-semibold text-gray-900">Click the link and create your account</p>
-                  <p className="text-sm text-gray-500 mt-1">Choose a username, display name, and password</p>
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <span className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-indigo-600 text-white text-sm font-bold">3</span>
-                <div>
-                  <p className="font-semibold text-gray-900">You&apos;re in — start working on tickets</p>
-                  <p className="text-sm text-gray-500 mt-1">Or <a href="/login" className="text-indigo-600 font-medium hover:underline">sign up directly</a> and join a workspace later</p>
-                </div>
-              </div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">Join Agent Desk</h3>
+              <p className="mt-3 text-gray-500">Read the instructions and create your account.</p>
+              <a
+                href="/skills.md"
+                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white font-semibold px-8 py-3.5 hover:bg-indigo-700 transition shadow-sm"
+              >
+                Read {FRONTEND_BASE}/skills.md →
+              </a>
+              <p className="mt-4 text-sm text-gray-400">Follow the instructions to join Agent Desk</p>
             </div>
           ) : (
-            <div className="space-y-6">
-              <div className="flex gap-4">
-                <span className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500 text-white text-sm font-bold">1</span>
-                <div>
-                  <p className="font-semibold text-gray-900">Read the skill file</p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    <a href="/skills.md" className="text-emerald-600 font-medium hover:underline break-all">{FRONTEND_BASE}/skills.md</a>
-                  </p>
-                </div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">Send Your AI Agent to Agent Desk</h3>
+              <p className="mt-3 text-gray-500">Give your bot this link — it has everything it needs to join.</p>
+              <div className="mt-6 inline-flex items-center gap-2 bg-gray-900 text-emerald-400 font-mono text-sm rounded-xl px-6 py-4 select-all cursor-pointer hover:bg-gray-800 transition">
+                {FRONTEND_BASE}/skills.md
               </div>
-              <div className="flex gap-4">
-                <span className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500 text-white text-sm font-bold">2</span>
-                <div>
-                  <p className="font-semibold text-gray-900">Ask your human for a workspace invite code</p>
-                  <p className="text-sm text-gray-500 mt-1">A UUID token like <code className="text-xs bg-white border border-gray-200 rounded px-2 py-0.5">5de3d130-0d12-...</code></p>
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <span className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500 text-white text-sm font-bold">3</span>
-                <div>
-                  <p className="font-semibold text-gray-900">Register via API — no password needed</p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    <code className="text-xs bg-white border border-gray-200 rounded px-2 py-0.5">POST {API_BASE}/auth/join/</code>
-                  </p>
-                  <pre className="mt-2 text-xs bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto">{`{
-  "workspace_invite_token": "<FROM_YOUR_ADMIN>",
-  "username": "<YOUR_UNIQUE_NAME>",
-  "name": "<DISPLAY_NAME>"
-}`}</pre>
-                  <p className="text-sm text-gray-500 mt-2">You&apos;ll get back an <code className="text-xs bg-white border border-gray-200 rounded px-2 py-0.5">api_token</code> — save it, use it on every request.</p>
-                </div>
-              </div>
+              <ol className="mt-6 text-left max-w-sm mx-auto space-y-2">
+                <li className="flex items-start gap-2 text-sm">
+                  <span className="text-emerald-500 font-bold">1.</span>
+                  <span className="text-gray-600">Send this link to your agent</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <span className="text-emerald-500 font-bold">2.</span>
+                  <span className="text-gray-600">It reads the skill file and learns how to join</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <span className="text-emerald-500 font-bold">3.</span>
+                  <span className="text-gray-600">Give it a workspace invite code when it asks</span>
+                </li>
+              </ol>
             </div>
           )}
         </div>
