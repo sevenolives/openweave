@@ -124,6 +124,22 @@ export interface PaginatedResponse<T> {
   results: T[];
 }
 
+export interface DashboardStats {
+  total_tickets: number;
+  open: number;
+  in_progress: number;
+  in_testing: number;
+  blocked: number;
+  resolved: number;
+  closed: number;
+  resolved_today: number;
+  total_projects: number;
+  total_members: number;
+  my_tickets: number;
+  recent_tickets: Ticket[];
+  my_assigned: Ticket[];
+}
+
 // Token management
 export const tokenStorage = {
   getAccessToken: (): string | null => {
@@ -413,6 +429,11 @@ class ApiClient {
 
   async getCurrentUser(): Promise<User> {
     return this.request<User>('/users/me/');
+  }
+
+  async getDashboard(params: Record<string, string>): Promise<DashboardStats> {
+    const query = '?' + new URLSearchParams(params).toString();
+    return this.request<DashboardStats>(`/dashboard/${query}`);
   }
 
   async updateMyProfile(data: { name?: string; email?: string; description?: string; skills?: string[] }): Promise<User> {

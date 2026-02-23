@@ -877,3 +877,86 @@ class WorkspaceInviteViewSet(viewsets.ModelViewSet):
             if not membership:
                 raise PermissionDenied("Only workspace admins or owner can delete invites.")
         instance.delete()
+
+
+class DashboardView(APIView):
+    """Dashboard stats for a workspace."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        tags=['dashboard'],
+        summary="Get dashboard stats",
+        parameters=[
+            OpenApiParameter(name='workspace', description='Workspace ID', type=int, required=True),
+        ],
+        responses={200: inline_serializer('DashboardStats', fields={
+            'total_tickets': drf_serializers.IntegerField(),
+            'open': drf_serializers.IntegerField(),
+            'in_progress': drf_serializers.IntegerField(),
+            'in_testing': drf_serializers.IntegerField(),
+            'blocked': drf_serializers.IntegerField(),
+            'resolved': drf_serializers.IntegerField(),
+            'closed': drf_serializers.IntegerField(),
+            'resolved_today': drf_serializers.IntegerField(),
+            'total_projects': drf_serializers.IntegerField(),
+            'total_members': drf_serializers.IntegerField(),
+            'my_tickets': drf_serializers.IntegerField(),
+            'recent_tickets': TicketSerializer(many=True),
+            'my_assigned': TicketSerializer(many=True),
+        })},
+    )
+    def get(self, request):
+        from django.db.models import Q, Count
+        from django.utils import timezone
+
+        workspace_id = request.query_params.get('workspace')
+        if not workspace_id:
+            return Response({'detail': 'workspace parameter required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Verify access
+        ws_id = int(workspace_id)
+        has_access = (
+            Workspace.objects.filter(id=ws_id, owner=request.user).exists() or
+            WorkspaceMember.objects.filter(workspace_id=ws_id, user=request.user).exists()
+        )
+        if not has_access and not request.user.is_superuser:
+            return Response({'detail': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+
+        tickets = Ticket.objects.filter(project__workspace_id=ws_id)
+        today = timezone.now().date()
+
+        stats = tickets.aggregate(
+            total=Count('id'),
+            open=Count('id', filter=Q(status='OPEN')),
+            in_progress=Count('id', filter=Q(status='IN_PROGRESS')),
+            in_testing=Count('id', filter=Q(status='IN_TESTING')),
+            blocked=Count('id', filter=Q(status='BLOCKED')),
+            resolved=Count('id', filter=Q(status='RESOLVED')),
+            closed=Count('id', filter=Q(status='CLOSED')),
+            resolved_today=Count('id', filter=Q(resolved_at__date=today)),
+        )
+
+        total_projects = Project.objects.filter(workspace_id=ws_id).count()
+        total_members = WorkspaceMember.objects.filter(workspace_id=ws_id).count() + 1  # +1 for owner
+
+        my_assigned = tickets.filter(assigned_to=request.user).exclude(
+            status__in=['CLOSED', 'RESOLVED']
+        ).select_related('project', 'assigned_to', 'created_by').order_by('-updated_at')[:5]
+
+        recent = tickets.select_related('project', 'assigned_to', 'created_by').order_by('-updated_at')[:8]
+
+        return Response({
+            'total_tickets': stats['total'],
+            'open': stats['open'],
+            'in_progress': stats['in_progress'],
+            'in_testing': stats['in_testing'],
+            'blocked': stats['blocked'],
+            'resolved': stats['resolved'],
+            'closed': stats['closed'],
+            'resolved_today': stats['resolved_today'],
+            'total_projects': total_projects,
+            'total_members': total_members,
+            'my_tickets': tickets.filter(assigned_to=request.user).exclude(status__in=['CLOSED']).count(),
+            'recent_tickets': TicketSerializer(recent, many=True).data,
+            'my_assigned': TicketSerializer(my_assigned, many=True).data,
+        })

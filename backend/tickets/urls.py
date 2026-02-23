@@ -7,7 +7,7 @@ from .views import (
     CommentViewSet, AuditLogViewSet,
     WorkspaceViewSet, WorkspaceMemberViewSet, WorkspaceInviteViewSet,
     TicketAttachmentViewSet,
-    JoinView,
+    JoinView, DashboardView,
 )
 
 router = DefaultRouter()
@@ -48,5 +48,6 @@ urlpatterns = [
     path('auth/join/', JoinView.as_view(), name='join'),
     path('auth/login/', LoginView.as_view(), name='token_obtain_pair'),
     path('auth/token/refresh/', RefreshView.as_view(), name='token_refresh'),
+    path('dashboard/', DashboardView.as_view(), name='dashboard'),
     path('', include(router.urls)),
 ]
