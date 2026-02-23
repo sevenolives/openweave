@@ -17,7 +17,7 @@ export default function AgentsPage() {
   const [filterType, setFilterType] = useState('');
   const [selectedAgent, setSelectedAgent] = useState<number | null>(null);
 
-  const PAGE_SIZE = 20;
+  const PAGE_SIZE = 10;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const router = useRouter();
