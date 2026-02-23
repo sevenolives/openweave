@@ -115,7 +115,7 @@ export default function TicketDetailPage() {
     try {
       await api.deleteTicket(ticket.id);
       toast('Ticket deleted');
-      router.push(`/projects/${ticket.project}`);
+      router.back();
     } catch (e: any) { toast(e?.message || 'Failed to delete ticket', 'error'); }
   };
 

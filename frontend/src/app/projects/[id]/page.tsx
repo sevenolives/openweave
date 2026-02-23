@@ -10,6 +10,7 @@ import { api, Project, Ticket, User } from '@/lib/api';
 const STATUS_COLUMNS = [
   { status: 'OPEN', title: 'Open', accent: 'bg-gray-400', bg: 'bg-gray-50' },
   { status: 'IN_PROGRESS', title: 'In Progress', accent: 'bg-blue-500', bg: 'bg-blue-50' },
+  { status: 'IN_TESTING', title: 'In Testing', accent: 'bg-purple-500', bg: 'bg-purple-50' },
   { status: 'BLOCKED', title: 'Blocked', accent: 'bg-red-500', bg: 'bg-red-50' },
   { status: 'RESOLVED', title: 'Resolved', accent: 'bg-green-500', bg: 'bg-green-50' },
   { status: 'CLOSED', title: 'Closed', accent: 'bg-gray-400', bg: 'bg-gray-50' },

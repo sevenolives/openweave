@@ -141,6 +141,10 @@ export default function AgentsPage() {
                     }`}>{role}</span>
                   </div>
 
+                  {user.description && (
+                    <p className="text-xs text-gray-600 mb-3 line-clamp-3">{user.description}</p>
+                  )}
+
                   {user.skills && user.skills.length > 0 && (
                     <div className="flex flex-wrap gap-1 mb-3">
                       {user.skills.slice(0, 3).map((skill: string, i: number) => (
@@ -160,7 +164,7 @@ export default function AgentsPage() {
                       <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Assigned Tickets</h4>
                       {agentTickets.slice(0, 5).map(ticket => (
                         <button key={ticket.id} onClick={() => router.push(`/tickets/${ticket.id}`)} className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors">
-                          <p className="text-sm font-medium text-gray-900 truncate">#{ticket.id} {ticket.title}</p>
+                          <p className="text-sm font-medium text-gray-900 truncate">{ticket.ticket_slug || `#${ticket.id}`} {ticket.title}</p>
                           <p className="text-xs text-gray-500">{ticket.project_name} · {ticket.status.replace('_',' ')}</p>
                         </button>
                       ))}

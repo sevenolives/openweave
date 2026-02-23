@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useMemo, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -20,7 +20,15 @@ const STATUS_COLORS: Record<string, string> = {
   IN_TESTING: 'bg-purple-100 text-purple-700', BLOCKED: 'bg-red-100 text-red-700', RESOLVED: 'bg-green-100 text-green-700', CLOSED: 'bg-gray-200 text-gray-600',
 };
 
-export default function TicketsPage() {
+export default function TicketsPageWrapper() {
+  return (
+    <Suspense fallback={<Layout><div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-600 border-t-transparent"></div></div></Layout>}>
+      <TicketsPage />
+    </Suspense>
+  );
+}
+
+function TicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
@@ -39,12 +47,21 @@ export default function TicketsPage() {
   const [newAssigned, setNewAssigned] = useState<string>('');
   const [newApproved, setNewApproved] = useState(false);
   const [wsUsers, setWsUsers] = useState<User[]>([]);
+  const [createProjectAgents, setCreateProjectAgents] = useState<User[]>([]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [deleteTarget, setDeleteTarget] = useState<Ticket | null>(null);
+  const [projectAgentsMap, setProjectAgentsMap] = useState<Record<number, User[]>>({});
 
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const { currentWorkspace } = useWorkspace();
+
+  // Initialize filters from URL params
+  useEffect(() => {
+    const statusParam = searchParams.get('status');
+    if (statusParam) setFilterStatus(statusParam);
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -58,6 +75,27 @@ export default function TicketsPage() {
       .catch((e: any) => toast(e?.message || 'Failed to load data', 'error'))
       .finally(() => setLoading(false));
   }, [currentWorkspace?.id, page]);
+
+  // Fetch project agents for all visible projects (for inline assign dropdown)
+  useEffect(() => {
+    const projectIds = [...new Set(tickets.map(t => t.project))];
+    projectIds.forEach(pid => {
+      if (!projectAgentsMap[pid]) {
+        api.getProjectAgents(pid).then(agents => {
+          setProjectAgentsMap(prev => ({ ...prev, [pid]: agents }));
+        }).catch(() => {});
+      }
+    });
+  }, [tickets]);
+
+  // Fetch project agents when create modal project selection changes
+  useEffect(() => {
+    if (newProject) {
+      api.getProjectAgents(newProject as number).then(setCreateProjectAgents).catch(() => setCreateProjectAgents([]));
+    } else {
+      setCreateProjectAgents([]);
+    }
+  }, [newProject]);
 
   const filtered = useMemo(() => {
     return tickets.filter(t => {
@@ -238,9 +276,25 @@ export default function TicketsPage() {
                                   {ticket.approved_status === 'APPROVED' ? '✓ Approved' : 'Unapproved'}
                                 </span>
                               </div>
-                              {ticket.assigned_to_details && (
-                                <p className="text-xs text-gray-500 mt-1">→ {ticket.assigned_to_details.username}</p>
-                              )}
+                              <div className="mt-1" onClick={e => e.stopPropagation()}>
+                                <select
+                                  value={ticket.assigned_to?.toString() || ''}
+                                  onChange={async (e) => {
+                                    const val = e.target.value;
+                                    try {
+                                      const updated = await api.updateTicket(ticket.id, { assigned_to: val ? parseInt(val) : null });
+                                      setTickets(prev => prev.map(t => t.id === ticket.id ? updated : t));
+                                      toast('Assignment updated');
+                                    } catch (err: any) { toast(err?.message || 'Failed to assign', 'error'); }
+                                  }}
+                                  className="text-xs border border-gray-200 rounded-md px-1.5 py-0.5 bg-white text-gray-600 focus:ring-1 focus:ring-indigo-500 max-w-[140px]"
+                                >
+                                  <option value="">Unassigned</option>
+                                  {(projectAgentsMap[ticket.project] || []).map(a => (
+                                    <option key={a.id} value={String(a.id)}>{a.username}</option>
+                                  ))}
+                                </select>
+                              </div>
                             </div>
                           </div>
                         </td>
@@ -307,7 +361,7 @@ export default function TicketsPage() {
                 <FormField label="Assign To" error={fieldErrors.assigned_to}>
                   <select value={newAssigned} onChange={e => setNewAssigned(e.target.value)} className={`${inputClass(fieldErrors.assigned_to)} bg-white`}>
                     <option value="">Unassigned</option>
-                    {wsUsers.map(u => <option key={u.id} value={String(u.id)}>{u.username} ({u.user_type})</option>)}
+                    {createProjectAgents.map(u => <option key={u.id} value={String(u.id)}>{u.username} ({u.user_type})</option>)}
                   </select>
                 </FormField>
                 <label className="flex items-center gap-2 cursor-pointer">

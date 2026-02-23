@@ -28,16 +28,20 @@ export default function DashboardPage() {
   const totalTickets = tickets.length;
   const openTickets = tickets.filter(t => t.status === 'OPEN').length;
   const inProgress = tickets.filter(t => t.status === 'IN_PROGRESS').length;
+  const inTesting = tickets.filter(t => t.status === 'IN_TESTING').length;
+  const blocked = tickets.filter(t => t.status === 'BLOCKED').length;
   const today = new Date().toDateString();
   const resolvedToday = tickets.filter(t => t.resolved_at && new Date(t.resolved_at).toDateString() === today).length;
   const myTickets = tickets.filter(t => t.assigned_to === user?.id);
   const recentTickets = [...tickets].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()).slice(0, 8);
 
   const stats = [
-    { label: 'Total Tickets', value: totalTickets, color: 'bg-indigo-50 text-indigo-700', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
-    { label: 'Open', value: openTickets, color: 'bg-yellow-50 text-yellow-700', icon: 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-    { label: 'In Progress', value: inProgress, color: 'bg-blue-50 text-blue-700', icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
-    { label: 'Resolved Today', value: resolvedToday, color: 'bg-green-50 text-green-700', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
+    { label: 'Total Tickets', value: totalTickets, color: 'bg-indigo-50 text-indigo-700', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', link: '/tickets' },
+    { label: 'Open', value: openTickets, color: 'bg-yellow-50 text-yellow-700', icon: 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z', link: '/tickets?status=OPEN' },
+    { label: 'In Progress', value: inProgress, color: 'bg-blue-50 text-blue-700', icon: 'M13 10V3L4 14h7v7l9-11h-7z', link: '/tickets?status=IN_PROGRESS' },
+    { label: 'In Testing', value: inTesting, color: 'bg-purple-50 text-purple-700', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4', link: '/tickets?status=IN_TESTING' },
+    { label: 'Blocked', value: blocked, color: 'bg-red-50 text-red-700', icon: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636', link: '/tickets?status=BLOCKED' },
+    { label: 'Resolved Today', value: resolvedToday, color: 'bg-green-50 text-green-700', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', link: '/tickets?status=RESOLVED' },
   ];
 
   const priorityColors: Record<string, string> = {
@@ -78,9 +82,9 @@ export default function DashboardPage() {
         ) : (
           <>
             {/* Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
               {stats.map(stat => (
-                <div key={stat.label} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
+                <div key={stat.label} onClick={() => stat.link && router.push(stat.link)} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer">
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-sm font-medium text-gray-500">{stat.label}</span>
                     <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${stat.color}`}>
