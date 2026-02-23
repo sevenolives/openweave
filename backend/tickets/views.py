@@ -509,16 +509,26 @@ class TicketAttachmentViewSet(viewsets.ModelViewSet):
         description="Upload a file attachment to a ticket. Use multipart/form-data with 'file' and 'ticket' fields.",
     )
     def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
+        try:
+            return super().create(request, *args, **kwargs)
+        except Exception as e:
+            import traceback
+            return Response({'detail': str(e), 'trace': traceback.format_exc()}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def perform_create(self, serializer):
         uploaded_file = self.request.FILES.get('file')
         if not uploaded_file:
             raise drf_serializers.ValidationError({'file': 'No file provided.'})
-        serializer.save(
-            uploaded_by=self.request.user,
-            filename=uploaded_file.name,
-        )
+        import logging
+        logger = logging.getLogger(__name__)
+        try:
+            serializer.save(
+                uploaded_by=self.request.user,
+                filename=uploaded_file.name,
+            )
+        except Exception as e:
+            logger.exception("Attachment upload failed")
+            raise
 
     @extend_schema(summary="List attachments", description="List attachments. Filter by ?ticket={id}.")
     def list(self, request, *args, **kwargs):
