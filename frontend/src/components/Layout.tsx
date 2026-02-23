@@ -91,7 +91,13 @@ export default function Layout({ children }: { children: ReactNode }) {
                 value={currentWorkspace.id}
                 onChange={e => {
                   const ws = workspaces.find(w => w.id === Number(e.target.value));
-                  if (ws) setCurrentWorkspace(ws);
+                  if (ws) {
+                    setCurrentWorkspace(ws);
+                    // Navigate to dashboard to reflect workspace change
+                    const topLevel = pathname.split('/').filter(Boolean)[0];
+                    const validPages = ['dashboard', 'projects', 'tickets', 'agents', 'settings'];
+                    router.push(validPages.includes(topLevel) ? `/${topLevel}` : '/dashboard');
+                  }
                 }}
                 className="w-full text-sm font-medium text-gray-900 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2"
               >

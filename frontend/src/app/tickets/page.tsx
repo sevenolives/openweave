@@ -278,9 +278,20 @@ function TicketsPage() {
                                 <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${PRIORITY_COLORS[ticket.priority]}`}>
                                   {ticket.priority}
                                 </span>
-                                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${ticket.approved_status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                <button
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    const newStatus = ticket.approved_status === 'APPROVED' ? 'UNAPPROVED' : 'APPROVED';
+                                    try {
+                                      const updated = await api.updateTicket(ticket.id, { approved_status: newStatus } as any);
+                                      setTickets(prev => prev.map(t => t.id === ticket.id ? updated : t));
+                                      toast(`Ticket ${newStatus.toLowerCase()}`);
+                                    } catch (err: any) { toast(err?.message || 'Failed to update', 'error'); }
+                                  }}
+                                  className={`text-[10px] font-medium px-2 py-0.5 rounded-full cursor-pointer hover:opacity-80 transition-opacity ${ticket.approved_status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}
+                                >
                                   {ticket.approved_status === 'APPROVED' ? '✓ Approved' : 'Unapproved'}
-                                </span>
+                                </button>
                               </div>
                               <div className="mt-1" onClick={e => e.stopPropagation()}>
                                 <select
