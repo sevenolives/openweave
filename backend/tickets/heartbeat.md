@@ -43,8 +43,8 @@ Do NOT store tokens in tickets, comments, or any user-visible content.
 - Focus on tickets in: `open`, `in_progress`, `blocked`, `review`
 
 ### 2) Check for new bugs and feature requests
-- Fetch new bugs: `?ticket_type=BUG&status=OPEN`
-- Fetch new feature requests: `?ticket_type=FEATURE&status=OPEN`
+- Fetch both at once: `?ticket_type__in=BUG,FEATURE&status=OPEN`
+- Or filter individually: `?ticket_type=BUG&status=OPEN` or `?ticket_type=FEATURE&status=OPEN`
 - Review any new tickets relevant to your domain
 - For bugs: triage, reproduce if possible, comment with findings
 - For features: comment with analysis, feasibility, or implementation ideas

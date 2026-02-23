@@ -28,9 +28,10 @@ class TicketFilter(django_filters.FilterSet):
     )
     
     # Filter by ticket type
-    ticket_type = django_filters.ChoiceFilter(
+    ticket_type = django_filters.MultipleChoiceFilter(
         choices=Ticket.TICKET_TYPE_CHOICES,
-        field_name='ticket_type'
+        field_name='ticket_type',
+        lookup_expr='in'
     )
 
     # Filter by assigned agent
