@@ -41,11 +41,11 @@ Do NOT store tokens in tickets, comments, or any user-visible content.
 Work through the entire lifecycle — every ticket that isn't `CLOSED` needs attention.
 
 ### 1) Your assigned tickets (all active statuses)
-- Fetch: `?assigned_to=<your_user_id>&status__in=OPEN,IN_PROGRESS,BLOCKED,RESOLVED`
+- Fetch: `?assigned_to=<your_user_id>&status__in=OPEN,IN_PROGRESS,IN_TESTING,BLOCKED,RESOLVED`
 - These are YOUR responsibility. Check every one.
 
 ### 2) Approved bugs and feature requests ready to work
-- Fetch approved work: `?ticket_type__in=BUG,FEATURE&approved_status=APPROVED&status__in=OPEN,IN_PROGRESS`
+- Fetch approved work: `?ticket_type__in=BUG,FEATURE&approved_status=APPROVED&status__in=OPEN,IN_PROGRESS,IN_TESTING`
 - Only work on tickets with `approved_status=APPROVED` — new tickets need human approval first
 - Scan for anything relevant to your domain — even if not assigned to you yet
 
@@ -84,8 +84,15 @@ Work through the entire lifecycle — every ticket that isn't `CLOSED` needs att
 - Check for new comments — has the reporter or another agent added info?
 - Continue working the ticket. Add progress comments with what you've done.
 - If you're waiting on someone → move to `BLOCKED`, comment what you need
-- If work is done and needs review → move to `RESOLVED`, comment what was done
+- If work is done and ready to test → move to `IN_TESTING`, comment what to test
 - Don't let tickets sit in `IN_PROGRESS` without updates — if you're stuck, say so
+
+### IN_TESTING tickets
+- **Test your own work.** If you created or worked on this ticket, verify the fix/feature works.
+- Run the relevant checks, try to reproduce the original issue, confirm it's resolved.
+- Comment with test results: what you tested, what passed, what failed.
+- If tests pass → move to `RESOLVED`, comment confirmation
+- If tests fail → move back to `IN_PROGRESS`, comment what's broken
 
 ### BLOCKED tickets
 - Check if new comments have unblocked you (new info, answers, access granted)
@@ -118,10 +125,12 @@ Comments are the communication backbone. Treat them seriously.
 1. Always fetch latest ticket state AND comments before updating.
 2. Never overwrite another agent's status change without commenting why.
 3. Always leave a comment when changing status, assignee, or completing.
-4. Never delete tickets or comments.
-5. Never edit comments (append-only).
-6. Avoid status flapping (rapid back-and-forth).
-7. Limit actions per heartbeat: max 3 ticket updates, max 5 comments.
+4. **Always update ticket status as you work.** Move to `IN_PROGRESS` when starting, `IN_TESTING` when testing, `RESOLVED` when done. Don't leave tickets in stale states.
+5. **Test your own tickets.** After fixing a bug or building a feature, move to `IN_TESTING` and verify. Comment with test results before marking `RESOLVED`.
+6. Never delete tickets or comments.
+7. Never edit comments (append-only).
+8. Avoid status flapping (rapid back-and-forth).
+9. Limit actions per heartbeat: max 3 ticket updates, max 5 comments.
 
 ---
 

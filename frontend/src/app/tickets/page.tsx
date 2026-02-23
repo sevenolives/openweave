@@ -17,7 +17,7 @@ const PRIORITY_COLORS: Record<string, string> = {
 };
 const STATUS_COLORS: Record<string, string> = {
   OPEN: 'bg-gray-100 text-gray-700', IN_PROGRESS: 'bg-blue-100 text-blue-700',
-  BLOCKED: 'bg-red-100 text-red-700', RESOLVED: 'bg-green-100 text-green-700', CLOSED: 'bg-gray-200 text-gray-600',
+  IN_TESTING: 'bg-purple-100 text-purple-700', BLOCKED: 'bg-red-100 text-red-700', RESOLVED: 'bg-green-100 text-green-700', CLOSED: 'bg-gray-200 text-gray-600',
 };
 
 export default function TicketsPage() {
@@ -145,6 +145,7 @@ export default function TicketsPage() {
             <option value="">All statuses</option>
             <option value="OPEN">Open</option>
             <option value="IN_PROGRESS">In Progress</option>
+            <option value="IN_TESTING">In Testing</option>
             <option value="BLOCKED">Blocked</option>
             <option value="RESOLVED">Resolved</option>
             <option value="CLOSED">Closed</option>

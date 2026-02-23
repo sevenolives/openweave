@@ -152,6 +152,7 @@ class Ticket(models.Model):
     STATUS_CHOICES = [
         ('OPEN', 'Open'),
         ('IN_PROGRESS', 'In Progress'),
+        ('IN_TESTING', 'In Testing'),
         ('RESOLVED', 'Resolved'),
         ('CLOSED', 'Closed'),
         ('BLOCKED', 'Blocked'),
@@ -177,7 +178,8 @@ class Ticket(models.Model):
     # Valid status transitions
     STATUS_TRANSITIONS = {
         'OPEN': ['IN_PROGRESS'],
-        'IN_PROGRESS': ['RESOLVED', 'BLOCKED'],
+        'IN_PROGRESS': ['IN_TESTING', 'RESOLVED', 'BLOCKED'],
+        'IN_TESTING': ['IN_PROGRESS', 'RESOLVED'],
         'RESOLVED': ['CLOSED'],
         'BLOCKED': ['IN_PROGRESS'],
         'CLOSED': [],  # Terminal state

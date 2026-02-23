@@ -44,7 +44,7 @@ export interface Ticket {
   project_name: string;
   title: string;
   description: string;
-  status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED' | 'BLOCKED';
+  status: 'OPEN' | 'IN_PROGRESS' | 'IN_TESTING' | 'RESOLVED' | 'CLOSED' | 'BLOCKED';
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   ticket_type: 'BUG' | 'FEATURE';
   approved_status: 'UNAPPROVED' | 'APPROVED';
