@@ -4,16 +4,21 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
-import { api, User, Ticket, WorkspaceMember } from '@/lib/api';
+import { api, User, Ticket, WorkspaceMember, PaginatedResponse } from '@/lib/api';
 import { useWorkspace } from '@/hooks/useWorkspace';
 
 export default function AgentsPage() {
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(1);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterRole, setFilterRole] = useState('');
   const [filterType, setFilterType] = useState('');
   const [selectedAgent, setSelectedAgent] = useState<number | null>(null);
+
+  const PAGE_SIZE = 20;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const router = useRouter();
   const { toast } = useToast();
@@ -21,15 +26,16 @@ export default function AgentsPage() {
 
   useEffect(() => {
     if (!currentWorkspace) return;
+    setLoading(true);
     const wsId = String(currentWorkspace.id);
     Promise.all([
-      api.getWorkspaceMembers({ workspace: wsId }),
+      api.getWorkspaceMembersPaginated({ workspace: wsId, page: String(page) }),
       api.getTickets({ workspace: wsId }),
     ])
-      .then(([m, t]) => { setMembers(m); setTickets(t); })
+      .then(([resp, t]) => { setMembers(resp.results || []); setTotalCount(resp.count || 0); setTickets(t); })
       .catch((e: any) => toast(e?.message || 'Failed to load members', 'error'))
       .finally(() => setLoading(false));
-  }, [currentWorkspace?.id]);
+  }, [currentWorkspace?.id, page]);
 
   // Build user list from members + owner
   const users = useMemo(() => {
@@ -164,6 +170,16 @@ export default function AgentsPage() {
                 </div>
               );
             })}
+          </div>
+        )}
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between mt-6 px-1">
+            <p className="text-sm text-gray-500">Page {page} of {totalPages} · {totalCount} member{totalCount !== 1 ? 's' : ''}</p>
+            <div className="flex gap-2">
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-4 py-2 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">Previous</button>
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="px-4 py-2 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
+            </div>
           </div>
         )}
       </div>

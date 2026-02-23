@@ -6,8 +6,10 @@ import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import FormField, { parseFieldErrors, inputClass } from '@/components/FormField';
-import { api, Ticket, Project, ApiError } from '@/lib/api';
+import { api, Ticket, Project, ApiError, PaginatedResponse } from '@/lib/api';
 import { useWorkspace } from '@/hooks/useWorkspace';
+
+const PAGE_SIZE = 20;
 
 const PRIORITY_COLORS: Record<string, string> = {
   LOW: 'bg-green-100 text-green-700', MEDIUM: 'bg-yellow-100 text-yellow-700',
@@ -20,6 +22,8 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function TicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(1);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -40,12 +44,14 @@ export default function TicketsPage() {
   const { currentWorkspace } = useWorkspace();
 
   useEffect(() => {
+    setLoading(true);
     const wsParams: Record<string, string> = currentWorkspace ? { workspace: String(currentWorkspace.id) } : {};
-    Promise.all([api.getTickets(wsParams), api.getProjects(wsParams)])
-      .then(([t, p]) => { setTickets(t); setProjects(p); })
+    const ticketParams = { ...wsParams, page: String(page) };
+    Promise.all([api.getTicketsPaginated(ticketParams), api.getProjects(wsParams)])
+      .then(([resp, p]) => { setTickets(resp.results || []); setTotalCount(resp.count || 0); setProjects(p); })
       .catch((e: any) => toast(e?.message || 'Failed to load data', 'error'))
       .finally(() => setLoading(false));
-  }, [currentWorkspace?.id]);
+  }, [currentWorkspace?.id, page]);
 
   const filtered = useMemo(() => {
     return tickets.filter(t => {
@@ -69,10 +75,13 @@ export default function TicketsPage() {
     return Object.values(groups).sort((a, b) => (a.project?.name || '').localeCompare(b.project?.name || ''));
   }, [filtered, projects]);
 
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
   const loadData = () => {
     const wsParams: Record<string, string> = currentWorkspace ? { workspace: String(currentWorkspace.id) } : {};
-    Promise.all([api.getTickets(wsParams), api.getProjects(wsParams)])
-      .then(([t, p]) => { setTickets(t); setProjects(p); })
+    const ticketParams = { ...wsParams, page: String(page) };
+    Promise.all([api.getTicketsPaginated(ticketParams), api.getProjects(wsParams)])
+      .then(([resp, p]) => { setTickets(resp.results || []); setTotalCount(resp.count || 0); setProjects(p); })
       .catch((e: any) => toast(e?.message || 'Failed to load data', 'error'));
   };
 
@@ -243,6 +252,17 @@ export default function TicketsPage() {
                 </table>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between mt-6 px-1">
+            <p className="text-sm text-gray-500">Page {page} of {totalPages} · {totalCount} ticket{totalCount !== 1 ? 's' : ''}</p>
+            <div className="flex gap-2">
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-4 py-2 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">Previous</button>
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="px-4 py-2 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
+            </div>
           </div>
         )}
 

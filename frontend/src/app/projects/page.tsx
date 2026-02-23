@@ -6,11 +6,13 @@ import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import FormField, { parseFieldErrors, inputClass } from '@/components/FormField';
-import { api, Project, Ticket, ApiError } from '@/lib/api';
+import { api, Project, Ticket, ApiError, PaginatedResponse } from '@/lib/api';
 import { useWorkspace } from '@/hooks/useWorkspace';
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(1);
   const [ticketCounts, setTicketCounts] = useState<Record<number, { total: number; open: number; inProgress: number; blocked: number; resolved: number; closed: number }>>({});
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -23,10 +25,16 @@ export default function ProjectsPage() {
   const { toast } = useToast();
   const { currentWorkspace } = useWorkspace();
 
+  const PAGE_SIZE = 20;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
   const fetchProjects = async () => {
     try {
       const params: Record<string, string> = currentWorkspace ? { workspace: String(currentWorkspace.id) } : {};
-      const projs = await api.getProjects(params);
+      params.page = String(page);
+      const resp = await api.getProjectsPaginated(params);
+      const projs = resp.results || [];
+      setTotalCount(resp.count || 0);
       setProjects(projs);
       // Fetch ticket counts for each project
       const counts: Record<number, any> = {};
@@ -49,7 +57,7 @@ export default function ProjectsPage() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchProjects(); }, [currentWorkspace?.id]);
+  useEffect(() => { fetchProjects(); }, [currentWorkspace?.id, page]);
 
   useEffect(() => {
     if (!showCreate) return;
@@ -196,6 +204,17 @@ export default function ProjectsPage() {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+          <p className="text-sm text-gray-500">Page {page} of {totalPages} · {totalCount} project{totalCount !== 1 ? 's' : ''}</p>
+          <div className="flex gap-2">
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-4 py-2 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">Previous</button>
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="px-4 py-2 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
+          </div>
+        </div>
+      )}
 
       {/* Mobile FAB */}
       <button onClick={() => setShowCreate(true)} className="sm:hidden fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-700 active:scale-95 transition-all z-40">

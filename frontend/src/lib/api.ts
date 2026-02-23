@@ -278,9 +278,13 @@ class ApiClient {
   }
 
   // Projects
-  async getProjects(params?: Record<string, string>): Promise<Project[]> {
+  async getProjectsPaginated(params?: Record<string, string>): Promise<PaginatedResponse<Project>> {
     const query = params ? '?' + new URLSearchParams(params).toString() : '';
-    const response = await this.request<PaginatedResponse<Project>>(`/projects/${query}`);
+    return this.request<PaginatedResponse<Project>>(`/projects/${query}`);
+  }
+
+  async getProjects(params?: Record<string, string>): Promise<Project[]> {
+    const response = await this.getProjectsPaginated(params);
     return response.results || [];
   }
 
@@ -388,9 +392,13 @@ class ApiClient {
   }
 
   // Workspace Members
-  async getWorkspaceMembers(params?: Record<string, string>): Promise<WorkspaceMember[]> {
+  async getWorkspaceMembersPaginated(params?: Record<string, string>): Promise<PaginatedResponse<WorkspaceMember>> {
     const query = params ? '?' + new URLSearchParams(params).toString() : '';
-    const response = await this.request<PaginatedResponse<WorkspaceMember>>(`/workspace-members/${query}`);
+    return this.request<PaginatedResponse<WorkspaceMember>>(`/workspace-members/${query}`);
+  }
+
+  async getWorkspaceMembers(params?: Record<string, string>): Promise<WorkspaceMember[]> {
+    const response = await this.getWorkspaceMembersPaginated(params);
     return response.results || [];
   }
 
