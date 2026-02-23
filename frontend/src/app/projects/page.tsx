@@ -17,6 +17,7 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState('');
+  const [slug, setSlug] = useState('');
   const [desc, setDesc] = useState('');
   const [creating, setCreating] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -72,9 +73,9 @@ export default function ProjectsPage() {
     if (!name.trim()) return;
     setCreating(true);
     try {
-      await api.createProject({ name: name.trim(), description: desc.trim(), workspace: currentWorkspace?.id });
+      await api.createProject({ name: name.trim(), description: desc.trim(), workspace: currentWorkspace?.id, ...(slug.trim() ? { slug: slug.trim().toUpperCase() } : {}) });
       toast('Project created');
-      setName(''); setDesc(''); setShowCreate(false);
+      setName(''); setSlug(''); setDesc(''); setShowCreate(false);
       setFieldErrors({});
       await fetchProjects();
     } catch (e: any) {
@@ -117,6 +118,10 @@ export default function ProjectsPage() {
               <form onSubmit={handleCreate} className="space-y-4">
                 <FormField label="Name" error={fieldErrors.name} required>
                   <input type="text" value={name} onChange={e => setName(e.target.value)} className={inputClass(fieldErrors.name)} placeholder="Project name" autoFocus />
+                </FormField>
+                <FormField label="Slug" error={fieldErrors.slug}>
+                  <input type="text" value={slug} onChange={e => setSlug(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} className={inputClass(fieldErrors.slug)} placeholder="e.g. SA, PROJ (auto-generated if empty)" maxLength={10} />
+                  <p className="text-xs text-gray-400 mt-1">Used in ticket IDs like SA-1, SA-2</p>
                 </FormField>
                 <FormField label="Description" error={fieldErrors.description}>
                   <textarea value={desc} onChange={e => setDesc(e.target.value)} className={`${inputClass(fieldErrors.description)} resize-none`} rows={3} placeholder="Optional description" />

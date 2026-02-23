@@ -11,6 +11,7 @@ export default function ProjectSettingsPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [editName, setEditName] = useState('');
+  const [editSlug, setEditSlug] = useState('');
   const [editDesc, setEditDesc] = useState('');
   const [saving, setSaving] = useState(false);
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -28,7 +29,7 @@ export default function ProjectSettingsPage() {
   const fetchData = async () => {
     try {
       const [p, agents] = await Promise.all([api.getProject(projectId), api.getProjectAgents(projectId)]);
-      setProject(p); setProjectAgents(agents); setEditName(p.name); setEditDesc(p.description);
+      setProject(p); setProjectAgents(agents); setEditName(p.name); setEditSlug(p.slug || ''); setEditDesc(p.description);
       if (p.workspace) {
         api.getUsers({ workspace: String(p.workspace) }).then(setAllUsers).catch(() => {});
       }
@@ -44,7 +45,7 @@ export default function ProjectSettingsPage() {
     if (!project) return;
     setSaving(true);
     try {
-      const updated = await api.updateProject(project.id, { name: editName, description: editDesc });
+      const updated = await api.updateProject(project.id, { name: editName, slug: editSlug, description: editDesc });
       setProject(updated);
       toast('Settings saved');
     } catch (e: any) { toast(e?.message || 'Failed to save settings', 'error'); }
@@ -105,6 +106,11 @@ export default function ProjectSettingsPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
                 <input type="text" value={editName} onChange={e => setEditName(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Slug</label>
+                <input type="text" value={editSlug} onChange={e => setEditSlug(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent" maxLength={10} placeholder="e.g. SA, PROJ" />
+                <p className="text-xs text-gray-400 mt-1">Used in ticket IDs like SA-1, SA-2</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
