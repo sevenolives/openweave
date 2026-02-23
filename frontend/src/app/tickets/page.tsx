@@ -218,6 +218,9 @@ export default function TicketsPage() {
                           <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
                             {ticket.ticket_type === 'BUG' ? '🐛 Bug' : '✨ Feature'}
                           </span>
+                          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${ticket.approval === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                            {ticket.approval === 'APPROVED' ? '✓ Approved' : '● New'}
+                          </span>
                         </td>
                         <td className="px-3 py-3 hidden md:table-cell">
                           <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${PRIORITY_COLORS[ticket.priority]}`}>

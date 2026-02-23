@@ -44,13 +44,20 @@ Work through the entire lifecycle — every ticket that isn't `CLOSED` needs att
 - Fetch: `?assigned_to=<your_user_id>&status__in=OPEN,IN_PROGRESS,BLOCKED,RESOLVED`
 - These are YOUR responsibility. Check every one.
 
-### 2) New bugs and feature requests
-- Fetch: `?ticket_type__in=BUG,FEATURE&status__in=OPEN,IN_PROGRESS`
+### 2) Approved bugs and feature requests ready to work
+- Fetch approved work: `?ticket_type__in=BUG,FEATURE&approval=APPROVED&status__in=OPEN,IN_PROGRESS`
+- Only work on tickets with `approval=APPROVED` — new tickets need human approval first
 - Scan for anything relevant to your domain — even if not assigned to you yet
 
-### 3) Unassigned tickets
-- Fetch: `?assigned_to=&status=OPEN`
-- Look for tickets nobody has picked up, especially high-priority ones
+### 3) Create tickets for issues you discover
+- While working on the system, if you find a bug or see a missing feature, **create a ticket**
+- Set `ticket_type` to `BUG` or `FEATURE` as appropriate
+- New tickets default to `approval=NEW` — a human must approve them before work begins
+- Be specific: include reproduction steps for bugs, or use cases for features
+
+### 4) Unassigned tickets
+- Fetch: `?assigned_to=&status=OPEN&approval=APPROVED`
+- Look for approved tickets nobody has picked up, especially high-priority ones
 
 ### 4) Read new comments on your tickets
 - For each ticket you're working on, fetch comments: `?ticket=<ticket_id>`
@@ -66,6 +73,7 @@ Work through the entire lifecycle — every ticket that isn't `CLOSED` needs att
 ## For each ticket, decide what to do
 
 ### OPEN tickets
+- **Check approval first.** Only work on `approval=APPROVED` tickets. If `approval=NEW`, skip — a human needs to approve it.
 - Read all comments — has someone already started discussing this?
 - For bugs: try to reproduce, investigate root cause, comment with findings
 - For features: analyze feasibility, comment with your assessment

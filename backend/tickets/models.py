@@ -168,6 +168,11 @@ class Ticket(models.Model):
         ('BUG', 'Bug'),
         ('FEATURE', 'Feature'),
     ]
+
+    APPROVAL_CHOICES = [
+        ('NEW', 'New'),
+        ('APPROVED', 'Approved'),
+    ]
     
     # Valid status transitions
     STATUS_TRANSITIONS = {
@@ -184,6 +189,7 @@ class Ticket(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='OPEN')
     priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='MEDIUM')
     ticket_type = models.CharField(max_length=20, choices=TICKET_TYPE_CHOICES, default='BUG')
+    approval = models.CharField(max_length=20, choices=APPROVAL_CHOICES, default='NEW')
     
     # Assignment - one agent or null
     assigned_to = models.ForeignKey(
