@@ -273,9 +273,17 @@ class UserViewSet(viewsets.ModelViewSet):
         description="Returns the profile of the currently authenticated user.",
         responses={200: UserSerializer},
     )
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get', 'patch'])
     def me(self, request):
-        """Get current user profile."""
+        """Get or update current user profile."""
+        if request.method == 'PATCH':
+            # Users can update their own name, email, description, skills
+            allowed_fields = {'name', 'email', 'description', 'skills'}
+            data = {k: v for k, v in request.data.items() if k in allowed_fields}
+            serializer = self.get_serializer(request.user, data=data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
 

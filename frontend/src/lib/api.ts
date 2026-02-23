@@ -409,6 +409,13 @@ class ApiClient {
     return this.request<User>('/users/me/');
   }
 
+  async updateMyProfile(data: { name?: string; email?: string; description?: string; skills?: string[] }): Promise<User> {
+    return this.request<User>('/users/me/', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
   // Workspaces
   async getWorkspaces(): Promise<Workspace[]> {
     const response = await this.request<PaginatedResponse<Workspace>>('/workspaces/');
