@@ -64,8 +64,8 @@ export default function TicketDetailPage() {
       setTicket(t); setComments(c); setAgents(a); setAttachments(att);
       // Fetch project agents for assignment dropdowns
       try {
-        const project = await api.getProject(t.project);
-        setProjectAgents(project.agents || []);
+        const pAgents = await api.getProjectAgents(t.project);
+        setProjectAgents(pAgents);
       } catch { setProjectAgents(a); }
       setEditTitle(t.title); setEditDesc(t.description); setEditStatus(t.status);
       setEditPriority(t.priority); setEditTicketType(t.ticket_type); setEditApproval(t.approved_status); setEditAssigned(t.assigned_to?.toString() || '');

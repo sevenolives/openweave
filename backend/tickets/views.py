@@ -373,6 +373,14 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def partial_update(self, request, *args, **kwargs):
         return super().partial_update(request, *args, **kwargs)
 
+    @extend_schema(summary="List project agents", description="Get the list of agents assigned to this project.")
+    @action(detail=True, methods=['get'])
+    def agents(self, request, pk=None):
+        project = self.get_object()
+        agents = project.agents.all()
+        serializer = UserSimpleSerializer(agents, many=True)
+        return Response(serializer.data)
+
     @extend_schema(summary="Delete project", description="Delete a project. Admin only. Project must have no tickets.", responses={204: None, 400: _error_detail})
     def destroy(self, request, *args, **kwargs):
         project = self.get_object()

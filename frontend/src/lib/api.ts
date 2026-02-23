@@ -35,7 +35,7 @@ export interface Project {
   description: string;
   created_at: string;
   updated_at: string;
-  agents: User[];
+  slug: string;
   workspace?: number;
 }
 
@@ -303,6 +303,10 @@ class ApiClient {
 
   async getProject(id: number): Promise<Project> {
     return this.request<Project>(`/projects/${id}/`);
+  }
+
+  async getProjectAgents(projectId: number): Promise<User[]> {
+    return this.request<User[]>(`/projects/${projectId}/agents/`);
   }
 
   async createProject(project: Partial<Project>): Promise<Project> {

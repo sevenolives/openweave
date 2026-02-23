@@ -42,6 +42,7 @@ export default function ProjectDetailPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [movingTicket, setMovingTicket] = useState<number | null>(null);
   const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [projectAgents, setProjectAgents] = useState<User[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [memberSaving, setMemberSaving] = useState(false);
 
@@ -54,8 +55,8 @@ export default function ProjectDetailPage() {
 
   const fetchData = async () => {
     try {
-      const [p, t] = await Promise.all([api.getProject(projectId), api.getTickets({ project: projectId.toString() })]);
-      setProject(p); setTickets(t); setEditName(p.name); setEditDesc(p.description);
+      const [p, t, agents] = await Promise.all([api.getProject(projectId), api.getTickets({ project: projectId.toString() }), api.getProjectAgents(projectId)]);
+      setProject(p); setTickets(t); setProjectAgents(agents); setEditName(p.name); setEditDesc(p.description);
     } catch (e: any) { toast(e?.message || 'Failed to load project', 'error'); }
     finally { setLoading(false); }
   };
@@ -100,9 +101,9 @@ export default function ProjectDetailPage() {
     if (!project || !selectedUserId) return;
     setMemberSaving(true);
     try {
-      const newIds = [...project.agents.map(a => a.id), parseInt(selectedUserId)];
-      const updated = await api.updateProject(project.id, { agent_ids: newIds });
-      setProject(updated);
+      const newIds = [...projectAgents.map(a => a.id), parseInt(selectedUserId)];
+      await api.updateProject(project.id, { agent_ids: newIds });
+      setProjectAgents(await api.getProjectAgents(project.id));
       setSelectedUserId('');
       toast('Member added');
     } catch (e: any) { toast(e?.message || 'Failed to add member', 'error'); }
@@ -113,15 +114,15 @@ export default function ProjectDetailPage() {
     if (!project) return;
     setMemberSaving(true);
     try {
-      const newIds = project.agents.filter(a => a.id !== userId).map(a => a.id);
-      const updated = await api.updateProject(project.id, { agent_ids: newIds });
-      setProject(updated);
+      const newIds = projectAgents.filter(a => a.id !== userId).map(a => a.id);
+      await api.updateProject(project.id, { agent_ids: newIds });
+      setProjectAgents(await api.getProjectAgents(project.id));
       toast('Member removed');
     } catch (e: any) { toast(e?.message || 'Failed to remove member', 'error'); }
     finally { setMemberSaving(false); }
   };
 
-  const availableUsers = allUsers.filter(u => !project?.agents.some(a => a.id === u.id));
+  const availableUsers = allUsers.filter(u => !projectAgents.some(a => a.id === u.id));
 
   const sortedTickets = [...tickets].sort((a, b) => {
     let cmp = 0;
@@ -176,10 +177,10 @@ export default function ProjectDetailPage() {
             </div>
 
             {/* Members sidebar-inline */}
-            {tab !== 'settings' && project.agents.length > 0 && (
+            {tab !== 'settings' && projectAgents.length > 0 && (
               <div className="mb-6 flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-medium text-gray-500">Members:</span>
-                {project.agents.map(a => (
+                {projectAgents.map(a => (
                   <span key={a.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-gray-200 rounded-full text-xs font-medium text-gray-700">
                     <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white ${a.user_type === 'BOT' ? 'bg-purple-500' : 'bg-indigo-500'}`}>
                       {a.username[0].toUpperCase()}
@@ -311,10 +312,10 @@ export default function ProjectDetailPage() {
 
                     {/* Current members */}
                     <div className="space-y-2 mb-4">
-                      {project.agents.length === 0 ? (
+                      {projectAgents.length === 0 ? (
                         <p className="text-sm text-gray-400">No members yet.</p>
                       ) : (
-                        project.agents.map(agent => (
+                        projectAgents.map(agent => (
                           <div key={agent.id} className="flex items-center justify-between px-3 py-2.5 bg-gray-50 rounded-xl">
                             <div className="flex items-center gap-3 min-w-0">
                               <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 ${agent.user_type === 'BOT' ? 'bg-purple-500' : 'bg-indigo-500'}`}>
