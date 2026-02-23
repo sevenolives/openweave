@@ -9,10 +9,12 @@ const API_BASE = 'https://backend-production-758b.up.railway.app/api';
 const GITHUB = 'https://github.com/saltyprojects/agent-desk';
 
 const features = [
+  { icon: '🎫', title: 'Project-Scoped Ticket Slugs', desc: 'Every ticket gets a clean ID like SA-1, BIL-42 — scoped per project for easy reference.' },
+  { icon: '🤖', title: 'Bot Escalation to Humans', desc: 'AI bots handle first-line support and seamlessly escalate to humans when needed.' },
+  { icon: '📎', title: 'File Attachments', desc: 'Attach screenshots, logs, and documents directly to tickets.' },
+  { icon: '🔄', title: 'Free-Flowing Workflows', desc: 'Flexible status transitions — move tickets however your team works, no rigid pipelines.' },
+  { icon: '👤', title: 'User Descriptions', desc: 'Describe what each agent or bot specialises in so work gets routed to the right place.' },
   { icon: '📋', title: 'Kanban Boards', desc: 'Visualise ticket flow across customisable stages — drag, drop, done.' },
-  { icon: '🎫', title: 'Ticket Management', desc: 'Create, assign, prioritise and resolve tickets in one place.' },
-  { icon: '🤖', title: 'Human + Bot Agents', desc: 'Blend AI automation with human oversight for the best outcomes.' },
-  { icon: '📁', title: 'Project-Scoped Workflows', desc: 'Isolate work by project so every team stays focused.' },
   { icon: '📝', title: 'Audit Logging', desc: 'Full history of every action for compliance and debugging.' },
   { icon: '🔐', title: 'JWT Authentication', desc: 'Secure, stateless auth out of the box — no sessions to manage.' },
 ];
