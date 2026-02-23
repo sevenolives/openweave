@@ -306,7 +306,8 @@ class ApiClient {
   }
 
   async getProjectAgents(projectId: number): Promise<User[]> {
-    return this.request<User[]>(`/projects/${projectId}/agents/`);
+    const response = await this.request<PaginatedResponse<User>>(`/users/?project=${projectId}`);
+    return response.results || [];
   }
 
   async createProject(project: Partial<Project>): Promise<Project> {
