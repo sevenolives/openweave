@@ -46,6 +46,7 @@ export interface Ticket {
   description: string;
   status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED' | 'BLOCKED';
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  ticket_type: 'BUG' | 'FEATURE';
   assigned_to: number | null;
   assigned_to_details: User | null;
   created_by: number;

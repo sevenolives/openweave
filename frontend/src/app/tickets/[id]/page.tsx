@@ -32,6 +32,7 @@ export default function TicketDetailPage() {
   const [editDesc, setEditDesc] = useState('');
   const [editStatus, setEditStatus] = useState('');
   const [editPriority, setEditPriority] = useState('');
+  const [editTicketType, setEditTicketType] = useState('BUG');
   const [editAssigned, setEditAssigned] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
@@ -49,7 +50,7 @@ export default function TicketDetailPage() {
       const [t, c, a] = await Promise.all([api.getTicket(ticketId), api.getComments({ ticket: ticketId.toString() }), api.getUsers()]);
       setTicket(t); setComments(c); setAgents(a);
       setEditTitle(t.title); setEditDesc(t.description); setEditStatus(t.status);
-      setEditPriority(t.priority); setEditAssigned(t.assigned_to?.toString() || '');
+      setEditPriority(t.priority); setEditTicketType(t.ticket_type); setEditAssigned(t.assigned_to?.toString() || '');
     } catch (e: any) { toast(e?.message || 'Failed to load ticket', 'error'); }
     finally { setLoading(false); }
   };
@@ -72,7 +73,7 @@ export default function TicketDetailPage() {
     try {
       const updated = await api.updateTicket(ticket.id, {
         title: editTitle, description: editDesc,
-        status: editStatus as Ticket['status'], priority: editPriority as Ticket['priority'],
+        status: editStatus as Ticket['status'], priority: editPriority as Ticket['priority'], ticket_type: editTicketType as Ticket['ticket_type'],
         assigned_to: editAssigned ? parseInt(editAssigned) : null,
       });
       setTicket(updated); setEditing(false);
@@ -139,6 +140,11 @@ export default function TicketDetailPage() {
                       <FormField label="Priority" error={fieldErrors.priority}>
                         <select value={editPriority} onChange={e => setEditPriority(e.target.value)} className={`${inputClass(fieldErrors.priority)} bg-white`}>
                           {ALL_PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
+                        </select>
+                      </FormField>
+                      <FormField label="Type" error={fieldErrors.ticket_type}>
+                        <select value={editTicketType} onChange={e => setEditTicketType(e.target.value)} className={`${inputClass(fieldErrors.ticket_type)} bg-white`}>
+                          <option value="BUG">🐛 Bug</option><option value="FEATURE">✨ Feature</option>
                         </select>
                       </FormField>
                     </div>
@@ -285,6 +291,10 @@ export default function TicketDetailPage() {
                   <div>
                     <dt className="text-xs font-medium text-gray-500 mb-1">Priority</dt>
                     <dd><span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${PRIORITY_COLORS[ticket.priority]}`}>{ticket.priority}</span></dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-medium text-gray-500 mb-1">Type</dt>
+                    <dd><span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700">{ticket.ticket_type === 'BUG' ? '🐛 Bug' : '✨ Feature'}</span></dd>
                   </div>
                   <div>
                     <dt className="text-xs font-medium text-gray-500 mb-1">Project</dt>

@@ -30,6 +30,7 @@ export default function TicketsPage() {
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newPriority, setNewPriority] = useState('MEDIUM');
+  const [newTicketType, setNewTicketType] = useState('BUG');
   const [newProject, setNewProject] = useState<number | ''>('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [deleteTarget, setDeleteTarget] = useState<Ticket | null>(null);
@@ -81,10 +82,10 @@ export default function TicketsPage() {
     if (!newTitle.trim() || !newProject) return;
     setCreating(true);
     try {
-      await api.createTicket({ project: newProject as number, title: newTitle, description: newDesc, priority: newPriority as any });
+      await api.createTicket({ project: newProject as number, title: newTitle, description: newDesc, priority: newPriority as any, ticket_type: newTicketType as any });
       toast('Ticket created');
       setShowCreate(false);
-      setNewTitle(''); setNewDesc(''); setNewPriority('MEDIUM'); setNewProject('');
+      setNewTitle(''); setNewDesc(''); setNewPriority('MEDIUM'); setNewTicketType('BUG'); setNewProject('');
       setFieldErrors({});
       loadData();
     } catch (e: any) {
@@ -214,6 +215,11 @@ export default function TicketsPage() {
                           </span>
                         </td>
                         <td className="px-3 py-3 hidden md:table-cell">
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                            {ticket.ticket_type === 'BUG' ? '🐛 Bug' : '✨ Feature'}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3 hidden md:table-cell">
                           <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${PRIORITY_COLORS[ticket.priority]}`}>
                             {ticket.priority}
                           </span>
@@ -255,11 +261,18 @@ export default function TicketsPage() {
                 <FormField label="Description" error={fieldErrors.description}>
                   <textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} className={`${inputClass(fieldErrors.description)} resize-none`} rows={3} placeholder="Describe the issue" />
                 </FormField>
-                <FormField label="Priority" error={fieldErrors.priority}>
-                  <select value={newPriority} onChange={e => setNewPriority(e.target.value)} className={`${inputClass(fieldErrors.priority)} bg-white`}>
-                    <option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option><option value="CRITICAL">Critical</option>
-                  </select>
-                </FormField>
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField label="Type" error={fieldErrors.ticket_type}>
+                    <select value={newTicketType} onChange={e => setNewTicketType(e.target.value)} className={`${inputClass(fieldErrors.ticket_type)} bg-white`}>
+                      <option value="BUG">🐛 Bug</option><option value="FEATURE">✨ Feature</option>
+                    </select>
+                  </FormField>
+                  <FormField label="Priority" error={fieldErrors.priority}>
+                    <select value={newPriority} onChange={e => setNewPriority(e.target.value)} className={`${inputClass(fieldErrors.priority)} bg-white`}>
+                      <option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option><option value="CRITICAL">Critical</option>
+                    </select>
+                  </FormField>
+                </div>
                 <div className="flex gap-3 pt-2">
                   <button type="button" onClick={() => setShowCreate(false)} className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
                   <button type="submit" disabled={creating || !newTitle.trim() || !newProject} className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed">{creating ? 'Creating…' : 'Create Ticket'}</button>
