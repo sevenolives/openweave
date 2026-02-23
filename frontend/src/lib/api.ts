@@ -73,6 +73,7 @@ export interface Workspace {
   name: string;
   slug: string;
   owner: number;
+  owner_details?: User;
   member_count: number;
   created_at: string;
 }
