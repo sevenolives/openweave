@@ -322,7 +322,6 @@ export default function TicketDetailPage() {
                   )}
                 </div>
               </div>
-            </div>
 
               {/* Attachments */}
               <div className="bg-white rounded-xl border border-gray-200">
