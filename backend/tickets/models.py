@@ -210,21 +210,13 @@ class Ticket(models.Model):
     
     def clean(self):
         """
-        Validate status transitions and set timestamp fields.
+        Set timestamp fields on status changes. Any status transition is allowed.
         """
-        if self.pk:  # Only check transitions for existing tickets
+        if self.pk:
             old_ticket = Ticket.objects.get(pk=self.pk)
             old_status = old_ticket.status
             
             if old_status != self.status:
-                valid_transitions = self.STATUS_TRANSITIONS.get(old_status, [])
-                if self.status not in valid_transitions:
-                    raise ValidationError(
-                        f"Cannot transition from {old_status} to {self.status}. "
-                        f"Valid transitions: {valid_transitions}"
-                    )
-                
-                # Set timestamps based on status changes
                 if self.status == 'RESOLVED' and old_status != 'RESOLVED':
                     self.resolved_at = timezone.now()
                 elif self.status == 'CLOSED' and old_status != 'CLOSED':
