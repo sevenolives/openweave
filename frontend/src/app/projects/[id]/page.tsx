@@ -62,7 +62,11 @@ export default function ProjectDetailPage() {
   };
 
   useEffect(() => { fetchData(); }, [projectId]);
-  useEffect(() => { api.getUsers().then(setAllUsers).catch(() => {}); }, []);
+  useEffect(() => {
+    if (project?.workspace) {
+      api.getUsers({ workspace: String(project.workspace) }).then(setAllUsers).catch(() => {});
+    }
+  }, [project?.workspace]);
 
   const handleCreateTicket = async (e: React.FormEvent) => {
     e.preventDefault();

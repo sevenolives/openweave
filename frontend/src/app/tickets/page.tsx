@@ -50,13 +50,9 @@ export default function TicketsPage() {
     setLoading(true);
     const wsParams: Record<string, string> = currentWorkspace ? { workspace: String(currentWorkspace.id) } : {};
     const ticketParams = { ...wsParams, page: String(page) };
-    const membersPromise = currentWorkspace
-      ? api.getWorkspaceMembers({ workspace: String(currentWorkspace.id) }).then(members => {
-          const memberUsers = members.map(m => m.user).filter(Boolean);
-          if (currentWorkspace.owner_details) memberUsers.unshift(currentWorkspace.owner_details);
-          return memberUsers;
-        })
-      : api.getUsers();
+    const membersPromise: Promise<User[]> = currentWorkspace
+      ? api.getUsers({ workspace: String(currentWorkspace.id) })
+      : Promise.resolve([]);
     Promise.all([api.getTicketsPaginated(ticketParams), api.getProjects(wsParams), membersPromise])
       .then(([resp, p, u]) => { setTickets(resp.results || []); setTotalCount(resp.count || 0); setProjects(p); setWsUsers(u); })
       .catch((e: any) => toast(e?.message || 'Failed to load data', 'error'))

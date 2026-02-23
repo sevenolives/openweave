@@ -404,9 +404,10 @@ class ApiClient {
     await this.request(`/attachments/${id}/`, { method: 'DELETE' });
   }
 
-  // Agents
-  async getUsers(): Promise<User[]> {
-    const response = await this.request<PaginatedResponse<User>>('/users/');
+  // Users
+  async getUsers(params?: Record<string, string>): Promise<User[]> {
+    const query = params ? '?' + new URLSearchParams(params).toString() : '';
+    const response = await this.request<PaginatedResponse<User>>(`/users/${query}`);
     return response.results || [];
   }
 

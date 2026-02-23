@@ -252,8 +252,10 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @extend_schema(
         summary="List users",
-        description="List all users. Supports search by username/email/name and filtering by user_type, role, is_active.",
+        description="List users. Requires `workspace` or `project` filter. Supports search by username/email/name.",
         parameters=[
+            OpenApiParameter(name='workspace', description='Filter by workspace ID (required)', type=int),
+            OpenApiParameter(name='project', description='Filter by project ID', type=int),
             OpenApiParameter(name='search', description='Search in username, email, name', type=str),
             OpenApiParameter(name='user_type', description='Filter by user_type (HUMAN, BOT)', type=str),
             OpenApiParameter(name='role', description='Filter by role (ADMIN, MEMBER)', type=str),
@@ -261,6 +263,18 @@ class UserViewSet(viewsets.ModelViewSet):
         ],
     )
     def list(self, request, *args, **kwargs):
+        workspace_id = request.query_params.get('workspace')
+        project_id = request.query_params.get('project')
+        if not workspace_id and not project_id:
+            return Response({'detail': 'workspace or project filter is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        # Verify user has access to the workspace
+        if workspace_id:
+            user = request.user
+            if not user.is_superuser:
+                is_member = WorkspaceMember.objects.filter(workspace_id=workspace_id, user=user).exists()
+                is_owner = Workspace.objects.filter(id=workspace_id, owner=user).exists()
+                if not is_member and not is_owner:
+                    return Response({'detail': 'You do not have access to this workspace.'}, status=status.HTTP_403_FORBIDDEN)
         return super().list(request, *args, **kwargs)
 
     @extend_schema(exclude=True)

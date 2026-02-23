@@ -53,13 +53,9 @@ export default function TicketDetailPage() {
 
   const fetchData = async () => {
     try {
-      const agentsPromise = currentWorkspace
-        ? api.getWorkspaceMembers({ workspace: String(currentWorkspace.id) }).then(members => {
-            const users = members.map(m => m.user).filter(Boolean);
-            if (currentWorkspace.owner_details) users.unshift(currentWorkspace.owner_details);
-            return users;
-          })
-        : api.getUsers();
+      const agentsPromise: Promise<User[]> = currentWorkspace
+        ? api.getUsers({ workspace: String(currentWorkspace.id) })
+        : Promise.resolve([]);
       const [t, c, a, att] = await Promise.all([api.getTicket(ticketId), api.getComments({ ticket: ticketId.toString() }), agentsPromise, api.getAttachments({ ticket: ticketId.toString() })]);
       setTicket(t); setComments(c); setAgents(a); setAttachments(att);
       // Fetch project agents for assignment dropdowns

@@ -106,9 +106,9 @@ class TicketFilter(django_filters.FilterSet):
 
 class UserFilter(django_filters.FilterSet):
     """
-    FilterSet for Agent model.
+    FilterSet for User model.
     """
-    search = django_filters.CharFilter(method='search_agents', label='Search')
+    search = django_filters.CharFilter(method='search_users', label='Search')
     
     user_type = django_filters.ChoiceFilter(
         choices=User.USER_TYPES,
@@ -122,7 +122,10 @@ class UserFilter(django_filters.FilterSet):
     
     is_active = django_filters.BooleanFilter(field_name='is_active')
     
-    # Filter agents by project membership
+    # Filter by workspace membership
+    workspace = django_filters.NumberFilter(method='filter_by_workspace', label='Workspace ID')
+    
+    # Filter by project membership
     project = django_filters.ModelChoiceFilter(
         queryset=Project.objects.all(),
         method='filter_by_project'
@@ -132,9 +135,9 @@ class UserFilter(django_filters.FilterSet):
         model = User
         fields = ['user_type', 'role', 'is_active']
 
-    def search_agents(self, queryset, name, value):
+    def search_users(self, queryset, name, value):
         """
-        Search across agent username, email, and name fields.
+        Search across username, email, and name fields.
         """
         if not value:
             return queryset
@@ -142,13 +145,23 @@ class UserFilter(django_filters.FilterSet):
         return queryset.filter(
             Q(username__icontains=value) |
             Q(email__icontains=value) |
-            Q(first_name__icontains=value) |
-            Q(last_name__icontains=value)
+            Q(name__icontains=value)
         ).distinct()
+
+    def filter_by_workspace(self, queryset, name, value):
+        """
+        Filter users by workspace membership (members + owner).
+        """
+        if value:
+            return queryset.filter(
+                Q(workspace_memberships__workspace_id=value) |
+                Q(owned_workspaces__id=value)
+            ).distinct()
+        return queryset
 
     def filter_by_project(self, queryset, name, value):
         """
-        Filter agents by project membership.
+        Filter users by project membership.
         """
         if value:
             return queryset.filter(projectagent__project=value).distinct()
