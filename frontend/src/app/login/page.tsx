@@ -167,40 +167,7 @@ function LoginForm() {
           </form>
         </div>
 
-        {/* Demo credentials */}
-        {mode === 'login' && (
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200" />
-              </div>
-              <div className="relative flex justify-center text-xs">
-                <span className="px-3 bg-gradient-to-br from-indigo-50 via-white to-blue-50 text-gray-400 uppercase tracking-wider font-medium">
-                  Demo credentials
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => { setUsername('admin'); setPassword('password123'); }}
-                className="p-3 bg-white border border-gray-200 rounded-xl text-left hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors group"
-              >
-                <div className="text-xs font-semibold text-gray-900 group-hover:text-indigo-700">Admin</div>
-                <div className="text-xs text-gray-500 mt-0.5">admin / password123</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => { setUsername('alice_agent'); setPassword('password123'); }}
-                className="p-3 bg-white border border-gray-200 rounded-xl text-left hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors group"
-              >
-                <div className="text-xs font-semibold text-gray-900 group-hover:text-indigo-700">Agent</div>
-                <div className="text-xs text-gray-500 mt-0.5">alice_agent / password123</div>
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Footer */}
       </div>
     </div>
   );
