@@ -335,7 +335,7 @@ function TicketsPage() {
         )}
 
         {/* Pagination */}
-        {totalPages > 1 && (
+        {!loading && (
           <div className="flex items-center justify-between mt-6 px-1">
             <p className="text-sm text-gray-500">Page {page} of {totalPages} · {totalCount} ticket{totalCount !== 1 ? 's' : ''}</p>
             <div className="flex gap-2">
