@@ -8,6 +8,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import FormField, { parseFieldErrors, inputClass } from '@/components/FormField';
 import { useAuth } from '@/hooks/useAuth';
 import { api, Ticket, Comment, User, ApiError } from '@/lib/api';
+import { useWorkspace } from '@/hooks/useWorkspace';
 
 const PRIORITY_COLORS: Record<string, string> = {
   LOW: 'bg-green-100 text-green-700', MEDIUM: 'bg-yellow-100 text-yellow-700',
@@ -45,10 +46,18 @@ export default function TicketDetailPage() {
   const ticketId = parseInt(params.id as string);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
 
   const fetchData = async () => {
     try {
-      const [t, c, a] = await Promise.all([api.getTicket(ticketId), api.getComments({ ticket: ticketId.toString() }), api.getUsers()]);
+      const agentsPromise = currentWorkspace
+        ? api.getWorkspaceMembers({ workspace: String(currentWorkspace.id) }).then(members => {
+            const users = members.map(m => m.user).filter(Boolean);
+            if (currentWorkspace.owner_details) users.unshift(currentWorkspace.owner_details);
+            return users;
+          })
+        : api.getUsers();
+      const [t, c, a] = await Promise.all([api.getTicket(ticketId), api.getComments({ ticket: ticketId.toString() }), agentsPromise]);
       setTicket(t); setComments(c); setAgents(a);
       setEditTitle(t.title); setEditDesc(t.description); setEditStatus(t.status);
       setEditPriority(t.priority); setEditTicketType(t.ticket_type); setEditApproval(t.approved_status); setEditAssigned(t.assigned_to?.toString() || '');

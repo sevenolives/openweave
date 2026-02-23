@@ -6,7 +6,7 @@ import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import FormField, { parseFieldErrors, inputClass } from '@/components/FormField';
-import { api, Ticket, Project, User, ApiError, PaginatedResponse } from '@/lib/api';
+import { api, Ticket, Project, User, WorkspaceMember, ApiError, PaginatedResponse } from '@/lib/api';
 import { useWorkspace } from '@/hooks/useWorkspace';
 
 const PAGE_SIZE = 20;
@@ -38,7 +38,7 @@ export default function TicketsPage() {
   const [newProject, setNewProject] = useState<number | ''>('');
   const [newAssigned, setNewAssigned] = useState<string>('');
   const [newApproved, setNewApproved] = useState(false);
-  const [users, setUsers] = useState<User[]>([]);
+  const [wsUsers, setWsUsers] = useState<User[]>([]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [deleteTarget, setDeleteTarget] = useState<Ticket | null>(null);
 
@@ -50,8 +50,15 @@ export default function TicketsPage() {
     setLoading(true);
     const wsParams: Record<string, string> = currentWorkspace ? { workspace: String(currentWorkspace.id) } : {};
     const ticketParams = { ...wsParams, page: String(page) };
-    Promise.all([api.getTicketsPaginated(ticketParams), api.getProjects(wsParams), api.getUsers()])
-      .then(([resp, p, u]) => { setTickets(resp.results || []); setTotalCount(resp.count || 0); setProjects(p); setUsers(u); })
+    const membersPromise = currentWorkspace
+      ? api.getWorkspaceMembers({ workspace: String(currentWorkspace.id) }).then(members => {
+          const memberUsers = members.map(m => m.user).filter(Boolean);
+          if (currentWorkspace.owner_details) memberUsers.unshift(currentWorkspace.owner_details);
+          return memberUsers;
+        })
+      : api.getUsers();
+    Promise.all([api.getTicketsPaginated(ticketParams), api.getProjects(wsParams), membersPromise])
+      .then(([resp, p, u]) => { setTickets(resp.results || []); setTotalCount(resp.count || 0); setProjects(p); setWsUsers(u); })
       .catch((e: any) => toast(e?.message || 'Failed to load data', 'error'))
       .finally(() => setLoading(false));
   }, [currentWorkspace?.id, page]);
@@ -304,7 +311,7 @@ export default function TicketsPage() {
                 <FormField label="Assign To" error={fieldErrors.assigned_to}>
                   <select value={newAssigned} onChange={e => setNewAssigned(e.target.value)} className={`${inputClass(fieldErrors.assigned_to)} bg-white`}>
                     <option value="">Unassigned</option>
-                    {users.map(u => <option key={u.id} value={String(u.id)}>{u.username} ({u.user_type})</option>)}
+                    {wsUsers.map(u => <option key={u.id} value={String(u.id)}>{u.username} ({u.user_type})</option>)}
                   </select>
                 </FormField>
                 <label className="flex items-center gap-2 cursor-pointer">
