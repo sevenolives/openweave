@@ -317,10 +317,10 @@ class ProjectViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def get_queryset(self):
-        qs = Project.objects.prefetch_related('agents')
+        qs = Project.objects.all()
         user = self.request.user
         if user.is_superuser or user.role == 'ADMIN':
-            return qs.all()
+            return qs
         # Show projects in workspaces the user belongs to (as member or owner)
         from django.db.models import Q
         member_ws = list(WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True))

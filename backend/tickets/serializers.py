@@ -111,7 +111,6 @@ class JoinRequestSerializer(serializers.Serializer):
 
 class ProjectSerializer(serializers.ModelSerializer):
     """Serializer for Project model."""
-    agents = UserSimpleSerializer(many=True, read_only=True)
     agent_ids = serializers.ListField(
         child=serializers.IntegerField(),
         write_only=True,
@@ -121,7 +120,7 @@ class ProjectSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Project
-        fields = ['id', 'name', 'slug', 'description', 'workspace', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'slug', 'description', 'workspace', 'created_at', 'updated_at', 'agent_ids']
         read_only_fields = ['created_at', 'updated_at']
         extra_kwargs = {
             'name': {'help_text': 'Project name.'},
