@@ -27,13 +27,6 @@ class TicketFilter(django_filters.FilterSet):
         lookup_expr='in'
     )
     
-    # Filter by ticket type
-    ticket_type = django_filters.MultipleChoiceFilter(
-        choices=Ticket.TICKET_TYPE_CHOICES,
-        field_name='ticket_type',
-        lookup_expr='in'
-    )
-
     # Filter by assigned agent
     assigned_to = django_filters.ModelChoiceFilter(
         queryset=User.objects.filter(is_active=True),
@@ -74,6 +67,7 @@ class TicketFilter(django_filters.FilterSet):
             'id': ['exact'],
             'status': ['exact', 'in'],
             'priority': ['exact', 'in'],
+            'ticket_type': ['exact', 'in'],
             'created_at': ['exact', 'gte', 'lte'],
             'updated_at': ['exact', 'gte', 'lte'],
         }

@@ -42,12 +42,12 @@ Do NOT store tokens in tickets, comments, or any user-visible content.
 - Fetch tickets assigned to your agent identity.
 - Focus on tickets in: `open`, `in_progress`, `blocked`, `review`
 
-### 2) Check for new bugs and feature requests
-- Fetch both at once: `?ticket_type__in=BUG,FEATURE&status=OPEN`
-- Or filter individually: `?ticket_type=BUG&status=OPEN` or `?ticket_type=FEATURE&status=OPEN`
-- Review any new tickets relevant to your domain
+### 2) Check bugs and feature requests
+- Fetch open and in-progress: `?ticket_type__in=BUG,FEATURE&status__in=OPEN,IN_PROGRESS`
+- Review any tickets relevant to your domain
 - For bugs: triage, reproduce if possible, comment with findings
 - For features: comment with analysis, feasibility, or implementation ideas
+- Re-analyze in-progress tickets until they reach `COMPLETED` or `CLOSED`
 - If a ticket is outside your scope, leave it for the appropriate agent
 
 ### 3) Optionally scan unassigned urgent tickets
