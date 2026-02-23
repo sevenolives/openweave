@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import FormField, { parseFieldErrors, inputClass } from '@/components/FormField';
@@ -11,6 +11,7 @@ import { useWorkspace } from '@/hooks/useWorkspace';
 export default function WorkspaceSettingsPage() {
   const params = useParams();
   const slug = params.slug as string;
+  const router = useRouter();
   const { workspaces, refreshWorkspaces } = useWorkspace();
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
@@ -200,6 +201,34 @@ export default function WorkspaceSettingsPage() {
               </div>
             ))}
             {invites.length === 0 && <p className="px-5 py-4 text-sm text-gray-400">No invite links yet.</p>}
+          </div>
+        </div>
+        {/* Danger Zone */}
+        <div className="bg-white rounded-xl border border-red-200">
+          <div className="px-5 py-4 border-b border-red-100">
+            <h2 className="font-semibold text-red-600">Danger Zone</h2>
+          </div>
+          <div className="px-5 py-4 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-900">Delete this workspace</p>
+              <p className="text-xs text-gray-500">This action cannot be undone. All projects, tickets, and data will be permanently deleted.</p>
+            </div>
+            <button
+              onClick={async () => {
+                if (!workspace) return;
+                const confirmed = confirm(`Are you sure you want to delete "${workspace.name}"? This cannot be undone.`);
+                if (!confirmed) return;
+                try {
+                  await api.deleteWorkspace(workspace.id);
+                  toast('Workspace deleted');
+                  await refreshWorkspaces();
+                  router.push('/workspaces');
+                } catch (e: any) { toast(e?.message || 'Failed to delete workspace', 'error'); }
+              }}
+              className="px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 transition-colors flex-shrink-0"
+            >
+              Delete Workspace
+            </button>
           </div>
         </div>
       </div>
