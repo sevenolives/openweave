@@ -87,6 +87,7 @@ class WorkspaceMember(models.Model):
 
     class Meta:
         db_table = 'workspace_members'
+        ordering = ['-joined_at']
         unique_together = ('workspace', 'user')
         ordering = ['joined_at']
 
@@ -109,6 +110,7 @@ class WorkspaceInvite(models.Model):
 
     class Meta:
         db_table = 'workspace_invites'
+        ordering = ['-created_at']
 
 
 class Project(models.Model):
