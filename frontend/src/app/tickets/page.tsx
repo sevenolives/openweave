@@ -37,6 +37,7 @@ function TicketsPage() {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterPriority, setFilterPriority] = useState('');
+  const [filterProject, setFilterProject] = useState<number | ''>('');
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -102,9 +103,10 @@ function TicketsPage() {
       if (search && !t.title.toLowerCase().includes(search.toLowerCase()) && !t.description?.toLowerCase().includes(search.toLowerCase())) return false;
       if (filterStatus && t.status !== filterStatus) return false;
       if (filterPriority && t.priority !== filterPriority) return false;
+      if (filterProject && t.project !== filterProject) return false;
       return true;
     });
-  }, [tickets, search, filterStatus, filterPriority]);
+  }, [tickets, search, filterStatus, filterPriority, filterProject]);
 
   // Group tickets by project
   const grouped = useMemo(() => {
@@ -163,7 +165,7 @@ function TicketsPage() {
     } catch (e: any) { toast(e?.message || 'Failed to delete ticket', 'error'); }
   };
 
-  const hasFilters = search || filterStatus || filterPriority;
+  const hasFilters = search || filterStatus || filterPriority || filterProject;
 
   return (
     <Layout>
@@ -206,8 +208,12 @@ function TicketsPage() {
             <option value="HIGH">High</option>
             <option value="CRITICAL">Critical</option>
           </select>
+          <select value={filterProject} onChange={e => setFilterProject(Number(e.target.value) || '')} className="px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
+            <option value="">All projects</option>
+            {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
           {hasFilters && (
-            <button onClick={() => { setSearch(''); setFilterStatus(''); setFilterPriority(''); }} className="px-3 py-2.5 text-sm text-gray-500 hover:text-gray-700">
+            <button onClick={() => { setSearch(''); setFilterStatus(''); setFilterPriority(''); setFilterProject(''); }} className="px-3 py-2.5 text-sm text-gray-500 hover:text-gray-700">
               Clear filters
             </button>
           )}
