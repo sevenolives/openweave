@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, Suspense } from 'react';
+import { useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
@@ -72,6 +72,7 @@ function TicketsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Ticket | null>(null);
   const [projectAgentsMap, setProjectAgentsMap] = useState<Record<number, User[]>>({});
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+  const hasUserSelectedProject = useRef(!!filterProjectInit);
   const [kanbanTickets, setKanbanTickets] = useState<Ticket[]>([]);
 
   const router = useRouter();
@@ -98,8 +99,11 @@ function TicketsPage() {
     Promise.all([api.getTicketsPaginated(ticketParams), api.getProjects(wsParams), membersPromise])
       .then(([resp, p, u]) => {
         setTickets(resp.results || []); setTotalCount(resp.count || 0); setProjects(p); setWsUsers(u);
-        // Auto-select first project if none selected and no URL param
-        if (!filterProject && !searchParams.get('project') && p.length > 0) setFilterProject(p[0].id);
+        // Auto-select first project only on initial load if no filter set
+        if (!filterProject && !hasUserSelectedProject.current && !searchParams.get('project') && p.length > 0) {
+          setFilterProject(p[0].id);
+          hasUserSelectedProject.current = true;
+        }
       })
       .catch((e: any) => toast(e?.message || 'Failed to load data', 'error'))
       .finally(() => setLoading(false));
@@ -249,7 +253,7 @@ function TicketsPage() {
             <option value="HIGH">High</option>
             <option value="CRITICAL">Critical</option>
           </select>
-          <select value={filterProject} onChange={e => { setFilterProject(Number(e.target.value) || ''); setPage(1); }} className="px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
+          <select value={filterProject} onChange={e => { hasUserSelectedProject.current = true; setFilterProject(Number(e.target.value) || ''); setPage(1); }} className="px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
             <option value="">All projects</option>
             {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
