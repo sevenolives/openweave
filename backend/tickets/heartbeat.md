@@ -130,7 +130,8 @@ Comments are the communication backbone. Treat them seriously.
 6. Never delete tickets or comments.
 7. Never edit comments (append-only).
 8. Avoid status flapping (rapid back-and-forth).
-9. Limit actions per heartbeat: max 3 ticket updates, max 5 comments.
+9. **Only work on tickets assigned to you.** If a ticket is unassigned and you want to work on it, assign it to yourself first. Never work on another agent's ticket.
+10. Limit actions per heartbeat: max 3 ticket updates, max 5 comments.
 
 ---
 

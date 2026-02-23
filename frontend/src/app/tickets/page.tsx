@@ -6,7 +6,7 @@ import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import FormField, { parseFieldErrors, inputClass } from '@/components/FormField';
-import { api, Ticket, Project, ApiError, PaginatedResponse } from '@/lib/api';
+import { api, Ticket, Project, User, ApiError, PaginatedResponse } from '@/lib/api';
 import { useWorkspace } from '@/hooks/useWorkspace';
 
 const PAGE_SIZE = 20;
@@ -36,6 +36,9 @@ export default function TicketsPage() {
   const [newPriority, setNewPriority] = useState('MEDIUM');
   const [newTicketType, setNewTicketType] = useState('BUG');
   const [newProject, setNewProject] = useState<number | ''>('');
+  const [newAssigned, setNewAssigned] = useState<string>('');
+  const [newApproved, setNewApproved] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [deleteTarget, setDeleteTarget] = useState<Ticket | null>(null);
 
@@ -47,8 +50,8 @@ export default function TicketsPage() {
     setLoading(true);
     const wsParams: Record<string, string> = currentWorkspace ? { workspace: String(currentWorkspace.id) } : {};
     const ticketParams = { ...wsParams, page: String(page) };
-    Promise.all([api.getTicketsPaginated(ticketParams), api.getProjects(wsParams)])
-      .then(([resp, p]) => { setTickets(resp.results || []); setTotalCount(resp.count || 0); setProjects(p); })
+    Promise.all([api.getTicketsPaginated(ticketParams), api.getProjects(wsParams), api.getUsers()])
+      .then(([resp, p, u]) => { setTickets(resp.results || []); setTotalCount(resp.count || 0); setProjects(p); setUsers(u); })
       .catch((e: any) => toast(e?.message || 'Failed to load data', 'error'))
       .finally(() => setLoading(false));
   }, [currentWorkspace?.id, page]);
@@ -91,10 +94,15 @@ export default function TicketsPage() {
     if (!newTitle.trim() || !newProject) return;
     setCreating(true);
     try {
-      await api.createTicket({ project: newProject as number, title: newTitle, description: newDesc, priority: newPriority as any, ticket_type: newTicketType as any });
+      await api.createTicket({
+        project: newProject as number, title: newTitle, description: newDesc,
+        priority: newPriority as any, ticket_type: newTicketType as any,
+        approved_status: newApproved ? 'APPROVED' : 'UNAPPROVED' as any,
+        ...(newAssigned ? { assigned_to: parseInt(newAssigned) } : {}),
+      });
       toast('Ticket created');
       setShowCreate(false);
-      setNewTitle(''); setNewDesc(''); setNewPriority('MEDIUM'); setNewTicketType('BUG'); setNewProject('');
+      setNewTitle(''); setNewDesc(''); setNewPriority('MEDIUM'); setNewTicketType('BUG'); setNewProject(''); setNewAssigned(''); setNewApproved(false);
       setFieldErrors({});
       loadData();
     } catch (e: any) {
@@ -293,6 +301,16 @@ export default function TicketsPage() {
                     </select>
                   </FormField>
                 </div>
+                <FormField label="Assign To" error={fieldErrors.assigned_to}>
+                  <select value={newAssigned} onChange={e => setNewAssigned(e.target.value)} className={`${inputClass(fieldErrors.assigned_to)} bg-white`}>
+                    <option value="">Unassigned</option>
+                    {users.map(u => <option key={u.id} value={String(u.id)}>{u.username} ({u.user_type})</option>)}
+                  </select>
+                </FormField>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={newApproved} onChange={e => setNewApproved(e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                  <span className="text-sm text-gray-700">Pre-approve this ticket</span>
+                </label>
                 <div className="flex gap-3 pt-2">
                   <button type="button" onClick={() => setShowCreate(false)} className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
                   <button type="submit" disabled={creating || !newTitle.trim() || !newProject} className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed">{creating ? 'Creating…' : 'Create Ticket'}</button>
