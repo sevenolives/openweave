@@ -44,9 +44,19 @@ function TicketsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
+  const [filterStatus, setFilterStatus] = useState(() => {
+    if (typeof window !== 'undefined') return new URLSearchParams(window.location.search).get('status') || '';
+    return '';
+  });
   const [filterPriority, setFilterPriority] = useState('');
-  const [filterProject, setFilterProject] = useState<number | ''>('');
+  const [filterProjectInit] = useState<number | ''>(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search).get('project');
+      if (p) return Number(p);
+    }
+    return '';
+  });
+  const [filterProject, setFilterProject] = useState<number | ''>(filterProjectInit);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -69,7 +79,7 @@ function TicketsPage() {
   const { toast } = useToast();
   const { currentWorkspace } = useWorkspace();
 
-  // Initialize filters from URL params
+  // Initialize filters from URL params (runs once)
   useEffect(() => {
     const statusParam = searchParams.get('status');
     if (statusParam) setFilterStatus(statusParam);
@@ -88,8 +98,8 @@ function TicketsPage() {
     Promise.all([api.getTicketsPaginated(ticketParams), api.getProjects(wsParams), membersPromise])
       .then(([resp, p, u]) => {
         setTickets(resp.results || []); setTotalCount(resp.count || 0); setProjects(p); setWsUsers(u);
-        // Auto-select first project if none selected
-        if (!filterProject && p.length > 0) setFilterProject(p[0].id);
+        // Auto-select first project if none selected and no URL param
+        if (!filterProject && !searchParams.get('project') && p.length > 0) setFilterProject(p[0].id);
       })
       .catch((e: any) => toast(e?.message || 'Failed to load data', 'error'))
       .finally(() => setLoading(false));
