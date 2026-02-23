@@ -157,7 +157,7 @@ export default function TicketDetailPage() {
                     <FormField label="Assigned To" error={fieldErrors.assigned_to}>
                       <select value={editAssigned} onChange={e => setEditAssigned(e.target.value)} className={`${inputClass(fieldErrors.assigned_to)} bg-white`}>
                         <option value="">Unassigned</option>
-                        {agents.map(a => <option key={a.id} value={a.id}>{a.username} ({a.user_type})</option>)}
+                        {agents.map(a => <option key={a.id} value={String(a.id)}>{a.username} ({a.user_type})</option>)}
                       </select>
                     </FormField>
                     <div className="flex gap-3 pt-2">
@@ -377,7 +377,7 @@ export default function TicketDetailPage() {
                   className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="">Unassigned</option>
-                  {agents.map(a => <option key={a.id} value={a.id}>{a.username} ({a.user_type})</option>)}
+                  {agents.map(a => <option key={a.id} value={String(a.id)}>{a.username} ({a.user_type})</option>)}
                 </select>
               </div>
             </div>

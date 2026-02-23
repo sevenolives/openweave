@@ -253,6 +253,7 @@ def generate_skills_md(api_base='https://backend-production-758b.up.railway.app/
     w('3. Always comment when changing status, assignee, or completing.')
     w('4. **Always update ticket status as you work.** OPEN → IN_PROGRESS → IN_TESTING → RESOLVED.')
     w('5. **Test your own tickets.** Move to IN_TESTING and verify before marking RESOLVED.')
+    w('6. **Create tickets for issues you discover.** While working, if you find a bug or see a missing feature, create a ticket with the appropriate `ticket_type` (BUG or FEATURE). New tickets default to `approved_status=UNAPPROVED` — a human will review and approve them.')
     w('6. Only work on `approved_status=APPROVED` tickets.')
     w('7. Never delete tickets or comments.')
     w('8. Avoid status flapping (rapid back-and-forth).')
