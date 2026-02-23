@@ -128,7 +128,7 @@ export default function TicketsPage() {
               {hasFilters && <span className="text-indigo-500"> (filtered)</span>}
             </p>
           </div>
-          <button onClick={() => setShowCreate(true)} className="hidden sm:inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors">
+          <button onClick={() => setShowCreate(true)} className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
             New Ticket
           </button>
@@ -208,40 +208,36 @@ export default function TicketsPage() {
                   <tbody className="divide-y divide-gray-100">
                     {groupTickets.map(ticket => (
                       <tr key={ticket.id} onClick={() => router.push(`/tickets/${ticket.id}`)} className="hover:bg-gray-50 cursor-pointer">
-                        <td className="px-5 py-3">
-                          <div className="flex items-center gap-3">
-                            <span className="text-xs text-gray-400 font-mono w-8">#{ticket.id}</span>
-                            <div className="min-w-0">
+                        <td className="px-4 py-3">
+                          <div className="flex items-start gap-3">
+                            <span className="text-xs text-gray-400 font-mono w-8 pt-0.5">#{ticket.id}</span>
+                            <div className="min-w-0 flex-1">
                               <p className="text-sm font-medium text-gray-900 truncate">{ticket.title}</p>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[ticket.status]}`}>
+                                  {ticket.status.replace('_', ' ')}
+                                </span>
+                                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                                  {ticket.ticket_type === 'BUG' ? '🐛 Bug' : '✨ Feature'}
+                                </span>
+                                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${PRIORITY_COLORS[ticket.priority]}`}>
+                                  {ticket.priority}
+                                </span>
+                                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${ticket.approved_status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                  {ticket.approved_status === 'APPROVED' ? '✓ Approved' : 'Unapproved'}
+                                </span>
+                              </div>
                               {ticket.assigned_to_details && (
-                                <p className="text-xs text-gray-500 mt-0.5">→ {ticket.assigned_to_details.username}</p>
+                                <p className="text-xs text-gray-500 mt-1">→ {ticket.assigned_to_details.username}</p>
                               )}
                             </div>
                           </div>
                         </td>
-                        <td className="px-3 py-3 hidden sm:table-cell">
-                          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[ticket.status]}`}>
-                            {ticket.status.replace('_', ' ')}
-                          </span>
-                        </td>
-                        <td className="px-3 py-3 hidden md:table-cell">
-                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
-                            {ticket.ticket_type === 'BUG' ? '🐛 Bug' : '✨ Feature'}
-                          </span>
-                          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${ticket.approved_status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                            {ticket.approved_status === 'APPROVED' ? '✓ Approved' : 'Unapproved'}
-                          </span>
-                        </td>
-                        <td className="px-3 py-3 hidden md:table-cell">
-                          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${PRIORITY_COLORS[ticket.priority]}`}>
-                            {ticket.priority}
-                          </span>
-                        </td>
                         <td className="px-3 py-3 text-right whitespace-nowrap">
-                          <span className="text-xs text-gray-400 mr-2">{new Date(ticket.created_at).toLocaleDateString()}</span>
+                          <span className="text-xs text-gray-400 mr-2 hidden sm:inline">{new Date(ticket.created_at).toLocaleDateString()}</span>
                           <button
                             onClick={e => { e.stopPropagation(); setDeleteTarget(ticket); }}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                            className="inline-flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
                             title="Delete ticket"
                           >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
