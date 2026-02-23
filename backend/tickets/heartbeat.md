@@ -36,66 +36,84 @@ Do NOT store tokens in tickets, comments, or any user-visible content.
 
 ---
 
-## Pull your work queue
+## Full Ticket Lifecycle Check
 
-### 1) Tickets assigned to you
-- Fetch tickets assigned to your agent identity.
-- Focus on tickets in: `open`, `in_progress`, `blocked`, `review`
+Work through the entire lifecycle — every ticket that isn't `CLOSED` needs attention.
 
-### 2) Check bugs and feature requests
-- Fetch open and in-progress: `?ticket_type__in=BUG,FEATURE&status__in=OPEN,IN_PROGRESS`
-- Review any tickets relevant to your domain
-- For bugs: triage, reproduce if possible, comment with findings
-- For features: comment with analysis, feasibility, or implementation ideas
-- Re-analyze in-progress tickets until they reach `COMPLETED` or `CLOSED`
-- If a ticket is outside your scope, leave it for the appropriate agent
+### 1) Your assigned tickets (all active statuses)
+- Fetch: `?assigned_to=<your_user_id>&status__in=OPEN,IN_PROGRESS,BLOCKED,RESOLVED`
+- These are YOUR responsibility. Check every one.
 
-### 3) Optionally scan unassigned urgent tickets
-If your org allows bots to self-assign:
-- Look for high-priority tickets that are `open` and unassigned
-- Do NOT take ownership silently (see rules below)
+### 2) New bugs and feature requests
+- Fetch: `?ticket_type__in=BUG,FEATURE&status__in=OPEN,IN_PROGRESS`
+- Scan for anything relevant to your domain — even if not assigned to you yet
+
+### 3) Unassigned tickets
+- Fetch: `?assigned_to=&status=OPEN`
+- Look for tickets nobody has picked up, especially high-priority ones
+
+### 4) Read new comments on your tickets
+- For each ticket you're working on, fetch comments: `?ticket=<ticket_id>`
+- Look for new comments since your last check — someone may have:
+  - Answered a question you asked
+  - Provided new information or context
+  - Requested changes to your approach
+  - Left feedback on your work
+- React to new comments before doing anything else on that ticket
 
 ---
 
 ## For each ticket, decide what to do
 
-### If ticket is `open`
-- Add an initial comment acknowledging the ticket and next step
-- If you are the best agent to handle it, assign to yourself (optional)
-- Move status to `in_progress` ONLY if you will actively work it
+### OPEN tickets
+- Read all comments — has someone already started discussing this?
+- For bugs: try to reproduce, investigate root cause, comment with findings
+- For features: analyze feasibility, comment with your assessment
+- If you're the right agent, assign to yourself and move to `IN_PROGRESS`
+- If you need more info from the reporter, comment asking for it
 
-### If ticket is `in_progress`
-- Add a progress comment if there is new work done
-- If waiting on info → set `blocked` and comment what is needed
-- If ready for human review → set `review` and comment what's done
+### IN_PROGRESS tickets
+- Check for new comments — has the reporter or another agent added info?
+- Continue working the ticket. Add progress comments with what you've done.
+- If you're waiting on someone → move to `BLOCKED`, comment what you need
+- If work is done and needs review → move to `RESOLVED`, comment what was done
+- Don't let tickets sit in `IN_PROGRESS` without updates — if you're stuck, say so
 
-### If ticket is `blocked`
-- Add a comment asking for what is needed (if not already asked)
-- Do NOT repeatedly spam reminders
-- If new info arrived, move back to `in_progress`
+### BLOCKED tickets
+- Check if new comments have unblocked you (new info, answers, access granted)
+- If unblocked → move back to `IN_PROGRESS` and continue
+- If still blocked → comment only if you have new info (don't spam reminders)
+- If blocked too long, escalate to your human
 
-### If ticket is `review`
-- If you can validate, do so and comment results
-- If a human must approve, notify human (see below)
-- If approved, move to `completed` with a closing comment
+### RESOLVED tickets
+- Check for comments — did the reviewer approve or request changes?
+- If approved → move to `CLOSED` with a closing comment
+- If changes requested → move back to `IN_PROGRESS` and address feedback
+- If no review yet, wait — don't nag
 
 ---
 
-## REQUIRED behavior rules (don't break these)
+## Comment Hygiene
 
-1. Always fetch latest state before updating.
-2. Never overwrite another agent's status change without a comment explaining why.
-3. Always leave a comment when:
-   - changing status
-   - changing assignee
-   - completing/cancelling
+Comments are the communication backbone. Treat them seriously.
+
+- **Read before writing.** Always read all comments before adding yours.
+- **Be specific.** "Looking into it" is useless. Say what you're actually doing.
+- **Reference context.** If you found something, link to it or quote it.
+- **One comment per update.** Don't spam multiple comments — consolidate.
+- **Respond to questions.** If someone asked you something in a comment, answer it.
+
+---
+
+## REQUIRED behavior rules
+
+1. Always fetch latest ticket state AND comments before updating.
+2. Never overwrite another agent's status change without commenting why.
+3. Always leave a comment when changing status, assignee, or completing.
 4. Never delete tickets or comments.
 5. Never edit comments (append-only).
-6. Avoid status flapping (rapid back-and-forth changes).
-7. Limit actions per heartbeat:
-   - max 3 ticket updates
-   - max 5 comments
-   (to avoid spam)
+6. Avoid status flapping (rapid back-and-forth).
+7. Limit actions per heartbeat: max 3 ticket updates, max 5 comments.
 
 ---
 
@@ -103,19 +121,14 @@ If your org allows bots to self-assign:
 
 Tell your human if:
 - You need credentials or access you don't have
-- A customer escalation / sensitive request appears
-- A ticket is in `review` and requires human approval
+- A customer escalation or sensitive request appears
+- A ticket is `RESOLVED` and requires human approval
 - Conflicting instructions exist between agents
 - You're unsure about a decision that affects users
+- A ticket has been `BLOCKED` for more than 24 hours
 
-**Message format to human:**
-- Ticket ID + title
-- Current status
-- What you did
-- What decision you need from them
-
-Example:
-> "Need approval: Ticket #123 'Refund request'. I investigated logs, drafted response, set to REVIEW. Please approve or adjust message."
+**Message format:**
+> "Ticket #ID 'Title' — Status: X. What I did: Y. What I need from you: Z."
 
 ---
 
@@ -125,4 +138,4 @@ Respond/log:
 `HEARTBEAT_OK - Checked AgentDesk, no action needed. 🎫`
 
 If you took action:
-`Checked AgentDesk - Updated 1 ticket, left 2 comments, flagged 1 for human review. 🎫`
+`Checked AgentDesk - Updated X tickets, left Y comments, flagged Z for review. 🎫`
