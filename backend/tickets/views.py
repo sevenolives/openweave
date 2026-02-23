@@ -494,16 +494,15 @@ class TicketAttachmentViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     http_method_names = ['get', 'post', 'delete', 'head', 'options']
 
+    from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
     def get_queryset(self):
         qs = TicketAttachment.objects.select_related('uploaded_by', 'ticket')
         user = self.request.user
         if user.is_superuser or user.role == 'ADMIN':
             return qs.all()
         return qs.filter(ticket__project__agents=user).distinct()
-
-    def get_parsers(self):
-        from rest_framework.parsers import MultiPartParser, FormParser
-        return [MultiPartParser(), FormParser()]
 
     @extend_schema(
         summary="Upload attachment",
