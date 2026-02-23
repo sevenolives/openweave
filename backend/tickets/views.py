@@ -230,6 +230,25 @@ class UserViewSet(viewsets.ModelViewSet):
     ordering = ['username']
     http_method_names = ['get', 'patch', 'delete', 'head', 'options']
 
+    def get_queryset(self):
+        """Filter users to only those in the same workspaces as the requesting user."""
+        user = self.request.user
+        if user.is_superuser:
+            return User.objects.all()
+        from django.db.models import Q
+        # Get all workspace IDs the user belongs to (as member or owner)
+        member_ws = WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True)
+        owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
+        ws_ids = set(list(member_ws) | list(owned_ws))
+        if not ws_ids:
+            return User.objects.filter(id=user.id)
+        # Users who are members or owners of those workspaces
+        return User.objects.filter(
+            Q(workspace_memberships__workspace_id__in=ws_ids) |
+            Q(owned_workspaces__id__in=ws_ids) |
+            Q(id=user.id)
+        ).distinct()
+
     @extend_schema(
         summary="List users",
         description="List all users. Supports search by username/email/name and filtering by user_type, role, is_active.",
@@ -450,11 +469,19 @@ class TicketViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         from django.core.exceptions import ValidationError as DjangoValidationError
         instance = serializer.instance
-        instance._performed_by = self.request.user
+        user = self.request.user
+
+        # Non-admin users can only update tickets assigned to them
+        if user.role != 'ADMIN' and not user.is_superuser:
+            if instance.assigned_to_id != user.id:
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied("You can only work on tickets assigned to you.")
+
+        instance._performed_by = user
         try:
             serializer.save()
         except DjangoValidationError as e:
-            raise serializers.ValidationError(e.message_dict if hasattr(e, 'message_dict') else {'detail': e.messages})
+            raise drf_serializers.ValidationError(e.message_dict if hasattr(e, 'message_dict') else {'detail': e.messages})
 
 
 @extend_schema(tags=['comments'])

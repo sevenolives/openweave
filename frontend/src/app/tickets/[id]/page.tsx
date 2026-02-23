@@ -25,6 +25,7 @@ export default function TicketDetailPage() {
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [agents, setAgents] = useState<User[]>([]);
+  const [projectAgents, setProjectAgents] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -59,6 +60,11 @@ export default function TicketDetailPage() {
         : api.getUsers();
       const [t, c, a] = await Promise.all([api.getTicket(ticketId), api.getComments({ ticket: ticketId.toString() }), agentsPromise]);
       setTicket(t); setComments(c); setAgents(a);
+      // Fetch project agents for assignment dropdowns
+      try {
+        const project = await api.getProject(t.project);
+        setProjectAgents(project.agents || []);
+      } catch { setProjectAgents(a); }
       setEditTitle(t.title); setEditDesc(t.description); setEditStatus(t.status);
       setEditPriority(t.priority); setEditTicketType(t.ticket_type); setEditApproval(t.approved_status); setEditAssigned(t.assigned_to?.toString() || '');
     } catch (e: any) { toast(e?.message || 'Failed to load ticket', 'error'); }
@@ -166,7 +172,7 @@ export default function TicketDetailPage() {
                     <FormField label="Assigned To" error={fieldErrors.assigned_to}>
                       <select value={editAssigned} onChange={e => setEditAssigned(e.target.value)} className={`${inputClass(fieldErrors.assigned_to)} bg-white`}>
                         <option value="">Unassigned</option>
-                        {agents.map(a => <option key={a.id} value={String(a.id)}>{a.username} ({a.user_type})</option>)}
+                        {projectAgents.map(a => <option key={a.id} value={String(a.id)}>{a.username} ({a.user_type})</option>)}
                       </select>
                     </FormField>
                     <div className="flex gap-3 pt-2">
@@ -386,7 +392,7 @@ export default function TicketDetailPage() {
                   className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="">Unassigned</option>
-                  {agents.map(a => <option key={a.id} value={String(a.id)}>{a.username} ({a.user_type})</option>)}
+                  {projectAgents.map(a => <option key={a.id} value={String(a.id)}>{a.username} ({a.user_type})</option>)}
                 </select>
               </div>
             </div>

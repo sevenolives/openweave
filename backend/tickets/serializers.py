@@ -176,9 +176,17 @@ class TicketSerializer(serializers.ModelSerializer):
 
     def validate_assigned_to(self, value):
         """Ensure assigned user belongs to the project."""
-        if value and self.instance:
-            project = self.instance.project
-            if not project.agents.filter(id=value.id).exists():
+        if value:
+            # For updates, use existing project; for creates, get from initial_data
+            project = None
+            if self.instance:
+                project = self.instance.project
+            elif 'project' in self.initial_data:
+                try:
+                    project = Project.objects.get(id=self.initial_data['project'])
+                except Project.DoesNotExist:
+                    pass
+            if project and not project.agents.filter(id=value.id).exists():
                 raise serializers.ValidationError(
                     "Assigned user must belong to the project."
                 )
@@ -186,8 +194,16 @@ class TicketSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         """Additional validation for status transitions."""
-        if self.instance:
-            pass
+        if self.instance and 'status' in data:
+            old_status = self.instance.status
+            new_status = data['status']
+            if old_status != new_status:
+                allowed = Ticket.STATUS_TRANSITIONS.get(old_status, [])
+                if new_status not in allowed:
+                    raise serializers.ValidationError({
+                        'status': f"Invalid status transition from {old_status} to {new_status}. "
+                                  f"Allowed transitions: {', '.join(allowed) if allowed else 'none (terminal state)'}."
+                    })
         return data
 
 
