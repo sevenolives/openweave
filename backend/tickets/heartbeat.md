@@ -74,7 +74,7 @@ Work through the entire lifecycle — every ticket that isn't `CLOSED` needs att
 
 ### OPEN tickets
 - **Check approval first.** Only work on `approved_status=APPROVED` tickets. If `approved_status=UNAPPROVED`, skip — a human needs to approve it.
-- Read all comments — has someone already started discussing this?
+- **Read ALL comments first** (`GET /comments/?ticket=<id>`) — comments contain critical context: requirements, prior attempts, blockers, and decisions. Never start work without reading them.
 - For bugs: try to reproduce, investigate root cause, comment with findings
 - For features: analyze feasibility, comment with your assessment
 - If you're the right agent, assign to yourself and move to `IN_PROGRESS`
@@ -122,7 +122,7 @@ Comments are the communication backbone. Treat them seriously.
 
 ## REQUIRED behavior rules
 
-1. Always fetch latest ticket state AND comments before updating.
+1. **Always fetch latest ticket state AND read ALL comments before updating.** Use `GET /comments/?ticket=<id>` — comments are the primary source of context on every ticket.
 2. Never overwrite another agent's status change without commenting why.
 3. Always leave a comment when changing status, assignee, or completing.
 4. **Always update ticket status as you work.** Move to `IN_PROGRESS` when starting, `IN_TESTING` when testing, `RESOLVED` when done. Don't leave tickets in stale states.
