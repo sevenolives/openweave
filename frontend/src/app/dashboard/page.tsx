@@ -138,7 +138,7 @@ export default function DashboardPage() {
                         className="w-full px-5 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left"
                       >
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{ticket.title}</p>
+                          <p className="text-sm font-medium text-gray-900 truncate">{ticket.ticket_slug || `#${ticket.id}`} {ticket.title}</p>
                           <p className="text-xs text-gray-500">{ticket.project_name}</p>
                         </div>
                         <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${priorityColors[ticket.priority]}`}>
