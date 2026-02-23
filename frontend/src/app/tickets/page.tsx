@@ -15,6 +15,15 @@ const PRIORITY_COLORS: Record<string, string> = {
   LOW: 'bg-green-100 text-green-700', MEDIUM: 'bg-yellow-100 text-yellow-700',
   HIGH: 'bg-orange-100 text-orange-700', CRITICAL: 'bg-red-100 text-red-700',
 };
+const STATUS_COLUMNS = [
+  { status: 'OPEN', title: 'Open', accent: 'bg-gray-400', bg: 'bg-gray-50' },
+  { status: 'IN_PROGRESS', title: 'In Progress', accent: 'bg-blue-500', bg: 'bg-blue-50' },
+  { status: 'IN_TESTING', title: 'In Testing', accent: 'bg-purple-500', bg: 'bg-purple-50' },
+  { status: 'BLOCKED', title: 'Blocked', accent: 'bg-red-500', bg: 'bg-red-50' },
+  { status: 'RESOLVED', title: 'Resolved', accent: 'bg-green-500', bg: 'bg-green-50' },
+  { status: 'CLOSED', title: 'Closed', accent: 'bg-gray-400', bg: 'bg-gray-50' },
+];
+
 const STATUS_COLORS: Record<string, string> = {
   OPEN: 'bg-gray-100 text-gray-700', IN_PROGRESS: 'bg-blue-100 text-blue-700',
   IN_TESTING: 'bg-purple-100 text-purple-700', BLOCKED: 'bg-red-100 text-red-700', RESOLVED: 'bg-green-100 text-green-700', CLOSED: 'bg-gray-200 text-gray-600',
@@ -52,6 +61,8 @@ function TicketsPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [deleteTarget, setDeleteTarget] = useState<Ticket | null>(null);
   const [projectAgentsMap, setProjectAgentsMap] = useState<Record<number, User[]>>({});
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+  const [kanbanTickets, setKanbanTickets] = useState<Ticket[]>([]);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -62,6 +73,8 @@ function TicketsPage() {
   useEffect(() => {
     const statusParam = searchParams.get('status');
     if (statusParam) setFilterStatus(statusParam);
+    const projectParam = searchParams.get('project');
+    if (projectParam) setFilterProject(Number(projectParam));
   }, []);
 
   useEffect(() => {
@@ -93,6 +106,12 @@ function TicketsPage() {
       }
     });
   }, [tickets]);
+
+  // Fetch all tickets for kanban view when project is selected
+  useEffect(() => {
+    if (!filterProject || viewMode !== 'kanban') return;
+    api.getTickets({ project: String(filterProject), page_size: '100' }).then(setKanbanTickets).catch(() => {});
+  }, [filterProject, viewMode]);
 
   // Fetch project agents when create modal project selection changes
   useEffect(() => {
@@ -191,6 +210,12 @@ function TicketsPage() {
           </button>
         </div>
 
+        {/* View Toggle */}
+        <div className="flex gap-1 bg-gray-100 rounded-lg p-1 mb-4 w-fit">
+          <button onClick={() => setViewMode('list')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'list' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>List</button>
+          <button onClick={() => setViewMode('kanban')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'kanban' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Kanban</button>
+        </div>
+
         {/* Filters */}
         <div className="flex flex-wrap gap-3 mb-6">
           <input
@@ -225,12 +250,61 @@ function TicketsPage() {
           )}
         </div>
 
-        {/* Content grouped by project */}
-        {loading ? (
+        {/* Kanban View */}
+        {viewMode === 'kanban' && !loading && (
+          <div className="overflow-x-auto pb-4">
+            <div className="inline-flex gap-4 min-w-full">
+              {STATUS_COLUMNS.map(col => {
+                const colTickets = kanbanTickets.filter(t => t.status === col.status);
+                return (
+                  <div key={col.status} className="flex flex-col w-64 lg:w-72 flex-shrink-0">
+                    <div className="flex items-center gap-2 px-3 py-2.5 bg-white rounded-t-xl border border-b-0 border-gray-200">
+                      <div className={`w-2 h-2 rounded-full ${col.accent}`} />
+                      <h3 className="font-semibold text-gray-700 text-sm">{col.title}</h3>
+                      <span className="ml-auto text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">{colTickets.length}</span>
+                    </div>
+                    <div className={`${col.bg} border border-gray-200 rounded-b-xl p-2 min-h-[20rem] space-y-2 flex-1`}>
+                      {colTickets.map(ticket => (
+                        <div key={ticket.id} className="bg-white rounded-lg border border-gray-100 p-3 hover:shadow-md hover:border-indigo-200 transition-all group">
+                          <div className="flex justify-between items-start mb-1.5">
+                            <span className="text-xs text-gray-400">{ticket.ticket_slug || `#${ticket.id}`}</span>
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${PRIORITY_COLORS[ticket.priority]}`}>{ticket.priority}</span>
+                          </div>
+                          <h4 onClick={() => router.push(`/tickets/${ticket.id}`)} className="font-medium text-gray-900 text-sm mb-1.5 line-clamp-2 cursor-pointer hover:text-indigo-700 transition-colors">{ticket.title}</h4>
+                          <div className="flex items-center justify-between text-xs text-gray-400">
+                            <span>{ticket.assigned_to_details?.username || 'Unassigned'}</span>
+                            <select
+                              value={ticket.status}
+                              onClick={e => e.stopPropagation()}
+                              onChange={async (e) => {
+                                try {
+                                  await api.updateTicket(ticket.id, { status: e.target.value as Ticket['status'] });
+                                  setKanbanTickets(prev => prev.map(t => t.id === ticket.id ? { ...t, status: e.target.value as Ticket['status'] } : t));
+                                  toast('Status updated');
+                                } catch (err: any) { toast(err?.message || 'Failed', 'error'); }
+                              }}
+                              className="text-[10px] border border-gray-200 rounded px-1 py-0.5 bg-white"
+                            >
+                              {STATUS_COLUMNS.map(s => <option key={s.status} value={s.status}>{s.title}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                      ))}
+                      {colTickets.length === 0 && <div className="text-center py-8 text-gray-400 text-xs">No tickets</div>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* List View */}
+        {viewMode === 'list' && loading ? (
           <div className="space-y-4">
             {[1,2].map(i => <div key={i} className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse"><div className="h-5 bg-gray-200 rounded w-40 mb-4"></div><div className="h-12 bg-gray-100 rounded mb-2"></div><div className="h-12 bg-gray-100 rounded"></div></div>)}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : viewMode === 'list' && filtered.length === 0 ? (
           <div className="text-center py-20">
             <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
@@ -243,7 +317,7 @@ function TicketsPage() {
               </button>
             )}
           </div>
-        ) : (
+        ) : viewMode === 'list' ? (
           <div className="space-y-6">
             {grouped.map(({ project, tickets: groupTickets }) => (
               <div key={project?.id || 0} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -338,10 +412,10 @@ function TicketsPage() {
               </div>
             ))}
           </div>
-        )}
+        ) : null}
 
-        {/* Pagination */}
-        {!loading && (
+        {/* Pagination (list view only) */}
+        {viewMode === 'list' && !loading && (
           <div className="flex items-center justify-between mt-6 px-1">
             <p className="text-sm text-gray-500">Page {page} of {totalPages} · {totalCount} ticket{totalCount !== 1 ? 's' : ''}</p>
             <div className="flex gap-2">
