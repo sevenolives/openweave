@@ -9,7 +9,7 @@ import FormField, { parseFieldErrors, inputClass } from '@/components/FormField'
 import { api, Ticket, Project, User, WorkspaceMember, ApiError, PaginatedResponse } from '@/lib/api';
 import { useWorkspace } from '@/hooks/useWorkspace';
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 
 const PRIORITY_COLORS: Record<string, string> = {
   LOW: 'bg-green-100 text-green-700', MEDIUM: 'bg-yellow-100 text-yellow-700',

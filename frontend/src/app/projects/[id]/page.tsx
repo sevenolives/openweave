@@ -30,7 +30,7 @@ export default function ProjectDetailPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'kanban' | 'list' | 'settings'>('kanban');
+  const [tab, setTab] = useState<'kanban' | 'list' | 'settings'>('list');
   const [showCreate, setShowCreate] = useState(false);
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
@@ -174,7 +174,7 @@ export default function ProjectDetailPage() {
 
             {/* Tabs */}
             <div className="flex gap-1 bg-gray-100 rounded-lg p-1 mb-6 w-fit">
-              {(['kanban', 'list', 'settings'] as const).map(t => (
+              {(['list', 'kanban', 'settings'] as const).map(t => (
                 <button key={t} onClick={() => setTab(t)} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors capitalize ${tab === t ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
                   {t === 'kanban' ? 'Kanban Board' : t === 'list' ? 'List View' : 'Settings'}
                 </button>
