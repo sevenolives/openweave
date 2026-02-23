@@ -33,9 +33,11 @@ class Command(BaseCommand):
         else:
             self.stdout.write(f'  - Workspace exists: {workspace.name}')
 
-        # Ensure all users (except owner) are workspace members
+        # Ensure seed users (non-test, known users) are workspace members
+        # Only add users that were created by seed or admin — NOT random join users
         # Owner is on the workspace record itself, not in the members table
-        for user in User.objects.exclude(id=admin.id):
+        seed_usernames = ['alice_agent', 'bob_agent', 'support_bot']
+        for user in User.objects.filter(username__in=seed_usernames).exclude(id=admin.id):
             role = 'ADMIN' if user.is_superuser or user.role == 'ADMIN' else 'MEMBER'
             _, member_created = WorkspaceMember.objects.get_or_create(
                 workspace=workspace, user=user,
