@@ -212,17 +212,7 @@ class TicketSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, data):
-        """Additional validation for status transitions."""
-        if self.instance and 'status' in data:
-            old_status = self.instance.status
-            new_status = data['status']
-            if old_status != new_status:
-                allowed = Ticket.STATUS_TRANSITIONS.get(old_status, [])
-                if new_status not in allowed:
-                    raise serializers.ValidationError({
-                        'status': f"Invalid status transition from {old_status} to {new_status}. "
-                                  f"Allowed transitions: {', '.join(allowed) if allowed else 'none (terminal state)'}."
-                    })
+        """Ticket validation. Status transitions are free-flowing — any status can move to any other."""
         return data
 
 
