@@ -228,7 +228,7 @@ class UserViewSet(viewsets.ModelViewSet):
     search_fields = ['username', 'email', 'name']
     ordering_fields = ['username', 'email', 'created_at', 'is_active']
     ordering = ['username']
-    http_method_names = ['get', 'patch', 'head', 'options']
+    http_method_names = ['get', 'patch', 'delete', 'head', 'options']
 
     @extend_schema(
         summary="List users",

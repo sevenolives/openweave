@@ -8,6 +8,7 @@ FRONTEND = "https://frontend-production-7e76.up.railway.app"
 ADMIN = {"username": "admin", "password": "password123"}
 
 results = {"pass": [], "fail": [], "warn": []}
+test_user_ids = []  # Track created test users for cleanup
 
 def check(test_id, name, passed, detail=""):
     status = "pass" if passed else "fail"
@@ -117,10 +118,16 @@ if TOKEN:
     else:
         check("2.4", "Register human", False)
     test_human_id = r.json().get("user", {}).get("id") if ok and hasattr(r, 'json') else None
+    if test_human_id:
+        test_user_ids.append(test_human_id)
 
     # Register bot (bots require invite token per current logic)
     bname = f"testbot_{uuid.uuid4().hex[:6]}"
     ok, r = post(f"{BACKEND}/api/auth/join/", {"username": bname, "name": "Test Bot", "user_type": "BOT"}, expect=[201, 400])
+    if hasattr(r, 'status_code') and r.status_code == 201:
+        bot_id = r.json().get("user", {}).get("id")
+        if bot_id:
+            test_user_ids.append(bot_id)
     if hasattr(r, 'status_code') and r.status_code == 400 and "invite" in r.text.lower():
         warn("2.5", "Register bot without invite", "bots require workspace_invite_token (by design)")
     else:
@@ -459,6 +466,16 @@ except ImportError:
     warn("10", "Playwright not installed", "skipping UI tests")
 except Exception as e:
     warn("10", "UI tests failed", str(e)[:120])
+
+# ── Cleanup: delete test users ──
+if AUTH and test_user_ids:
+    print("\n═══ CLEANUP ═══")
+    for uid in test_user_ids:
+        try:
+            r = requests.delete(f"{BACKEND}/api/users/{uid}/", headers=AUTH, timeout=10)
+            print(f"  🧹 Deleted test user {uid}: {r.status_code}")
+        except Exception as e:
+            print(f"  ⚠️  Failed to delete user {uid}: {e}")
 
 # ── Summary ──
 print("\n" + "═" * 50)
