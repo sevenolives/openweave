@@ -10,12 +10,12 @@ from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiParameter, inline_serializer
 from drf_spectacular.types import OpenApiTypes
 from rest_framework import serializers as drf_serializers
-from .models import User, Project, Ticket, Comment, AuditLog, ProjectAgent, Workspace, WorkspaceMember, WorkspaceInvite
+from .models import User, Project, Ticket, Comment, AuditLog, ProjectAgent, Workspace, WorkspaceMember, WorkspaceInvite, TicketAttachment
 from .serializers import (
     UserSerializer, ProjectSerializer, TicketSerializer,
     CommentSerializer, AuditLogSerializer,
     WorkspaceSerializer, WorkspaceMemberSerializer, WorkspaceInviteSerializer,
-    JoinRequestSerializer,
+    JoinRequestSerializer, TicketAttachmentSerializer,
 )
 from .permissions import (
     IsAdminAgent, IsAdminOrReadOnly, IsAdminOrOwner,
@@ -146,6 +146,7 @@ class JoinView(APIView):
         username = request.data.get('username')
         name = request.data.get('name')
         password = request.data.get('password')
+        description = request.data.get('description', '')
 
         invite = None
         if invite_token:
@@ -183,11 +184,11 @@ class JoinView(APIView):
             return Response({'detail': 'Bot users require a workspace_invite_token.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if password:
-            user = User(username=username, name=name, user_type='HUMAN')
+            user = User(username=username, name=name, user_type='HUMAN', description=description)
             user.set_password(password)
             user.save()
         else:
-            user = User(username=username, name=name, user_type='BOT')
+            user = User(username=username, name=name, user_type='BOT', description=description)
             user.set_unusable_password()
             user.save()
 
@@ -482,6 +483,57 @@ class TicketViewSet(viewsets.ModelViewSet):
             serializer.save()
         except DjangoValidationError as e:
             raise drf_serializers.ValidationError(e.message_dict if hasattr(e, 'message_dict') else {'detail': e.messages})
+
+
+@extend_schema(tags=['attachments'])
+class TicketAttachmentViewSet(viewsets.ModelViewSet):
+    """Upload, list, and delete file attachments on tickets."""
+    queryset = TicketAttachment.objects.all()
+    serializer_class = TicketAttachmentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    http_method_names = ['get', 'post', 'delete', 'head', 'options']
+
+    def get_queryset(self):
+        qs = TicketAttachment.objects.select_related('uploaded_by', 'ticket')
+        user = self.request.user
+        if user.is_superuser or user.role == 'ADMIN':
+            return qs.all()
+        return qs.filter(ticket__project__agents=user).distinct()
+
+    def get_parsers(self):
+        from rest_framework.parsers import MultiPartParser, FormParser
+        return [MultiPartParser(), FormParser()]
+
+    @extend_schema(
+        summary="Upload attachment",
+        description="Upload a file attachment to a ticket. Use multipart/form-data with 'file' and 'ticket' fields.",
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        uploaded_file = self.request.FILES.get('file')
+        if not uploaded_file:
+            raise drf_serializers.ValidationError({'file': 'No file provided.'})
+        serializer.save(
+            uploaded_by=self.request.user,
+            filename=uploaded_file.name,
+        )
+
+    @extend_schema(summary="List attachments", description="List attachments. Filter by ?ticket={id}.")
+    def list(self, request, *args, **kwargs):
+        ticket_id = request.query_params.get('ticket')
+        if ticket_id:
+            self.queryset = self.get_queryset().filter(ticket_id=ticket_id)
+        return super().list(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        obj = self.get_object()
+        if request.user.role != 'ADMIN' and obj.uploaded_by != request.user:
+            return Response({'detail': 'You can only delete your own attachments.'}, status=status.HTTP_403_FORBIDDEN)
+        obj.file.delete(save=False)
+        return super().destroy(request, *args, **kwargs)
 
 
 @extend_schema(tags=['comments'])

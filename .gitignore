@@ -6,3 +6,4 @@ staticfiles/
 node_modules/
 .next/
 backend/test_env/
+*.pyc

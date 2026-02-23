@@ -33,6 +33,14 @@ def heartbeat_md_view(request):
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('tickets.urls')),
+]
+
+# Serve media files in all environments (Railway doesn't have nginx)
+from django.conf import settings
+from django.conf.urls.static import static
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+urlpatterns += [
     
     # API Documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

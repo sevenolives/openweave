@@ -31,6 +31,7 @@ class User(AbstractUser):
     user_type = models.CharField(max_length=10, choices=USER_TYPES, default='HUMAN')
     role = models.CharField(max_length=10, choices=ROLES, default='MEMBER')
     skills = models.JSONField(default=list, blank=True, help_text="List of skill tags")
+    description = models.TextField(blank=True, default='', help_text="What this user/bot can do")
     notification_preference = models.CharField(
         max_length=10, 
         choices=NOTIFICATION_PREFERENCES, 
@@ -231,6 +232,24 @@ class Ticket(models.Model):
     
     class Meta:
         db_table = 'tickets'
+        ordering = ['-created_at']
+
+
+class TicketAttachment(models.Model):
+    """
+    A file attached to a ticket.
+    """
+    ticket = models.ForeignKey('Ticket', on_delete=models.CASCADE, related_name='attachments')
+    file = models.FileField(upload_to='ticket_attachments/%Y/%m/')
+    filename = models.CharField(max_length=255, help_text="Original filename")
+    uploaded_by = models.ForeignKey('User', on_delete=models.CASCADE, related_name='uploaded_attachments')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.filename} on Ticket #{self.ticket_id}"
+
+    class Meta:
+        db_table = 'ticket_attachments'
         ordering = ['-created_at']
 
 

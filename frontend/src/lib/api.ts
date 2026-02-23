@@ -25,6 +25,7 @@ export interface User {
   user_type: 'HUMAN' | 'BOT';
   role: 'ADMIN' | 'MEMBER';
   skills: string[];
+  description: string;
   is_active: boolean;
 }
 
@@ -56,6 +57,17 @@ export interface Ticket {
   updated_at: string;
   resolved_at: string | null;
   closed_at: string | null;
+}
+
+export interface TicketAttachment {
+  id: number;
+  ticket: number;
+  file: string;
+  filename: string;
+  url: string;
+  uploaded_by: number;
+  uploaded_by_details: User;
+  created_at: string;
 }
 
 export interface Comment {
@@ -355,6 +367,35 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify(comment),
     });
+  }
+
+  // Attachments
+  async getAttachments(params?: Record<string, string>): Promise<TicketAttachment[]> {
+    const query = params ? '?' + new URLSearchParams(params).toString() : '';
+    const response = await this.request<PaginatedResponse<TicketAttachment>>(`/attachments/${query}`);
+    return response.results || [];
+  }
+
+  async uploadAttachment(ticketId: number, file: File): Promise<TicketAttachment> {
+    const url = `${this.baseUrl}/attachments/`;
+    const token = tokenStorage.getAccessToken();
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('ticket', String(ticketId));
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+      body: formData,
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new ApiError(errorData.detail || `Upload failed (${response.status})`, response.status, errorData);
+    }
+    return response.json();
+  }
+
+  async deleteAttachment(id: number): Promise<void> {
+    await this.request(`/attachments/${id}/`, { method: 'DELETE' });
   }
 
   // Agents

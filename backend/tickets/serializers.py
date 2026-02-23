@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Project, Ticket, Comment, AuditLog, Workspace, WorkspaceMember, WorkspaceInvite
+from .models import User, Project, Ticket, Comment, AuditLog, Workspace, WorkspaceMember, WorkspaceInvite, TicketAttachment
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -12,7 +12,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'username', 'email', 'name',
-            'user_type', 'role', 'skills', 'is_active', 'password'
+            'user_type', 'role', 'skills', 'description', 'is_active', 'password'
         ]
         extra_kwargs = {
             'password': {'write_only': True},
@@ -20,6 +20,7 @@ class UserSerializer(serializers.ModelSerializer):
             'user_type': {'help_text': 'HUMAN or BOT.'},
             'role': {'help_text': 'ADMIN or MEMBER.'},
             'skills': {'help_text': 'List of skill tags (JSON array).'},
+            'description': {'help_text': 'What this user/bot can do.'},
             'is_active': {'help_text': 'Whether the user account is active.'},
         }
 
@@ -46,7 +47,7 @@ class UserSimpleSerializer(serializers.ModelSerializer):
     """Simplified user serializer for nested usage."""
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'name', 'user_type', 'role']
+        fields = ['id', 'username', 'email', 'name', 'user_type', 'role', 'description']
 
 
 class WorkspaceSerializer(serializers.ModelSerializer):
@@ -149,11 +150,29 @@ class ProjectSerializer(serializers.ModelSerializer):
         return instance
 
 
+class TicketAttachmentSerializer(serializers.ModelSerializer):
+    """Serializer for TicketAttachment model."""
+    uploaded_by_details = UserSimpleSerializer(source='uploaded_by', read_only=True)
+    url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = TicketAttachment
+        fields = ['id', 'ticket', 'file', 'filename', 'url', 'uploaded_by', 'uploaded_by_details', 'created_at']
+        read_only_fields = ['uploaded_by', 'filename', 'created_at']
+
+    def get_url(self, obj):
+        request = self.context.get('request')
+        if obj.file and request:
+            return request.build_absolute_uri(obj.file.url)
+        return obj.file.url if obj.file else None
+
+
 class TicketSerializer(serializers.ModelSerializer):
     """Serializer for Ticket model."""
     assigned_to_details = UserSimpleSerializer(source='assigned_to', read_only=True)
     created_by_details = UserSimpleSerializer(source='created_by', read_only=True)
     project_name = serializers.CharField(source='project.name', read_only=True, help_text="Name of the project.")
+    attachments = TicketAttachmentSerializer(many=True, read_only=True)
 
     class Meta:
         model = Ticket
@@ -161,7 +180,7 @@ class TicketSerializer(serializers.ModelSerializer):
             'id', 'project', 'project_name', 'title', 'description',
             'status', 'priority', 'ticket_type', 'approved_status', 'assigned_to', 'assigned_to_details',
             'created_by', 'created_by_details', 'created_at', 'updated_at',
-            'resolved_at', 'closed_at'
+            'resolved_at', 'closed_at', 'attachments'
         ]
         read_only_fields = ['created_by', 'created_at', 'updated_at', 'resolved_at', 'closed_at']
         extra_kwargs = {
