@@ -17,7 +17,9 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const wsParams: Record<string, string> = currentWorkspace ? { workspace: String(currentWorkspace.id) } : {};
-    Promise.all([api.getTickets(wsParams), api.getProjects(wsParams)])
+    // Dashboard needs all data for stats — use larger page size
+    const statsParams = { ...wsParams, page_size: '100' };
+    Promise.all([api.getTickets(statsParams), api.getProjects(statsParams)])
       .then(([t, p]) => { setTickets(t); setProjects(p); })
       .catch(() => {})
       .finally(() => setLoading(false));
