@@ -682,7 +682,7 @@ class WorkspaceInviteViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend]
     filterset_class = WorkspaceInviteFilter
-    http_method_names = ['get', 'post', 'head', 'options']
+    http_method_names = ['get', 'post', 'delete', 'head', 'options']
 
     @extend_schema(
         summary="List invites",
@@ -727,3 +727,12 @@ class WorkspaceInviteViewSet(viewsets.ModelViewSet):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("Only workspace admins or owner can create invites.")
         serializer.save(created_by=self.request.user)
+
+    def perform_destroy(self, instance):
+        from rest_framework.exceptions import PermissionDenied
+        workspace = instance.workspace
+        if workspace.owner != self.request.user:
+            membership = WorkspaceMember.objects.filter(workspace=workspace, user=self.request.user, role='ADMIN').first()
+            if not membership:
+                raise PermissionDenied("Only workspace admins or owner can delete invites.")
+        instance.delete()
