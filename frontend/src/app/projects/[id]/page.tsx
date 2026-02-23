@@ -10,6 +10,7 @@ import { api, Project, User } from '@/lib/api';
 export default function ProjectSettingsPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasTickets, setHasTickets] = useState(false);
   const [editName, setEditName] = useState('');
   const [editSlug, setEditSlug] = useState('');
   const [editDesc, setEditDesc] = useState('');
@@ -28,7 +29,8 @@ export default function ProjectSettingsPage() {
 
   const fetchData = async () => {
     try {
-      const [p, agents] = await Promise.all([api.getProject(projectId), api.getProjectAgents(projectId)]);
+      const [p, agents, ticketResp] = await Promise.all([api.getProject(projectId), api.getProjectAgents(projectId), api.getTicketsPaginated({ project: String(projectId) })]);
+      setHasTickets((ticketResp.count || 0) > 0);
       setProject(p); setProjectAgents(agents); setEditName(p.name); setEditSlug(p.slug || ''); setEditDesc(p.description);
       if (p.workspace) {
         api.getUsers({ workspace: String(p.workspace) }).then(setAllUsers).catch(() => {});
@@ -109,8 +111,8 @@ export default function ProjectSettingsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Slug</label>
-                <input type="text" value={editSlug} onChange={e => setEditSlug(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent" maxLength={10} placeholder="e.g. SA, PROJ" />
-                <p className="text-xs text-gray-400 mt-1">Used in ticket IDs like SA-1, SA-2</p>
+                <input type="text" value={editSlug} onChange={e => setEditSlug(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} disabled={hasTickets} className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${hasTickets ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`} maxLength={10} placeholder="e.g. SA, PROJ" />
+                <p className="text-xs text-gray-400 mt-1">{hasTickets ? 'Cannot change slug after tickets have been created' : 'Used in ticket IDs like SA-1, SA-2'}</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>

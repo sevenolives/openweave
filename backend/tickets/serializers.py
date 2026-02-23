@@ -139,6 +139,10 @@ class ProjectSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         """Update project and manage agent assignments."""
+        # Prevent slug changes if project has tickets
+        if 'slug' in validated_data and validated_data['slug'] != instance.slug:
+            if instance.tickets.exists():
+                raise serializers.ValidationError({'slug': 'Cannot change slug after tickets have been created.'})
         agent_ids = validated_data.pop('agent_ids', None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
