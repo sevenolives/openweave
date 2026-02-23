@@ -7,3 +7,4 @@ node_modules/
 .next/
 backend/test_env/
 *.pyc
+backend/test.db

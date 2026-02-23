@@ -225,7 +225,7 @@ export default function TicketsPage() {
                       <tr key={ticket.id} onClick={() => router.push(`/tickets/${ticket.id}`)} className="hover:bg-gray-50 cursor-pointer">
                         <td className="px-4 py-3">
                           <div className="flex items-start gap-3">
-                            <span className="text-xs text-gray-400 font-mono w-8 pt-0.5">#{ticket.id}</span>
+                            <span className="text-xs text-gray-400 font-mono w-16 pt-0.5">{ticket.ticket_slug || `#${ticket.id}`}</span>
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-medium text-gray-900 truncate">{ticket.title}</p>
                               <div className="flex flex-wrap gap-1 mt-1">

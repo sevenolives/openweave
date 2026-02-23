@@ -218,7 +218,7 @@ export default function ProjectDetailPage() {
                               {colTickets.map(ticket => (
                                 <div key={ticket.id} className="bg-white rounded-lg border border-gray-100 p-3 hover:shadow-md hover:border-indigo-200 transition-all group relative">
                                   <div className="flex justify-between items-start mb-1.5">
-                                    <span className="text-xs text-gray-400">#{ticket.id}</span>
+                                    <span className="text-xs text-gray-400">{ticket.ticket_slug || `#${ticket.id}`}</span>
                                     <div className="flex items-center gap-1">
                                       <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${PRIORITY_COLORS[ticket.priority]}`}>{ticket.priority}</span>
                                       <button onClick={() => setMovingTicket(movingTicket === ticket.id ? null : ticket.id)} className="p-0.5 rounded hover:bg-gray-100 text-gray-400 opacity-0 group-hover:opacity-100 transition-all" title="Move">
@@ -272,7 +272,7 @@ export default function ProjectDetailPage() {
                     <tbody className="divide-y divide-gray-100">
                       {sortedTickets.map(ticket => (
                         <tr key={ticket.id} onClick={() => router.push(`/tickets/${ticket.id}`)} className="hover:bg-gray-50 cursor-pointer">
-                          <td className="px-5 py-3 text-sm font-medium text-gray-900">#{ticket.id} {ticket.title}</td>
+                          <td className="px-5 py-3 text-sm font-medium text-gray-900">{ticket.ticket_slug || `#${ticket.id}`} {ticket.title}</td>
                           <td className="px-5 py-3"><span className={`px-2 py-0.5 rounded-md text-xs font-medium ${STATUS_COLORS[ticket.status]}`}>{ticket.status.replace('_', ' ')}</span></td>
                           <td className="px-5 py-3"><span className={`px-2 py-0.5 rounded-md text-xs font-medium ${PRIORITY_COLORS[ticket.priority]}`}>{ticket.priority}</span></td>
                           <td className="px-5 py-3 text-sm text-gray-500">{ticket.assigned_to_details?.username || 'Unassigned'}</td>

@@ -116,12 +116,23 @@ class Project(models.Model):
     """
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name='projects', null=True, blank=True)
     name = models.CharField(max_length=255, unique=True)
+    slug = models.SlugField(max_length=10, blank=True, help_text="Short prefix for ticket slugs, e.g. SA")
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     # Many-to-many relationship with agents through ProjectAgent
     agents = models.ManyToManyField("User", through='ProjectAgent', blank=True)
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            # Auto-generate slug from name: take uppercase initials or first 4 chars
+            words = self.name.split()
+            if len(words) >= 2:
+                self.slug = ''.join(w[0] for w in words[:4]).upper()
+            else:
+                self.slug = self.name[:4].upper().replace(' ', '')
+        super().save(*args, **kwargs)
     
     def __str__(self):
         return self.name
@@ -187,6 +198,7 @@ class Ticket(models.Model):
     }
     
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='tickets')
+    ticket_number = models.PositiveIntegerField(null=True, blank=True, help_text="Project-scoped ticket number")
     title = models.CharField(max_length=500)
     description = models.TextField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='OPEN')
@@ -209,6 +221,13 @@ class Ticket(models.Model):
     resolved_at = models.DateTimeField(null=True, blank=True)
     closed_at = models.DateTimeField(null=True, blank=True)
     
+    @property
+    def ticket_slug(self):
+        """Return project-scoped slug like SA-1."""
+        if self.project and self.ticket_number:
+            return f"{self.project.slug}-{self.ticket_number}"
+        return f"#{self.pk}" if self.pk else None
+
     def clean(self):
         """
         Set timestamp fields on status changes. Any status transition is allowed.
@@ -224,6 +243,10 @@ class Ticket(models.Model):
                     self.closed_at = timezone.now()
     
     def save(self, *args, **kwargs):
+        if not self.ticket_number and self.project_id:
+            from django.db.models import Max
+            max_num = Ticket.objects.filter(project_id=self.project_id).aggregate(m=Max('ticket_number'))['m'] or 0
+            self.ticket_number = max_num + 1
         self.full_clean()
         super().save(*args, **kwargs)
     

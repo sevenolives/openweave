@@ -121,7 +121,7 @@ class ProjectSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Project
-        fields = ['id', 'name', 'description', 'workspace', 'created_at', 'updated_at', 'agents', 'agent_ids']
+        fields = ['id', 'name', 'slug', 'description', 'workspace', 'created_at', 'updated_at', 'agents', 'agent_ids']
         read_only_fields = ['created_at', 'updated_at']
         extra_kwargs = {
             'name': {'help_text': 'Project name.'},
@@ -172,17 +172,18 @@ class TicketSerializer(serializers.ModelSerializer):
     assigned_to_details = UserSimpleSerializer(source='assigned_to', read_only=True)
     created_by_details = UserSimpleSerializer(source='created_by', read_only=True)
     project_name = serializers.CharField(source='project.name', read_only=True, help_text="Name of the project.")
+    ticket_slug = serializers.CharField(read_only=True, help_text="Project-scoped ticket slug, e.g. SA-1.")
     attachments = TicketAttachmentSerializer(many=True, read_only=True)
 
     class Meta:
         model = Ticket
         fields = [
-            'id', 'project', 'project_name', 'title', 'description',
+            'id', 'project', 'project_name', 'ticket_slug', 'title', 'description',
             'status', 'priority', 'ticket_type', 'approved_status', 'assigned_to', 'assigned_to_details',
             'created_by', 'created_by_details', 'created_at', 'updated_at',
             'resolved_at', 'closed_at', 'attachments'
         ]
-        read_only_fields = ['created_by', 'created_at', 'updated_at', 'resolved_at', 'closed_at']
+        read_only_fields = ['created_by', 'created_at', 'updated_at', 'resolved_at', 'closed_at', 'ticket_slug']
         extra_kwargs = {
             'project': {'help_text': 'Project ID.'},
             'title': {'help_text': 'Ticket title.'},

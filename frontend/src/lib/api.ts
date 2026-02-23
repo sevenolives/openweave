@@ -43,6 +43,7 @@ export interface Ticket {
   id: number;
   project: number;
   project_name: string;
+  ticket_slug: string;
   title: string;
   description: string;
   status: 'OPEN' | 'IN_PROGRESS' | 'IN_TESTING' | 'RESOLVED' | 'CLOSED' | 'BLOCKED';

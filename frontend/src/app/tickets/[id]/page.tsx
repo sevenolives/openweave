@@ -187,7 +187,7 @@ export default function TicketDetailPage() {
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs text-gray-400">#{ticket.id}</span>
+                          <span className="text-xs text-gray-400">{ticket.ticket_slug || `#${ticket.id}`}</span>
                           <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${STATUS_COLORS[ticket.status]}`}>{ticket.status.replace('_',' ')}</span>
                           <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${PRIORITY_COLORS[ticket.priority]}`}>{ticket.priority}</span>
                         </div>
