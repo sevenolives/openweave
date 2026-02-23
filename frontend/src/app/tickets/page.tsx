@@ -284,7 +284,7 @@ function TicketsPage() {
                             <span className="text-xs text-gray-400">{ticket.ticket_slug || `#${ticket.id}`}</span>
                             <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${PRIORITY_COLORS[ticket.priority]}`}>{ticket.priority}</span>
                           </div>
-                          <h4 onClick={() => router.push(`/tickets/${ticket.id}`)} className="font-medium text-gray-900 text-sm mb-1.5 line-clamp-2 cursor-pointer hover:text-indigo-700 transition-colors">{ticket.title}</h4>
+                          <h4 onClick={() => router.push(`/tickets/${ticket.ticket_slug || ticket.id}`)} className="font-medium text-gray-900 text-sm mb-1.5 line-clamp-2 cursor-pointer hover:text-indigo-700 transition-colors">{ticket.title}</h4>
                           <div className="flex items-center justify-between text-xs text-gray-400">
                             <span>{ticket.assigned_to_details?.username || 'Unassigned'}</span>
                             <select
@@ -356,7 +356,7 @@ function TicketsPage() {
                 <table className="w-full">
                   <tbody className="divide-y divide-gray-100">
                     {groupTickets.map(ticket => (
-                      <tr key={ticket.id} onClick={() => router.push(`/tickets/${ticket.id}`)} className="hover:bg-gray-50 cursor-pointer">
+                      <tr key={ticket.id} onClick={() => router.push(`/tickets/${ticket.ticket_slug || ticket.id}`)} className="hover:bg-gray-50 cursor-pointer">
                         <td className="px-4 py-3">
                           <div className="flex items-start gap-3">
                             <span className="text-xs text-gray-400 font-mono w-16 pt-0.5">{ticket.ticket_slug || `#${ticket.id}`}</span>

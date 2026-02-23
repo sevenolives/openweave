@@ -46,14 +46,16 @@ export default function TicketDetailPage() {
 
   const router = useRouter();
   const params = useParams();
-  const ticketId = parseInt(params.id as string);
+  const ticketIdParam = params.id as string;
+  const ticketId = ticketIdParam;
   const { toast } = useToast();
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
 
   const fetchData = async () => {
     try {
-      const [t, c, att] = await Promise.all([api.getTicket(ticketId), api.getComments({ ticket: ticketId.toString() }), api.getAttachments({ ticket: ticketId.toString() })]);
+      const t = await api.getTicket(ticketId);
+      const [c, att] = await Promise.all([api.getComments({ ticket: String(t.id) }), api.getAttachments({ ticket: String(t.id) })]);
       setTicket(t); setComments(c); setAttachments(att);
       // Fetch project agents for assignment dropdowns
       try {

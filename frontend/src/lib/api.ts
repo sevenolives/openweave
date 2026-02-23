@@ -355,7 +355,7 @@ class ApiClient {
     return response.results || [];
   }
 
-  async getTicket(id: number): Promise<Ticket> {
+  async getTicket(id: number | string): Promise<Ticket> {
     return this.request<Ticket>(`/tickets/${id}/`);
   }
 
@@ -366,14 +366,14 @@ class ApiClient {
     });
   }
 
-  async updateTicket(id: number, ticket: Partial<Ticket>): Promise<Ticket> {
+  async updateTicket(id: number | string, ticket: Partial<Ticket>): Promise<Ticket> {
     return this.request<Ticket>(`/tickets/${id}/`, {
       method: 'PATCH',
       body: JSON.stringify(ticket),
     });
   }
 
-  async deleteTicket(id: number): Promise<void> {
+  async deleteTicket(id: number | string): Promise<void> {
     await this.request(`/tickets/${id}/`, { method: 'DELETE' });
   }
 

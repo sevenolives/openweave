@@ -409,16 +409,36 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
 @extend_schema(tags=['tickets'])
 class TicketViewSet(viewsets.ModelViewSet):
-    """CRUD operations for tickets."""
+    """CRUD operations for tickets. Supports lookup by ID or ticket slug (e.g. SA-22)."""
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
     permission_classes = [permissions.IsAuthenticated]
+    lookup_value_regex = '[^/]+'  # Allow slugs with dashes
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_class = TicketFilter
     search_fields = ['title', 'description', 'assigned_to__username', 'project__name']
     ordering_fields = ['id', 'title', 'status', 'priority', 'created_at', 'updated_at']
     ordering = ['-created_at']
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
+
+    def get_object(self):
+        lookup = self.kwargs.get(self.lookup_field)
+        qs = self.get_queryset()
+        if lookup and not lookup.isdigit():
+            # Slug lookup: e.g. SA-22 → project.slug=SA, ticket_number=22
+            parts = lookup.rsplit('-', 1)
+            if len(parts) == 2 and parts[1].isdigit():
+                project_slug, ticket_num = parts[0], int(parts[1])
+                try:
+                    obj = qs.get(project__slug__iexact=project_slug, ticket_number=ticket_num)
+                    self.check_object_permissions(self.request, obj)
+                    return obj
+                except Ticket.DoesNotExist:
+                    from django.http import Http404
+                    raise Http404
+            from django.http import Http404
+            raise Http404
+        return super().get_object()
 
     def get_queryset(self):
         qs = Ticket.objects.select_related('project', 'assigned_to', 'created_by')

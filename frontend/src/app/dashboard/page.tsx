@@ -104,7 +104,7 @@ export default function DashboardPage() {
                     <div className="px-5 py-8 text-center text-sm text-gray-400">No tickets assigned to you</div>
                   ) : (
                     data.my_assigned.map((ticket: Ticket) => (
-                      <button key={ticket.id} onClick={() => router.push(`/tickets/${ticket.id}`)} className="w-full px-5 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left">
+                      <button key={ticket.id} onClick={() => router.push(`/tickets/${ticket.ticket_slug || ticket.id}`)} className="w-full px-5 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left">
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-900 truncate">{ticket.ticket_slug || `#${ticket.id}`} {ticket.title}</p>
                           <p className="text-xs text-gray-500">{ticket.project_name}</p>
@@ -126,7 +126,7 @@ export default function DashboardPage() {
                     <div className="px-5 py-8 text-center text-sm text-gray-400">No recent activity</div>
                   ) : (
                     data.recent_tickets.map((ticket: Ticket) => (
-                      <button key={ticket.id} onClick={() => router.push(`/tickets/${ticket.id}`)} className="w-full px-5 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left">
+                      <button key={ticket.id} onClick={() => router.push(`/tickets/${ticket.ticket_slug || ticket.id}`)} className="w-full px-5 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left">
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-900 truncate">{ticket.ticket_slug || `#${ticket.id}`} {ticket.title}</p>
                           <p className="text-xs text-gray-400">{new Date(ticket.updated_at).toLocaleString()}</p>
