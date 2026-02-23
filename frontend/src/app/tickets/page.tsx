@@ -67,15 +67,20 @@ function TicketsPage() {
   useEffect(() => {
     setLoading(true);
     const wsParams: Record<string, string> = currentWorkspace ? { workspace: String(currentWorkspace.id) } : {};
-    const ticketParams = { ...wsParams, page: String(page) };
+    const ticketParams: Record<string, string> = { ...wsParams, page: String(page) };
+    if (filterProject) ticketParams.project = String(filterProject);
     const membersPromise: Promise<User[]> = currentWorkspace
       ? api.getUsers({ workspace: String(currentWorkspace.id) })
       : Promise.resolve([]);
     Promise.all([api.getTicketsPaginated(ticketParams), api.getProjects(wsParams), membersPromise])
-      .then(([resp, p, u]) => { setTickets(resp.results || []); setTotalCount(resp.count || 0); setProjects(p); setWsUsers(u); })
+      .then(([resp, p, u]) => {
+        setTickets(resp.results || []); setTotalCount(resp.count || 0); setProjects(p); setWsUsers(u);
+        // Auto-select first project if none selected
+        if (!filterProject && p.length > 0) setFilterProject(p[0].id);
+      })
       .catch((e: any) => toast(e?.message || 'Failed to load data', 'error'))
       .finally(() => setLoading(false));
-  }, [currentWorkspace?.id, page]);
+  }, [currentWorkspace?.id, page, filterProject]);
 
   // Fetch project agents for all visible projects (for inline assign dropdown)
   useEffect(() => {
@@ -125,7 +130,8 @@ function TicketsPage() {
 
   const loadData = () => {
     const wsParams: Record<string, string> = currentWorkspace ? { workspace: String(currentWorkspace.id) } : {};
-    const ticketParams = { ...wsParams, page: String(page) };
+    const ticketParams: Record<string, string> = { ...wsParams, page: String(page) };
+    if (filterProject) ticketParams.project = String(filterProject);
     Promise.all([api.getTicketsPaginated(ticketParams), api.getProjects(wsParams)])
       .then(([resp, p]) => { setTickets(resp.results || []); setTotalCount(resp.count || 0); setProjects(p); })
       .catch((e: any) => toast(e?.message || 'Failed to load data', 'error'));
@@ -208,7 +214,7 @@ function TicketsPage() {
             <option value="HIGH">High</option>
             <option value="CRITICAL">Critical</option>
           </select>
-          <select value={filterProject} onChange={e => setFilterProject(Number(e.target.value) || '')} className="px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
+          <select value={filterProject} onChange={e => { setFilterProject(Number(e.target.value) || ''); setPage(1); }} className="px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
             <option value="">All projects</option>
             {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
