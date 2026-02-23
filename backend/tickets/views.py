@@ -448,9 +448,13 @@ class TicketViewSet(viewsets.ModelViewSet):
         return [IsAdminOrOwner()]
 
     def perform_update(self, serializer):
+        from django.core.exceptions import ValidationError as DjangoValidationError
         instance = serializer.instance
         instance._performed_by = self.request.user
-        serializer.save()
+        try:
+            serializer.save()
+        except DjangoValidationError as e:
+            raise serializers.ValidationError(e.message_dict if hasattr(e, 'message_dict') else {'detail': e.messages})
 
 
 @extend_schema(tags=['comments'])

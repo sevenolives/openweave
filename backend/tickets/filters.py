@@ -13,19 +13,7 @@ class TicketFilter(django_filters.FilterSet):
     # Search across title and description
     search = django_filters.CharFilter(method='search_tickets', label='Search')
     
-    # Filter by status (multiple values allowed)
-    status = django_filters.MultipleChoiceFilter(
-        choices=Ticket.STATUS_CHOICES,
-        field_name='status',
-        lookup_expr='in'
-    )
-    
-    # Filter by priority (multiple values allowed)
-    priority = django_filters.MultipleChoiceFilter(
-        choices=Ticket.PRIORITY_CHOICES,
-        field_name='priority',
-        lookup_expr='in'
-    )
+    # status and priority use Meta.fields for exact + __in lookups
     
     # Filter by assigned agent
     assigned_to = django_filters.ModelChoiceFilter(
