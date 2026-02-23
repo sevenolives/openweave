@@ -68,7 +68,7 @@ class TicketFilter(django_filters.FilterSet):
             'status': ['exact', 'in'],
             'priority': ['exact', 'in'],
             'ticket_type': ['exact', 'in'],
-            'approval': ['exact', 'in'],
+            'approved_status': ['exact', 'in'],
             'created_at': ['exact', 'gte', 'lte'],
             'updated_at': ['exact', 'gte', 'lte'],
         }

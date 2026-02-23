@@ -169,8 +169,8 @@ class Ticket(models.Model):
         ('FEATURE', 'Feature'),
     ]
 
-    APPROVAL_CHOICES = [
-        ('NEW', 'New'),
+    APPROVAL_STATUS_CHOICES = [
+        ('UNAPPROVED', 'Unapproved'),
         ('APPROVED', 'Approved'),
     ]
     
@@ -189,7 +189,7 @@ class Ticket(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='OPEN')
     priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='MEDIUM')
     ticket_type = models.CharField(max_length=20, choices=TICKET_TYPE_CHOICES, default='BUG')
-    approval = models.CharField(max_length=20, choices=APPROVAL_CHOICES, default='NEW')
+    approved_status = models.CharField(max_length=20, choices=APPROVAL_STATUS_CHOICES, default='UNAPPROVED')
     
     # Assignment - one agent or null
     assigned_to = models.ForeignKey(

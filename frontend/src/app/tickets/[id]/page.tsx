@@ -33,7 +33,7 @@ export default function TicketDetailPage() {
   const [editStatus, setEditStatus] = useState('');
   const [editPriority, setEditPriority] = useState('');
   const [editTicketType, setEditTicketType] = useState('BUG');
-  const [editApproval, setEditApproval] = useState('NEW');
+  const [editApproval, setEditApproval] = useState('UNAPPROVED');
   const [editAssigned, setEditAssigned] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
@@ -51,7 +51,7 @@ export default function TicketDetailPage() {
       const [t, c, a] = await Promise.all([api.getTicket(ticketId), api.getComments({ ticket: ticketId.toString() }), api.getUsers()]);
       setTicket(t); setComments(c); setAgents(a);
       setEditTitle(t.title); setEditDesc(t.description); setEditStatus(t.status);
-      setEditPriority(t.priority); setEditTicketType(t.ticket_type); setEditApproval(t.approval); setEditAssigned(t.assigned_to?.toString() || '');
+      setEditPriority(t.priority); setEditTicketType(t.ticket_type); setEditApproval(t.approved_status); setEditAssigned(t.assigned_to?.toString() || '');
     } catch (e: any) { toast(e?.message || 'Failed to load ticket', 'error'); }
     finally { setLoading(false); }
   };
@@ -74,7 +74,7 @@ export default function TicketDetailPage() {
     try {
       const updated = await api.updateTicket(ticket.id, {
         title: editTitle, description: editDesc,
-        status: editStatus as Ticket['status'], priority: editPriority as Ticket['priority'], ticket_type: editTicketType as Ticket['ticket_type'], approval: editApproval as Ticket['approval'],
+        status: editStatus as Ticket['status'], priority: editPriority as Ticket['priority'], ticket_type: editTicketType as Ticket['ticket_type'], approved_status: editApproval as Ticket['approved_status'],
         assigned_to: editAssigned ? parseInt(editAssigned) : null,
       });
       setTicket(updated); setEditing(false);
@@ -148,9 +148,9 @@ export default function TicketDetailPage() {
                           <option value="BUG">🐛 Bug</option><option value="FEATURE">✨ Feature</option>
                         </select>
                       </FormField>
-                      <FormField label="Approval" error={fieldErrors.approval}>
-                        <select value={editApproval} onChange={e => setEditApproval(e.target.value)} className={`${inputClass(fieldErrors.approval)} bg-white`}>
-                          <option value="NEW">● New</option><option value="APPROVED">✓ Approved</option>
+                      <FormField label="Approved Status" error={fieldErrors.approved_status}>
+                        <select value={editApproval} onChange={e => setEditApproval(e.target.value)} className={`${inputClass(fieldErrors.approved_status)} bg-white`}>
+                          <option value="UNAPPROVED">Unapproved</option><option value="APPROVED">✓ Approved</option>
                         </select>
                       </FormField>
                     </div>
@@ -303,8 +303,8 @@ export default function TicketDetailPage() {
                     <dd><span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700">{ticket.ticket_type === 'BUG' ? '🐛 Bug' : '✨ Feature'}</span></dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-medium text-gray-500 mb-1">Approval</dt>
-                    <dd><span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${ticket.approval === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{ticket.approval === 'APPROVED' ? '✓ Approved' : '● New'}</span></dd>
+                    <dt className="text-xs font-medium text-gray-500 mb-1">Approved Status</dt>
+                    <dd><span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${ticket.approved_status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{ticket.approved_status === 'APPROVED' ? '✓ Approved' : 'Unapproved'}</span></dd>
                   </div>
                   <div>
                     <dt className="text-xs font-medium text-gray-500 mb-1">Project</dt>

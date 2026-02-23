@@ -275,9 +275,9 @@ Used by automated cron checks and manual QA. Each section lists what to verify a
 | 6.9 | Invalid status transition | `PATCH /api/tickets/{id}/` bad status | 400 (not 500) |
 | 6.10 | Filter by ticket type | `GET /api/tickets/?ticket_type=BUG` | 200, only BUG |
 | 6.11 | Filter by multiple types | `GET /api/tickets/?ticket_type__in=BUG,FEATURE` | 200, both types |
-| 6.12 | Filter by approval | `GET /api/tickets/?approval=APPROVED` | 200, only approved |
+| 6.12 | Filter by approval | `GET /api/tickets/?approved_status=APPROVED` | 200, only approved |
 | 6.13 | Set ticket type | `POST /api/tickets/` with `ticket_type=FEATURE` | 201, type saved |
-| 6.14 | Set approval | `PATCH /api/tickets/{id}/` with `approval=APPROVED` | 200 |
+| 6.14 | Set approval | `PATCH /api/tickets/{id}/` with `approved_status=APPROVED` | 200 |
 | 6.15 | Delete user | `DELETE /api/users/{id}/` | 204 (admin only) |
 
 ### Comments
@@ -311,11 +311,11 @@ Used by automated cron checks and manual QA. Each section lists what to verify a
 | # | Requirement | Detail |
 |---|-------------|--------|
 | 11.1 | Ticket types | Every ticket has a `ticket_type`: `BUG` or `FEATURE` (default: BUG) |
-| 11.2 | Approval states | Every ticket has an `approval` state: `NEW` (default) or `APPROVED` |
-| 11.3 | Bots can create tickets | Bots create bugs/features they discover while working. New tickets default to `approval=NEW` |
-| 11.4 | Approval gate | Bots may only work on tickets with `approval=APPROVED`. Human must approve first |
-| 11.5 | Filtering | `ticket_type` and `approval` support `exact` and `__in` lookups via django-filter |
-| 11.6 | Bot heartbeat query | Bots fetch approved work: `?ticket_type__in=BUG,FEATURE&approval=APPROVED&status__in=OPEN,IN_PROGRESS` |
+| 11.2 | Approval states | Every ticket has an `approved_status` state: `UNAPPROVED` (default) or `APPROVED` |
+| 11.3 | Bots can create tickets | Bots create bugs/features they discover while working. New tickets default to `approved_status=UNAPPROVED` |
+| 11.4 | Approval gate | Bots may only work on tickets with `approved_status=APPROVED`. Human must approve first |
+| 11.5 | Filtering | `ticket_type` and `approved_status` support `exact` and `__in` lookups via django-filter |
+| 11.6 | Bot heartbeat query | Bots fetch approved work: `?ticket_type__in=BUG,FEATURE&approved_status=APPROVED&status__in=OPEN,IN_PROGRESS` |
 | 11.7 | Invite deletion | Workspace owner/admin can delete invite codes |
 
 ### Known Bugs
