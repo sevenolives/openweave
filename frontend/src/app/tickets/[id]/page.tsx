@@ -202,6 +202,29 @@ export default function TicketDetailPage() {
                         ))}
                       </div>
                     </div>
+
+                    {/* Quick approved status toggle */}
+                    <div className="mt-4">
+                      <label className="block text-xs font-medium text-gray-500 mb-2">Approved Status</label>
+                      <div className="flex gap-2">
+                        {(['UNAPPROVED', 'APPROVED'] as const).map(s => (
+                          <button key={s} onClick={async () => {
+                            try {
+                              const updated = await api.updateTicket(ticket.id, { approved_status: s });
+                              setTicket(updated);
+                              toast(`Marked as ${s.toLowerCase()}`);
+                            } catch (e: any) { toast(e?.message || 'Failed to update', 'error'); }
+                          }}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                              ticket.approved_status === s
+                                ? (s === 'APPROVED' ? 'bg-green-100 text-green-700 ring-2 ring-offset-1 ring-green-400' : 'bg-yellow-100 text-yellow-700 ring-2 ring-offset-1 ring-yellow-400')
+                                : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                            }`}>
+                            {s === 'APPROVED' ? '✓ Approved' : 'Unapproved'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </>
                 )}
               </div>
