@@ -53,16 +53,13 @@ export default function TicketDetailPage() {
 
   const fetchData = async () => {
     try {
-      const agentsPromise: Promise<User[]> = currentWorkspace
-        ? api.getUsers({ workspace: String(currentWorkspace.id) })
-        : Promise.resolve([]);
-      const [t, c, a, att] = await Promise.all([api.getTicket(ticketId), api.getComments({ ticket: ticketId.toString() }), agentsPromise, api.getAttachments({ ticket: ticketId.toString() })]);
-      setTicket(t); setComments(c); setAgents(a); setAttachments(att);
+      const [t, c, att] = await Promise.all([api.getTicket(ticketId), api.getComments({ ticket: ticketId.toString() }), api.getAttachments({ ticket: ticketId.toString() })]);
+      setTicket(t); setComments(c); setAttachments(att);
       // Fetch project agents for assignment dropdowns
       try {
         const pAgents = await api.getProjectAgents(t.project);
-        setProjectAgents(pAgents);
-      } catch { setProjectAgents(a); }
+        setAgents(pAgents); setProjectAgents(pAgents);
+      } catch { setAgents([]); setProjectAgents([]); }
       setEditTitle(t.title); setEditDesc(t.description); setEditStatus(t.status);
       setEditPriority(t.priority); setEditTicketType(t.ticket_type); setEditApproval(t.approved_status); setEditAssigned(t.assigned_to?.toString() || '');
     } catch (e: any) { toast(e?.message || 'Failed to load ticket', 'error'); }
