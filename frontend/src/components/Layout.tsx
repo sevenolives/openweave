@@ -19,10 +19,10 @@ function getBreadcrumbs(pathname: string): { label: string; href?: string }[] {
   if (parts[0] === 'dashboard') crumbs.push({ label: 'Dashboard' });
   else if (parts[0] === 'projects') {
     crumbs.push({ label: 'Projects', href: parts.length > 1 ? '/projects' : undefined });
-    if (parts[1]) crumbs.push({ label: `Project #${parts[1]}` });
+    if (parts[1]) crumbs.push({ label: 'Project Settings' });
   } else if (parts[0] === 'tickets') {
     crumbs.push({ label: 'Tickets', href: parts.length > 1 ? '/tickets' : undefined });
-    if (parts[1]) crumbs.push({ label: `Ticket #${parts[1]}` });
+    if (parts[1]) crumbs.push({ label: 'Ticket Details' });
   } else if (parts[0] === 'agents') crumbs.push({ label: 'Team' });
   else if (parts[0] === 'settings') crumbs.push({ label: 'Settings' });
   return crumbs;
