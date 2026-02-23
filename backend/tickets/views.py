@@ -240,7 +240,7 @@ class UserViewSet(viewsets.ModelViewSet):
         # Get all workspace IDs the user belongs to (as member or owner)
         member_ws = WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True)
         owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
-        ws_ids = set(list(member_ws) | list(owned_ws))
+        ws_ids = list(set(list(member_ws) + list(owned_ws)))
         if not ws_ids:
             return User.objects.filter(id=user.id)
         # Users who are members or owners of those workspaces
@@ -323,12 +323,14 @@ class ProjectViewSet(viewsets.ModelViewSet):
             return qs.all()
         # Show projects in workspaces the user belongs to (as member or owner)
         from django.db.models import Q
-        member_ws = WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True)
-        owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
-        ws_ids = set(list(member_ws) | list(owned_ws))
-        return qs.filter(
-            Q(workspace_id__in=ws_ids) | Q(agents=user)
-        ).distinct()
+        member_ws = list(WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True))
+        owned_ws = list(Workspace.objects.filter(owner=user).values_list('id', flat=True))
+        ws_ids = list(set(member_ws + owned_ws))
+        if ws_ids:
+            return qs.filter(
+                Q(workspace_id__in=ws_ids) | Q(agents=user)
+            ).distinct()
+        return qs.filter(agents=user).distinct()
 
     @extend_schema(
         summary="List projects",
@@ -412,7 +414,7 @@ class TicketViewSet(viewsets.ModelViewSet):
         from django.db.models import Q
         member_ws = WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True)
         owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
-        ws_ids = set(list(member_ws) | list(owned_ws))
+        ws_ids = list(set(list(member_ws) + list(owned_ws)))
         return qs.filter(
             Q(project__agents=user) | Q(project__workspace_id__in=ws_ids)
         ).distinct()
@@ -526,7 +528,7 @@ class TicketAttachmentViewSet(viewsets.ModelViewSet):
         from django.db.models import Q
         member_ws = WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True)
         owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
-        ws_ids = set(list(member_ws) | list(owned_ws))
+        ws_ids = list(set(list(member_ws) + list(owned_ws)))
         return qs.filter(
             Q(ticket__project__agents=user) | Q(ticket__project__workspace_id__in=ws_ids)
         ).distinct()
@@ -593,7 +595,7 @@ class CommentViewSet(viewsets.ModelViewSet):
         from django.db.models import Q
         member_ws = WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True)
         owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
-        ws_ids = set(list(member_ws) | list(owned_ws))
+        ws_ids = list(set(list(member_ws) + list(owned_ws)))
         return qs.filter(
             Q(ticket__project__agents=user) | Q(ticket__project__workspace_id__in=ws_ids)
         ).distinct()
