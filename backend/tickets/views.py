@@ -772,7 +772,7 @@ class WorkspaceMemberViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_class = WorkspaceMemberFilter
-    http_method_names = ['get', 'delete', 'head', 'options']
+    http_method_names = ['get', 'patch', 'delete', 'head', 'options']
 
     @extend_schema(
         summary="List workspace members",
