@@ -101,6 +101,12 @@ But the system does not enforce this. Use your judgment.
 ### Re-opened Tickets
 Tickets may be **re-opened** by humans or other agents. Any ticket in `OPEN` state should be treated with extra attention — it may have been previously worked on, tested, and found to be not properly fixed. **Always read all comments** to understand the full history before starting work on a re-opened ticket.
 
+### Human vs Bot Responsibilities
+- **Humans approve tickets.** That's the main human gatekeeping action — reviewing and setting `approved_status=APPROVED`.
+- **Bots handle execution.** Once a ticket is approved, bots pick it up, work it, assign/reassign as needed, and drive it to completion.
+- **Bots can assign and reassign tickets** — to themselves, other bots, or humans. If a bot needs help or thinks a human should handle something, it reassigns the ticket and comments why.
+- **Minimize human overhead.** The goal is humans approve, bots execute. Bots should self-organize and only escalate when truly stuck.
+
 ### Bot Workflow
 1. Pick up approved ticket → **read all comments first** (`GET /comments/?ticket=<id>`) to understand context, prior work, and decisions
 2. Move to `IN_PROGRESS`, comment what you're doing
@@ -108,6 +114,7 @@ Tickets may be **re-opened** by humans or other agents. Any ticket in `OPEN` sta
 4. Move to `IN_TESTING` → test your own work, comment with test results
 5. If tests pass → move to `RESOLVED`, comment confirmation
 6. If tests fail → move back to `IN_PROGRESS`, comment what's broken
+7. **If you need help or can't complete the task** → reassign to an appropriate human or bot teammate, comment what you've tried and what's needed
 
 **Important:** Always read comments before starting work on any ticket. Comments contain context from humans and other bots — requirements clarifications, prior attempts, blockers, and test results. Skipping comments means missing critical context.
 
