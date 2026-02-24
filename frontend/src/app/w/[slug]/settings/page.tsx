@@ -305,52 +305,63 @@ export default function WorkspaceSettingsPage() {
               {/* Status list */}
               <div className="space-y-2 mb-4">
                 {statuses.map(sd => (
-                  <div key={sd.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-200 transition">
-                    <div className={`w-3 h-3 rounded-full flex-shrink-0 ${COLOR_CLASSES[sd.color] || 'bg-gray-400'}`} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-900">{sd.label}</span>
-                        <span className="text-xs font-mono text-gray-400">{sd.key}</span>
-                        {sd.is_terminal && <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">Terminal</span>}
-                        {sd.is_default && <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-600">Default</span>}
-                        {sd.in_use && <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-600">In Use</span>}
-                      </div>
+                  <div key={sd.id} className="p-3 rounded-lg border border-gray-100 hover:border-gray-200 transition">
+                    {/* Row 1: Color dot + label display + badges + actions */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className={`w-3 h-3 rounded-full flex-shrink-0 ${COLOR_CLASSES[sd.color] || 'bg-gray-400'}`} />
+                      <span className="text-sm font-semibold text-gray-900">{sd.label}</span>
+                      <span className="text-xs font-mono text-gray-400">{sd.key}</span>
+                      <div className="flex-1" />
+                      {!sd.is_default && (
+                        <button onClick={() => handleSetDefault(sd)} className="text-xs text-indigo-600 hover:text-indigo-800 p-1.5 rounded hover:bg-indigo-50 min-w-[44px] min-h-[44px] flex items-center justify-center" title="Set as default">⭐</button>
+                      )}
+                      {!sd.in_use && !sd.is_default && (
+                        <button onClick={() => handleDeleteStatus(sd)} className="text-xs text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-50 min-w-[44px] min-h-[44px] flex items-center justify-center" title="Delete status">🗑️</button>
+                      )}
                     </div>
-                    <select value={sd.color} onChange={e => handleUpdateStatus(sd.id, { color: e.target.value })} className="text-xs border border-gray-200 rounded px-2 py-1 bg-white">
-                      {COLORS.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                    <input type="text" value={sd.label} className="text-sm border border-gray-200 rounded px-2 py-1 w-28" onBlur={e => { if (e.target.value !== sd.label) handleUpdateStatus(sd.id, { label: e.target.value }); }} onChange={e => { setStatuses(prev => prev.map(s => s.id === sd.id ? { ...s, label: e.target.value } : s)); }} />
-                    {!sd.is_default && (
-                      <button onClick={() => handleSetDefault(sd)} className="text-xs text-indigo-600 hover:text-indigo-800 px-2 py-1 rounded hover:bg-indigo-50" title="Set as default">⭐</button>
-                    )}
-                    {!sd.in_use && !sd.is_default && (
-                      <button onClick={() => handleDeleteStatus(sd)} className="text-xs text-red-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50 min-w-[32px] min-h-[32px] flex items-center justify-center" title="Delete status">🗑️</button>
-                    )}
+                    {/* Row 2: Badges */}
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {sd.is_terminal && <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">Terminal</span>}
+                      {sd.is_default && <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-600">Default</span>}
+                      {sd.in_use && <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-600">In Use</span>}
+                    </div>
+                    {/* Row 3: Edit controls */}
+                    <div className="flex gap-2">
+                      <input type="text" value={sd.label} className="text-sm border border-gray-200 rounded px-2 py-1.5 flex-1 min-w-0" onBlur={e => { if (e.target.value !== sd.label) handleUpdateStatus(sd.id, { label: e.target.value }); }} onChange={e => { setStatuses(prev => prev.map(s => s.id === sd.id ? { ...s, label: e.target.value } : s)); }} />
+                      <select value={sd.color} onChange={e => handleUpdateStatus(sd.id, { color: e.target.value })} className="text-sm border border-gray-200 rounded px-2 py-1.5 bg-white">
+                        {COLORS.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
                   </div>
                 ))}
               </div>
 
               {/* Add new status */}
-              <div className="flex flex-wrap items-end gap-2 p-3 rounded-lg border border-dashed border-gray-200 bg-gray-50">
-                <div>
-                  <label className="text-xs text-gray-500 block mb-1">Key</label>
-                  <input type="text" value={newStatusKey} onChange={e => setNewStatusKey(e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, ''))} placeholder="e.g. QA_REVIEW" className="text-sm border border-gray-300 rounded px-2 py-1.5 w-28 font-mono" />
+              <div className="p-3 rounded-lg border border-dashed border-gray-200 bg-gray-50 space-y-3">
+                <p className="text-xs font-medium text-gray-500">Add new status</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">Key</label>
+                    <input type="text" value={newStatusKey} onChange={e => setNewStatusKey(e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, ''))} placeholder="QA_REVIEW" className="text-sm border border-gray-300 rounded px-2 py-2 w-full font-mono" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">Label</label>
+                    <input type="text" value={newStatusLabel} onChange={e => setNewStatusLabel(e.target.value)} placeholder="QA Review" className="text-sm border border-gray-300 rounded px-2 py-2 w-full" />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-xs text-gray-500 block mb-1">Label</label>
-                  <input type="text" value={newStatusLabel} onChange={e => setNewStatusLabel(e.target.value)} placeholder="e.g. QA Review" className="text-sm border border-gray-300 rounded px-2 py-1.5 w-28" />
+                <div className="flex items-center gap-3">
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">Color</label>
+                    <select value={newStatusColor} onChange={e => setNewStatusColor(e.target.value)} className="text-sm border border-gray-300 rounded px-2 py-2 bg-white">
+                      {COLORS.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer mt-4">
+                    <input type="checkbox" checked={newStatusTerminal} onChange={e => setNewStatusTerminal(e.target.checked)} className="rounded" />
+                    Terminal
+                  </label>
                 </div>
-                <div>
-                  <label className="text-xs text-gray-500 block mb-1">Color</label>
-                  <select value={newStatusColor} onChange={e => setNewStatusColor(e.target.value)} className="text-sm border border-gray-300 rounded px-2 py-1.5 bg-white">
-                    {COLORS.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-                <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
-                  <input type="checkbox" checked={newStatusTerminal} onChange={e => setNewStatusTerminal(e.target.checked)} className="rounded" />
-                  Terminal
-                </label>
-                <button onClick={handleAddStatus} disabled={addingStatus || !newStatusKey.trim() || !newStatusLabel.trim()} className="px-3 py-1.5 bg-indigo-600 text-white rounded text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition">
+                <button onClick={handleAddStatus} disabled={addingStatus || !newStatusKey.trim() || !newStatusLabel.trim()} className="w-full px-3 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition min-h-[44px]">
                   {addingStatus ? 'Adding…' : '+ Add Status'}
                 </button>
               </div>
