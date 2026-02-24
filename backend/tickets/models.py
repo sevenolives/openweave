@@ -113,6 +113,51 @@ class WorkspaceInvite(models.Model):
         ordering = ['-created_at']
 
 
+class StatusDefinition(models.Model):
+    """
+    A status that tickets can have, defined per workspace.
+    Editable state machine — workspace-level, inheritable by projects.
+    """
+    workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name='status_definitions')
+    key = models.CharField(max_length=30, help_text="Immutable key, e.g. IN_PROGRESS")
+    label = models.CharField(max_length=50, help_text="Display label, e.g. 'In Progress'")
+    color = models.CharField(max_length=30, default='gray', help_text="Color token, e.g. 'blue', 'red', '#ff0000'")
+    is_terminal = models.BooleanField(default=False, help_text="Terminal states cannot transition out")
+    is_default = models.BooleanField(default=False, help_text="Default status for new tickets")
+    position = models.PositiveIntegerField(default=0, help_text="Display order")
+
+    class Meta:
+        db_table = 'status_definitions'
+        unique_together = ('workspace', 'key')
+        ordering = ['position']
+
+    def __str__(self):
+        return f"{self.label} ({self.key}) — {self.workspace.name}"
+
+
+class StatusTransition(models.Model):
+    """
+    Allowed transition between two statuses for a given actor type.
+    """
+    ACTOR_TYPES = [
+        ('BOT', 'Bot'),
+        ('HUMAN', 'Human'),
+        ('ALL', 'All'),
+    ]
+    workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name='status_transitions')
+    from_status = models.ForeignKey(StatusDefinition, on_delete=models.CASCADE, related_name='transitions_from')
+    to_status = models.ForeignKey(StatusDefinition, on_delete=models.CASCADE, related_name='transitions_to')
+    actor_type = models.CharField(max_length=10, choices=ACTOR_TYPES, default='ALL')
+
+    class Meta:
+        db_table = 'status_transitions'
+        unique_together = ('workspace', 'from_status', 'to_status', 'actor_type')
+        ordering = ['from_status__position', 'to_status__position']
+
+    def __str__(self):
+        return f"{self.from_status.key} → {self.to_status.key} ({self.actor_type})"
+
+
 class Project(models.Model):
     """
     Groups related tickets and agents.
@@ -164,26 +209,8 @@ class Ticket(models.Model):
     Status flow: OPEN → IN_PROGRESS → IN_TESTING → REVIEW → COMPLETED
     Can move to BLOCKED from IN_PROGRESS and back.
     """
-    STATUS_CHOICES = [
-        ('OPEN', 'Open'),
-        ('IN_PROGRESS', 'In Progress'),
-        ('BLOCKED', 'Blocked'),
-        ('IN_TESTING', 'In Testing'),
-        ('REVIEW', 'Review'),
-        ('COMPLETED', 'Completed'),
-        ('CANCELLED', 'Cancelled'),
-    ]
-
-    # Bot-enforced status transitions. Humans can go any→any.
-    BOT_TRANSITIONS = {
-        'OPEN': ['IN_PROGRESS', 'CANCELLED'],
-        'IN_PROGRESS': ['BLOCKED', 'IN_TESTING', 'REVIEW', 'CANCELLED'],
-        'BLOCKED': ['IN_PROGRESS', 'CANCELLED'],
-        'IN_TESTING': ['IN_PROGRESS', 'REVIEW', 'BLOCKED'],
-        'REVIEW': ['IN_PROGRESS', 'IN_TESTING', 'COMPLETED'],
-        'COMPLETED': [],  # terminal
-        'CANCELLED': [],  # terminal
-    }
+    # Status is stored as the key string from StatusDefinition.
+    # Validation against allowed statuses and transitions happens in the serializer.
     
     PRIORITY_CHOICES = [
         ('LOW', 'Low'),
@@ -202,14 +229,11 @@ class Ticket(models.Model):
         ('APPROVED', 'Approved'),
     ]
     
-    # Terminal statuses
-    TERMINAL_STATUSES = ['COMPLETED', 'CANCELLED']
-    
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='tickets')
     ticket_number = models.PositiveIntegerField(null=True, blank=True, help_text="Project-scoped ticket number")
     title = models.CharField(max_length=500)
     description = models.TextField()
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='OPEN')
+    status = models.CharField(max_length=30, default='OPEN')
     priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='MEDIUM')
     ticket_type = models.CharField(max_length=20, choices=TICKET_TYPE_CHOICES, default='BUG')
     approved_status = models.CharField(max_length=20, choices=APPROVAL_STATUS_CHOICES, default='UNAPPROVED')
@@ -238,18 +262,22 @@ class Ticket(models.Model):
 
     def clean(self):
         """
-        Set timestamp fields on status changes.
+        Set timestamp fields on status changes using StatusDefinition.is_terminal.
         """
         if self.pk:
             old_ticket = Ticket.objects.get(pk=self.pk)
             old_status = old_ticket.status
             
             if old_status != self.status:
-                if self.status == 'COMPLETED' and old_status != 'COMPLETED':
-                    self.resolved_at = timezone.now()
-                    self.closed_at = timezone.now()
-                elif self.status == 'CANCELLED' and old_status != 'CANCELLED':
-                    self.closed_at = timezone.now()
+                # Check if new status is terminal via StatusDefinition
+                ws_id = self.project.workspace_id if self.project and self.project.workspace_id else None
+                if ws_id:
+                    is_terminal = StatusDefinition.objects.filter(
+                        workspace_id=ws_id, key=self.status, is_terminal=True
+                    ).exists()
+                    if is_terminal:
+                        self.resolved_at = self.resolved_at or timezone.now()
+                        self.closed_at = timezone.now()
     
     def save(self, *args, **kwargs):
         if not self.ticket_number and self.project_id:

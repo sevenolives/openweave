@@ -124,15 +124,32 @@ export interface PaginatedResponse<T> {
   results: T[];
 }
 
+export interface StatusDefinition {
+  id: number;
+  workspace: number;
+  key: string;
+  label: string;
+  color: string;
+  is_terminal: boolean;
+  is_default: boolean;
+  position: number;
+  in_use: boolean;
+}
+
+export interface StatusTransition {
+  id: number;
+  workspace: number;
+  from_status: number;
+  to_status: number;
+  from_status_key: string;
+  to_status_key: string;
+  actor_type: 'BOT' | 'HUMAN' | 'ALL';
+}
+
 export interface DashboardStats {
   total_tickets: number;
-  open: number;
-  in_progress: number;
-  in_testing: number;
-  blocked: number;
-  review: number;
-  completed: number;
-  cancelled: number;
+  status_counts: Record<string, number>;
+  statuses: StatusDefinition[];
   completed_today: number;
   total_projects: number;
   total_members: number;
@@ -435,6 +452,36 @@ class ApiClient {
   async getDashboard(params: Record<string, string>): Promise<DashboardStats> {
     const query = '?' + new URLSearchParams(params).toString();
     return this.request<DashboardStats>(`/dashboard/${query}`);
+  }
+
+  async getStatusDefinitions(workspaceId: number): Promise<StatusDefinition[]> {
+    const res = await this.request<{ results: StatusDefinition[] }>(`/status-definitions/?workspace=${workspaceId}&page_size=100`);
+    return res.results;
+  }
+
+  async createStatusDefinition(data: Partial<StatusDefinition>): Promise<StatusDefinition> {
+    return this.request<StatusDefinition>('/status-definitions/', { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  async updateStatusDefinition(id: number, data: Partial<StatusDefinition>): Promise<StatusDefinition> {
+    return this.request<StatusDefinition>(`/status-definitions/${id}/`, { method: 'PATCH', body: JSON.stringify(data) });
+  }
+
+  async deleteStatusDefinition(id: number): Promise<void> {
+    await this.request<void>(`/status-definitions/${id}/`, { method: 'DELETE' });
+  }
+
+  async getStatusTransitions(workspaceId: number): Promise<StatusTransition[]> {
+    const res = await this.request<{ results: StatusTransition[] }>(`/status-transitions/?workspace=${workspaceId}&page_size=500`);
+    return res.results;
+  }
+
+  async createStatusTransition(data: Partial<StatusTransition>): Promise<StatusTransition> {
+    return this.request<StatusTransition>('/status-transitions/', { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  async deleteStatusTransition(id: number): Promise<void> {
+    await this.request<void>(`/status-transitions/${id}/`, { method: 'DELETE' });
   }
 
   async updateMyProfile(data: { name?: string; email?: string; description?: string; skills?: string[] }): Promise<User> {

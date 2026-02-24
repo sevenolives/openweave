@@ -10,12 +10,16 @@ from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiParameter, inline_serializer
 from drf_spectacular.types import OpenApiTypes
 from rest_framework import serializers as drf_serializers
-from .models import User, Project, Ticket, Comment, AuditLog, ProjectAgent, Workspace, WorkspaceMember, WorkspaceInvite, TicketAttachment
+from .models import (
+    User, Project, Ticket, Comment, AuditLog, ProjectAgent, Workspace,
+    WorkspaceMember, WorkspaceInvite, TicketAttachment, StatusDefinition, StatusTransition,
+)
 from .serializers import (
     UserSerializer, ProjectSerializer, TicketSerializer,
     CommentSerializer, AuditLogSerializer,
     WorkspaceSerializer, WorkspaceMemberSerializer, WorkspaceInviteSerializer,
     JoinRequestSerializer, TicketAttachmentSerializer,
+    StatusDefinitionSerializer, StatusTransitionSerializer,
 )
 from .permissions import (
     IsAdminAgent, IsAdminOrReadOnly, IsAdminOrOwner, is_admin_or_owner,
@@ -876,6 +880,92 @@ class WorkspaceInviteViewSet(viewsets.ModelViewSet):
         instance.delete()
 
 
+@extend_schema(tags=['statuses'])
+class StatusDefinitionViewSet(viewsets.ModelViewSet):
+    """Manage workspace status definitions (state machine config)."""
+    queryset = StatusDefinition.objects.all()
+    serializer_class = StatusDefinitionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['workspace']
+    ordering_fields = ['position']
+    ordering = ['position']
+    http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
+
+    def get_queryset(self):
+        qs = StatusDefinition.objects.all()
+        user = self.request.user
+        if user.is_superuser or is_admin_or_owner(user):
+            return qs
+        from django.db.models import Q
+        member_ws = WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True)
+        owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
+        return qs.filter(workspace_id__in=set(list(member_ws) + list(owned_ws)))
+
+    def check_object_permissions(self, request, obj):
+        super().check_object_permissions(request, obj)
+        if request.method not in ('GET', 'HEAD', 'OPTIONS'):
+            if obj.workspace.owner == request.user:
+                return
+            membership = WorkspaceMember.objects.filter(
+                workspace=obj.workspace, user=request.user, role='ADMIN'
+            ).first()
+            if not membership and not is_admin_or_owner(request.user):
+                self.permission_denied(request)
+
+    def perform_destroy(self, instance):
+        from django.db import models as db_models
+        # Cannot delete if tickets use this status
+        in_use = Ticket.objects.filter(
+            project__workspace=instance.workspace, status=instance.key
+        ).exists()
+        if in_use:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError(
+                f"Cannot delete status '{instance.label}' — tickets are using it. "
+                "Reassign those tickets first."
+            )
+        if instance.is_default:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError("Cannot delete the default status.")
+        StatusTransition.objects.filter(
+            db_models.Q(from_status=instance) | db_models.Q(to_status=instance)
+        ).delete()
+        instance.delete()
+
+
+@extend_schema(tags=['statuses'])
+class StatusTransitionViewSet(viewsets.ModelViewSet):
+    """Manage status transitions (state machine edges)."""
+    queryset = StatusTransition.objects.select_related('from_status', 'to_status')
+    serializer_class = StatusTransitionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['workspace', 'actor_type', 'from_status', 'to_status']
+    http_method_names = ['get', 'post', 'delete', 'head', 'options']
+
+    def get_queryset(self):
+        qs = StatusTransition.objects.select_related('from_status', 'to_status')
+        user = self.request.user
+        if user.is_superuser or is_admin_or_owner(user):
+            return qs
+        from django.db.models import Q
+        member_ws = WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True)
+        owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
+        return qs.filter(workspace_id__in=set(list(member_ws) + list(owned_ws)))
+
+    def check_object_permissions(self, request, obj):
+        super().check_object_permissions(request, obj)
+        if request.method not in ('GET', 'HEAD', 'OPTIONS'):
+            if obj.workspace.owner == request.user:
+                return
+            membership = WorkspaceMember.objects.filter(
+                workspace=obj.workspace, user=request.user, role='ADMIN'
+            ).first()
+            if not membership and not is_admin_or_owner(request.user):
+                self.permission_denied(request)
+
+
 class DashboardView(APIView):
     """Dashboard stats for a workspace."""
     permission_classes = [permissions.IsAuthenticated]
@@ -922,40 +1012,31 @@ class DashboardView(APIView):
         tickets = Ticket.objects.filter(project__workspace_id=ws_id)
         today = timezone.now().date()
 
-        stats = tickets.aggregate(
-            total=Count('id'),
-            open=Count('id', filter=Q(status='OPEN')),
-            in_progress=Count('id', filter=Q(status='IN_PROGRESS')),
-            in_testing=Count('id', filter=Q(status='IN_TESTING')),
-            blocked=Count('id', filter=Q(status='BLOCKED')),
-            review=Count('id', filter=Q(status='REVIEW')),
-            completed=Count('id', filter=Q(status='COMPLETED')),
-            cancelled=Count('id', filter=Q(status='CANCELLED')),
-            completed_today=Count('id', filter=Q(resolved_at__date=today)),
-        )
+        # Dynamic status counts from StatusDefinition
+        status_defs = StatusDefinition.objects.filter(workspace_id=ws_id).order_by('position')
+        terminal_keys = [sd.key for sd in status_defs if sd.is_terminal]
+
+        status_counts = {}
+        for sd in status_defs:
+            status_counts[sd.key] = tickets.filter(status=sd.key).count()
 
         total_projects = Project.objects.filter(workspace_id=ws_id).count()
-        total_members = WorkspaceMember.objects.filter(workspace_id=ws_id).count() + 1  # +1 for owner
+        total_members = WorkspaceMember.objects.filter(workspace_id=ws_id).count() + 1
 
         my_assigned = tickets.filter(assigned_to=request.user).exclude(
-            status__in=['COMPLETED', 'CANCELLED']
+            status__in=terminal_keys
         ).select_related('project', 'assigned_to', 'created_by').order_by('-updated_at')[:5]
 
         recent = tickets.select_related('project', 'assigned_to', 'created_by').order_by('-updated_at')[:8]
 
         return Response({
-            'total_tickets': stats['total'],
-            'open': stats['open'],
-            'in_progress': stats['in_progress'],
-            'in_testing': stats['in_testing'],
-            'blocked': stats['blocked'],
-            'review': stats['review'],
-            'completed': stats['completed'],
-            'cancelled': stats['cancelled'],
-            'completed_today': stats['completed_today'],
+            'total_tickets': tickets.count(),
+            'status_counts': status_counts,
+            'statuses': StatusDefinitionSerializer(status_defs, many=True).data,
+            'completed_today': tickets.filter(resolved_at__date=today).count(),
             'total_projects': total_projects,
             'total_members': total_members,
-            'my_tickets': tickets.filter(assigned_to=request.user).exclude(status__in=['COMPLETED', 'CANCELLED']).count(),
+            'my_tickets': tickets.filter(assigned_to=request.user).exclude(status__in=terminal_keys).count(),
             'recent_tickets': TicketSerializer(recent, many=True).data,
             'my_assigned': TicketSerializer(my_assigned, many=True).data,
         })

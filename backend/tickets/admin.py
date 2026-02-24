@@ -158,3 +158,17 @@ class AuditLogAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('performed_by')
+
+
+from .models import StatusDefinition, StatusTransition
+
+@admin.register(StatusDefinition)
+class StatusDefinitionAdmin(admin.ModelAdmin):
+    list_display = ['key', 'label', 'workspace', 'color', 'is_terminal', 'is_default', 'position']
+    list_filter = ['workspace', 'is_terminal', 'is_default']
+    ordering = ['workspace', 'position']
+
+@admin.register(StatusTransition)
+class StatusTransitionAdmin(admin.ModelAdmin):
+    list_display = ['workspace', 'from_status', 'to_status', 'actor_type']
+    list_filter = ['workspace', 'actor_type']

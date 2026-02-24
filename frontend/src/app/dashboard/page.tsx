@@ -4,8 +4,29 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useAuth } from '@/hooks/useAuth';
-import { api, DashboardStats, Ticket } from '@/lib/api';
+import { api, DashboardStats, Ticket, StatusDefinition } from '@/lib/api';
 import { useWorkspace } from '@/hooks/useWorkspace';
+
+// Map color tokens to tailwind classes
+const COLOR_MAP: Record<string, { bg: string; text: string; badge: string }> = {
+  gray:   { bg: 'bg-gray-50',   text: 'text-gray-700',   badge: 'bg-gray-100 text-gray-700' },
+  blue:   { bg: 'bg-blue-50',   text: 'text-blue-700',   badge: 'bg-blue-100 text-blue-700' },
+  red:    { bg: 'bg-red-50',    text: 'text-red-700',    badge: 'bg-red-100 text-red-700' },
+  purple: { bg: 'bg-purple-50', text: 'text-purple-700', badge: 'bg-purple-100 text-purple-700' },
+  amber:  { bg: 'bg-amber-50',  text: 'text-amber-700',  badge: 'bg-amber-100 text-amber-700' },
+  green:  { bg: 'bg-green-50',  text: 'text-green-700',  badge: 'bg-green-100 text-green-700' },
+  yellow: { bg: 'bg-yellow-50', text: 'text-yellow-700', badge: 'bg-yellow-100 text-yellow-700' },
+  indigo: { bg: 'bg-indigo-50', text: 'text-indigo-700', badge: 'bg-indigo-100 text-indigo-700' },
+  pink:   { bg: 'bg-pink-50',   text: 'text-pink-700',   badge: 'bg-pink-100 text-pink-700' },
+  orange: { bg: 'bg-orange-50', text: 'text-orange-700', badge: 'bg-orange-100 text-orange-700' },
+};
+const fallback = { bg: 'bg-gray-50', text: 'text-gray-700', badge: 'bg-gray-100 text-gray-700' };
+function colorFor(color: string) { return COLOR_MAP[color] || fallback; }
+
+export function statusBadgeClass(statuses: StatusDefinition[], statusKey: string): string {
+  const sd = statuses.find(s => s.key === statusKey);
+  return sd ? colorFor(sd.color).badge : fallback.badge;
+}
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardStats | null>(null);
@@ -23,25 +44,9 @@ export default function DashboardPage() {
       .finally(() => setLoading(false));
   }, [currentWorkspace?.id]);
 
-  const stats = data ? [
-    { label: 'Total Tickets', value: data.total_tickets, color: 'bg-indigo-50 text-indigo-700', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', link: '/tickets' },
-    { label: 'Open', value: data.open, color: 'bg-yellow-50 text-yellow-700', icon: 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z', link: '/tickets?status=OPEN' },
-    { label: 'In Progress', value: data.in_progress, color: 'bg-blue-50 text-blue-700', icon: 'M13 10V3L4 14h7v7l9-11h-7z', link: '/tickets?status=IN_PROGRESS' },
-    { label: 'Blocked', value: data.blocked, color: 'bg-red-50 text-red-700', icon: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636', link: '/tickets?status=BLOCKED' },
-    { label: 'In Testing', value: data.in_testing, color: 'bg-purple-50 text-purple-700', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4', link: '/tickets?status=IN_TESTING' },
-    { label: 'Review', value: data.review, color: 'bg-amber-50 text-amber-700', icon: 'M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z', link: '/tickets?status=REVIEW' },
-    { label: 'Completed Today', value: data.completed_today, color: 'bg-green-50 text-green-700', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', link: '/tickets?status=COMPLETED' },
-  ] : [];
-
   const priorityColors: Record<string, string> = {
     LOW: 'bg-green-100 text-green-700', MEDIUM: 'bg-yellow-100 text-yellow-700',
     HIGH: 'bg-orange-100 text-orange-700', CRITICAL: 'bg-red-100 text-red-700',
-  };
-  const statusColors: Record<string, string> = {
-    OPEN: 'bg-gray-100 text-gray-700', IN_PROGRESS: 'bg-blue-100 text-blue-700',
-    BLOCKED: 'bg-red-100 text-red-700', IN_TESTING: 'bg-purple-100 text-purple-700',
-    REVIEW: 'bg-amber-100 text-amber-700', COMPLETED: 'bg-green-100 text-green-700',
-    CANCELLED: 'bg-gray-200 text-gray-600',
   };
 
   return (
@@ -55,8 +60,8 @@ export default function DashboardPage() {
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-            {[1,2,3,4,5,6].map(i => (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            {[1,2,3,4,5,6,7,8].map(i => (
               <div key={i} className="bg-white rounded-xl border border-gray-200 p-5 animate-pulse">
                 <div className="h-4 bg-gray-200 rounded w-20 mb-3"></div>
                 <div className="h-8 bg-gray-200 rounded w-12"></div>
@@ -65,21 +70,44 @@ export default function DashboardPage() {
           </div>
         ) : data && (
           <>
-            {/* Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-              {stats.map(stat => (
-                <div key={stat.label} onClick={() => stat.link && router.push(stat.link)} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-medium text-gray-500">{stat.label}</span>
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${stat.color}`}>
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d={stat.icon} />
-                      </svg>
-                    </div>
+            {/* Stats — dynamic from status definitions */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              {/* Total */}
+              <div onClick={() => router.push('/tickets')} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium text-gray-500">Total Tickets</span>
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-indigo-50 text-indigo-700">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
                   </div>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">{stat.value}</p>
                 </div>
-              ))}
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900">{data.total_tickets}</p>
+              </div>
+              {/* Per-status cards */}
+              {data.statuses.map(sd => {
+                const c = colorFor(sd.color);
+                const count = data.status_counts[sd.key] || 0;
+                return (
+                  <div key={sd.key} onClick={() => router.push(`/tickets?status=${sd.key}`)} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-medium text-gray-500">{sd.label}</span>
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${c.bg} ${c.text}`}>
+                        <span className="text-xs font-bold">{sd.key.charAt(0)}</span>
+                      </div>
+                    </div>
+                    <p className="text-2xl sm:text-3xl font-bold text-gray-900">{count}</p>
+                  </div>
+                );
+              })}
+              {/* Completed today */}
+              <div onClick={() => router.push('/tickets?status=COMPLETED')} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium text-gray-500">Completed Today</span>
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-green-50 text-green-700">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  </div>
+                </div>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900">{data.completed_today}</p>
+              </div>
             </div>
 
             {/* Quick Actions */}
@@ -133,7 +161,7 @@ export default function DashboardPage() {
                           <p className="text-sm font-medium text-gray-900 truncate">{ticket.ticket_slug || `#${ticket.id}`} {ticket.title}</p>
                           <p className="text-xs text-gray-400">{new Date(ticket.updated_at).toLocaleString()}</p>
                         </div>
-                        <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${statusColors[ticket.status]}`}>{ticket.status.replace('_', ' ')}</span>
+                        <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${statusBadgeClass(data.statuses, ticket.status)}`}>{ticket.status.replace(/_/g, ' ')}</span>
                       </button>
                     ))
                   )}

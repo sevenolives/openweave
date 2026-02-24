@@ -7,18 +7,24 @@ import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import FormField, { parseFieldErrors, inputClass } from '@/components/FormField';
 import { useAuth } from '@/hooks/useAuth';
-import { api, Ticket, Comment, User, TicketAttachment, ApiError } from '@/lib/api';
+import { api, Ticket, Comment, User, TicketAttachment, ApiError, StatusDefinition } from '@/lib/api';
 import { useWorkspace } from '@/hooks/useWorkspace';
 
 const PRIORITY_COLORS: Record<string, string> = {
   LOW: 'bg-green-100 text-green-700', MEDIUM: 'bg-yellow-100 text-yellow-700',
   HIGH: 'bg-orange-100 text-orange-700', CRITICAL: 'bg-red-100 text-red-700',
 };
-const STATUS_COLORS: Record<string, string> = {
-  OPEN: 'bg-gray-100 text-gray-700', IN_PROGRESS: 'bg-blue-100 text-blue-700',
-  BLOCKED: 'bg-red-100 text-red-700', IN_TESTING: 'bg-purple-100 text-purple-700', REVIEW: 'bg-amber-100 text-amber-700', COMPLETED: 'bg-green-100 text-green-700', CANCELLED: 'bg-gray-200 text-gray-600',
+const COLOR_BADGES: Record<string, string> = {
+  gray: 'bg-gray-100 text-gray-700', blue: 'bg-blue-100 text-blue-700',
+  red: 'bg-red-100 text-red-700', purple: 'bg-purple-100 text-purple-700',
+  amber: 'bg-amber-100 text-amber-700', green: 'bg-green-100 text-green-700',
+  yellow: 'bg-yellow-100 text-yellow-700', indigo: 'bg-indigo-100 text-indigo-700',
+  pink: 'bg-pink-100 text-pink-700', orange: 'bg-orange-100 text-orange-700',
 };
-const ALL_STATUSES = ['OPEN', 'IN_PROGRESS', 'BLOCKED', 'IN_TESTING', 'REVIEW', 'COMPLETED', 'CANCELLED'];
+function statusBadge(statuses: StatusDefinition[], key: string): string {
+  const sd = statuses.find(s => s.key === key);
+  return sd ? (COLOR_BADGES[sd.color] || 'bg-gray-100 text-gray-700') : 'bg-gray-100 text-gray-700';
+}
 const ALL_PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 
 export default function TicketDetailPage() {
@@ -43,6 +49,7 @@ export default function TicketDetailPage() {
   const [attachments, setAttachments] = useState<TicketAttachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const [tab, setTab] = useState<'comments' | 'activity'>('comments');
+  const [statuses, setStatuses] = useState<StatusDefinition[]>([]);
 
   const router = useRouter();
   const params = useParams();
@@ -51,6 +58,10 @@ export default function TicketDetailPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
+
+  useEffect(() => {
+    if (currentWorkspace) api.getStatusDefinitions(currentWorkspace.id).then(setStatuses).catch(() => {});
+  }, [currentWorkspace?.id]);
 
   const fetchData = async () => {
     try {
@@ -147,7 +158,7 @@ export default function TicketDetailPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <FormField label="Status" error={fieldErrors.status}>
                         <select value={editStatus} onChange={e => setEditStatus(e.target.value)} className={`${inputClass(fieldErrors.status)} bg-white`}>
-                          {ALL_STATUSES.map(s => <option key={s} value={s}>{s.replace('_',' ')}</option>)}
+                          {statuses.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
                         </select>
                       </FormField>
                       <FormField label="Priority" error={fieldErrors.priority}>
@@ -183,7 +194,7 @@ export default function TicketDetailPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-xs text-gray-400">{ticket.ticket_slug || `#${ticket.id}`}</span>
-                          <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${STATUS_COLORS[ticket.status]}`}>{ticket.status.replace('_',' ')}</span>
+                          <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${statusBadge(statuses, ticket.status)}`}>{statuses.find(s => s.key === ticket.status)?.label || ticket.status.replace(/_/g, ' ')}</span>
                           <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${PRIORITY_COLORS[ticket.priority]}`}>{ticket.priority}</span>
                         </div>
                         <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{ticket.title}</h1>
@@ -204,12 +215,12 @@ export default function TicketDetailPage() {
                     <div>
                       <label className="block text-xs font-medium text-gray-500 mb-2">Quick Status Change</label>
                       <div className="flex flex-wrap gap-2">
-                        {ALL_STATUSES.map(s => (
-                          <button key={s} onClick={() => handleStatusChange(s)}
+                        {statuses.map(s => (
+                          <button key={s.key} onClick={() => handleStatusChange(s.key)}
                             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                              ticket.status === s ? STATUS_COLORS[s] + ' ring-2 ring-offset-1 ring-current' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                              ticket.status === s.key ? statusBadge(statuses, s.key) + ' ring-2 ring-offset-1 ring-current' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
                             }`}>
-                            {s.replace('_',' ')}
+                            {s.label}
                           </button>
                         ))}
                       </div>
@@ -379,7 +390,7 @@ export default function TicketDetailPage() {
                 <dl className="space-y-4">
                   <div>
                     <dt className="text-xs font-medium text-gray-500 mb-1">Status</dt>
-                    <dd><span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${STATUS_COLORS[ticket.status]}`}>{ticket.status.replace('_',' ')}</span></dd>
+                    <dd><span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${statusBadge(statuses, ticket.status)}`}>{statuses.find(s => s.key === ticket.status)?.label || ticket.status.replace(/_/g, ' ')}</span></dd>
                   </div>
                   <div>
                     <dt className="text-xs font-medium text-gray-500 mb-1">Priority</dt>

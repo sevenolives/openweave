@@ -6,7 +6,7 @@ import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import FormField, { parseFieldErrors, inputClass } from '@/components/FormField';
-import { api, Ticket, Project, User, WorkspaceMember, ApiError, PaginatedResponse } from '@/lib/api';
+import { api, Ticket, Project, User, WorkspaceMember, ApiError, PaginatedResponse, StatusDefinition } from '@/lib/api';
 import { useWorkspace } from '@/hooks/useWorkspace';
 
 const PAGE_SIZE = 10;
@@ -15,22 +15,26 @@ const PRIORITY_COLORS: Record<string, string> = {
   LOW: 'bg-green-100 text-green-700', MEDIUM: 'bg-yellow-100 text-yellow-700',
   HIGH: 'bg-orange-100 text-orange-700', CRITICAL: 'bg-red-100 text-red-700',
 };
-const STATUS_COLUMNS = [
-  { status: 'OPEN', title: 'Open', accent: 'bg-gray-400', bg: 'bg-gray-50' },
-  { status: 'IN_PROGRESS', title: 'In Progress', accent: 'bg-blue-500', bg: 'bg-blue-50' },
-  { status: 'BLOCKED', title: 'Blocked', accent: 'bg-red-500', bg: 'bg-red-50' },
-  { status: 'IN_TESTING', title: 'In Testing', accent: 'bg-purple-500', bg: 'bg-purple-50' },
-  { status: 'REVIEW', title: 'Review', accent: 'bg-amber-500', bg: 'bg-amber-50' },
-  { status: 'COMPLETED', title: 'Completed', accent: 'bg-green-500', bg: 'bg-green-50' },
-  { status: 'CANCELLED', title: 'Cancelled', accent: 'bg-gray-400', bg: 'bg-gray-50' },
-];
 
-const STATUS_COLORS: Record<string, string> = {
-  OPEN: 'bg-gray-100 text-gray-700', IN_PROGRESS: 'bg-blue-100 text-blue-700',
-  BLOCKED: 'bg-red-100 text-red-700', IN_TESTING: 'bg-purple-100 text-purple-700',
-  REVIEW: 'bg-amber-100 text-amber-700', COMPLETED: 'bg-green-100 text-green-700',
-  CANCELLED: 'bg-gray-200 text-gray-600',
+const COLOR_ACCENTS: Record<string, { accent: string; bg: string; badge: string }> = {
+  gray:   { accent: 'bg-gray-400',   bg: 'bg-gray-50',   badge: 'bg-gray-100 text-gray-700' },
+  blue:   { accent: 'bg-blue-500',   bg: 'bg-blue-50',   badge: 'bg-blue-100 text-blue-700' },
+  red:    { accent: 'bg-red-500',    bg: 'bg-red-50',    badge: 'bg-red-100 text-red-700' },
+  purple: { accent: 'bg-purple-500', bg: 'bg-purple-50', badge: 'bg-purple-100 text-purple-700' },
+  amber:  { accent: 'bg-amber-500',  bg: 'bg-amber-50',  badge: 'bg-amber-100 text-amber-700' },
+  green:  { accent: 'bg-green-500',  bg: 'bg-green-50',  badge: 'bg-green-100 text-green-700' },
+  yellow: { accent: 'bg-yellow-500', bg: 'bg-yellow-50', badge: 'bg-yellow-100 text-yellow-700' },
+  indigo: { accent: 'bg-indigo-500', bg: 'bg-indigo-50', badge: 'bg-indigo-100 text-indigo-700' },
+  pink:   { accent: 'bg-pink-500',   bg: 'bg-pink-50',   badge: 'bg-pink-100 text-pink-700' },
+  orange: { accent: 'bg-orange-500', bg: 'bg-orange-50', badge: 'bg-orange-100 text-orange-700' },
 };
+const fallbackColor = { accent: 'bg-gray-400', bg: 'bg-gray-50', badge: 'bg-gray-100 text-gray-700' };
+function colorFor(c: string) { return COLOR_ACCENTS[c] || fallbackColor; }
+
+function statusBadge(statuses: StatusDefinition[], key: string): string {
+  const sd = statuses.find(s => s.key === key);
+  return sd ? colorFor(sd.color).badge : fallbackColor.badge;
+}
 
 export default function TicketsPageWrapper() {
   return (
@@ -77,6 +81,7 @@ function TicketsPage() {
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const hasUserSelectedProject = useRef(!!filterProjectInit);
   const [kanbanTickets, setKanbanTickets] = useState<Ticket[]>([]);
+  const [statuses, setStatuses] = useState<StatusDefinition[]>([]);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -90,6 +95,13 @@ function TicketsPage() {
     const projectParam = searchParams.get('project');
     if (projectParam) setFilterProject(Number(projectParam));
   }, []);
+
+  // Load status definitions
+  useEffect(() => {
+    if (currentWorkspace) {
+      api.getStatusDefinitions(currentWorkspace.id).then(setStatuses).catch(() => {});
+    }
+  }, [currentWorkspace?.id]);
 
   useEffect(() => {
     setLoading(true);
@@ -242,13 +254,7 @@ function TicketsPage() {
           />
           <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
             <option value="">All statuses</option>
-            <option value="OPEN">Open</option>
-            <option value="IN_PROGRESS">In Progress</option>
-            <option value="BLOCKED">Blocked</option>
-            <option value="IN_TESTING">In Testing</option>
-            <option value="REVIEW">Review</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="CANCELLED">Cancelled</option>
+            {statuses.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
           </select>
           <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)} className="px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
             <option value="">All priorities</option>
@@ -272,16 +278,17 @@ function TicketsPage() {
         {viewMode === 'kanban' && !loading && (
           <div className="overflow-x-auto pb-4">
             <div className="inline-flex gap-4 min-w-full">
-              {STATUS_COLUMNS.map(col => {
-                const colTickets = kanbanTickets.filter(t => t.status === col.status);
+              {statuses.map(col => {
+                const colTickets = kanbanTickets.filter(t => t.status === col.key);
+                const c = colorFor(col.color);
                 return (
-                  <div key={col.status} className="flex flex-col w-64 lg:w-72 flex-shrink-0">
+                  <div key={col.key} className="flex flex-col w-64 lg:w-72 flex-shrink-0">
                     <div className="flex items-center gap-2 px-3 py-2.5 bg-white rounded-t-xl border border-b-0 border-gray-200">
-                      <div className={`w-2 h-2 rounded-full ${col.accent}`} />
-                      <h3 className="font-semibold text-gray-700 text-sm">{col.title}</h3>
+                      <div className={`w-2 h-2 rounded-full ${c.accent}`} />
+                      <h3 className="font-semibold text-gray-700 text-sm">{col.label}</h3>
                       <span className="ml-auto text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">{colTickets.length}</span>
                     </div>
-                    <div className={`${col.bg} border border-gray-200 rounded-b-xl p-2 min-h-[20rem] space-y-2 flex-1`}>
+                    <div className={`${c.bg} border border-gray-200 rounded-b-xl p-2 min-h-[20rem] space-y-2 flex-1`}>
                       {colTickets.map(ticket => (
                         <div key={ticket.id} className="bg-white rounded-lg border border-gray-100 p-3 hover:shadow-md hover:border-indigo-200 transition-all group">
                           <div className="flex justify-between items-start mb-1.5">
@@ -303,7 +310,7 @@ function TicketsPage() {
                               }}
                               className="text-[10px] border border-gray-200 rounded px-1 py-0.5 bg-white"
                             >
-                              {STATUS_COLUMNS.map(s => <option key={s.status} value={s.status}>{s.title}</option>)}
+                              {statuses.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
                             </select>
                           </div>
                         </div>
@@ -367,7 +374,7 @@ function TicketsPage() {
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-medium text-gray-900 truncate">{ticket.title}</p>
                               <div className="flex flex-wrap gap-1 mt-1">
-                                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[ticket.status]}`}>
+                                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusBadge(statuses, ticket.status)}`}>
                                   {ticket.status.replace('_', ' ')}
                                 </span>
                                 <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">

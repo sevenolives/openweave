@@ -1,5 +1,8 @@
 from rest_framework import serializers
-from .models import User, Project, Ticket, Comment, AuditLog, Workspace, WorkspaceMember, WorkspaceInvite, TicketAttachment
+from .models import (
+    User, Project, Ticket, Comment, AuditLog, Workspace, WorkspaceMember,
+    WorkspaceInvite, TicketAttachment, StatusDefinition, StatusTransition,
+)
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -219,21 +222,58 @@ class TicketSerializer(serializers.ModelSerializer):
                 )
         return value
 
+    def validate_status(self, value):
+        """Validate status key exists in workspace's StatusDefinitions."""
+        # Get workspace from ticket's project
+        project = None
+        if self.instance:
+            project = self.instance.project
+        elif 'project' in self.initial_data:
+            try:
+                project = Project.objects.get(id=self.initial_data['project'])
+            except Project.DoesNotExist:
+                pass
+        if project and project.workspace_id:
+            exists = StatusDefinition.objects.filter(
+                workspace_id=project.workspace_id, key=value
+            ).exists()
+            if not exists:
+                valid = list(StatusDefinition.objects.filter(
+                    workspace_id=project.workspace_id
+                ).values_list('key', flat=True))
+                raise serializers.ValidationError(
+                    f"Invalid status '{value}'. Valid: {', '.join(valid)}."
+                )
+        return value
+
     def validate(self, data):
-        """Ticket validation. Bot users must follow defined transitions; humans are free-flowing."""
+        """Validate status transitions using StatusTransition table."""
         request = self.context.get('request')
         if request and self.instance and 'status' in data:
             new_status = data['status']
             old_status = self.instance.status
             if old_status != new_status:
-                user = request.user
-                # Bots must follow transition rules
-                if hasattr(user, 'user_type') and user.user_type == 'BOT':
-                    allowed = Ticket.BOT_TRANSITIONS.get(old_status, [])
-                    if new_status not in allowed:
+                ws_id = self.instance.project.workspace_id if self.instance.project else None
+                if ws_id:
+                    user = request.user
+                    actor = 'BOT' if getattr(user, 'user_type', None) == 'BOT' else 'HUMAN'
+
+                    # Check if transition is allowed for this actor type
+                    allowed = StatusTransition.objects.filter(
+                        workspace_id=ws_id,
+                        from_status__key=old_status,
+                        to_status__key=new_status,
+                        actor_type__in=[actor, 'ALL'],
+                    ).exists()
+                    if not allowed:
+                        valid_targets = list(StatusTransition.objects.filter(
+                            workspace_id=ws_id,
+                            from_status__key=old_status,
+                            actor_type__in=[actor, 'ALL'],
+                        ).values_list('to_status__key', flat=True))
                         raise serializers.ValidationError({
-                            'status': f'Bot cannot transition from {old_status} to {new_status}. '
-                                      f'Allowed: {", ".join(allowed) if allowed else "none (terminal state)"}.'
+                            'status': f'{actor} cannot transition from {old_status} to {new_status}. '
+                                      f'Allowed: {", ".join(valid_targets) if valid_targets else "none (terminal state)"}.'
                         })
         return data
 
@@ -276,5 +316,64 @@ class AuditLogSerializer(serializers.ModelSerializer):
             'old_value': {'help_text': 'Previous values (JSON object).'},
             'new_value': {'help_text': 'New values (JSON object).'},
         }
+
+class StatusDefinitionSerializer(serializers.ModelSerializer):
+    """Serializer for StatusDefinition — workspace-level status config."""
+    in_use = serializers.SerializerMethodField(help_text="Whether any tickets use this status")
+
+    class Meta:
+        model = StatusDefinition
+        fields = ['id', 'workspace', 'key', 'label', 'color', 'is_terminal', 'is_default', 'position', 'in_use']
+        read_only_fields = ['in_use']
+        extra_kwargs = {
+            'workspace': {'help_text': 'Workspace ID.'},
+            'key': {'help_text': 'Unique status key within workspace, e.g. IN_PROGRESS.'},
+        }
+
+    def get_in_use(self, obj):
+        return Ticket.objects.filter(
+            project__workspace=obj.workspace, status=obj.key
+        ).exists()
+
+    def validate_key(self, value):
+        # Key must be uppercase alphanumeric with underscores
+        import re
+        if not re.match(r'^[A-Z][A-Z0-9_]*$', value):
+            raise serializers.ValidationError("Key must be uppercase letters, digits, and underscores.")
+        # On update, key is immutable
+        if self.instance and self.instance.key != value:
+            raise serializers.ValidationError("Status key cannot be changed after creation.")
+        return value
+
+
+class StatusTransitionSerializer(serializers.ModelSerializer):
+    """Serializer for StatusTransition — allowed status transitions."""
+    from_status_key = serializers.CharField(source='from_status.key', read_only=True)
+    to_status_key = serializers.CharField(source='to_status.key', read_only=True)
+
+    class Meta:
+        model = StatusTransition
+        fields = ['id', 'workspace', 'from_status', 'to_status', 'from_status_key', 'to_status_key', 'actor_type']
+        extra_kwargs = {
+            'workspace': {'help_text': 'Workspace ID.'},
+            'from_status': {'help_text': 'Source StatusDefinition ID.'},
+            'to_status': {'help_text': 'Target StatusDefinition ID.'},
+            'actor_type': {'help_text': 'BOT, HUMAN, or ALL.'},
+        }
+
+    def validate(self, data):
+        # Ensure both statuses belong to the same workspace
+        ws = data.get('workspace') or (self.instance.workspace if self.instance else None)
+        from_s = data.get('from_status') or (self.instance.from_status if self.instance else None)
+        to_s = data.get('to_status') or (self.instance.to_status if self.instance else None)
+        if from_s and to_s:
+            if from_s == to_s:
+                raise serializers.ValidationError("Cannot transition to the same status.")
+            if from_s.workspace_id != ws.id or to_s.workspace_id != ws.id:
+                raise serializers.ValidationError("Both statuses must belong to the specified workspace.")
+            if from_s.is_terminal:
+                raise serializers.ValidationError(f"Cannot add transitions from terminal status '{from_s.key}'.")
+        return data
+
 
 # Auth uses vanilla SimpleJWT TokenObtainPairView (username + password)

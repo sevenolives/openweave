@@ -6,7 +6,7 @@ from .views import (
     UserViewSet, ProjectViewSet, TicketViewSet,
     CommentViewSet, AuditLogViewSet,
     WorkspaceViewSet, WorkspaceMemberViewSet, WorkspaceInviteViewSet,
-    TicketAttachmentViewSet,
+    TicketAttachmentViewSet, StatusDefinitionViewSet, StatusTransitionViewSet,
     JoinView, DashboardView,
 )
 
@@ -20,6 +20,8 @@ router.register(r'workspaces', WorkspaceViewSet)
 router.register(r'workspace-members', WorkspaceMemberViewSet)
 router.register(r'invites', WorkspaceInviteViewSet)
 router.register(r'attachments', TicketAttachmentViewSet)
+router.register(r'status-definitions', StatusDefinitionViewSet)
+router.register(r'status-transitions', StatusTransitionViewSet)
 
 
 # Schema overrides for SimpleJWT views
