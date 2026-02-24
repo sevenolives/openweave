@@ -27,9 +27,10 @@ export default function DashboardPage() {
     { label: 'Total Tickets', value: data.total_tickets, color: 'bg-indigo-50 text-indigo-700', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', link: '/tickets' },
     { label: 'Open', value: data.open, color: 'bg-yellow-50 text-yellow-700', icon: 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z', link: '/tickets?status=OPEN' },
     { label: 'In Progress', value: data.in_progress, color: 'bg-blue-50 text-blue-700', icon: 'M13 10V3L4 14h7v7l9-11h-7z', link: '/tickets?status=IN_PROGRESS' },
-    { label: 'In Testing', value: data.in_testing, color: 'bg-purple-50 text-purple-700', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4', link: '/tickets?status=IN_TESTING' },
     { label: 'Blocked', value: data.blocked, color: 'bg-red-50 text-red-700', icon: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636', link: '/tickets?status=BLOCKED' },
-    { label: 'Resolved Today', value: data.resolved_today, color: 'bg-green-50 text-green-700', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', link: '/tickets?status=RESOLVED' },
+    { label: 'In Testing', value: data.in_testing, color: 'bg-purple-50 text-purple-700', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4', link: '/tickets?status=IN_TESTING' },
+    { label: 'Review', value: data.review, color: 'bg-amber-50 text-amber-700', icon: 'M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z', link: '/tickets?status=REVIEW' },
+    { label: 'Completed Today', value: data.completed_today, color: 'bg-green-50 text-green-700', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', link: '/tickets?status=COMPLETED' },
   ] : [];
 
   const priorityColors: Record<string, string> = {
@@ -38,8 +39,9 @@ export default function DashboardPage() {
   };
   const statusColors: Record<string, string> = {
     OPEN: 'bg-gray-100 text-gray-700', IN_PROGRESS: 'bg-blue-100 text-blue-700',
-    IN_TESTING: 'bg-purple-100 text-purple-700', BLOCKED: 'bg-red-100 text-red-700',
-    RESOLVED: 'bg-green-100 text-green-700', CLOSED: 'bg-gray-200 text-gray-600',
+    BLOCKED: 'bg-red-100 text-red-700', IN_TESTING: 'bg-purple-100 text-purple-700',
+    REVIEW: 'bg-amber-100 text-amber-700', COMPLETED: 'bg-green-100 text-green-700',
+    CANCELLED: 'bg-gray-200 text-gray-600',
   };
 
   return (

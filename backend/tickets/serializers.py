@@ -191,7 +191,7 @@ class TicketSerializer(serializers.ModelSerializer):
             'project': {'help_text': 'Project ID.'},
             'title': {'help_text': 'Ticket title.'},
             'description': {'help_text': 'Detailed description of the issue.'},
-            'status': {'help_text': 'OPEN, IN_PROGRESS, RESOLVED, CLOSED, or BLOCKED.'},
+            'status': {'help_text': 'OPEN, IN_PROGRESS, BLOCKED, IN_TESTING, REVIEW, COMPLETED, or CANCELLED.'},
             'priority': {'help_text': 'LOW, MEDIUM, HIGH, or CRITICAL.'},
             'assigned_to': {'help_text': 'User ID of the assignee (must be a project member).'},
             'created_by': {'help_text': 'Auto-set to the authenticated user.'},
@@ -220,7 +220,21 @@ class TicketSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, data):
-        """Ticket validation. Status transitions are free-flowing — any status can move to any other."""
+        """Ticket validation. Bot users must follow defined transitions; humans are free-flowing."""
+        request = self.context.get('request')
+        if request and self.instance and 'status' in data:
+            new_status = data['status']
+            old_status = self.instance.status
+            if old_status != new_status:
+                user = request.user
+                # Bots must follow transition rules
+                if hasattr(user, 'user_type') and user.user_type == 'BOT':
+                    allowed = Ticket.BOT_TRANSITIONS.get(old_status, [])
+                    if new_status not in allowed:
+                        raise serializers.ValidationError({
+                            'status': f'Bot cannot transition from {old_status} to {new_status}. '
+                                      f'Allowed: {", ".join(allowed) if allowed else "none (terminal state)"}.'
+                        })
         return data
 
 

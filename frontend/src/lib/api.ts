@@ -46,7 +46,7 @@ export interface Ticket {
   ticket_slug: string;
   title: string;
   description: string;
-  status: 'OPEN' | 'IN_PROGRESS' | 'IN_TESTING' | 'RESOLVED' | 'CLOSED' | 'BLOCKED';
+  status: 'OPEN' | 'IN_PROGRESS' | 'BLOCKED' | 'IN_TESTING' | 'REVIEW' | 'COMPLETED' | 'CANCELLED';
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   ticket_type: 'BUG' | 'FEATURE';
   approved_status: 'UNAPPROVED' | 'APPROVED';
@@ -130,9 +130,10 @@ export interface DashboardStats {
   in_progress: number;
   in_testing: number;
   blocked: number;
-  resolved: number;
-  closed: number;
-  resolved_today: number;
+  review: number;
+  completed: number;
+  cancelled: number;
+  completed_today: number;
   total_projects: number;
   total_members: number;
   my_tickets: number;

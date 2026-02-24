@@ -445,7 +445,7 @@ class TicketViewSet(viewsets.ModelViewSet):
         description="List tickets. Filterable by project, status, priority, assigned_to. Searchable by title, description, assigned_to username, project name.",
         parameters=[
             OpenApiParameter(name='project', description='Filter by project ID', type=int),
-            OpenApiParameter(name='status', description='Filter by status (OPEN, IN_PROGRESS, RESOLVED, CLOSED, BLOCKED)', type=str),
+            OpenApiParameter(name='status', description='Filter by status (OPEN, IN_PROGRESS, BLOCKED, IN_TESTING, REVIEW, COMPLETED, CANCELLED)', type=str),
             OpenApiParameter(name='priority', description='Filter by priority (LOW, MEDIUM, HIGH, CRITICAL)', type=str),
             OpenApiParameter(name='assigned_to', description='Filter by assigned user ID', type=int),
             OpenApiParameter(name='search', description='Search in title, description, assigned_to username, project name', type=str),
@@ -477,7 +477,7 @@ class TicketViewSet(viewsets.ModelViewSet):
         summary="Update ticket",
         description=(
             "Update ticket fields: title, description, status, priority, assigned_to, project. "
-            "Status transitions: OPEN → IN_PROGRESS → RESOLVED → CLOSED, BLOCKED ↔ IN_PROGRESS. "
+            "Status transitions: OPEN → IN_PROGRESS → IN_TESTING → REVIEW → COMPLETED. Bots follow enforced transitions; humans are free-flowing. "
             "assigned_to must be a member of the project."
         ),
         responses={200: TicketSerializer, 400: _error_detail},
@@ -928,16 +928,17 @@ class DashboardView(APIView):
             in_progress=Count('id', filter=Q(status='IN_PROGRESS')),
             in_testing=Count('id', filter=Q(status='IN_TESTING')),
             blocked=Count('id', filter=Q(status='BLOCKED')),
-            resolved=Count('id', filter=Q(status='RESOLVED')),
-            closed=Count('id', filter=Q(status='CLOSED')),
-            resolved_today=Count('id', filter=Q(resolved_at__date=today)),
+            review=Count('id', filter=Q(status='REVIEW')),
+            completed=Count('id', filter=Q(status='COMPLETED')),
+            cancelled=Count('id', filter=Q(status='CANCELLED')),
+            completed_today=Count('id', filter=Q(resolved_at__date=today)),
         )
 
         total_projects = Project.objects.filter(workspace_id=ws_id).count()
         total_members = WorkspaceMember.objects.filter(workspace_id=ws_id).count() + 1  # +1 for owner
 
         my_assigned = tickets.filter(assigned_to=request.user).exclude(
-            status__in=['CLOSED', 'RESOLVED']
+            status__in=['COMPLETED', 'CANCELLED']
         ).select_related('project', 'assigned_to', 'created_by').order_by('-updated_at')[:5]
 
         recent = tickets.select_related('project', 'assigned_to', 'created_by').order_by('-updated_at')[:8]
@@ -948,12 +949,13 @@ class DashboardView(APIView):
             'in_progress': stats['in_progress'],
             'in_testing': stats['in_testing'],
             'blocked': stats['blocked'],
-            'resolved': stats['resolved'],
-            'closed': stats['closed'],
-            'resolved_today': stats['resolved_today'],
+            'review': stats['review'],
+            'completed': stats['completed'],
+            'cancelled': stats['cancelled'],
+            'completed_today': stats['completed_today'],
             'total_projects': total_projects,
             'total_members': total_members,
-            'my_tickets': tickets.filter(assigned_to=request.user).exclude(status__in=['CLOSED']).count(),
+            'my_tickets': tickets.filter(assigned_to=request.user).exclude(status__in=['COMPLETED', 'CANCELLED']).count(),
             'recent_tickets': TicketSerializer(recent, many=True).data,
             'my_assigned': TicketSerializer(my_assigned, many=True).data,
         })

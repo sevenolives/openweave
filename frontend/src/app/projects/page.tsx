@@ -13,7 +13,7 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
-  const [ticketCounts, setTicketCounts] = useState<Record<number, { total: number; open: number; inProgress: number; blocked: number; resolved: number; closed: number }>>({});
+  const [ticketCounts, setTicketCounts] = useState<Record<number, { total: number; open: number; inProgress: number; blocked: number; completed: number; cancelled: number }>>({});
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState('');
@@ -48,10 +48,10 @@ export default function ProjectsPage() {
             open: tickets.filter(t => t.status === 'OPEN').length,
             inProgress: tickets.filter(t => t.status === 'IN_PROGRESS').length,
             blocked: tickets.filter(t => t.status === 'BLOCKED').length,
-            resolved: tickets.filter(t => t.status === 'RESOLVED').length,
-            closed: tickets.filter(t => t.status === 'CLOSED').length,
+            completed: tickets.filter(t => t.status === 'COMPLETED').length,
+            cancelled: tickets.filter(t => t.status === 'CANCELLED').length,
           };
-        } catch { counts[p.id] = { total: 0, open: 0, inProgress: 0, blocked: 0, resolved: 0, closed: 0 }; }
+        } catch { counts[p.id] = { total: 0, open: 0, inProgress: 0, blocked: 0, completed: 0, cancelled: 0 }; }
       }));
       setTicketCounts(counts);
     } catch (e: any) { toast(e?.message || 'Failed to load projects', 'error'); }
@@ -157,7 +157,7 @@ export default function ProjectsPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {projects.map(project => {
-              const counts = ticketCounts[project.id] || { total: 0, open: 0, inProgress: 0, blocked: 0, resolved: 0, closed: 0 };
+              const counts = ticketCounts[project.id] || { total: 0, open: 0, inProgress: 0, blocked: 0, completed: 0, cancelled: 0 };
               const activeTickets = counts.open + counts.inProgress + counts.blocked;
               return (
                 <div key={project.id} onClick={() => router.push(`/tickets?project=${project.id}`)} className="bg-white rounded-xl border border-gray-200 p-5 hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-50 transition-all cursor-pointer group">
@@ -185,8 +185,8 @@ export default function ProjectsPage() {
                         {counts.open > 0 && <div className="bg-gray-400 transition-all" style={{ width: `${(counts.open / counts.total) * 100}%` }} title={`${counts.open} Open`} />}
                         {counts.inProgress > 0 && <div className="bg-blue-500 transition-all" style={{ width: `${(counts.inProgress / counts.total) * 100}%` }} title={`${counts.inProgress} In Progress`} />}
                         {counts.blocked > 0 && <div className="bg-red-500 transition-all" style={{ width: `${(counts.blocked / counts.total) * 100}%` }} title={`${counts.blocked} Blocked`} />}
-                        {counts.resolved > 0 && <div className="bg-green-500 transition-all" style={{ width: `${(counts.resolved / counts.total) * 100}%` }} title={`${counts.resolved} Resolved`} />}
-                        {counts.closed > 0 && <div className="bg-gray-300 transition-all" style={{ width: `${(counts.closed / counts.total) * 100}%` }} title={`${counts.closed} Closed`} />}
+                        {counts.completed > 0 && <div className="bg-green-500 transition-all" style={{ width: `${(counts.completed / counts.total) * 100}%` }} title={`${counts.completed} Completed`} />}
+                        {counts.cancelled > 0 && <div className="bg-gray-300 transition-all" style={{ width: `${(counts.cancelled / counts.total) * 100}%` }} title={`${counts.cancelled} Cancelled`} />}
                       </div>
                     )}
                   </div>
@@ -197,7 +197,7 @@ export default function ProjectsPage() {
                       {counts.open > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">{counts.open} open</span>}
                       {counts.inProgress > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600">{counts.inProgress} in progress</span>}
                       {counts.blocked > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-50 text-red-600">{counts.blocked} blocked</span>}
-                      {counts.resolved > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-50 text-green-600">{counts.resolved} resolved</span>}
+                      {counts.completed > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-50 text-green-600">{counts.completed} completed</span>}
                     </div>
                   )}
 

@@ -161,17 +161,29 @@ class ProjectAgent(models.Model):
 class Ticket(models.Model):
     """
     A unit of work assigned to exactly one agent at a time.
-    Status flow: OPEN → IN_PROGRESS → RESOLVED → CLOSED
+    Status flow: OPEN → IN_PROGRESS → IN_TESTING → REVIEW → COMPLETED
     Can move to BLOCKED from IN_PROGRESS and back.
     """
     STATUS_CHOICES = [
         ('OPEN', 'Open'),
         ('IN_PROGRESS', 'In Progress'),
-        ('IN_TESTING', 'In Testing'),
-        ('RESOLVED', 'Resolved'),
-        ('CLOSED', 'Closed'),
         ('BLOCKED', 'Blocked'),
+        ('IN_TESTING', 'In Testing'),
+        ('REVIEW', 'Review'),
+        ('COMPLETED', 'Completed'),
+        ('CANCELLED', 'Cancelled'),
     ]
+
+    # Bot-enforced status transitions. Humans can go any→any.
+    BOT_TRANSITIONS = {
+        'OPEN': ['IN_PROGRESS', 'CANCELLED'],
+        'IN_PROGRESS': ['BLOCKED', 'IN_TESTING', 'REVIEW', 'CANCELLED'],
+        'BLOCKED': ['IN_PROGRESS', 'CANCELLED'],
+        'IN_TESTING': ['IN_PROGRESS', 'REVIEW', 'BLOCKED'],
+        'REVIEW': ['IN_PROGRESS', 'IN_TESTING', 'COMPLETED'],
+        'COMPLETED': [],  # terminal
+        'CANCELLED': [],  # terminal
+    }
     
     PRIORITY_CHOICES = [
         ('LOW', 'Low'),
@@ -190,15 +202,8 @@ class Ticket(models.Model):
         ('APPROVED', 'Approved'),
     ]
     
-    # Valid status transitions
-    STATUS_TRANSITIONS = {
-        'OPEN': ['IN_PROGRESS'],
-        'IN_PROGRESS': ['IN_TESTING', 'RESOLVED', 'BLOCKED'],
-        'IN_TESTING': ['IN_PROGRESS', 'RESOLVED'],
-        'RESOLVED': ['CLOSED'],
-        'BLOCKED': ['IN_PROGRESS'],
-        'CLOSED': [],  # Terminal state
-    }
+    # Terminal statuses
+    TERMINAL_STATUSES = ['COMPLETED', 'CANCELLED']
     
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='tickets')
     ticket_number = models.PositiveIntegerField(null=True, blank=True, help_text="Project-scoped ticket number")
@@ -233,16 +238,17 @@ class Ticket(models.Model):
 
     def clean(self):
         """
-        Set timestamp fields on status changes. Any status transition is allowed.
+        Set timestamp fields on status changes.
         """
         if self.pk:
             old_ticket = Ticket.objects.get(pk=self.pk)
             old_status = old_ticket.status
             
             if old_status != self.status:
-                if self.status == 'RESOLVED' and old_status != 'RESOLVED':
+                if self.status == 'COMPLETED' and old_status != 'COMPLETED':
                     self.resolved_at = timezone.now()
-                elif self.status == 'CLOSED' and old_status != 'CLOSED':
+                    self.closed_at = timezone.now()
+                elif self.status == 'CANCELLED' and old_status != 'CANCELLED':
                     self.closed_at = timezone.now()
     
     def save(self, *args, **kwargs):

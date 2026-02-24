@@ -18,15 +18,18 @@ const PRIORITY_COLORS: Record<string, string> = {
 const STATUS_COLUMNS = [
   { status: 'OPEN', title: 'Open', accent: 'bg-gray-400', bg: 'bg-gray-50' },
   { status: 'IN_PROGRESS', title: 'In Progress', accent: 'bg-blue-500', bg: 'bg-blue-50' },
-  { status: 'IN_TESTING', title: 'In Testing', accent: 'bg-purple-500', bg: 'bg-purple-50' },
   { status: 'BLOCKED', title: 'Blocked', accent: 'bg-red-500', bg: 'bg-red-50' },
-  { status: 'RESOLVED', title: 'Resolved', accent: 'bg-green-500', bg: 'bg-green-50' },
-  { status: 'CLOSED', title: 'Closed', accent: 'bg-gray-400', bg: 'bg-gray-50' },
+  { status: 'IN_TESTING', title: 'In Testing', accent: 'bg-purple-500', bg: 'bg-purple-50' },
+  { status: 'REVIEW', title: 'Review', accent: 'bg-amber-500', bg: 'bg-amber-50' },
+  { status: 'COMPLETED', title: 'Completed', accent: 'bg-green-500', bg: 'bg-green-50' },
+  { status: 'CANCELLED', title: 'Cancelled', accent: 'bg-gray-400', bg: 'bg-gray-50' },
 ];
 
 const STATUS_COLORS: Record<string, string> = {
   OPEN: 'bg-gray-100 text-gray-700', IN_PROGRESS: 'bg-blue-100 text-blue-700',
-  IN_TESTING: 'bg-purple-100 text-purple-700', BLOCKED: 'bg-red-100 text-red-700', RESOLVED: 'bg-green-100 text-green-700', CLOSED: 'bg-gray-200 text-gray-600',
+  BLOCKED: 'bg-red-100 text-red-700', IN_TESTING: 'bg-purple-100 text-purple-700',
+  REVIEW: 'bg-amber-100 text-amber-700', COMPLETED: 'bg-green-100 text-green-700',
+  CANCELLED: 'bg-gray-200 text-gray-600',
 };
 
 export default function TicketsPageWrapper() {
@@ -241,10 +244,11 @@ function TicketsPage() {
             <option value="">All statuses</option>
             <option value="OPEN">Open</option>
             <option value="IN_PROGRESS">In Progress</option>
-            <option value="IN_TESTING">In Testing</option>
             <option value="BLOCKED">Blocked</option>
-            <option value="RESOLVED">Resolved</option>
-            <option value="CLOSED">Closed</option>
+            <option value="IN_TESTING">In Testing</option>
+            <option value="REVIEW">Review</option>
+            <option value="COMPLETED">Completed</option>
+            <option value="CANCELLED">Cancelled</option>
           </select>
           <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)} className="px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
             <option value="">All priorities</option>
