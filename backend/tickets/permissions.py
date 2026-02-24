@@ -1,25 +1,33 @@
 """
 Custom permission classes for Agent Desk RBAC.
+
+Workspace owner = root user. Has all admin privileges everywhere.
 """
 from rest_framework import permissions
-from .models import User, ProjectAgent
+from .models import User, ProjectAgent, Workspace
+
+
+def is_admin_or_owner(user):
+    """Check if user is an ADMIN or a workspace owner (root user)."""
+    if not user.is_authenticated:
+        return False
+    if hasattr(user, 'role') and user.role == 'ADMIN':
+        return True
+    # Workspace owners have full admin privileges
+    return Workspace.objects.filter(owner=user).exists()
 
 
 class IsAdminAgent(permissions.BasePermission):
     """
-    Permission that only allows admin agents to access.
+    Permission that only allows admin agents or workspace owners to access.
     """
     def has_permission(self, request, view):
-        return (
-            request.user.is_authenticated and 
-            hasattr(request.user, 'role') and 
-            request.user.role == 'ADMIN'
-        )
+        return is_admin_or_owner(request.user)
 
 
 class IsAdminOrReadOnly(permissions.BasePermission):
     """
-    Permission that allows admins full access, members read-only.
+    Permission that allows admins/owners full access, members read-only.
     """
     def has_permission(self, request, view):
         if not request.user.is_authenticated:
@@ -28,10 +36,7 @@ class IsAdminOrReadOnly(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
             
-        return (
-            hasattr(request.user, 'role') and 
-            request.user.role == 'ADMIN'
-        )
+        return is_admin_or_owner(request.user)
 
 
 class IsAdminOrOwner(permissions.BasePermission):
@@ -45,8 +50,8 @@ class IsAdminOrOwner(permissions.BasePermission):
         if not request.user.is_authenticated:
             return False
             
-        # Admins can access anything
-        if hasattr(request.user, 'role') and request.user.role == 'ADMIN':
+        # Admins and workspace owners can access anything
+        if is_admin_or_owner(request.user):
             return True
             
         # For tickets, check if user is the creator or assignee
@@ -81,8 +86,8 @@ class CanAssignTicket(permissions.BasePermission):
         except (ValueError, TypeError):
             return False
             
-        # Admins can assign to anyone
-        if hasattr(request.user, 'role') and request.user.role == 'ADMIN':
+        # Admins and workspace owners can assign to anyone
+        if is_admin_or_owner(request.user):
             return True
             
         # Members can only self-assign
@@ -126,11 +131,7 @@ class IsProjectMember(permissions.BasePermission):
 
 class CanManageProjectAgents(permissions.BasePermission):
     """
-    Permission for managing project agents - admin only.
+    Permission for managing project agents - admin or workspace owner.
     """
     def has_permission(self, request, view):
-        return (
-            request.user.is_authenticated and
-            hasattr(request.user, 'role') and 
-            request.user.role == 'ADMIN'
-        )
+        return is_admin_or_owner(request.user)

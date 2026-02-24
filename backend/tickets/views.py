@@ -18,7 +18,7 @@ from .serializers import (
     JoinRequestSerializer, TicketAttachmentSerializer,
 )
 from .permissions import (
-    IsAdminAgent, IsAdminOrReadOnly, IsAdminOrOwner,
+    IsAdminAgent, IsAdminOrReadOnly, IsAdminOrOwner, is_admin_or_owner,
 )
 from .filters import (
     TicketFilter, UserFilter, ProjectFilter, CommentFilter, AuditLogFilter,
@@ -333,7 +333,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = Project.objects.all()
         user = self.request.user
-        if user.is_superuser or user.role == 'ADMIN':
+        if user.is_superuser or is_admin_or_owner(user):
             return qs
         # Show projects in workspaces the user belongs to (as member or owner)
         from django.db.models import Q
@@ -443,7 +443,7 @@ class TicketViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = Ticket.objects.select_related('project', 'assigned_to', 'created_by')
         user = self.request.user
-        if user.is_superuser or user.role == 'ADMIN':
+        if user.is_superuser or is_admin_or_owner(user):
             return qs.all()
         from django.db.models import Q
         member_ws = WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True)
@@ -504,7 +504,7 @@ class TicketViewSet(viewsets.ModelViewSet):
 
     @extend_schema(summary="Delete ticket", description="Delete a ticket. Admin only.", responses={204: None, 403: _error_detail})
     def destroy(self, request, *args, **kwargs):
-        if request.user.role != 'ADMIN':
+        if not is_admin_or_owner(request.user):
             return Response({'detail': 'Only admins can delete tickets.'}, status=status.HTTP_403_FORBIDDEN)
         return super().destroy(request, *args, **kwargs)
 
@@ -512,7 +512,7 @@ class TicketViewSet(viewsets.ModelViewSet):
         project = serializer.validated_data.get('project')
         if not ProjectAgent.objects.filter(
             project=project, agent=self.request.user
-        ).exists() and self.request.user.role != 'ADMIN':
+        ).exists() and not is_admin_or_owner(self.request.user):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("You must be a member of this project to create tickets in it.")
         serializer.save(created_by=self.request.user)
@@ -530,7 +530,7 @@ class TicketViewSet(viewsets.ModelViewSet):
         user = self.request.user
 
         # Non-admin users can only update tickets assigned to them
-        if user.role != 'ADMIN' and not user.is_superuser:
+        if not user.is_superuser and not is_admin_or_owner(user):
             if instance.assigned_to_id != user.id:
                 from rest_framework.exceptions import PermissionDenied
                 raise PermissionDenied("You can only work on tickets assigned to you.")
@@ -557,7 +557,7 @@ class TicketAttachmentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = TicketAttachment.objects.select_related('uploaded_by', 'ticket')
         user = self.request.user
-        if user.is_superuser or user.role == 'ADMIN':
+        if user.is_superuser or is_admin_or_owner(user):
             return qs.all()
         from django.db.models import Q
         member_ws = WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True)
@@ -602,7 +602,7 @@ class TicketAttachmentViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         obj = self.get_object()
-        if request.user.role != 'ADMIN' and obj.uploaded_by != request.user:
+        if not is_admin_or_owner(request.user) and obj.uploaded_by != request.user:
             return Response({'detail': 'You can only delete your own attachments.'}, status=status.HTTP_403_FORBIDDEN)
         obj.file.delete(save=False)
         return super().destroy(request, *args, **kwargs)
@@ -624,7 +624,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = Comment.objects.select_related('ticket', 'author')
         user = self.request.user
-        if user.is_superuser or user.role == 'ADMIN':
+        if user.is_superuser or is_admin_or_owner(user):
             return qs.all()
         from django.db.models import Q
         member_ws = WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True)
@@ -667,14 +667,14 @@ class CommentViewSet(viewsets.ModelViewSet):
     )
     def partial_update(self, request, *args, **kwargs):
         obj = self.get_object()
-        if request.user.role != 'ADMIN' and obj.author != request.user:
+        if not is_admin_or_owner(request.user) and obj.author != request.user:
             return Response({'detail': 'You can only edit your own comments.'}, status=status.HTTP_403_FORBIDDEN)
         return super().partial_update(request, *args, **kwargs)
 
     @extend_schema(summary="Delete comment", description="Delete a comment. Only the author or admin can delete.", responses={204: None, 403: _error_detail})
     def destroy(self, request, *args, **kwargs):
         obj = self.get_object()
-        if request.user.role != 'ADMIN' and obj.author != request.user:
+        if not is_admin_or_owner(request.user) and obj.author != request.user:
             return Response({'detail': 'You can only delete your own comments.'}, status=status.HTTP_403_FORBIDDEN)
         return super().destroy(request, *args, **kwargs)
 
@@ -682,7 +682,7 @@ class CommentViewSet(viewsets.ModelViewSet):
         ticket = serializer.validated_data.get('ticket')
         if not ProjectAgent.objects.filter(
             project=ticket.project, agent=self.request.user
-        ).exists() and self.request.user.role != 'ADMIN':
+        ).exists() and not is_admin_or_owner(self.request.user):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("You must be a member of this project to comment on its tickets.")
         serializer.save(author=self.request.user)
