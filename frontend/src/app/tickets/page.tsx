@@ -8,6 +8,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import FormField, { parseFieldErrors, inputClass } from '@/components/FormField';
 import { api, Ticket, Project, User, WorkspaceMember, ApiError, PaginatedResponse, StatusDefinition } from '@/lib/api';
 import { useWorkspace } from '@/hooks/useWorkspace';
+import { useAuth } from '@/hooks/useAuth';
 
 const PAGE_SIZE = 10;
 
@@ -87,6 +88,7 @@ function TicketsPage() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const { currentWorkspace } = useWorkspace();
+  const { isLoggedIn, isLoading: authLoading } = useAuth();
 
   // Initialize filters from URL params (runs once)
   useEffect(() => {
@@ -110,12 +112,13 @@ function TicketsPage() {
 
   // Load status definitions
   useEffect(() => {
-    if (currentWorkspace) {
+    if (currentWorkspace && isLoggedIn) {
       api.getStatusDefinitions(currentWorkspace.id).then(setStatuses).catch(() => {});
     }
-  }, [currentWorkspace?.id]);
+  }, [currentWorkspace?.id, isLoggedIn]);
 
   useEffect(() => {
+    if (!isLoggedIn || authLoading) return;
     setLoading(true);
     const wsParams: Record<string, string> = currentWorkspace ? { workspace: String(currentWorkspace.id) } : {};
     const ticketParams: Record<string, string> = { ...wsParams, page: String(page) };
@@ -130,7 +133,7 @@ function TicketsPage() {
       })
       .catch((e: any) => toast(e?.message || 'Failed to load data', 'error'))
       .finally(() => setLoading(false));
-  }, [currentWorkspace?.id, page, filterProject]);
+  }, [currentWorkspace?.id, page, filterProject, isLoggedIn, authLoading]);
 
   // Fetch project agents for all visible projects (for inline assign dropdown)
   useEffect(() => {
