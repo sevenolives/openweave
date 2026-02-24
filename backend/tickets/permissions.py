@@ -8,13 +8,17 @@ from .models import User, ProjectAgent, Workspace
 
 
 def is_admin_or_owner(user):
-    """Check if user is an ADMIN or a workspace owner (root user)."""
+    """Check if user is an ADMIN (User role or WorkspaceMember role) or a workspace owner."""
     if not user.is_authenticated:
         return False
     if hasattr(user, 'role') and user.role == 'ADMIN':
         return True
     # Workspace owners have full admin privileges
-    return Workspace.objects.filter(owner=user).exists()
+    if Workspace.objects.filter(owner=user).exists():
+        return True
+    # Workspace-level admins (WorkspaceMember role)
+    from .models import WorkspaceMember
+    return WorkspaceMember.objects.filter(user=user, role='ADMIN').exists()
 
 
 class IsAdminAgent(permissions.BasePermission):
