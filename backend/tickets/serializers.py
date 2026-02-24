@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from .permissions import is_admin_or_owner
 from .models import (
     User, Project, Ticket, Comment, AuditLog, Workspace, WorkspaceMember,
     WorkspaceInvite, TicketAttachment, StatusDefinition, StatusTransition,
@@ -203,9 +204,9 @@ class TicketSerializer(serializers.ModelSerializer):
     def validate_assigned_to(self, value):
         """Ensure assigned user belongs to the project. Admins can assign anyone."""
         if value:
-            # Admins can assign anyone
+            # Admins/owners can assign anyone
             request = self.context.get('request')
-            if request and (request.user.is_superuser or request.user.role == 'ADMIN'):
+            if request and (request.user.is_superuser or is_admin_or_owner(request.user)):
                 return value
             # For updates, use existing project; for creates, get from initial_data
             project = None

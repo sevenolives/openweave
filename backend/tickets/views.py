@@ -511,9 +511,9 @@ class TicketViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action == 'destroy':
             return [IsAdminAgent()]
-        elif self.action in ['create', 'list', 'retrieve']:
-            return [permissions.IsAuthenticated()]
-        return [IsAdminOrOwner()]
+        # All authenticated users can create, list, retrieve, and update tickets
+        # (perform_update enforces that non-admins can only update their assigned tickets)
+        return [permissions.IsAuthenticated()]
 
     def perform_update(self, serializer):
         from django.core.exceptions import ValidationError as DjangoValidationError
