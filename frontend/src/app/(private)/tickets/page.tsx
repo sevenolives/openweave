@@ -373,77 +373,80 @@ function TicketsPage() {
                   <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                 </div>
                 
-                {/* Tickets table */}
-                <table className="w-full">
-                  <tbody className="divide-y divide-gray-100">
-                    {groupTickets.map(ticket => (
-                      <tr key={ticket.id} onClick={() => router.push(`/tickets/${ticket.ticket_slug || ticket.id}`)} className="hover:bg-gray-50 cursor-pointer">
-                        <td className="px-4 py-3">
-                          <div className="flex items-start gap-3">
-                            <span className="text-xs text-gray-400 font-mono w-16 pt-0.5">{ticket.ticket_slug || `#${ticket.id}`}</span>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-medium text-gray-900 truncate">{ticket.title}</p>
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusBadge(statuses, ticket.status)}`}>
-                                  {ticket.status.replace('_', ' ')}
-                                </span>
-                                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
-                                  {ticket.ticket_type === 'BUG' ? '🐛 Bug' : '✨ Feature'}
-                                </span>
-                                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${PRIORITY_COLORS[ticket.priority]}`}>
-                                  {ticket.priority}
-                                </span>
-                                <button
-                                  onClick={async (e) => {
-                                    e.stopPropagation();
-                                    const newStatus = ticket.approved_status === 'APPROVED' ? 'UNAPPROVED' : 'APPROVED';
-                                    try {
-                                      const updated = await api.updateTicket(ticket.id, { approved_status: newStatus } as any);
-                                      setTickets(prev => prev.map(t => t.id === ticket.id ? updated : t));
-                                      toast(`Ticket ${newStatus.toLowerCase()}`);
-                                    } catch (err: any) { toast(err?.message || 'Failed to update', 'error'); }
-                                  }}
-                                  className={`text-[10px] font-medium px-2 py-0.5 rounded-full cursor-pointer hover:opacity-80 transition-opacity ${ticket.approved_status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}
-                                >
-                                  {ticket.approved_status === 'APPROVED' ? '✓ Approved' : 'Unapproved'}
-                                </button>
-                              </div>
-                              <div className="mt-1" onClick={e => e.stopPropagation()}>
-                                <select
-                                  value={ticket.assigned_to?.toString() || ''}
-                                  onChange={async (e) => {
-                                    const val = e.target.value;
-                                    try {
-                                      const updated = await api.updateTicket(ticket.id, { assigned_to: val ? parseInt(val) : null });
-                                      setTickets(prev => prev.map(t => t.id === ticket.id ? updated : t));
-                                      toast('Assignment updated');
-                                    } catch (err: any) { toast(err?.message || 'Failed to assign', 'error'); }
-                                  }}
-                                  className="text-xs border border-gray-200 rounded-md px-1.5 py-0.5 bg-white text-gray-600 focus:ring-1 focus:ring-indigo-500 max-w-[140px]"
-                                >
-                                  <option value="">Unassigned</option>
-                                  {(projectAgentsMap[ticket.project] || []).map(a => (
-                                    <option key={a.id} value={String(a.id)}>{a.username}</option>
-                                  ))}
-                                </select>
-                              </div>
-                            </div>
+                {/* Tickets list */}
+                <div className="divide-y divide-gray-100">
+                  {groupTickets.map(ticket => (
+                    <div key={ticket.id} onClick={() => router.push(`/tickets/${ticket.ticket_slug || ticket.id}`)} className="px-4 py-3 hover:bg-gray-50 cursor-pointer">
+                      {/* Row 1: slug + title + delete */}
+                      <div className="flex items-start gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-gray-900">
+                            <span className="text-xs text-gray-400 font-mono mr-1.5">{ticket.ticket_slug || `#${ticket.id}`}</span>
+                            {ticket.title}
+                          </p>
+                          {/* Row 2: description snippet */}
+                          {ticket.description && (
+                            <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{ticket.description}</p>
+                          )}
+                          {/* Row 3: badges */}
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusBadge(statuses, ticket.status)}`}>
+                              {ticket.status.replace('_', ' ')}
+                            </span>
+                            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                              {ticket.ticket_type === 'BUG' ? '🐛 Bug' : '✨ Feature'}
+                            </span>
+                            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${PRIORITY_COLORS[ticket.priority]}`}>
+                              {ticket.priority}
+                            </span>
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                const newStatus = ticket.approved_status === 'APPROVED' ? 'UNAPPROVED' : 'APPROVED';
+                                try {
+                                  const updated = await api.updateTicket(ticket.id, { approved_status: newStatus } as any);
+                                  setTickets(prev => prev.map(t => t.id === ticket.id ? updated : t));
+                                  toast(`Ticket ${newStatus.toLowerCase()}`);
+                                } catch (err: any) { toast(err?.message || 'Failed to update', 'error'); }
+                              }}
+                              className={`text-[10px] font-medium px-2 py-0.5 rounded-full cursor-pointer hover:opacity-80 transition-opacity ${ticket.approved_status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}
+                            >
+                              {ticket.approved_status === 'APPROVED' ? '✓ Approved' : 'Unapproved'}
+                            </button>
                           </div>
-                        </td>
-                        <td className="px-3 py-3 text-right whitespace-nowrap">
-                          <span className="text-xs text-gray-400 mr-2 hidden sm:inline">{new Date(ticket.created_at).toLocaleDateString()}</span>
-                          <button
-                            onClick={e => { e.stopPropagation(); setDeleteTarget(ticket); }}
-                            className="inline-flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                            title="Delete ticket"
-                          >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                          {/* Row 4: assignee + date */}
+                          <div className="flex items-center gap-3 mt-1.5" onClick={e => e.stopPropagation()}>
+                            <select
+                              value={ticket.assigned_to?.toString() || ''}
+                              onChange={async (e) => {
+                                const val = e.target.value;
+                                try {
+                                  const updated = await api.updateTicket(ticket.id, { assigned_to: val ? parseInt(val) : null });
+                                  setTickets(prev => prev.map(t => t.id === ticket.id ? updated : t));
+                                  toast('Assignment updated');
+                                } catch (err: any) { toast(err?.message || 'Failed to assign', 'error'); }
+                              }}
+                              className="text-xs border border-gray-200 rounded-md px-1.5 py-0.5 bg-white text-gray-600 focus:ring-1 focus:ring-indigo-500 max-w-[140px]"
+                            >
+                              <option value="">Unassigned</option>
+                              {(projectAgentsMap[ticket.project] || []).map(a => (
+                                <option key={a.id} value={String(a.id)}>{a.username}</option>
+                              ))}
+                            </select>
+                            <span className="text-xs text-gray-400 hidden sm:inline">{new Date(ticket.created_at).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={e => { e.stopPropagation(); setDeleteTarget(ticket); }}
+                          className="inline-flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors flex-shrink-0"
+                          title="Delete ticket"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
@@ -519,7 +522,7 @@ function TicketsPage() {
         />
 
         {/* Mobile FAB */}
-        <button onClick={() => setShowCreate(true)} className="sm:hidden fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-700 active:scale-95 transition-all z-40">
+        <button onClick={() => setShowCreate(true)} className="sm:hidden fixed bottom-20 right-6 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-700 active:scale-95 transition-all z-40">
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
         </button>
       </div>
