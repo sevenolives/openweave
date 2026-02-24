@@ -396,8 +396,8 @@ function TicketsPage() {
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
                       </div>
-                      {/* Badges + assignee + approve — single compact row */}
-                      <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                      {/* Badges row */}
+                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                         <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusBadge(statuses, ticket.status)}`}>
                           {ticket.status.replace('_', ' ')}
                         </span>
@@ -406,26 +406,6 @@ function TicketsPage() {
                         </span>
                         <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${PRIORITY_COLORS[ticket.priority]}`}>
                           {ticket.priority}
-                        </span>
-                        <span className="text-[10px] text-gray-300">·</span>
-                        <span className="text-[10px] text-gray-500" onClick={e => e.stopPropagation()}>
-                          <select
-                            value={ticket.assigned_to?.toString() || ''}
-                            onChange={async (e) => {
-                              const val = e.target.value;
-                              try {
-                                const updated = await api.updateTicket(ticket.id, { assigned_to: val ? parseInt(val) : null });
-                                setTickets(prev => prev.map(t => t.id === ticket.id ? updated : t));
-                                toast('Assignment updated');
-                              } catch (err: any) { toast(err?.message || 'Failed to assign', 'error'); }
-                            }}
-                            className="text-[11px] border-0 bg-transparent text-gray-600 focus:ring-0 p-0 pr-4 cursor-pointer"
-                          >
-                            <option value="">Unassigned</option>
-                            {(projectAgentsMap[ticket.project] || []).map(a => (
-                              <option key={a.id} value={String(a.id)}>{a.username}</option>
-                            ))}
-                          </select>
                         </span>
                         <button
                           onClick={async (e) => {
@@ -437,10 +417,31 @@ function TicketsPage() {
                               toast(`Ticket ${newStatus.toLowerCase()}`);
                             } catch (err: any) { toast(err?.message || 'Failed to update', 'error'); }
                           }}
-                          className={`ml-auto text-[10px] font-semibold px-2.5 py-1 rounded-md cursor-pointer transition-all ${ticket.approved_status === 'APPROVED' ? 'bg-green-600 text-white hover:bg-green-700 shadow-sm' : 'border border-amber-400 text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
+                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full cursor-pointer transition-all ${ticket.approved_status === 'APPROVED' ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-amber-500 text-white hover:bg-amber-600'}`}
                         >
-                          {ticket.approved_status === 'APPROVED' ? '✓ Approved' : '⏳ Approve'}
+                          {ticket.approved_status === 'APPROVED' ? '✓ Approved' : 'Approve'}
                         </button>
+                      </div>
+                      {/* Assignee row */}
+                      <div className="flex items-center gap-2 mt-1" onClick={e => e.stopPropagation()}>
+                        <select
+                          value={ticket.assigned_to?.toString() || ''}
+                          onChange={async (e) => {
+                            const val = e.target.value;
+                            try {
+                              const updated = await api.updateTicket(ticket.id, { assigned_to: val ? parseInt(val) : null });
+                              setTickets(prev => prev.map(t => t.id === ticket.id ? updated : t));
+                              toast('Assignment updated');
+                            } catch (err: any) { toast(err?.message || 'Failed to assign', 'error'); }
+                          }}
+                          className="text-[11px] border border-gray-200 rounded px-1.5 py-0.5 bg-white text-gray-600 focus:ring-1 focus:ring-indigo-500"
+                        >
+                          <option value="">Unassigned</option>
+                          {(projectAgentsMap[ticket.project] || []).map(a => (
+                            <option key={a.id} value={String(a.id)}>{a.username}</option>
+                          ))}
+                        </select>
+                        <span className="text-[10px] text-gray-400 hidden sm:inline">{new Date(ticket.created_at).toLocaleDateString()}</span>
                       </div>
                     </div>
                   ))}
