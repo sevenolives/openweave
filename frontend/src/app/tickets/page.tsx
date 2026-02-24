@@ -94,7 +94,19 @@ function TicketsPage() {
     if (statusParam) setFilterStatus(statusParam);
     const projectParam = searchParams.get('project');
     if (projectParam) setFilterProject(Number(projectParam));
+    const priorityParam = searchParams.get('priority');
+    if (priorityParam) setFilterPriority(priorityParam);
   }, []);
+
+  // Sync filters to URL so navigating back preserves context
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (filterProject) params.set('project', String(filterProject));
+    if (filterStatus) params.set('status', filterStatus);
+    if (filterPriority) params.set('priority', filterPriority);
+    const url = params.toString() ? `?${params.toString()}` : '/tickets';
+    window.history.replaceState(null, '', url);
+  }, [filterProject, filterStatus, filterPriority]);
 
   // Load status definitions
   useEffect(() => {
@@ -114,11 +126,7 @@ function TicketsPage() {
     Promise.all([api.getTicketsPaginated(ticketParams), api.getProjects(wsParams), membersPromise])
       .then(([resp, p, u]) => {
         setTickets(resp.results || []); setTotalCount(resp.count || 0); setProjects(p); setWsUsers(u);
-        // Auto-select first project only on initial load if no filter set
-        if (!filterProject && !hasUserSelectedProject.current && !searchParams.get('project') && p.length > 0) {
-          setFilterProject(p[0].id);
-          hasUserSelectedProject.current = true;
-        }
+        // Default is "All projects" — no auto-select
       })
       .catch((e: any) => toast(e?.message || 'Failed to load data', 'error'))
       .finally(() => setLoading(false));
