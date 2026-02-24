@@ -335,15 +335,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.is_superuser or is_admin_or_owner(user):
             return qs
-        # Show projects in workspaces the user belongs to (as member or owner)
-        from django.db.models import Q
-        member_ws = list(WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True))
-        owned_ws = list(Workspace.objects.filter(owner=user).values_list('id', flat=True))
-        ws_ids = list(set(member_ws + owned_ws))
-        if ws_ids:
-            return qs.filter(
-                Q(workspace_id__in=ws_ids) | Q(agents=user)
-            ).distinct()
+        # Non-admins only see projects they are assigned to
         return qs.filter(agents=user).distinct()
 
     @extend_schema(
@@ -445,13 +437,8 @@ class TicketViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.is_superuser or is_admin_or_owner(user):
             return qs.all()
-        from django.db.models import Q
-        member_ws = WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True)
-        owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
-        ws_ids = list(set(list(member_ws) + list(owned_ws)))
-        return qs.filter(
-            Q(project__agents=user) | Q(project__workspace_id__in=ws_ids)
-        ).distinct()
+        # Non-admins only see tickets for projects they are assigned to
+        return qs.filter(project__agents=user).distinct()
 
     @extend_schema(
         summary="List tickets",
@@ -559,13 +546,8 @@ class TicketAttachmentViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.is_superuser or is_admin_or_owner(user):
             return qs.all()
-        from django.db.models import Q
-        member_ws = WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True)
-        owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
-        ws_ids = list(set(list(member_ws) + list(owned_ws)))
-        return qs.filter(
-            Q(ticket__project__agents=user) | Q(ticket__project__workspace_id__in=ws_ids)
-        ).distinct()
+        # Non-admins only see attachments for tickets in their projects
+        return qs.filter(ticket__project__agents=user).distinct()
 
     @extend_schema(
         summary="Upload attachment",
@@ -626,13 +608,8 @@ class CommentViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.is_superuser or is_admin_or_owner(user):
             return qs.all()
-        from django.db.models import Q
-        member_ws = WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True)
-        owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
-        ws_ids = list(set(list(member_ws) + list(owned_ws)))
-        return qs.filter(
-            Q(ticket__project__agents=user) | Q(ticket__project__workspace_id__in=ws_ids)
-        ).distinct()
+        # Non-admins only see comments for tickets in their projects
+        return qs.filter(ticket__project__agents=user).distinct()
 
     @extend_schema(
         summary="List comments",
