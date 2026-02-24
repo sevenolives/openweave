@@ -5,8 +5,15 @@ import { useParams, useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import FormField, { parseFieldErrors, inputClass } from '@/components/FormField';
-import { api, Workspace, WorkspaceMember, WorkspaceInvite } from '@/lib/api';
+import { api, Workspace, WorkspaceMember, WorkspaceInvite, StatusDefinition, StatusTransition } from '@/lib/api';
 import { useWorkspace } from '@/hooks/useWorkspace';
+
+const COLORS = ['gray', 'blue', 'red', 'purple', 'amber', 'green', 'yellow', 'indigo', 'pink', 'orange'];
+const COLOR_CLASSES: Record<string, string> = {
+  gray: 'bg-gray-400', blue: 'bg-blue-500', red: 'bg-red-500', purple: 'bg-purple-500',
+  amber: 'bg-amber-500', green: 'bg-green-500', yellow: 'bg-yellow-500', indigo: 'bg-indigo-500',
+  pink: 'bg-pink-500', orange: 'bg-orange-500',
+};
 
 export default function WorkspaceSettingsPage() {
   const params = useParams();
@@ -21,16 +28,28 @@ export default function WorkspaceSettingsPage() {
   const [editSlug, setEditSlug] = useState('');
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [statuses, setStatuses] = useState<StatusDefinition[]>([]);
+  const [transitions, setTransitions] = useState<StatusTransition[]>([]);
+  const [newStatusKey, setNewStatusKey] = useState('');
+  const [newStatusLabel, setNewStatusLabel] = useState('');
+  const [newStatusColor, setNewStatusColor] = useState('gray');
+  const [newStatusTerminal, setNewStatusTerminal] = useState(false);
+  const [addingStatus, setAddingStatus] = useState(false);
+  const [statusTab, setStatusTab] = useState<'statuses' | 'transitions'>('statuses');
   const { toast } = useToast();
 
   const loadData = useCallback(async (ws: Workspace) => {
     try {
-      const [m, i] = await Promise.all([
+      const [m, i, sd, st] = await Promise.all([
         api.getWorkspaceMembers({ workspace: String(ws.id) }),
         api.getInvites({ workspace: String(ws.id) }),
+        api.getStatusDefinitions(ws.id),
+        api.getStatusTransitions(ws.id),
       ]);
       setMembers(m);
       setInvites(i);
+      setStatuses(sd);
+      setTransitions(st);
     } catch (e: any) { toast(e?.message || 'Failed to load workspace data', 'error'); }
     finally { setLoading(false); }
   }, [toast]);
@@ -104,6 +123,71 @@ export default function WorkspaceSettingsPage() {
   const copyInviteCode = (token: string) => {
     navigator.clipboard.writeText(token);
     toast('Invite code copied for bot!');
+  };
+
+  const handleAddStatus = async () => {
+    if (!workspace || !newStatusKey.trim() || !newStatusLabel.trim()) return;
+    setAddingStatus(true);
+    try {
+      await api.createStatusDefinition({
+        workspace: workspace.id,
+        key: newStatusKey.toUpperCase().replace(/\s+/g, '_'),
+        label: newStatusLabel,
+        color: newStatusColor,
+        is_terminal: newStatusTerminal,
+        is_default: false,
+        position: statuses.length,
+      });
+      setNewStatusKey(''); setNewStatusLabel(''); setNewStatusColor('gray'); setNewStatusTerminal(false);
+      toast('Status created');
+      loadData(workspace);
+    } catch (e: any) { toast(e?.data?.key?.[0] || e?.data?.detail || e?.message || 'Failed', 'error'); }
+    finally { setAddingStatus(false); }
+  };
+
+  const handleUpdateStatus = async (id: number, data: Partial<StatusDefinition>) => {
+    try {
+      await api.updateStatusDefinition(id, data);
+      toast('Status updated');
+      if (workspace) loadData(workspace);
+    } catch (e: any) { toast(e?.message || 'Failed to update', 'error'); }
+  };
+
+  const handleDeleteStatus = async (sd: StatusDefinition) => {
+    if (!confirm(`Delete status "${sd.label}"? This will also remove its transitions.`)) return;
+    try {
+      await api.deleteStatusDefinition(sd.id);
+      toast('Status deleted');
+      if (workspace) loadData(workspace);
+    } catch (e: any) { toast(e?.data?.[0] || e?.message || 'Cannot delete', 'error'); }
+  };
+
+  const handleSetDefault = async (sd: StatusDefinition) => {
+    // Unset old default, set new
+    const oldDefault = statuses.find(s => s.is_default);
+    try {
+      if (oldDefault) await api.updateStatusDefinition(oldDefault.id, { is_default: false });
+      await api.updateStatusDefinition(sd.id, { is_default: true });
+      toast(`"${sd.label}" is now the default status`);
+      if (workspace) loadData(workspace);
+    } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
+  };
+
+  const handleAddTransition = async (fromId: number, toId: number, actorType: string) => {
+    if (!workspace) return;
+    try {
+      await api.createStatusTransition({ workspace: workspace.id, from_status: fromId, to_status: toId, actor_type: actorType as StatusTransition['actor_type'] });
+      toast('Transition added');
+      loadData(workspace);
+    } catch (e: any) { toast(e?.data?.non_field_errors?.[0] || e?.message || 'Failed', 'error'); }
+  };
+
+  const handleDeleteTransition = async (id: number) => {
+    try {
+      await api.deleteStatusTransition(id);
+      toast('Transition removed');
+      if (workspace) loadData(workspace);
+    } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
   };
 
 
@@ -203,6 +287,139 @@ export default function WorkspaceSettingsPage() {
             {invites.length === 0 && <p className="px-5 py-4 text-sm text-gray-400">No invite links yet.</p>}
           </div>
         </div>
+        {/* Status State Machine */}
+        <div className="bg-white border border-gray-200 rounded-xl mb-6">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h2 className="font-semibold text-gray-900">Status Configuration</h2>
+            <p className="text-xs text-gray-500 mt-1">Define statuses and allowed transitions for tickets in this workspace.</p>
+          </div>
+
+          {/* Tabs */}
+          <div className="px-5 pt-4 flex gap-2">
+            <button onClick={() => setStatusTab('statuses')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${statusTab === 'statuses' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:bg-gray-100'}`}>Statuses</button>
+            <button onClick={() => setStatusTab('transitions')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${statusTab === 'transitions' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:bg-gray-100'}`}>Transitions</button>
+          </div>
+
+          {statusTab === 'statuses' && (
+            <div className="p-5">
+              {/* Status list */}
+              <div className="space-y-2 mb-4">
+                {statuses.map(sd => (
+                  <div key={sd.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-200 transition">
+                    <div className={`w-3 h-3 rounded-full flex-shrink-0 ${COLOR_CLASSES[sd.color] || 'bg-gray-400'}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-900">{sd.label}</span>
+                        <span className="text-xs font-mono text-gray-400">{sd.key}</span>
+                        {sd.is_terminal && <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">Terminal</span>}
+                        {sd.is_default && <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-600">Default</span>}
+                        {sd.in_use && <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-600">In Use</span>}
+                      </div>
+                    </div>
+                    <select value={sd.color} onChange={e => handleUpdateStatus(sd.id, { color: e.target.value })} className="text-xs border border-gray-200 rounded px-2 py-1 bg-white">
+                      {COLORS.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <input type="text" value={sd.label} className="text-sm border border-gray-200 rounded px-2 py-1 w-28" onBlur={e => { if (e.target.value !== sd.label) handleUpdateStatus(sd.id, { label: e.target.value }); }} onChange={e => { setStatuses(prev => prev.map(s => s.id === sd.id ? { ...s, label: e.target.value } : s)); }} />
+                    {!sd.is_default && (
+                      <button onClick={() => handleSetDefault(sd)} className="text-xs text-indigo-600 hover:text-indigo-800 px-2 py-1 rounded hover:bg-indigo-50" title="Set as default">⭐</button>
+                    )}
+                    {!sd.in_use && !sd.is_default && (
+                      <button onClick={() => handleDeleteStatus(sd)} className="text-xs text-red-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50 min-w-[32px] min-h-[32px] flex items-center justify-center" title="Delete status">🗑️</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Add new status */}
+              <div className="flex flex-wrap items-end gap-2 p-3 rounded-lg border border-dashed border-gray-200 bg-gray-50">
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">Key</label>
+                  <input type="text" value={newStatusKey} onChange={e => setNewStatusKey(e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, ''))} placeholder="e.g. QA_REVIEW" className="text-sm border border-gray-300 rounded px-2 py-1.5 w-28 font-mono" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">Label</label>
+                  <input type="text" value={newStatusLabel} onChange={e => setNewStatusLabel(e.target.value)} placeholder="e.g. QA Review" className="text-sm border border-gray-300 rounded px-2 py-1.5 w-28" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">Color</label>
+                  <select value={newStatusColor} onChange={e => setNewStatusColor(e.target.value)} className="text-sm border border-gray-300 rounded px-2 py-1.5 bg-white">
+                    {COLORS.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
+                  <input type="checkbox" checked={newStatusTerminal} onChange={e => setNewStatusTerminal(e.target.checked)} className="rounded" />
+                  Terminal
+                </label>
+                <button onClick={handleAddStatus} disabled={addingStatus || !newStatusKey.trim() || !newStatusLabel.trim()} className="px-3 py-1.5 bg-indigo-600 text-white rounded text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition">
+                  {addingStatus ? 'Adding…' : '+ Add Status'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {statusTab === 'transitions' && (
+            <div className="p-5">
+              <p className="text-xs text-gray-500 mb-4">Define which transitions are allowed. <strong>BOT</strong> transitions enforce rules for agents. <strong>HUMAN</strong> transitions allow humans to move between states. <strong>ALL</strong> applies to both.</p>
+
+              {/* Transition matrix grouped by from_status */}
+              {statuses.filter(s => !s.is_terminal).map(fromStatus => {
+                const fromTransitions = transitions.filter(t => t.from_status === fromStatus.id);
+                return (
+                  <div key={fromStatus.id} className="mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className={`w-2 h-2 rounded-full ${COLOR_CLASSES[fromStatus.color] || 'bg-gray-400'}`} />
+                      <span className="text-sm font-semibold text-gray-700">{fromStatus.label}</span>
+                      <span className="text-xs text-gray-400">→</span>
+                    </div>
+                    <div className="ml-4 space-y-1">
+                      {fromTransitions.map(t => {
+                        const toStatus = statuses.find(s => s.id === t.to_status);
+                        return (
+                          <div key={t.id} className="flex items-center gap-2 text-sm py-1">
+                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${t.actor_type === 'BOT' ? 'bg-purple-100 text-purple-700' : t.actor_type === 'HUMAN' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>{t.actor_type}</span>
+                            <span className="text-gray-600">{toStatus?.label || '?'}</span>
+                            <button onClick={() => handleDeleteTransition(t.id)} className="text-red-400 hover:text-red-600 text-xs ml-auto">✕</button>
+                          </div>
+                        );
+                      })}
+                      {/* Add transition from this status */}
+                      <div className="flex items-center gap-2 mt-1">
+                        <select id={`add-to-${fromStatus.id}`} className="text-xs border border-gray-200 rounded px-2 py-1 bg-white" defaultValue="">
+                          <option value="" disabled>→ target…</option>
+                          {statuses.filter(s => s.id !== fromStatus.id).map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                        </select>
+                        <select id={`add-actor-${fromStatus.id}`} className="text-xs border border-gray-200 rounded px-2 py-1 bg-white" defaultValue="BOT">
+                          <option value="BOT">BOT</option>
+                          <option value="HUMAN">HUMAN</option>
+                          <option value="ALL">ALL</option>
+                        </select>
+                        <button onClick={() => {
+                          const toEl = document.getElementById(`add-to-${fromStatus.id}`) as HTMLSelectElement;
+                          const actorEl = document.getElementById(`add-actor-${fromStatus.id}`) as HTMLSelectElement;
+                          if (toEl?.value) {
+                            handleAddTransition(fromStatus.id, Number(toEl.value), actorEl.value);
+                            toEl.value = '';
+                          }
+                        }} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium px-2 py-1 rounded hover:bg-indigo-50">+ Add</button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {statuses.filter(s => s.is_terminal).length > 0 && (
+                <div className="mt-4 p-3 rounded-lg bg-gray-50 border border-gray-100">
+                  <p className="text-xs text-gray-500"><strong>Terminal states</strong> (no outgoing transitions):</p>
+                  <div className="flex gap-2 mt-1">
+                    {statuses.filter(s => s.is_terminal).map(s => (
+                      <span key={s.id} className="text-xs font-mono text-gray-600 px-2 py-0.5 rounded bg-white border border-gray-200">{s.label}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Danger Zone */}
         <div className="bg-white rounded-xl border border-red-200">
           <div className="px-5 py-4 border-b border-red-100">
