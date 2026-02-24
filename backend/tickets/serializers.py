@@ -198,8 +198,12 @@ class TicketSerializer(serializers.ModelSerializer):
         }
 
     def validate_assigned_to(self, value):
-        """Ensure assigned user belongs to the project."""
+        """Ensure assigned user belongs to the project. Admins can assign anyone."""
         if value:
+            # Admins can assign anyone
+            request = self.context.get('request')
+            if request and (request.user.is_superuser or request.user.role == 'ADMIN'):
+                return value
             # For updates, use existing project; for creates, get from initial_data
             project = None
             if self.instance:

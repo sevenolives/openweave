@@ -129,7 +129,10 @@ if TOKEN:
 # ── 3. Users API ──
 print("\n═══ 3. USERS API ═══")
 if AUTH:
-    ok, r = get(f"{BACKEND}/api/users/", AUTH)
+    # Get workspace ID for user filter
+    _ok, _r = get(f"{BACKEND}/api/workspaces/", AUTH)
+    _ws_id = _r.json().get("results", [{}])[0].get("id") if _ok and hasattr(_r, 'json') else None
+    ok, r = get(f"{BACKEND}/api/users/?workspace={_ws_id}" if _ws_id else f"{BACKEND}/api/users/", AUTH)
     check("3.1", "List users", ok and hasattr(r, 'json'))
     
     ok, r = get(f"{BACKEND}/api/users/me/", AUTH)
