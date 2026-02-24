@@ -520,10 +520,11 @@ class TicketViewSet(viewsets.ModelViewSet):
         instance = serializer.instance
         user = self.request.user
 
-        # Bots cannot modify unapproved tickets
+        # Bots cannot change status on unapproved tickets
         if hasattr(user, 'user_type') and user.user_type == 'BOT' and instance.approved_status != 'APPROVED':
-            from rest_framework.exceptions import PermissionDenied
-            raise PermissionDenied("Bots cannot modify unapproved tickets. A human must approve this ticket first.")
+            if 'status' in serializer.validated_data:
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied("Bots cannot change status on unapproved tickets. A human must approve first.")
 
         # Non-admin users can only update tickets assigned to them
         if not user.is_superuser and not is_admin_or_owner(user):
