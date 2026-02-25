@@ -790,7 +790,7 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
 
         # Bot transitions (happy path + detours)
         bot_transitions = [
-            ('OPEN', 'IN_PROGRESS'), ('OPEN', 'CANCELLED'),
+            ('OPEN', 'IN_PROGRESS'), ('OPEN', 'BLOCKED'), ('OPEN', 'CANCELLED'),
             ('IN_PROGRESS', 'IN_TESTING'), ('IN_PROGRESS', 'BLOCKED'), ('IN_PROGRESS', 'REVIEW'), ('IN_PROGRESS', 'CANCELLED'),
             ('BLOCKED', 'IN_PROGRESS'), ('BLOCKED', 'CANCELLED'),
             ('IN_TESTING', 'IN_PROGRESS'), ('IN_TESTING', 'BLOCKED'), ('IN_TESTING', 'REVIEW'),
