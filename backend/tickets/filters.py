@@ -33,6 +33,9 @@ class TicketFilter(django_filters.FilterSet):
         field_name='project'
     )
     
+    # Filter by workspace (via project)
+    workspace = django_filters.NumberFilter(field_name='project__workspace_id')
+    
     # Date range filters
     created_after = django_filters.DateTimeFilter(
         field_name='created_at',

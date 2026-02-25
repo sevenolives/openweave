@@ -464,6 +464,8 @@ class TicketViewSet(viewsets.ModelViewSet):
         ],
     )
     def list(self, request, *args, **kwargs):
+        if not request.query_params.get('workspace') and not request.query_params.get('project'):
+            return Response({'detail': 'workspace or project query parameter is required.'}, status=400)
         return super().list(request, *args, **kwargs)
 
     @extend_schema(
