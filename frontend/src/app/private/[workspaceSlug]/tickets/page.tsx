@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef, Suspense } from 'react';
+import { useState, useEffect, useMemo, useRef, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
 
 import Layout from '@/components/Layout';
@@ -53,6 +53,13 @@ function TicketsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(timer);
+  }, [search]);
   const [filterStatus, setFilterStatus] = useState(() => {
     if (typeof window !== 'undefined') return new URLSearchParams(window.location.search).get('status') || '';
     return '';
@@ -82,9 +89,7 @@ function TicketsPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [deleteTarget, setDeleteTarget] = useState<Ticket | null>(null);
   const [projectAgentsMap, setProjectAgentsMap] = useState<Record<number, User[]>>({});
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const hasUserSelectedProject = useRef(!!filterProjectInit);
-  const [kanbanTickets, setKanbanTickets] = useState<Ticket[]>([]);
   const [statuses, setStatuses] = useState<StatusDefinition[]>([]);
 
   const router = useRouter();
@@ -134,19 +139,19 @@ function TicketsPage() {
     const wsParams: Record<string, string> = { workspace: String(currentWorkspace.id) };
     const ticketParams: Record<string, string> = { ...wsParams, page: String(page) };
     if (filterProject) ticketParams.project = String(filterProject);
+    if (filterStatus) ticketParams.status = filterStatus;
+    if (filterPriority) ticketParams.priority = filterPriority;
     if (filterAssigned) ticketParams.assigned_to = filterAssigned;
     if (filterApproved) ticketParams.approved_status = filterApproved;
-    const membersPromise: Promise<User[]> = currentWorkspace
-      ? api.getUsers({ workspace: String(currentWorkspace.id) })
-      : Promise.resolve([]);
+    if (debouncedSearch) ticketParams.search = debouncedSearch;
+    const membersPromise: Promise<User[]> = api.getUsers({ workspace: String(currentWorkspace.id) });
     Promise.all([api.getTicketsPaginated(ticketParams), api.getProjects(wsParams), membersPromise])
       .then(([resp, p, u]) => {
         setTickets(resp.results || []); setTotalCount(resp.count || 0); setProjects(p); setWsUsers(u);
-        // Default is "All projects" — no auto-select
       })
       .catch((e: any) => toast(e?.message || 'Failed to load data', 'error'))
       .finally(() => setLoading(false));
-  }, [currentWorkspace?.id, page, filterProject, filterAssigned, filterApproved]);
+  }, [currentWorkspace?.id, page, filterProject, filterStatus, filterPriority, filterAssigned, filterApproved, debouncedSearch]);
 
   // Fetch project agents for all visible projects (for inline assign dropdown)
   useEffect(() => {
@@ -160,14 +165,6 @@ function TicketsPage() {
     });
   }, [tickets]);
 
-  // Fetch all tickets for kanban view when project is selected
-  useEffect(() => {
-    if (!filterProject || viewMode !== 'kanban') return;
-    const kanbanParams: Record<string, string> = { project: String(filterProject), page_size: '100' };
-    if (currentWorkspace) kanbanParams.workspace = String(currentWorkspace.id);
-    api.getTickets(kanbanParams).then(setKanbanTickets).catch(() => {});
-  }, [filterProject, viewMode]);
-
   // Fetch project agents when create modal project selection changes
   useEffect(() => {
     if (newProject) {
@@ -177,20 +174,10 @@ function TicketsPage() {
     }
   }, [newProject]);
 
-  const filtered = useMemo(() => {
-    return tickets.filter(t => {
-      if (search && !t.title.toLowerCase().includes(search.toLowerCase()) && !t.description?.toLowerCase().includes(search.toLowerCase())) return false;
-      if (filterStatus && t.status !== filterStatus) return false;
-      if (filterPriority && t.priority !== filterPriority) return false;
-      if (filterProject && t.project !== filterProject) return false;
-      return true;
-    });
-  }, [tickets, search, filterStatus, filterPriority, filterProject]);
-
-  // Group tickets by project
+  // Group tickets by project (all filtering is backend-driven)
   const grouped = useMemo(() => {
     const groups: Record<number, { project: Project | null; tickets: Ticket[] }> = {};
-    for (const t of filtered) {
+    for (const t of tickets) {
       const pid = t.project;
       if (!groups[pid]) {
         groups[pid] = { project: projects.find(p => p.id === pid) || null, tickets: [] };
@@ -198,7 +185,7 @@ function TicketsPage() {
       groups[pid].tickets.push(t);
     }
     return Object.values(groups).sort((a, b) => (a.project?.name || '').localeCompare(b.project?.name || ''));
-  }, [filtered, projects]);
+  }, [tickets, projects]);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
@@ -207,8 +194,11 @@ function TicketsPage() {
     const wsParams: Record<string, string> = { workspace: String(currentWorkspace.id) };
     const ticketParams: Record<string, string> = { ...wsParams, page: String(page) };
     if (filterProject) ticketParams.project = String(filterProject);
+    if (filterStatus) ticketParams.status = filterStatus;
+    if (filterPriority) ticketParams.priority = filterPriority;
     if (filterAssigned) ticketParams.assigned_to = filterAssigned;
     if (filterApproved) ticketParams.approved_status = filterApproved;
+    if (debouncedSearch) ticketParams.search = debouncedSearch;
     Promise.all([api.getTicketsPaginated(ticketParams), api.getProjects(wsParams)])
       .then(([resp, p]) => { setTickets(resp.results || []); setTotalCount(resp.count || 0); setProjects(p); })
       .catch((e: any) => toast(e?.message || 'Failed to load data', 'error'));
@@ -258,7 +248,7 @@ function TicketsPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">All Tickets</h1>
             <p className="text-sm text-gray-500 mt-1">
-              {filtered.length} ticket{filtered.length !== 1 ? 's' : ''} across {grouped.length} project{grouped.length !== 1 ? 's' : ''}
+              {totalCount} ticket{totalCount !== 1 ? 's' : ''} across {grouped.length} project{grouped.length !== 1 ? 's' : ''}
               {hasFilters && <span className="text-indigo-500"> (filtered)</span>}
             </p>
           </div>
@@ -268,16 +258,12 @@ function TicketsPage() {
           </button>
         </div>
 
-        {/* View Toggle */}
-        <div className="flex gap-1 bg-gray-100 rounded-lg p-1 mb-4 w-fit">
-          <button onClick={() => setViewMode('list')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'list' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>List</button>
-          <button onClick={() => setViewMode('kanban')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'kanban' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Kanban</button>
-        </div>
+        {/* List View */}
 
         {/* Filters */}
         <div className="flex flex-wrap gap-3 mb-6">
           <input
-            type="text" value={search} onChange={e => setSearch(e.target.value)}
+            type="text" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
             className="px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-full sm:w-64"
             placeholder="Search tickets..."
           />
@@ -312,62 +298,11 @@ function TicketsPage() {
           )}
         </div>
 
-        {/* Kanban View */}
-        {viewMode === 'kanban' && !loading && (
-          <div className="overflow-x-auto pb-4">
-            <div className="inline-flex gap-4 min-w-full">
-              {statuses.map(col => {
-                const colTickets = kanbanTickets.filter(t => t.status === col.key);
-                const c = colorFor(col.color);
-                return (
-                  <div key={col.key} className="flex flex-col w-64 lg:w-72 flex-shrink-0">
-                    <div className="flex items-center gap-2 px-3 py-2.5 bg-white rounded-t-xl border border-b-0 border-gray-200">
-                      <div className={`w-2 h-2 rounded-full ${c.accent}`} />
-                      <h3 className="font-semibold text-gray-700 text-sm">{col.label}</h3>
-                      <span className="ml-auto text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">{colTickets.length}</span>
-                    </div>
-                    <div className={`${c.bg} border border-gray-200 rounded-b-xl p-2 min-h-[20rem] space-y-2 flex-1`}>
-                      {colTickets.map(ticket => (
-                        <div key={ticket.id} className="bg-white rounded-lg border border-gray-100 p-3 hover:shadow-md hover:border-indigo-200 transition-all group">
-                          <div className="flex justify-between items-start mb-1.5">
-                            <span className="text-xs text-gray-400">{ticket.ticket_slug || `#${ticket.id}`}</span>
-                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${PRIORITY_COLORS[ticket.priority]}`}>{ticket.priority}</span>
-                          </div>
-                          <h4 onClick={() => router.push(`/private/${workspaceSlug}/tickets/${ticket.ticket_slug || ticket.id}`)} className="font-medium text-gray-900 text-sm mb-1.5 line-clamp-2 cursor-pointer hover:text-indigo-700 transition-colors">{ticket.title}</h4>
-                          <div className="flex items-center justify-between text-xs text-gray-400">
-                            <span>{ticket.assigned_to_details?.username || 'Unassigned'}</span>
-                            <select
-                              value={ticket.status}
-                              onClick={e => e.stopPropagation()}
-                              onChange={async (e) => {
-                                try {
-                                  await api.updateTicket(ticket.id, { status: e.target.value as Ticket['status'] });
-                                  setKanbanTickets(prev => prev.map(t => t.id === ticket.id ? { ...t, status: e.target.value as Ticket['status'] } : t));
-                                  toast('Status updated');
-                                } catch (err: any) { toast(err?.message || 'Failed', 'error'); }
-                              }}
-                              className="text-[10px] border border-gray-200 rounded px-1 py-0.5 bg-white"
-                            >
-                              {statuses.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
-                            </select>
-                          </div>
-                        </div>
-                      ))}
-                      {colTickets.length === 0 && <div className="text-center py-8 text-gray-400 text-xs">No tickets</div>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* List View */}
-        {viewMode === 'list' && loading ? (
+        {loading ? (
           <div className="space-y-4">
             {[1,2].map(i => <div key={i} className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse"><div className="h-5 bg-gray-200 rounded w-40 mb-4"></div><div className="h-12 bg-gray-100 rounded mb-2"></div><div className="h-12 bg-gray-100 rounded"></div></div>)}
           </div>
-        ) : viewMode === 'list' && filtered.length === 0 ? (
+        ) : tickets.length === 0 ? (
           <div className="text-center py-20">
             <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
@@ -380,7 +315,7 @@ function TicketsPage() {
               </button>
             )}
           </div>
-        ) : viewMode === 'list' ? (
+        ) : (
           <div className="space-y-6">
             {grouped.map(({ project, tickets: groupTickets }) => (
               <div key={project?.id || 0} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -490,10 +425,10 @@ function TicketsPage() {
               </div>
             ))}
           </div>
-        ) : null}
+        )}
 
-        {/* Pagination (list view only) */}
-        {viewMode === 'list' && !loading && (
+        {/* Pagination */}
+        {!loading && (
           <div className="flex items-center justify-between mt-6 px-1">
             <p className="text-sm text-gray-500">Page {page} of {totalPages} · {totalCount} ticket{totalCount !== 1 ? 's' : ''}</p>
             <div className="flex gap-2">
