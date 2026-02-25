@@ -799,11 +799,9 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
         for from_key, to_key in bot_transitions:
             StatusTransition.objects.create(workspace=workspace, from_status=status_map[from_key], to_status=status_map[to_key], actor_type='BOT')
 
-        # Human transitions (all non-terminal → all)
-        non_terminal = [s for s in defaults if not s['is_terminal']]
-        all_statuses = defaults
-        for from_s in non_terminal:
-            for to_s in all_statuses:
+        # Human transitions (any → any, humans are unrestricted)
+        for from_s in defaults:
+            for to_s in defaults:
                 if from_s['key'] != to_s['key']:
                     StatusTransition.objects.get_or_create(
                         workspace=workspace, from_status=status_map[from_s['key']], to_status=status_map[to_s['key']], actor_type='HUMAN'
