@@ -19,7 +19,7 @@ const NAV_KEYS = [
 
 function getBreadcrumbs(pathname: string, wsSlug: string): { label: string; href?: string }[] {
   // Strip /private/N/ prefix to get the page part
-  const pagePart = pathname.replace(/^\/private\/\d+/, '');
+  const pagePart = pathname.replace(/^\/private\/[^/]+/, '');
   const parts = pagePart.split('/').filter(Boolean);
   const crumbs: { label: string; href?: string }[] = [{ label: 'Home', href: wsPath(wsSlug, '/dashboard') }];
   if (parts[0] === 'dashboard') crumbs.push({ label: 'Dashboard' });
@@ -101,7 +101,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   if (ws) {
                     setCurrentWorkspace(ws);
                     // Extract current page and navigate to same page in new workspace
-                    const pagePart = pathname.replace(/^\/private\/\d+/, '') || '/dashboard';
+                    const pagePart = pathname.replace(/^\/private\/[^/]+/, '') || '/dashboard';
                     router.push(wsPath(ws.slug, pagePart));
                   }
                 }}
