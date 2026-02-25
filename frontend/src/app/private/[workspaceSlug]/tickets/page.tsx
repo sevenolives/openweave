@@ -125,8 +125,9 @@ function TicketsPage() {
   }, [currentWorkspace?.id]);
 
   useEffect(() => {
+    if (!currentWorkspace) return;
     setLoading(true);
-    const wsParams: Record<string, string> = currentWorkspace ? { workspace: String(currentWorkspace.id) } : {};
+    const wsParams: Record<string, string> = { workspace: String(currentWorkspace.id) };
     const ticketParams: Record<string, string> = { ...wsParams, page: String(page) };
     if (filterProject) ticketParams.project = String(filterProject);
     if (filterAssigned) ticketParams.assigned_to = filterAssigned;
@@ -157,7 +158,9 @@ function TicketsPage() {
   // Fetch all tickets for kanban view when project is selected
   useEffect(() => {
     if (!filterProject || viewMode !== 'kanban') return;
-    api.getTickets({ project: String(filterProject), page_size: '100' }).then(setKanbanTickets).catch(() => {});
+    const kanbanParams: Record<string, string> = { project: String(filterProject), page_size: '100' };
+    if (currentWorkspace) kanbanParams.workspace = String(currentWorkspace.id);
+    api.getTickets(kanbanParams).then(setKanbanTickets).catch(() => {});
   }, [filterProject, viewMode]);
 
   // Fetch project agents when create modal project selection changes
@@ -195,7 +198,8 @@ function TicketsPage() {
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const loadData = () => {
-    const wsParams: Record<string, string> = currentWorkspace ? { workspace: String(currentWorkspace.id) } : {};
+    if (!currentWorkspace) return;
+    const wsParams: Record<string, string> = { workspace: String(currentWorkspace.id) };
     const ticketParams: Record<string, string> = { ...wsParams, page: String(page) };
     if (filterProject) ticketParams.project = String(filterProject);
     if (filterAssigned) ticketParams.assigned_to = filterAssigned;
