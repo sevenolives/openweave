@@ -38,13 +38,13 @@ Do NOT store tokens in tickets, comments, or any user-visible content.
 
 ## Full Ticket Lifecycle Check
 
-Work through the entire lifecycle — every ticket that isn't `CLOSED` needs attention.
+Work through the entire lifecycle — every ticket that isn't `COMPLETED` or `CANCELLED` needs attention.
 
 ### 🚫 CRITICAL: Never work on unapproved tickets
 Before touching ANY ticket, check `approved_status`. If it is `UNAPPROVED`, **do not work on it**. Do not change its status. Do not write code for it. Do not start any implementation. Move on. This is a hard rule — the backend enforces it (403 on status changes), but you must also self-enforce by always filtering with `&approved_status=APPROVED`.
 
 ### 1) Your assigned tickets (all active statuses)
-- Fetch: `?assigned_to=<your_user_id>&approved_status=APPROVED&status__in=OPEN,IN_PROGRESS,IN_TESTING,BLOCKED,RESOLVED`
+- Fetch: `?assigned_to=<your_user_id>&approved_status=APPROVED&status__in=OPEN,IN_PROGRESS,IN_TESTING,BLOCKED,REVIEW`
 - These are YOUR responsibility. Check every one.
 - **Double-check: is the ticket approved?** If somehow assigned but unapproved, do NOT work on it — leave it for human approval.
 
@@ -76,6 +76,13 @@ Before touching ANY ticket, check `approved_status`. If it is `UNAPPROVED`, **do
 
 ## For each ticket, decide what to do
 
+### ⚠️ Status Transition Rules for Bots
+Bots have enforced transitions. If you try an invalid transition, you get a 400 error. Follow the happy path:
+```
+OPEN → IN_PROGRESS → IN_TESTING → REVIEW → COMPLETED
+```
+Allowed detours: IN_PROGRESS ↔ BLOCKED, IN_TESTING → IN_PROGRESS (test failed), REVIEW → IN_PROGRESS (changes requested). Any status → CANCELLED. You **cannot** skip steps (e.g., OPEN → COMPLETED or IN_PROGRESS → COMPLETED are NOT allowed). If a transition fails, read the error and follow the correct path.
+
 ### OPEN tickets
 - **Check approval first.** Only work on `approved_status=APPROVED` tickets. If `approved_status=UNAPPROVED`, skip — a human needs to approve it.
 - **Read ALL comments first** (`GET /comments/?ticket=<id>`) — comments contain critical context: requirements, prior attempts, blockers, and decisions. Never start work without reading them.
@@ -96,7 +103,7 @@ Before touching ANY ticket, check `approved_status`. If it is `UNAPPROVED`, **do
 - **Test your own work.** If you created or worked on this ticket, verify the fix/feature works.
 - Run the relevant checks, try to reproduce the original issue, confirm it's resolved.
 - Comment with test results: what you tested, what passed, what failed.
-- If tests pass → move to `RESOLVED`, comment confirmation
+- If tests pass → move to `REVIEW`, comment what was tested
 - If tests fail → move back to `IN_PROGRESS`, comment what's broken
 
 ### BLOCKED tickets
@@ -105,9 +112,9 @@ Before touching ANY ticket, check `approved_status`. If it is `UNAPPROVED`, **do
 - If still blocked → comment only if you have new info (don't spam reminders)
 - If blocked too long, escalate to your human
 
-### RESOLVED tickets
+### REVIEW tickets
 - Check for comments — did the reviewer approve or request changes?
-- If approved → move to `CLOSED` with a closing comment
+- If approved → move to `COMPLETED` with a closing comment
 - If changes requested → move back to `IN_PROGRESS` and address feedback
 - If no review yet, wait — don't nag
 
@@ -130,8 +137,8 @@ Comments are the communication backbone. Treat them seriously.
 1. **Always fetch latest ticket state AND read ALL comments before updating.** Use `GET /comments/?ticket=<id>` — comments are the primary source of context on every ticket.
 2. Never overwrite another agent's status change without commenting why.
 3. Always leave a comment when changing status, assignee, or completing.
-4. **Always update ticket status as you work.** Move to `IN_PROGRESS` when starting, `IN_TESTING` when testing, `RESOLVED` when done. Don't leave tickets in stale states.
-5. **Test your own tickets.** After fixing a bug or building a feature, move to `IN_TESTING` and verify. Comment with test results before marking `RESOLVED`.
+4. **Always update ticket status as you work.** Move to `IN_PROGRESS` when starting, `IN_TESTING` when testing, `REVIEW` when tests pass, `COMPLETED` when done. Don't leave tickets in stale states.
+5. **Test your own tickets.** After fixing a bug or building a feature, move to `IN_TESTING` and verify. Comment with test results before marking `REVIEW`.
 6. Never delete tickets or comments.
 7. Never edit comments (append-only).
 8. Avoid status flapping (rapid back-and-forth).
@@ -146,7 +153,7 @@ Comments are the communication backbone. Treat them seriously.
 Tell your human if:
 - You need credentials or access you don't have
 - A customer escalation or sensitive request appears
-- A ticket is `RESOLVED` and requires human approval
+- A ticket is in `REVIEW` and requires human approval
 - Conflicting instructions exist between agents
 - You're unsure about a decision that affects users
 - A ticket has been `BLOCKED` for more than 24 hours
