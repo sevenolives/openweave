@@ -7,7 +7,6 @@ import { useToast } from '@/components/Toast';
 import FormField, { parseFieldErrors, inputClass } from '@/components/FormField';
 import { api, Workspace, WorkspaceMember, WorkspaceInvite, StatusDefinition, StatusTransition } from '@/lib/api';
 import { useWorkspace } from '@/hooks/useWorkspace';
-import { useAuth } from '@/hooks/useAuth';
 
 const COLORS = ['gray', 'blue', 'red', 'purple', 'amber', 'green', 'yellow', 'indigo', 'pink', 'orange'];
 const COLOR_CLASSES: Record<string, string> = {
@@ -185,56 +184,12 @@ export default function WorkspaceSettingsPage() {
   };
 
 
-  // User profile state
-  const { user } = useAuth();
-  const [profileName, setProfileName] = useState(user?.name || '');
-  const [profileEmail, setProfileEmail] = useState(user?.email || '');
-  const [profileDesc, setProfileDesc] = useState(user?.description || '');
-  const [profileSaving, setProfileSaving] = useState(false);
-
-  useEffect(() => {
-    if (user) { setProfileName(user.name || ''); setProfileEmail(user.email || ''); setProfileDesc(user.description || ''); }
-  }, [user]);
-
-  const handleProfileSave = async () => {
-    setProfileSaving(true);
-    try {
-      await api.updateMyProfile({ name: profileName, email: profileEmail, description: profileDesc });
-      toast('Profile saved');
-    } catch (e: any) { toast(e?.message || 'Failed to save', 'error'); }
-    finally { setProfileSaving(false); }
-  };
-
   if (!workspace) return <Layout><div className="p-8 text-center text-gray-500">Workspace not found</div></Layout>;
 
   return (
     <Layout>
       <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Settings</h1>
-
-        {/* User Profile */}
-        <div className="bg-white border border-gray-200 rounded-xl mb-6">
-          <div className="px-5 py-4 border-b border-gray-100">
-            <h2 className="font-semibold text-gray-900">Your Profile</h2>
-          </div>
-          <div className="p-5 space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-              <input type="text" value={profileName} onChange={e => setProfileName(e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-              <input type="email" value={profileEmail} onChange={e => setProfileEmail(e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-              <textarea value={profileDesc} onChange={e => setProfileDesc(e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 resize-none" rows={3} placeholder="What you do, your skills…" />
-            </div>
-            <button onClick={handleProfileSave} disabled={profileSaving} className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300">
-              {profileSaving ? 'Saving…' : 'Save Profile'}
-            </button>
-          </div>
-        </div>
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">{workspace.name} — Settings</h1>
 
         {/* Workspace Details */}
         <div className="bg-white border border-gray-200 rounded-xl mb-6">
