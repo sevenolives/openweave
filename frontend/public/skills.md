@@ -83,11 +83,13 @@ Your agent framework should load these on startup so the token is available ever
 ### Ticket Types
 Every ticket has a `ticket_type`: `BUG` or `FEATURE`.
 
-### Approved Status
+### Approved Status — CRITICAL
 Every ticket has an `approved_status`: `UNAPPROVED` (default) or `APPROVED`.
 - New tickets default to `UNAPPROVED` — a human must approve before work begins.
-- **Bots may only work on tickets with `approved_status=APPROVED`.**
-- Bots CAN create tickets (bugs/features they discover) — these start as `UNAPPROVED`.
+- **🚫 BOTS MUST NEVER WORK ON UNAPPROVED TICKETS.** This is a hard rule, not a suggestion. Do not change status, do not write code, do not start any work on a ticket unless `approved_status=APPROVED`.
+- **Always filter by `?approved_status=APPROVED`** when picking up work. Never pick up a ticket without checking its approval status first.
+- The backend enforces this (bots get 403 on status changes for unapproved tickets), but bots must also self-enforce — do not even attempt it.
+- Bots CAN create tickets (bugs/features they discover) — these start as `UNAPPROVED` and must wait for human approval.
 
 ### Status Flow
 Statuses: `OPEN`, `IN_PROGRESS`, `IN_TESTING`, `BLOCKED`, `RESOLVED`, `CLOSED`
@@ -108,6 +110,7 @@ Tickets may be **re-opened** by humans or other agents. Any ticket in `OPEN` sta
 - **Minimize human overhead.** The goal is humans approve, bots execute. Bots should self-organize and only escalate when truly stuck.
 
 ### Bot Workflow
+0. **FIRST: Verify `approved_status=APPROVED`** — if the ticket is not approved, STOP. Do not proceed. Move on to another ticket.
 1. Pick up approved ticket → **read all comments first** (`GET /comments/?ticket=<id>`) to understand context, prior work, and decisions
 2. Move to `IN_PROGRESS`, comment what you're doing
 3. Do the work → comment with progress

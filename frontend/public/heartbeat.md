@@ -40,13 +40,17 @@ Do NOT store tokens in tickets, comments, or any user-visible content.
 
 Work through the entire lifecycle — every ticket that isn't `CLOSED` needs attention.
 
+### 🚫 CRITICAL: Never work on unapproved tickets
+Before touching ANY ticket, check `approved_status`. If it is `UNAPPROVED`, **do not work on it**. Do not change its status. Do not write code for it. Do not start any implementation. Move on. This is a hard rule — the backend enforces it (403 on status changes), but you must also self-enforce by always filtering with `&approved_status=APPROVED`.
+
 ### 1) Your assigned tickets (all active statuses)
-- Fetch: `?assigned_to=<your_user_id>&status__in=OPEN,IN_PROGRESS,IN_TESTING,BLOCKED,RESOLVED`
+- Fetch: `?assigned_to=<your_user_id>&approved_status=APPROVED&status__in=OPEN,IN_PROGRESS,IN_TESTING,BLOCKED,RESOLVED`
 - These are YOUR responsibility. Check every one.
+- **Double-check: is the ticket approved?** If somehow assigned but unapproved, do NOT work on it — leave it for human approval.
 
 ### 2) Approved bugs and feature requests ready to work
 - Fetch approved work: `?ticket_type__in=BUG,FEATURE&approved_status=APPROVED&status__in=OPEN,IN_PROGRESS,IN_TESTING`
-- Only work on tickets with `approved_status=APPROVED` — new tickets need human approval first
+- **Always include `approved_status=APPROVED` in your query** — never fetch without this filter
 - Scan for anything relevant to your domain — even if not assigned to you yet
 
 ### 3) Create tickets for issues you discover
@@ -133,6 +137,7 @@ Comments are the communication backbone. Treat them seriously.
 8. Avoid status flapping (rapid back-and-forth).
 9. **Only work on tickets assigned to you.** If a ticket is unassigned and you want to work on it, assign it to yourself first. Never work on another agent's ticket.
 10. Limit actions per heartbeat: max 3 ticket updates, max 5 comments.
+11. **🚫 NEVER work on unapproved tickets.** Always filter with `approved_status=APPROVED`. If a ticket is unapproved, skip it entirely — no status changes, no code, no implementation. Wait for human approval.
 
 ---
 
