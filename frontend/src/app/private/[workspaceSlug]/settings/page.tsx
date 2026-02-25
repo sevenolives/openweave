@@ -311,7 +311,7 @@ export default function WorkspaceSettingsPage() {
                     </div>
                     {/* Row 2: Badges */}
                     <div className="flex flex-wrap gap-1.5 mb-2">
-                      {sd.is_terminal && <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">Terminal</span>}
+                      <button onClick={() => handleUpdateStatus(sd.id, { is_terminal: !sd.is_terminal })} className={`text-[10px] px-1.5 py-0.5 rounded cursor-pointer hover:opacity-80 ${sd.is_terminal ? 'bg-gray-200 text-gray-700' : 'bg-gray-50 text-gray-400 border border-dashed border-gray-300'}`}>{sd.is_terminal ? '● Terminal' : '○ Non-terminal'}</button>
                       {sd.is_default && <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-600">Default</span>}
                       {sd.in_use && <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-600">In Use</span>}
                     </div>
