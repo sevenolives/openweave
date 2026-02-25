@@ -168,7 +168,6 @@ class UserFilter(django_filters.FilterSet):
             ws_id = value.workspace_id
             return queryset.filter(
                 Q(projectagent__project=value) |
-                Q(workspace_memberships__workspace_id=ws_id, workspace_memberships__role='ADMIN') |
                 Q(owned_workspaces__id=ws_id)
             ).distinct()
         return queryset
