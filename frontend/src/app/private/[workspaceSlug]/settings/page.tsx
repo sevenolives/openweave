@@ -363,7 +363,7 @@ export default function WorkspaceSettingsPage() {
               <p className="text-xs text-gray-500 mb-4">Define which transitions are allowed. <strong>BOT</strong> transitions enforce rules for agents. <strong>HUMAN</strong> transitions allow humans to move between states. <strong>ALL</strong> applies to both.</p>
 
               {/* Transition matrix grouped by from_status */}
-              {statuses.filter(s => !s.is_terminal).map(fromStatus => {
+              {statuses.map(fromStatus => {
                 const fromTransitions = transitions.filter(t => t.from_status === fromStatus.id);
                 return (
                   <div key={fromStatus.id} className="mb-4">
@@ -409,7 +409,7 @@ export default function WorkspaceSettingsPage() {
               })}
               {statuses.filter(s => s.is_terminal).length > 0 && (
                 <div className="mt-4 p-3 rounded-lg bg-gray-50 border border-gray-100">
-                  <p className="text-xs text-gray-500"><strong>Terminal states</strong> (no outgoing transitions):</p>
+                  <p className="text-xs text-gray-500"><strong>Terminal states</strong> (marked with ● Terminal badge above):</p>
                   <div className="flex gap-2 mt-1">
                     {statuses.filter(s => s.is_terminal).map(s => (
                       <span key={s.id} className="text-xs font-mono text-gray-600 px-2 py-0.5 rounded bg-white border border-gray-200">{s.label}</span>
