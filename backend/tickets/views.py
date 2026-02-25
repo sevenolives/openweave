@@ -336,6 +336,14 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = Project.objects.all()
+        # Workspace filter is mandatory for list
+        workspace_id = self.request.query_params.get('workspace')
+        if self.action == 'list':
+            if not workspace_id:
+                from rest_framework.exceptions import ValidationError
+                raise ValidationError({'workspace': 'This query parameter is required.'})
+            qs = qs.filter(workspace_id=workspace_id)
+
         user = self.request.user
         if user.is_superuser or is_admin_or_owner(user):
             return qs
