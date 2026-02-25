@@ -928,7 +928,7 @@ class StatusDefinitionViewSet(viewsets.ModelViewSet):
     """Manage workspace status definitions (state machine config)."""
     queryset = StatusDefinition.objects.all()
     serializer_class = StatusDefinitionSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ['workspace']
     ordering_fields = ['position']
@@ -979,7 +979,7 @@ class StatusTransitionViewSet(viewsets.ModelViewSet):
     """Manage status transitions (state machine edges)."""
     queryset = StatusTransition.objects.select_related('from_status', 'to_status')
     serializer_class = StatusTransitionSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['workspace', 'actor_type', 'from_status', 'to_status']
     http_method_names = ['get', 'post', 'delete', 'head', 'options']
