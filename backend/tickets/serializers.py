@@ -384,8 +384,6 @@ class StatusTransitionSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Cannot transition to the same status.")
             if from_s.workspace_id != ws.id or to_s.workspace_id != ws.id:
                 raise serializers.ValidationError("Both statuses must belong to the specified workspace.")
-            if from_s.is_terminal:
-                raise serializers.ValidationError(f"Cannot add transitions from terminal status '{from_s.key}'.")
         return data
 
 
