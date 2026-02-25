@@ -171,7 +171,7 @@ class JoinView(APIView):
                 return Response({'detail': 'You are the owner of this workspace.'}, status=status.HTTP_400_BAD_REQUEST)
             if WorkspaceMember.objects.filter(workspace=invite.workspace, user=request.user).exists():
                 return Response({'detail': 'Already a member of this workspace.'}, status=status.HTTP_400_BAD_REQUEST)
-            WorkspaceMember.objects.create(workspace=invite.workspace, user=request.user, role='MEMBER')
+            WorkspaceMember.objects.create(workspace=invite.workspace, user=request.user)
             invite.use_count += 1
             invite.save()
             return Response({'workspace': WorkspaceSerializer(invite.workspace).data}, status=status.HTTP_200_OK)
@@ -200,7 +200,7 @@ class JoinView(APIView):
         if invite:
             if WorkspaceMember.objects.filter(workspace=invite.workspace, user=user).exists():
                 return Response({'detail': 'Already a member of this workspace.'}, status=status.HTTP_400_BAD_REQUEST)
-            WorkspaceMember.objects.create(workspace=invite.workspace, user=user, role='MEMBER')
+            WorkspaceMember.objects.create(workspace=invite.workspace, user=user)
             invite.use_count += 1
             invite.save()
             workspace_data = WorkspaceSerializer(invite.workspace).data
@@ -770,11 +770,8 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
     def check_object_permissions(self, request, obj):
         super().check_object_permissions(request, obj)
         if request.method not in ('GET', 'HEAD', 'OPTIONS'):
-            # Owner always has full access
-            if obj.owner == request.user:
-                return
-            membership = WorkspaceMember.objects.filter(workspace=obj, user=request.user, role='ADMIN').first()
-            if not membership:
+            # Only owner has full access
+            if obj.owner != request.user and not is_admin_or_owner(request.user):
                 self.permission_denied(request)
 
 
@@ -823,10 +820,7 @@ class WorkspaceMemberViewSet(viewsets.ModelViewSet):
         super().check_object_permissions(request, obj)
         if request.method not in ('GET', 'HEAD', 'OPTIONS'):
             # Owner always has full access
-            if obj.workspace.owner == request.user:
-                return
-            membership = WorkspaceMember.objects.filter(workspace=obj.workspace, user=request.user, role='ADMIN').first()
-            if not membership:
+            if obj.workspace.owner != request.user and not is_admin_or_owner(request.user):
                 self.permission_denied(request)
 
 
@@ -874,23 +868,16 @@ class WorkspaceInviteViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         workspace = serializer.validated_data['workspace']
-        # Owner or admin can create invites
-        if workspace.owner == self.request.user:
-            serializer.save(created_by=self.request.user)
-            return
-        membership = WorkspaceMember.objects.filter(workspace=workspace, user=self.request.user, role='ADMIN').first()
-        if not membership:
+        # Only owner can create invites
+        if not is_admin_or_owner(self.request.user):
             from rest_framework.exceptions import PermissionDenied
-            raise PermissionDenied("Only workspace admins or owner can create invites.")
+            raise PermissionDenied("Only workspace owner can create invites.")
         serializer.save(created_by=self.request.user)
 
     def perform_destroy(self, instance):
         from rest_framework.exceptions import PermissionDenied
-        workspace = instance.workspace
-        if workspace.owner != self.request.user:
-            membership = WorkspaceMember.objects.filter(workspace=workspace, user=self.request.user, role='ADMIN').first()
-            if not membership:
-                raise PermissionDenied("Only workspace admins or owner can delete invites.")
+        if not is_admin_or_owner(self.request.user):
+            raise PermissionDenied("Only workspace owner can delete invites.")
         instance.delete()
 
 
@@ -921,10 +908,7 @@ class StatusDefinitionViewSet(viewsets.ModelViewSet):
         if request.method not in ('GET', 'HEAD', 'OPTIONS'):
             if obj.workspace.owner == request.user:
                 return
-            membership = WorkspaceMember.objects.filter(
-                workspace=obj.workspace, user=request.user, role='ADMIN'
-            ).first()
-            if not membership and not is_admin_or_owner(request.user):
+            if not is_admin_or_owner(request.user):
                 self.permission_denied(request)
 
     def perform_destroy(self, instance):
@@ -973,10 +957,7 @@ class StatusTransitionViewSet(viewsets.ModelViewSet):
         if request.method not in ('GET', 'HEAD', 'OPTIONS'):
             if obj.workspace.owner == request.user:
                 return
-            membership = WorkspaceMember.objects.filter(
-                workspace=obj.workspace, user=request.user, role='ADMIN'
-            ).first()
-            if not membership and not is_admin_or_owner(request.user):
+            if not is_admin_or_owner(request.user):
                 self.permission_denied(request)
 
 

@@ -49,7 +49,7 @@ export default function AgentsPage() {
     // Add members
     for (const m of members) {
       if (m.user && m.user.id !== currentWorkspace?.owner_details?.id) {
-        result.push({ user: m.user, role: m.role });
+        result.push({ user: m.user, role: 'MEMBER' });
       }
     }
     return result;
@@ -138,7 +138,6 @@ export default function AgentsPage() {
                     <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${user.user_type === 'BOT' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>{user.user_type}</span>
                     <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${
                       role === 'OWNER' ? 'bg-amber-100 text-amber-700' :
-                      role === 'ADMIN' ? 'bg-red-100 text-red-700' :
                       'bg-gray-100 text-gray-700'
                     }`}>{role}</span>
                   </div>

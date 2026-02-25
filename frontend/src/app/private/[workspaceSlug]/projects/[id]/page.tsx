@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useWorkspace } from '@/hooks/useWorkspace';
 import { api, Project, User } from '@/lib/api';
 
 export default function ProjectSettingsPage() {
@@ -26,7 +27,8 @@ export default function ProjectSettingsPage() {
   const projectId = parseInt(params.id);
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
-  const isAdmin = currentUser?.role === 'ADMIN';
+  const { currentWorkspace } = useWorkspace();
+  const isAdmin = currentWorkspace?.owner_details?.id === currentUser?.id;
 
   const fetchData = async () => {
     try {

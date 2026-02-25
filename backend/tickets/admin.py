@@ -19,8 +19,8 @@ class WorkspaceAdmin(admin.ModelAdmin):
 
 @admin.register(WorkspaceMember)
 class WorkspaceMemberAdmin(admin.ModelAdmin):
-    list_display = ('workspace', 'user', 'role', 'joined_at')
-    list_filter = ('role', 'joined_at')
+    list_display = ('workspace', 'user', 'joined_at')
+    list_filter = ('joined_at',)
     search_fields = ('workspace__name', 'user__username', 'user__email')
     list_select_related = ('workspace', 'user')
     list_per_page = 50

@@ -70,20 +70,16 @@ class Workspace(models.Model):
 
 class WorkspaceMember(models.Model):
     """
-    Membership join table between Workspace and User with a role.
+    Membership join table between Workspace and User.
+    Everyone is a member. Owner is derived from Workspace.owner FK.
+    Roles are decided at the project level (ProjectAgent.role).
     """
-    ROLE_CHOICES = [
-        ('ADMIN', 'Admin'),
-        ('MEMBER', 'Member'),
-    ]
-
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name='members')
     user = models.ForeignKey("User", on_delete=models.CASCADE, related_name='workspace_memberships')
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='MEMBER')
     joined_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.user.username} in {self.workspace.name} ({self.role})"
+        return f"{self.user.username} in {self.workspace.name}"
 
     class Meta:
         db_table = 'workspace_members'

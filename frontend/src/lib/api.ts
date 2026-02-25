@@ -95,7 +95,6 @@ export interface WorkspaceMember {
   id: number;
   workspace: number;
   user: User;
-  role: 'ADMIN' | 'MEMBER';
   joined_at: string;
 }
 

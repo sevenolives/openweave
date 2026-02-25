@@ -79,13 +79,7 @@ export default function WorkspaceSettingsPage() {
     finally { setSaving(false); }
   };
 
-  const handleRoleChange = async (memberId: number, role: string) => {
-    try {
-      await api.updateWorkspaceMember(memberId, { role });
-      toast('Role updated');
-      if (workspace) loadData(workspace);
-    } catch (e: any) { toast(e?.message || 'Failed to update role', 'error'); }
-  };
+  // Roles are managed at project level, not workspace level
 
   const handleRemoveMember = async (memberId: number) => {
     if (!confirm('Remove this member?')) return;
@@ -250,10 +244,7 @@ export default function WorkspaceSettingsPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <select value={m.role} onChange={e => handleRoleChange(m.id, e.target.value)} className="text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white">
-                    <option value="ADMIN">Admin</option>
-                    <option value="MEMBER">Member</option>
-                  </select>
+                  <span className="text-xs text-gray-500 px-2 py-1 bg-gray-100 rounded">Member</span>
                   <button onClick={() => handleRemoveMember(m.id)} className="px-3 py-2 text-sm font-medium text-red-600 hover:text-white hover:bg-red-600 border border-red-200 hover:border-red-600 rounded-lg transition-colors min-w-[80px]">
                     Remove
                   </button>

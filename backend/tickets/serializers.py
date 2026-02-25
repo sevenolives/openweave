@@ -80,10 +80,9 @@ class WorkspaceMemberSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = WorkspaceMember
-        fields = ['id', 'workspace', 'user', 'role', 'joined_at']
+        fields = ['id', 'workspace', 'user', 'joined_at']
         read_only_fields = ['id', 'workspace', 'user', 'joined_at']
         extra_kwargs = {
-            'role': {'help_text': 'ADMIN or MEMBER.'},
             'workspace': {'help_text': 'Workspace ID.'},
         }
 
