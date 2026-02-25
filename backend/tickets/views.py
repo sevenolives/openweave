@@ -537,7 +537,11 @@ class TicketViewSet(viewsets.ModelViewSet):
                 raise PermissionDenied("Bots cannot change status on unapproved tickets. A human must approve first.")
 
         # Non-admin users can only update tickets assigned to them
-        if not user.is_superuser and not is_admin_or_owner(user):
+        # Project admins and workspace owners can update any ticket in their project
+        is_project_admin = ProjectAgent.objects.filter(
+            project=instance.project, agent=user, role='ADMIN'
+        ).exists()
+        if not user.is_superuser and not is_admin_or_owner(user) and not is_project_admin:
             if instance.assigned_to_id != user.id:
                 from rest_framework.exceptions import PermissionDenied
                 raise PermissionDenied("You can only work on tickets assigned to you.")
