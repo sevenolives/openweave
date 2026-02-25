@@ -439,7 +439,7 @@ function TicketsPage() {
                           {ticket.approved_status === 'APPROVED' ? '✓ Approved' : 'Approve'}
                         </button>
                       </div>
-                      {/* Assignee row */}
+                      {/* Assignee + Status row */}
                       <div className="flex items-center gap-2 mt-1" onClick={e => e.stopPropagation()}>
                         <select
                           value={ticket.assigned_to?.toString() || ''}
@@ -457,6 +457,19 @@ function TicketsPage() {
                           {(projectAgentsMap[ticket.project] || wsUsers).map(a => (
                             <option key={a.id} value={String(a.id)}>{a.name || a.username}</option>
                           ))}
+                        </select>
+                        <select
+                          value={ticket.status}
+                          onChange={async (e) => {
+                            try {
+                              const updated = await api.updateTicket(ticket.id, { status: e.target.value as Ticket['status'] });
+                              setTickets(prev => prev.map(t => t.id === ticket.id ? updated : t));
+                              toast('Status updated');
+                            } catch (err: any) { toast(err?.message || 'Failed', 'error'); }
+                          }}
+                          className="text-[11px] border border-gray-200 rounded px-1.5 py-0.5 bg-white text-gray-600 focus:ring-1 focus:ring-indigo-500"
+                        >
+                          {statuses.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
                         </select>
                         <span className="text-[10px] text-gray-400 hidden sm:inline">{new Date(ticket.created_at).toLocaleDateString()}</span>
                       </div>
