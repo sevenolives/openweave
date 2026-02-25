@@ -30,7 +30,7 @@ function LoginForm() {
         await register({ username, name, password });
       }
       const redirect = searchParams.get('redirect');
-      router.push(redirect || '/dashboard');
+      router.push(redirect || '/private/workspaces');
     } catch (err: any) {
       // Parse field-level errors
       if (err && typeof err === 'object' && 'fieldErrors' in err) {

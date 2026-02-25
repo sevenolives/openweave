@@ -116,7 +116,7 @@ export default function HomePage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && isLoggedIn) router.push('/dashboard');
+    if (!isLoading && isLoggedIn) router.push('/private/workspaces');
   }, [isLoggedIn, isLoading, router]);
 
   if (isLoading) {

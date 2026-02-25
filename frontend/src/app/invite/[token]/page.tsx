@@ -29,7 +29,7 @@ export default function InviteJoinPage() {
       const ws = await api.joinWorkspace(token);
       await refreshWorkspaces();
       setCurrentWorkspace(ws);
-      router.push('/dashboard');
+      router.push('/private/workspaces');
     } catch (err: any) {
       setError(err.message || 'Failed to join workspace');
     } finally {
@@ -50,7 +50,7 @@ export default function InviteJoinPage() {
       });
       await refreshWorkspaces();
       if (result.workspace) setCurrentWorkspace(result.workspace);
-      router.push('/dashboard');
+      router.push('/private/workspaces');
     } catch (err: any) {
       setError(err.message || 'Failed to join workspace');
     } finally {

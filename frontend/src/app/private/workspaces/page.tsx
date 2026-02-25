@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
@@ -9,7 +9,8 @@ import { useWorkspace } from '@/hooks/useWorkspace';
 import { api } from '@/lib/api';
 
 export default function WorkspacesPage() {
-  const { workspaces, setCurrentWorkspace, refreshWorkspaces } = useWorkspace();
+  const { workspaces, currentWorkspace, setCurrentWorkspace, refreshWorkspaces, isLoading: wsLoading } = useWorkspace();
+  const [autoRedirected, setAutoRedirected] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
@@ -17,6 +18,14 @@ export default function WorkspacesPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const router = useRouter();
   const { toast } = useToast();
+
+  // Auto-redirect to current workspace dashboard if coming from login
+  useEffect(() => {
+    if (!wsLoading && !autoRedirected && currentWorkspace) {
+      setAutoRedirected(true);
+      router.replace(`/private/${currentWorkspace.id}/dashboard`);
+    }
+  }, [wsLoading, currentWorkspace, autoRedirected, router]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +36,7 @@ export default function WorkspacesPage() {
       await refreshWorkspaces();
       setCurrentWorkspace(ws);
       toast('Workspace created');
-      router.push('/dashboard');
+      router.push(`/private/${ws.id}/dashboard`);
     } catch (e: any) {
       setFieldErrors(parseFieldErrors(e));
       toast(e?.message || 'Failed to create workspace', 'error');
@@ -38,7 +47,7 @@ export default function WorkspacesPage() {
 
   const handleSelect = (ws: typeof workspaces[0]) => {
     setCurrentWorkspace(ws);
-    router.push('/dashboard');
+    router.push(`/private/${ws.id}/dashboard`);
   };
 
   return (

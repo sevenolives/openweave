@@ -16,8 +16,7 @@ const COLOR_CLASSES: Record<string, string> = {
 };
 
 export default function WorkspaceSettingsPage() {
-  const params = useParams();
-  const slug = params.slug as string;
+  const { workspaceId } = useParams<{ workspaceId: string }>();
   const router = useRouter();
   const { workspaces, refreshWorkspaces } = useWorkspace();
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
@@ -55,14 +54,14 @@ export default function WorkspaceSettingsPage() {
   }, [toast]);
 
   useEffect(() => {
-    const ws = workspaces.find(w => w.slug === slug);
+    const ws = workspaces.find(w => w.id === Number(workspaceId));
     if (ws) {
       setWorkspace(ws);
       setEditName(ws.name);
       setEditSlug(ws.slug);
       loadData(ws);
     }
-  }, [slug, workspaces, loadData]);
+  }, [workspaceId, workspaces, loadData]);
 
   const handleSaveWorkspace = async () => {
     if (!workspace) return;
@@ -450,7 +449,7 @@ export default function WorkspaceSettingsPage() {
                   await api.deleteWorkspace(workspace.id);
                   toast('Workspace deleted');
                   await refreshWorkspaces();
-                  router.push('/workspaces');
+                  router.push('/private/workspaces');
                 } catch (e: any) { toast(e?.message || 'Failed to delete workspace', 'error'); }
               }}
               className="px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 transition-colors flex-shrink-0"

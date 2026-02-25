@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
+
 import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import { api, User, Ticket, WorkspaceMember, PaginatedResponse } from '@/lib/api';
@@ -21,6 +22,7 @@ export default function AgentsPage() {
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const router = useRouter();
+  const { workspaceId } = useParams<{ workspaceId: string }>();
   const { toast } = useToast();
   const { currentWorkspace } = useWorkspace();
 
@@ -74,7 +76,7 @@ export default function AgentsPage() {
           </div>
           {currentWorkspace && (
             <button
-              onClick={() => router.push(`/w/${currentWorkspace.slug}/settings`)}
+              onClick={() => router.push(`/private/${workspaceId}/settings`)}
               className="px-3 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition-colors"
             >
               ⚙️ Manage
@@ -112,7 +114,7 @@ export default function AgentsPage() {
               <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-1">No members found</h3>
-            <p className="text-sm text-gray-500">Try adjusting your filters or invite people from <button onClick={() => router.push(`/w/${currentWorkspace.slug}/settings`)} className="text-indigo-600 hover:underline">Settings</button>.</p>
+            <p className="text-sm text-gray-500">Try adjusting your filters or invite people from <button onClick={() => router.push(`/private/${workspaceId}/settings`)} className="text-indigo-600 hover:underline">Settings</button>.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -163,7 +165,7 @@ export default function AgentsPage() {
                     <div className="mt-4 pt-3 border-t border-gray-200 space-y-2" onClick={e => e.stopPropagation()}>
                       <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Assigned Tickets</h4>
                       {agentTickets.slice(0, 5).map(ticket => (
-                        <button key={ticket.id} onClick={() => router.push(`/tickets/${ticket.ticket_slug || ticket.id}`)} className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                        <button key={ticket.id} onClick={() => router.push(`/private/${workspaceId}/tickets/${ticket.ticket_slug || ticket.id}`)} className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors">
                           <p className="text-sm font-medium text-gray-900 truncate">{ticket.ticket_slug || `#${ticket.id}`} {ticket.title}</p>
                           <p className="text-xs text-gray-500">{ticket.project_name} · {ticket.status.replace('_',' ')}</p>
                         </button>
