@@ -107,14 +107,15 @@ function TicketsPage() {
 
   // Sync filters to URL so navigating back preserves context
   useEffect(() => {
+    const basePath = `/private/${workspaceSlug}/tickets`;
     const params = new URLSearchParams();
     if (filterProject) params.set('project', String(filterProject));
     if (filterStatus) params.set('status', filterStatus);
     if (filterPriority) params.set('priority', filterPriority);
     if (filterAssigned) params.set('assigned_to', filterAssigned);
-    const url = params.toString() ? `?${params.toString()}` : '/tickets';
+    const url = params.toString() ? `${basePath}?${params.toString()}` : basePath;
     window.history.replaceState(null, '', url);
-  }, [filterProject, filterStatus, filterPriority, filterAssigned]);
+  }, [filterProject, filterStatus, filterPriority, filterAssigned, workspaceSlug]);
 
   // Load status definitions
   useEffect(() => {
