@@ -454,8 +454,8 @@ function TicketsPage() {
                           className="text-[11px] border border-gray-200 rounded px-1.5 py-0.5 bg-white text-gray-600 focus:ring-1 focus:ring-indigo-500"
                         >
                           <option value="">Unassigned</option>
-                          {(projectAgentsMap[ticket.project] || []).map(a => (
-                            <option key={a.id} value={String(a.id)}>{a.username}</option>
+                          {(projectAgentsMap[ticket.project] || wsUsers).map(a => (
+                            <option key={a.id} value={String(a.id)}>{a.name || a.username}</option>
                           ))}
                         </select>
                         <span className="text-[10px] text-gray-400 hidden sm:inline">{new Date(ticket.created_at).toLocaleDateString()}</span>
