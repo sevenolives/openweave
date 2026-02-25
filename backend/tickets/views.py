@@ -766,6 +766,46 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
             workspace = serializer.save(owner=self.request.user)
             # Owner is on the workspace record — NOT in the members table
             WorkspaceInvite.objects.create(workspace=workspace, created_by=self.request.user)
+            # Seed default status definitions and transitions
+            self._seed_default_statuses(workspace)
+
+    @staticmethod
+    def _seed_default_statuses(workspace):
+        """Seed default status definitions and bot transitions for a new workspace."""
+        defaults = [
+            {'key': 'OPEN', 'label': 'Open', 'color': 'gray', 'is_terminal': False, 'is_default': True, 'position': 0},
+            {'key': 'IN_PROGRESS', 'label': 'In Progress', 'color': 'blue', 'is_terminal': False, 'is_default': False, 'position': 1},
+            {'key': 'BLOCKED', 'label': 'Blocked', 'color': 'red', 'is_terminal': False, 'is_default': False, 'position': 2},
+            {'key': 'IN_TESTING', 'label': 'In Testing', 'color': 'purple', 'is_terminal': False, 'is_default': False, 'position': 3},
+            {'key': 'REVIEW', 'label': 'Review', 'color': 'amber', 'is_terminal': False, 'is_default': False, 'position': 4},
+            {'key': 'COMPLETED', 'label': 'Completed', 'color': 'green', 'is_terminal': True, 'is_default': False, 'position': 5},
+            {'key': 'CANCELLED', 'label': 'Cancelled', 'color': 'gray', 'is_terminal': True, 'is_default': False, 'position': 6},
+        ]
+        status_map = {}
+        for d in defaults:
+            sd = StatusDefinition.objects.create(workspace=workspace, **d)
+            status_map[d['key']] = sd
+
+        # Bot transitions (happy path + detours)
+        bot_transitions = [
+            ('OPEN', 'IN_PROGRESS'), ('OPEN', 'CANCELLED'),
+            ('IN_PROGRESS', 'IN_TESTING'), ('IN_PROGRESS', 'BLOCKED'), ('IN_PROGRESS', 'REVIEW'), ('IN_PROGRESS', 'CANCELLED'),
+            ('BLOCKED', 'IN_PROGRESS'), ('BLOCKED', 'CANCELLED'),
+            ('IN_TESTING', 'IN_PROGRESS'), ('IN_TESTING', 'BLOCKED'), ('IN_TESTING', 'REVIEW'),
+            ('REVIEW', 'IN_PROGRESS'), ('REVIEW', 'IN_TESTING'), ('REVIEW', 'COMPLETED'),
+        ]
+        for from_key, to_key in bot_transitions:
+            StatusTransition.objects.create(workspace=workspace, from_status=status_map[from_key], to_status=status_map[to_key], actor_type='BOT')
+
+        # Human transitions (all non-terminal → all)
+        non_terminal = [s for s in defaults if not s['is_terminal']]
+        all_statuses = defaults
+        for from_s in non_terminal:
+            for to_s in all_statuses:
+                if from_s['key'] != to_s['key']:
+                    StatusTransition.objects.get_or_create(
+                        workspace=workspace, from_status=status_map[from_s['key']], to_status=status_map[to_s['key']], actor_type='HUMAN'
+                    )
 
     def check_object_permissions(self, request, obj):
         super().check_object_permissions(request, obj)
