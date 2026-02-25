@@ -24,7 +24,7 @@ export default function ProjectsPage() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const router = useRouter();
-  const { workspaceId } = useParams<{ workspaceId: string }>();
+  const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const { toast } = useToast();
   const { currentWorkspace } = useWorkspace();
 
@@ -162,11 +162,11 @@ export default function ProjectsPage() {
               const counts = ticketCounts[project.id] || { total: 0, open: 0, inProgress: 0, blocked: 0, completed: 0, cancelled: 0 };
               const activeTickets = counts.open + counts.inProgress + counts.blocked;
               return (
-                <div key={project.id} onClick={() => router.push(`/private/${workspaceId}/tickets?project=${project.id}`)} className="bg-white rounded-xl border border-gray-200 p-5 hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-50 transition-all cursor-pointer group">
+                <div key={project.id} onClick={() => router.push(`/private/${workspaceSlug}/tickets?project=${project.id}`)} className="bg-white rounded-xl border border-gray-200 p-5 hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-50 transition-all cursor-pointer group">
                   <div className="flex items-start justify-between mb-2">
                     <h3 className="font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors truncate mr-2">{project.name}</h3>
                     <div className="flex items-center gap-1 flex-shrink-0">
-                      <button onClick={e => { e.stopPropagation(); router.push(`/private/${workspaceId}/projects/${project.id}`); }} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-all" title="Settings">
+                      <button onClick={e => { e.stopPropagation(); router.push(`/private/${workspaceSlug}/projects/${project.id}`); }} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-all" title="Settings">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                       </button>
                       <button onClick={e => { e.stopPropagation(); setDeleteId(project.id); }} className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">

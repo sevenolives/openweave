@@ -52,8 +52,8 @@ export default function TicketDetailPage() {
   const [statuses, setStatuses] = useState<StatusDefinition[]>([]);
 
   const router = useRouter();
-  const params = useParams<{ workspaceId: string; id: string }>();
-  const workspaceId = params.workspaceId;
+  const params = useParams<{ workspaceSlug: string; id: string }>();
+  const workspaceSlug = params.workspaceSlug;
   const ticketId = params.id;
   const { toast } = useToast();
   const { user } = useAuth();
@@ -406,7 +406,7 @@ export default function TicketDetailPage() {
                   </div>
                   <div>
                     <dt className="text-xs font-medium text-gray-500 mb-1">Project</dt>
-                    <dd><button onClick={() => router.push(`/private/${workspaceId}/projects/${ticket.project}`)} className="text-sm text-indigo-600 hover:text-indigo-800 font-medium">{ticket.project_name}</button></dd>
+                    <dd><button onClick={() => router.push(`/private/${workspaceSlug}/projects/${ticket.project}`)} className="text-sm text-indigo-600 hover:text-indigo-800 font-medium">{ticket.project_name}</button></dd>
                   </div>
                   <div>
                     <dt className="text-xs font-medium text-gray-500 mb-1">Assigned To</dt>

@@ -86,7 +86,7 @@ function TicketsPage() {
   const [statuses, setStatuses] = useState<StatusDefinition[]>([]);
 
   const router = useRouter();
-  const { workspaceId } = useParams<{ workspaceId: string }>();
+  const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const { currentWorkspace } = useWorkspace();
@@ -307,7 +307,7 @@ function TicketsPage() {
                             <span className="text-xs text-gray-400">{ticket.ticket_slug || `#${ticket.id}`}</span>
                             <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${PRIORITY_COLORS[ticket.priority]}`}>{ticket.priority}</span>
                           </div>
-                          <h4 onClick={() => router.push(`/private/${workspaceId}/tickets/${ticket.ticket_slug || ticket.id}`)} className="font-medium text-gray-900 text-sm mb-1.5 line-clamp-2 cursor-pointer hover:text-indigo-700 transition-colors">{ticket.title}</h4>
+                          <h4 onClick={() => router.push(`/private/${workspaceSlug}/tickets/${ticket.ticket_slug || ticket.id}`)} className="font-medium text-gray-900 text-sm mb-1.5 line-clamp-2 cursor-pointer hover:text-indigo-700 transition-colors">{ticket.title}</h4>
                           <div className="flex items-center justify-between text-xs text-gray-400">
                             <span>{ticket.assigned_to_details?.username || 'Unassigned'}</span>
                             <select
@@ -349,7 +349,7 @@ function TicketsPage() {
             <h3 className="text-lg font-semibold text-gray-900 mb-1">{hasFilters ? 'No matching tickets' : 'No tickets yet'}</h3>
             <p className="text-sm text-gray-500 mb-4">{hasFilters ? 'Try adjusting your filters.' : 'Create tickets from within a project.'}</p>
             {!hasFilters && (
-              <button onClick={() => router.push(`/private/${workspaceId}/projects`)} className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700">
+              <button onClick={() => router.push(`/private/${workspaceSlug}/projects`)} className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700">
                 Go to Projects
               </button>
             )}
@@ -361,7 +361,7 @@ function TicketsPage() {
                 {/* Project header */}
                 <div
                   className="px-5 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors"
-                  onClick={() => project && router.push(`/private/${workspaceId}/projects/${project.id}`)}
+                  onClick={() => project && router.push(`/private/${workspaceSlug}/projects/${project.id}`)}
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
@@ -378,7 +378,7 @@ function TicketsPage() {
                 {/* Tickets list */}
                 <div className="divide-y divide-gray-100">
                   {groupTickets.map(ticket => (
-                    <div key={ticket.id} onClick={() => router.push(`/private/${workspaceId}/tickets/${ticket.ticket_slug || ticket.id}`)} className="px-4 py-3 hover:bg-gray-50 cursor-pointer">
+                    <div key={ticket.id} onClick={() => router.push(`/private/${workspaceSlug}/tickets/${ticket.ticket_slug || ticket.id}`)} className="px-4 py-3 hover:bg-gray-50 cursor-pointer">
                       {/* Title row with delete */}
                       <div className="flex items-start gap-2">
                         <div className="min-w-0 flex-1">

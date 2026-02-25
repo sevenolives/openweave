@@ -16,7 +16,7 @@ const COLOR_CLASSES: Record<string, string> = {
 };
 
 export default function WorkspaceSettingsPage() {
-  const { workspaceId } = useParams<{ workspaceId: string }>();
+  const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const router = useRouter();
   const { workspaces, refreshWorkspaces } = useWorkspace();
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
@@ -54,14 +54,14 @@ export default function WorkspaceSettingsPage() {
   }, [toast]);
 
   useEffect(() => {
-    const ws = workspaces.find(w => w.id === Number(workspaceId));
+    const ws = workspaces.find(w => w.slug === workspaceSlug);
     if (ws) {
       setWorkspace(ws);
       setEditName(ws.name);
       setEditSlug(ws.slug);
       loadData(ws);
     }
-  }, [workspaceId, workspaces, loadData]);
+  }, [workspaceSlug, workspaces, loadData]);
 
   const handleSaveWorkspace = async () => {
     if (!workspace) return;

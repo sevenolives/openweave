@@ -34,7 +34,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const router = useRouter();
-  const { workspaceId } = useParams<{ workspaceId: string }>();
+  const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const { currentWorkspace } = useWorkspace();
 
   useEffect(() => {
@@ -75,7 +75,7 @@ export default function DashboardPage() {
             {/* Stats — dynamic from status definitions */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
               {/* Total */}
-              <div onClick={() => router.push(`/private/${workspaceId}/tickets`)} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer">
+              <div onClick={() => router.push(`/private/${workspaceSlug}/tickets`)} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-medium text-gray-500">Total Tickets</span>
                   <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-indigo-50 text-indigo-700">
@@ -89,7 +89,7 @@ export default function DashboardPage() {
                 const c = colorFor(sd.color);
                 const count = data.status_counts[sd.key] || 0;
                 return (
-                  <div key={sd.key} onClick={() => router.push(`/private/${workspaceId}/tickets?status=${sd.key}`)} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer">
+                  <div key={sd.key} onClick={() => router.push(`/private/${workspaceSlug}/tickets?status=${sd.key}`)} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer">
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-sm font-medium text-gray-500">{sd.label}</span>
                       <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${c.bg} ${c.text}`}>
@@ -101,7 +101,7 @@ export default function DashboardPage() {
                 );
               })}
               {/* Completed today */}
-              <div onClick={() => router.push(`/private/${workspaceId}/tickets?status=COMPLETED`)} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer">
+              <div onClick={() => router.push(`/private/${workspaceSlug}/tickets?status=COMPLETED`)} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-medium text-gray-500">Completed Today</span>
                   <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-green-50 text-green-700">
@@ -114,11 +114,11 @@ export default function DashboardPage() {
 
             {/* Quick Actions */}
             <div className="flex flex-wrap gap-3 mb-8">
-              <button onClick={() => router.push(`/private/${workspaceId}/tickets`)} className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors">
+              <button onClick={() => router.push(`/private/${workspaceSlug}/tickets`)} className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
                 New Ticket
               </button>
-              <button onClick={() => router.push(`/private/${workspaceId}/projects`)} className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
+              <button onClick={() => router.push(`/private/${workspaceSlug}/projects`)} className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
                 New Project
               </button>
@@ -136,7 +136,7 @@ export default function DashboardPage() {
                     <div className="px-5 py-8 text-center text-sm text-gray-400">No tickets assigned to you</div>
                   ) : (
                     data.my_assigned.map((ticket: Ticket) => (
-                      <button key={ticket.id} onClick={() => router.push(`/private/${workspaceId}/tickets/${ticket.ticket_slug || ticket.id}`)} className="w-full px-5 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left">
+                      <button key={ticket.id} onClick={() => router.push(`/private/${workspaceSlug}/tickets/${ticket.ticket_slug || ticket.id}`)} className="w-full px-5 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left">
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-900 truncate">{ticket.ticket_slug || `#${ticket.id}`} {ticket.title}</p>
                           <p className="text-xs text-gray-500">{ticket.project_name}</p>
@@ -158,7 +158,7 @@ export default function DashboardPage() {
                     <div className="px-5 py-8 text-center text-sm text-gray-400">No recent activity</div>
                   ) : (
                     data.recent_tickets.map((ticket: Ticket) => (
-                      <button key={ticket.id} onClick={() => router.push(`/private/${workspaceId}/tickets/${ticket.ticket_slug || ticket.id}`)} className="w-full px-5 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left">
+                      <button key={ticket.id} onClick={() => router.push(`/private/${workspaceSlug}/tickets/${ticket.ticket_slug || ticket.id}`)} className="w-full px-5 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left">
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-900 truncate">{ticket.ticket_slug || `#${ticket.id}`} {ticket.title}</p>
                           <p className="text-xs text-gray-400">{new Date(ticket.updated_at).toLocaleString()}</p>

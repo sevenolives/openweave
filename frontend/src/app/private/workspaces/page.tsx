@@ -23,7 +23,7 @@ export default function WorkspacesPage() {
   useEffect(() => {
     if (!wsLoading && !autoRedirected && currentWorkspace) {
       setAutoRedirected(true);
-      router.replace(`/private/${currentWorkspace.id}/dashboard`);
+      router.replace(`/private/${currentWorkspace.slug}/dashboard`);
     }
   }, [wsLoading, currentWorkspace, autoRedirected, router]);
 
@@ -36,7 +36,7 @@ export default function WorkspacesPage() {
       await refreshWorkspaces();
       setCurrentWorkspace(ws);
       toast('Workspace created');
-      router.push(`/private/${ws.id}/dashboard`);
+      router.push(`/private/${ws.slug}/dashboard`);
     } catch (e: any) {
       setFieldErrors(parseFieldErrors(e));
       toast(e?.message || 'Failed to create workspace', 'error');
@@ -47,7 +47,7 @@ export default function WorkspacesPage() {
 
   const handleSelect = (ws: typeof workspaces[0]) => {
     setCurrentWorkspace(ws);
-    router.push(`/private/${ws.id}/dashboard`);
+    router.push(`/private/${ws.slug}/dashboard`);
   };
 
   return (

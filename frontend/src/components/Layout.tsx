@@ -5,8 +5,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useWorkspace } from '@/hooks/useWorkspace';
 
-function wsPath(wsId: number, path: string) {
-  return `/private/${wsId}${path}`;
+function wsPath(slug: string, path: string) {
+  return `/private/${slug}${path}`;
 }
 
 const NAV_KEYS = [
@@ -17,17 +17,17 @@ const NAV_KEYS = [
   { path: '/settings', label: 'Settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
 ];
 
-function getBreadcrumbs(pathname: string, wsId: number): { label: string; href?: string }[] {
+function getBreadcrumbs(pathname: string, wsSlug: string): { label: string; href?: string }[] {
   // Strip /private/N/ prefix to get the page part
   const pagePart = pathname.replace(/^\/private\/\d+/, '');
   const parts = pagePart.split('/').filter(Boolean);
-  const crumbs: { label: string; href?: string }[] = [{ label: 'Home', href: wsPath(wsId, '/dashboard') }];
+  const crumbs: { label: string; href?: string }[] = [{ label: 'Home', href: wsPath(wsSlug, '/dashboard') }];
   if (parts[0] === 'dashboard') crumbs.push({ label: 'Dashboard' });
   else if (parts[0] === 'projects') {
-    crumbs.push({ label: 'Projects', href: parts.length > 1 ? wsPath(wsId, '/projects') : undefined });
+    crumbs.push({ label: 'Projects', href: parts.length > 1 ? wsPath(wsSlug, '/projects') : undefined });
     if (parts[1]) crumbs.push({ label: 'Project Settings' });
   } else if (parts[0] === 'tickets') {
-    crumbs.push({ label: 'Tickets', href: parts.length > 1 ? wsPath(wsId, '/tickets') : undefined });
+    crumbs.push({ label: 'Tickets', href: parts.length > 1 ? wsPath(wsSlug, '/tickets') : undefined });
     if (parts[1]) crumbs.push({ label: 'Ticket Details' });
   } else if (parts[0] === 'agents') crumbs.push({ label: 'Team' });
   else if (parts[0] === 'settings') crumbs.push({ label: 'Settings' });
@@ -40,8 +40,8 @@ export default function Layout({ children }: { children: ReactNode }) {
   const { workspaces, currentWorkspace, setCurrentWorkspace } = useWorkspace();
   const router = useRouter();
   const pathname = usePathname();
-  const wsId = currentWorkspace?.id || 0;
-  const breadcrumbs = getBreadcrumbs(pathname, wsId);
+  const wsSlug = currentWorkspace?.slug || '';
+  const breadcrumbs = getBreadcrumbs(pathname, wsSlug);
 
   useEffect(() => {
     if (!isLoading && !isLoggedIn) router.push('/login');
@@ -102,7 +102,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                     setCurrentWorkspace(ws);
                     // Extract current page and navigate to same page in new workspace
                     const pagePart = pathname.replace(/^\/private\/\d+/, '') || '/dashboard';
-                    router.push(wsPath(ws.id, pagePart));
+                    router.push(wsPath(ws.slug, pagePart));
                   }
                 }}
                 className="w-full text-sm font-medium text-gray-900 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2"
@@ -113,7 +113,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               </select>
               <div className="flex gap-2 mt-2">
                 <button
-                  onClick={() => router.push(wsPath(wsId, '/settings'))}
+                  onClick={() => router.push(wsPath(wsSlug, '/settings'))}
                   className="flex-1 text-xs text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 text-left px-3 py-2 rounded-lg transition-colors font-medium"
                 >
                   ⚙️ Settings
@@ -131,7 +131,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           {/* Nav items */}
           <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
             {NAV_KEYS.map(item => {
-              const fullPath = wsPath(wsId, item.path);
+              const fullPath = wsPath(wsSlug, item.path);
               const isActive = pathname === fullPath || (item.path !== '/dashboard' && pathname.startsWith(fullPath));
               return (
                 <button
