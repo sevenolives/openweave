@@ -161,10 +161,16 @@ class UserFilter(django_filters.FilterSet):
 
     def filter_by_project(self, queryset, name, value):
         """
-        Filter users by project membership.
+        Filter users by project membership + workspace admins/owner.
+        Workspace admins and owners are always assignable to any project.
         """
         if value:
-            return queryset.filter(projectagent__project=value).distinct()
+            ws_id = value.workspace_id
+            return queryset.filter(
+                Q(projectagent__project=value) |
+                Q(workspace_memberships__workspace_id=ws_id, workspace_memberships__role='ADMIN') |
+                Q(owned_workspaces__id=ws_id)
+            ).distinct()
         return queryset
 
 
