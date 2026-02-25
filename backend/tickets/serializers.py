@@ -217,10 +217,13 @@ class TicketSerializer(serializers.ModelSerializer):
                     project = Project.objects.get(id=self.initial_data['project'])
                 except Project.DoesNotExist:
                     pass
-            if project and not project.agents.filter(id=value.id).exists():
-                raise serializers.ValidationError(
-                    "Assigned user must belong to the project."
-                )
+            if project:
+                is_project_agent = project.agents.filter(id=value.id).exists()
+                is_workspace_owner = project.workspace and project.workspace.owner_id == value.id
+                if not is_project_agent and not is_workspace_owner:
+                    raise serializers.ValidationError(
+                        "Assigned user must belong to the project."
+                    )
         return value
 
     def validate_status(self, value):

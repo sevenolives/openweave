@@ -193,9 +193,15 @@ class Project(models.Model):
 class ProjectAgent(models.Model):
     """
     Join table for Project-Agent many-to-many relationship.
+    Role at project level: ADMIN or MEMBER.
     """
+    PROJECT_ROLES = [
+        ('ADMIN', 'Admin'),
+        ('MEMBER', 'Member'),
+    ]
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
     agent = models.ForeignKey("User", on_delete=models.CASCADE)
+    role = models.CharField(max_length=10, choices=PROJECT_ROLES, default='MEMBER')
     joined_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
