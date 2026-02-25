@@ -2,7 +2,7 @@ from rest_framework import serializers
 from .permissions import is_admin_or_owner
 from .models import (
     User, Project, Ticket, Comment, AuditLog, Workspace, WorkspaceMember,
-    WorkspaceInvite, TicketAttachment, StatusDefinition, StatusTransition,
+    WorkspaceInvite, TicketAttachment, StatusDefinition, StatusTransition, ProjectAgent,
 )
 
 
@@ -52,6 +52,16 @@ class UserSimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'name', 'user_type', 'role', 'description']
+
+
+class ProjectAgentSerializer(serializers.ModelSerializer):
+    """Serializer for ProjectAgent with role."""
+    user = UserSimpleSerializer(source='agent', read_only=True)
+
+    class Meta:
+        model = ProjectAgent
+        fields = ['id', 'project', 'user', 'role', 'joined_at']
+        read_only_fields = ['id', 'project', 'user', 'joined_at']
 
 
 class WorkspaceSerializer(serializers.ModelSerializer):

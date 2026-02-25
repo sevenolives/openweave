@@ -18,7 +18,7 @@ from .serializers import (
     UserSerializer, ProjectSerializer, TicketSerializer,
     CommentSerializer, AuditLogSerializer,
     WorkspaceSerializer, WorkspaceMemberSerializer, WorkspaceInviteSerializer,
-    JoinRequestSerializer, TicketAttachmentSerializer,
+    JoinRequestSerializer, TicketAttachmentSerializer, ProjectAgentSerializer,
     StatusDefinitionSerializer, StatusTransitionSerializer,
 )
 from .permissions import (
@@ -1075,3 +1075,17 @@ class DashboardView(APIView):
             'recent_tickets': TicketSerializer(recent, many=True).data,
             'my_assigned': TicketSerializer(my_assigned, many=True).data,
         })
+
+
+@extend_schema(tags=['project-agents'])
+class ProjectAgentViewSet(viewsets.ModelViewSet):
+    """Manage project agent memberships with roles."""
+    queryset = ProjectAgent.objects.select_related('agent', 'project').all()
+    serializer_class = ProjectAgentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ['get', 'patch', 'head', 'options']
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['project']
+
+    def get_queryset(self):
+        return ProjectAgent.objects.select_related('agent', 'project').all()

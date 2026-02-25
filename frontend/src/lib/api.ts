@@ -91,6 +91,14 @@ export interface Workspace {
   created_at: string;
 }
 
+export interface ProjectAgentMembership {
+  id: number;
+  project: number;
+  user: User;
+  role: 'ADMIN' | 'MEMBER';
+  joined_at: string;
+}
+
 export interface WorkspaceMember {
   id: number;
   workspace: number;
@@ -341,6 +349,18 @@ class ApiClient {
   async getProjectAgents(projectId: number): Promise<User[]> {
     const response = await this.request<PaginatedResponse<User>>(`/users/?project=${projectId}`);
     return response.results || [];
+  }
+
+  async getProjectAgentMemberships(projectId: number): Promise<ProjectAgentMembership[]> {
+    const response = await this.request<PaginatedResponse<ProjectAgentMembership>>(`/project-agents/?project=${projectId}`);
+    return response.results || [];
+  }
+
+  async updateProjectAgentRole(membershipId: number, role: string): Promise<ProjectAgentMembership> {
+    return this.request<ProjectAgentMembership>(`/project-agents/${membershipId}/`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role }),
+    });
   }
 
   async createProject(project: Partial<Project>): Promise<Project> {

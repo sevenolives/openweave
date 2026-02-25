@@ -6,7 +6,7 @@ import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useWorkspace } from '@/hooks/useWorkspace';
-import { api, Project, User } from '@/lib/api';
+import { api, Project, User, ProjectAgentMembership } from '@/lib/api';
 
 export default function ProjectSettingsPage() {
   const [project, setProject] = useState<Project | null>(null);
@@ -18,6 +18,7 @@ export default function ProjectSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [projectAgents, setProjectAgents] = useState<User[]>([]);
+  const [agentMemberships, setAgentMemberships] = useState<ProjectAgentMembership[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [memberSaving, setMemberSaving] = useState(false);
 
@@ -32,9 +33,14 @@ export default function ProjectSettingsPage() {
 
   const fetchData = async () => {
     try {
-      const [p, agents, ticketResp] = await Promise.all([api.getProject(projectId), api.getProjectAgents(projectId), api.getTicketsPaginated({ project: String(projectId) })]);
+      const [p, agents, ticketResp, memberships] = await Promise.all([
+        api.getProject(projectId), api.getProjectAgents(projectId),
+        api.getTicketsPaginated({ project: String(projectId) }),
+        api.getProjectAgentMemberships(projectId),
+      ]);
       setHasTickets((ticketResp.count || 0) > 0);
-      setProject(p); setProjectAgents(agents); setEditName(p.name); setEditSlug(p.slug || ''); setEditDesc(p.description);
+      setProject(p); setProjectAgents(agents); setAgentMemberships(memberships);
+      setEditName(p.name); setEditSlug(p.slug || ''); setEditDesc(p.description);
       if (p.workspace) {
         api.getUsers({ workspace: String(p.workspace) }).then(setAllUsers).catch(() => {});
       }
@@ -148,6 +154,26 @@ export default function ProjectSettingsPage() {
                         <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold flex-shrink-0 ${agent.user_type === 'BOT' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>
                           {agent.user_type}
                         </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={agentMemberships.find(m => m.user.id === agent.id)?.role || 'MEMBER'}
+                          onChange={async (e) => {
+                            const membership = agentMemberships.find(m => m.user.id === agent.id);
+                            if (membership) {
+                              try {
+                                await api.updateProjectAgentRole(membership.id, e.target.value);
+                                const updated = await api.getProjectAgentMemberships(projectId);
+                                setAgentMemberships(updated);
+                                toast('Role updated');
+                              } catch (err: any) { toast(err?.message || 'Failed', 'error'); }
+                            }
+                          }}
+                          className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 bg-white"
+                        >
+                          <option value="ADMIN">Admin</option>
+                          <option value="MEMBER">Member</option>
+                        </select>
                       </div>
                       <button onClick={() => handleRemoveMember(agent.id)} disabled={memberSaving} className="ml-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50" title="Remove">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
