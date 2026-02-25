@@ -67,6 +67,7 @@ function TicketsPage() {
   });
   const [filterProject, setFilterProject] = useState<number | ''>(filterProjectInit);
   const [filterAssigned, setFilterAssigned] = useState('');
+  const [filterApproved, setFilterApproved] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -103,6 +104,8 @@ function TicketsPage() {
     if (priorityParam) setFilterPriority(priorityParam);
     const assignedParam = searchParams.get('assigned_to');
     if (assignedParam) setFilterAssigned(assignedParam);
+    const approvedParam = searchParams.get('approved_status');
+    if (approvedParam) setFilterApproved(approvedParam);
   }, []);
 
   // Sync filters to URL so navigating back preserves context
@@ -113,9 +116,10 @@ function TicketsPage() {
     if (filterStatus) params.set('status', filterStatus);
     if (filterPriority) params.set('priority', filterPriority);
     if (filterAssigned) params.set('assigned_to', filterAssigned);
+    if (filterApproved) params.set('approved_status', filterApproved);
     const url = params.toString() ? `${basePath}?${params.toString()}` : basePath;
     window.history.replaceState(null, '', url);
-  }, [filterProject, filterStatus, filterPriority, filterAssigned, workspaceSlug]);
+  }, [filterProject, filterStatus, filterPriority, filterAssigned, filterApproved, workspaceSlug]);
 
   // Load status definitions
   useEffect(() => {
@@ -131,6 +135,7 @@ function TicketsPage() {
     const ticketParams: Record<string, string> = { ...wsParams, page: String(page) };
     if (filterProject) ticketParams.project = String(filterProject);
     if (filterAssigned) ticketParams.assigned_to = filterAssigned;
+    if (filterApproved) ticketParams.approved_status = filterApproved;
     const membersPromise: Promise<User[]> = currentWorkspace
       ? api.getUsers({ workspace: String(currentWorkspace.id) })
       : Promise.resolve([]);
@@ -141,7 +146,7 @@ function TicketsPage() {
       })
       .catch((e: any) => toast(e?.message || 'Failed to load data', 'error'))
       .finally(() => setLoading(false));
-  }, [currentWorkspace?.id, page, filterProject, filterAssigned]);
+  }, [currentWorkspace?.id, page, filterProject, filterAssigned, filterApproved]);
 
   // Fetch project agents for all visible projects (for inline assign dropdown)
   useEffect(() => {
@@ -203,6 +208,7 @@ function TicketsPage() {
     const ticketParams: Record<string, string> = { ...wsParams, page: String(page) };
     if (filterProject) ticketParams.project = String(filterProject);
     if (filterAssigned) ticketParams.assigned_to = filterAssigned;
+    if (filterApproved) ticketParams.approved_status = filterApproved;
     Promise.all([api.getTicketsPaginated(ticketParams), api.getProjects(wsParams)])
       .then(([resp, p]) => { setTickets(resp.results || []); setTotalCount(resp.count || 0); setProjects(p); })
       .catch((e: any) => toast(e?.message || 'Failed to load data', 'error'));
@@ -242,7 +248,7 @@ function TicketsPage() {
     } catch (e: any) { toast(e?.message || 'Failed to delete ticket', 'error'); }
   };
 
-  const hasFilters = search || filterStatus || filterPriority || filterProject || filterAssigned;
+  const hasFilters = search || filterStatus || filterPriority || filterProject || filterAssigned || filterApproved;
 
   return (
     <Layout>
@@ -294,8 +300,13 @@ function TicketsPage() {
             <option value="">All users</option>
             {wsUsers.map(u => <option key={u.id} value={u.id}>{u.name || u.username}</option>)}
           </select>
+          <select value={filterApproved} onChange={e => { setFilterApproved(e.target.value); setPage(1); }} className="px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
+            <option value="">All approvals</option>
+            <option value="APPROVED">✓ Approved</option>
+            <option value="UNAPPROVED">Unapproved</option>
+          </select>
           {hasFilters && (
-            <button onClick={() => { setSearch(''); setFilterStatus(''); setFilterPriority(''); setFilterProject(''); setFilterAssigned(''); }} className="px-3 py-2.5 text-sm text-gray-500 hover:text-gray-700">
+            <button onClick={() => { setSearch(''); setFilterStatus(''); setFilterPriority(''); setFilterProject(''); setFilterAssigned(''); setFilterApproved(''); }} className="px-3 py-2.5 text-sm text-gray-500 hover:text-gray-700">
               Clear filters
             </button>
           )}
