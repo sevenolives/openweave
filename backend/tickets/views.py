@@ -794,7 +794,7 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
             ('IN_PROGRESS', 'IN_TESTING'), ('IN_PROGRESS', 'BLOCKED'), ('IN_PROGRESS', 'REVIEW'), ('IN_PROGRESS', 'CANCELLED'),
             ('BLOCKED', 'IN_PROGRESS'), ('BLOCKED', 'CANCELLED'),
             ('IN_TESTING', 'IN_PROGRESS'), ('IN_TESTING', 'BLOCKED'), ('IN_TESTING', 'REVIEW'),
-            ('REVIEW', 'IN_PROGRESS'), ('REVIEW', 'IN_TESTING'), ('REVIEW', 'COMPLETED'),
+            ('REVIEW', 'IN_PROGRESS'), ('REVIEW', 'IN_TESTING'),
         ]
         for from_key, to_key in bot_transitions:
             StatusTransition.objects.create(workspace=workspace, from_status=status_map[from_key], to_status=status_map[to_key], actor_type='BOT')
