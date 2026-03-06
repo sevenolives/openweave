@@ -3,6 +3,7 @@ from .permissions import is_admin_or_owner
 from .models import (
     User, Project, Ticket, Comment, AuditLog, Workspace, WorkspaceMember,
     WorkspaceInvite, TicketAttachment, StatusDefinition, StatusTransition, ProjectAgent,
+    BlogPost,
 )
 
 
@@ -385,6 +386,25 @@ class StatusTransitionSerializer(serializers.ModelSerializer):
             if from_s.workspace_id != ws.id or to_s.workspace_id != ws.id:
                 raise serializers.ValidationError("Both statuses must belong to the specified workspace.")
         return data
+
+
+class BlogPostListSerializer(serializers.ModelSerializer):
+    author_name = serializers.CharField(source='author.name', read_only=True, default='')
+
+    class Meta:
+        model = BlogPost
+        fields = ['id', 'title', 'slug', 'excerpt', 'author_name', 'featured_image_url',
+                  'tags', 'published_at', 'created_at']
+
+
+class BlogPostDetailSerializer(serializers.ModelSerializer):
+    author_name = serializers.CharField(source='author.name', read_only=True, default='')
+
+    class Meta:
+        model = BlogPost
+        fields = ['id', 'title', 'slug', 'content', 'excerpt', 'author_name',
+                  'featured_image_url', 'meta_title', 'meta_description', 'tags',
+                  'published_at', 'created_at', 'updated_at']
 
 
 # Auth uses vanilla SimpleJWT TokenObtainPairView (username + password)

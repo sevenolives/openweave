@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, Project, Ticket, Comment, AuditLog, ProjectAgent, Workspace, WorkspaceMember, WorkspaceInvite
+from .models import User, Project, Ticket, Comment, AuditLog, ProjectAgent, Workspace, WorkspaceMember, WorkspaceInvite, BlogPost
 
 
 @admin.register(Workspace)
@@ -172,3 +172,12 @@ class StatusDefinitionAdmin(admin.ModelAdmin):
 class StatusTransitionAdmin(admin.ModelAdmin):
     list_display = ['workspace', 'from_status', 'to_status', 'actor_type']
     list_filter = ['workspace', 'actor_type']
+
+
+@admin.register(BlogPost)
+class BlogPostAdmin(admin.ModelAdmin):
+    list_display = ['title', 'slug', 'author', 'is_published', 'published_at', 'created_at']
+    list_filter = ['is_published', 'created_at']
+    search_fields = ['title', 'content', 'tags']
+    prepopulated_fields = {'slug': ('title',)}
+    readonly_fields = ['created_at', 'updated_at']

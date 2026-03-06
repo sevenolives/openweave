@@ -13,6 +13,7 @@ from rest_framework import serializers as drf_serializers
 from .models import (
     User, Project, Ticket, Comment, AuditLog, ProjectAgent, Workspace,
     WorkspaceMember, WorkspaceInvite, TicketAttachment, StatusDefinition, StatusTransition,
+    BlogPost,
 )
 from .serializers import (
     UserSerializer, ProjectSerializer, TicketSerializer,
@@ -20,6 +21,7 @@ from .serializers import (
     WorkspaceSerializer, WorkspaceMemberSerializer, WorkspaceInviteSerializer,
     JoinRequestSerializer, TicketAttachmentSerializer, ProjectAgentSerializer,
     StatusDefinitionSerializer, StatusTransitionSerializer,
+    BlogPostListSerializer, BlogPostDetailSerializer,
 )
 from .permissions import (
     IsAdminAgent, IsAdminOrReadOnly, IsAdminOrOwner, is_admin_or_owner,
@@ -1093,3 +1095,34 @@ class ProjectAgentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return ProjectAgent.objects.select_related('agent', 'project').all()
+
+
+@extend_schema(tags=['blog'])
+class BlogPostViewSet(viewsets.ReadOnlyModelViewSet):
+    """Public blog posts. No authentication required."""
+    permission_classes = [AllowAny]
+    lookup_field = 'slug'
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['title', 'content']
+    pagination_class = None  # import below
+
+    def get_pagination_class(self):
+        from .pagination import FlexiblePageNumberPagination
+        return FlexiblePageNumberPagination
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from .pagination import FlexiblePageNumberPagination
+        self.pagination_class = FlexiblePageNumberPagination
+
+    def get_queryset(self):
+        qs = BlogPost.objects.filter(is_published=True).select_related('author').order_by('-published_at')
+        tag = self.request.query_params.get('tag')
+        if tag:
+            qs = qs.filter(tags__icontains=tag)
+        return qs
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return BlogPostDetailSerializer
+        return BlogPostListSerializer

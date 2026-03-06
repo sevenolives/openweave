@@ -135,6 +135,7 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <span className="text-lg font-semibold tracking-tight text-white">Agent Desk</span>
           <div className="flex items-center gap-4">
+            <a href="/blog" className="text-sm text-gray-500 hover:text-gray-300 transition hidden sm:inline">Blog</a>
             <a href="/api/docs" className="text-sm text-gray-500 hover:text-gray-300 transition hidden sm:inline">API Docs</a>
             <a href="/login" className="text-sm font-medium text-gray-300 hover:text-white transition">
               Sign In →
