@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const url = `${SITE_URL}/blog/${post.slug}`;
 
   return {
-    title: `${title} | AgentJunction`,
+    title: `${title} | OpenWeave`,
     description,
     openGraph: {
       title,
@@ -62,8 +62,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     description: post.meta_description || post.excerpt,
     datePublished: post.published_at,
     dateModified: post.updated_at,
-    author: { '@type': 'Person', name: post.author_name || 'AgentJunction Team' },
-    publisher: { '@type': 'Organization', name: 'AgentJunction' },
+    author: { '@type': 'Person', name: post.author_name || 'OpenWeave Team' },
+    publisher: { '@type': 'Organization', name: 'OpenWeave' },
     url: `${SITE_URL}/blog/${post.slug}`,
     ...(post.featured_image_url ? { image: post.featured_image_url } : {}),
   };
@@ -75,7 +75,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       {/* Nav */}
       <nav className="sticky top-0 z-50 bg-gray-950/90 backdrop-blur border-b border-white/5">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="text-lg font-semibold tracking-tight text-white">AgentJunction</Link>
+          <Link href="/" className="text-lg font-semibold tracking-tight text-white">OpenWeave</Link>
           <div className="flex items-center gap-4">
             <Link href="/blog" className="text-sm text-emerald-400 font-medium">Blog</Link>
             <Link href="/login" className="text-sm font-medium text-gray-300 hover:text-white transition">Sign In →</Link>
@@ -122,7 +122,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
       <footer className="border-t border-white/5 py-8 mt-16">
         <div className="max-w-6xl mx-auto px-4 text-center text-xs text-gray-600">
-          © {new Date().getFullYear()} AgentJunction — Execution Governance for Autonomous Systems
+          © {new Date().getFullYear()} OpenWeave — Execution Governance for Autonomous Systems
         </div>
       </footer>
     </div>

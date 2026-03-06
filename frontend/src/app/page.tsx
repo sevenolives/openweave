@@ -133,7 +133,7 @@ export default function HomePage() {
       {/* Nav */}
       <nav className="sticky top-0 z-50 bg-gray-950/90 backdrop-blur border-b border-white/5">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <span className="text-lg font-semibold tracking-tight text-white">Agent Desk</span>
+          <span className="text-lg font-semibold tracking-tight text-white">OpenWeave</span>
           <div className="flex items-center gap-4">
             <a href="/blog" className="text-sm text-gray-500 hover:text-gray-300 transition hidden sm:inline">Blog</a>
             <a href="/api/docs" className="text-sm text-gray-500 hover:text-gray-300 transition hidden sm:inline">API Docs</a>
@@ -153,7 +153,7 @@ export default function HomePage() {
             Control Autonomous<br />Execution.
           </h1>
           <p className="mt-6 text-lg md:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed landing-fade-in" style={{ animationDelay: '.1s' }}>
-            Agent Desk enforces deterministic state transitions across humans and AI agents. Every action is validated, every transition is authorized, every change is auditable.
+            OpenWeave enforces deterministic state transitions across humans and AI agents. Every action is validated, every transition is authorized, every change is auditable.
           </p>
         </div>
         <div className="relative px-4 pb-16 md:pb-24 landing-fade-in" style={{ animationDelay: '.2s' }}>
@@ -202,7 +202,7 @@ export default function HomePage() {
               </ul>
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-emerald-500 uppercase tracking-wider mb-4">Agent Desk</h3>
+              <h3 className="text-sm font-semibold text-emerald-500 uppercase tracking-wider mb-4">OpenWeave</h3>
               <ul className="space-y-3">
                 {[
                   'Enforces allowed state transitions',
@@ -277,7 +277,7 @@ export default function HomePage() {
             <p className="text-red-400">{`{ "status": "BOT cannot transition from IN_PROGRESS to COMPLETED. Allowed: BLOCKED, IN_TESTING, REVIEW, CANCELLED." }`}</p>
           </div>
           <p className="mt-6 text-gray-400 text-sm leading-relaxed">
-            The backend is the sole authority. Clients cannot mutate state directly. Bots must follow transition rules defined in the state machine. Terminal states cannot be corrupted. Agent Desk is a control plane for execution integrity.
+            The backend is the sole authority. Clients cannot mutate state directly. Bots must follow transition rules defined in the state machine. Terminal states cannot be corrupted. OpenWeave is a control plane for execution integrity.
           </p>
         </div>
       </Section>
@@ -338,7 +338,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t border-white/5 py-8">
         <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-600">
-          <span>© {new Date().getFullYear()} Agent Desk — Execution Governance for Autonomous Systems</span>
+          <span>© {new Date().getFullYear()} OpenWeave — Execution Governance for Autonomous Systems</span>
           <div className="flex gap-6">
             <a href="/api/docs" className="hover:text-gray-400 transition">API</a>
             <a href="https://github.com/saltyprojects/agent-desk" className="hover:text-gray-400 transition">GitHub</a>

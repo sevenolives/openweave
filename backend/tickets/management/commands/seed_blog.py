@@ -8,7 +8,7 @@ POSTS = [
         "title": "Why Autonomous Agents Need Execution Governance",
         "slug": "why-autonomous-agents-need-execution-governance",
         "excerpt": "As AI agents proliferate across enterprise workflows, the absence of execution governance creates systemic risk. Learn why deterministic control infrastructure is essential.",
-        "meta_title": "Why Autonomous Agents Need Execution Governance | AgentJunction",
+        "meta_title": "Why Autonomous Agents Need Execution Governance | OpenWeave",
         "meta_description": "Discover why autonomous AI agents require execution governance to prevent uncontrolled state mutations, ensure auditability, and maintain operational integrity.",
         "tags": "execution-governance,autonomous-agents,ai-safety,compliance",
         "content": """<p>The rapid proliferation of autonomous AI agents across enterprise environments has introduced a fundamental problem: <strong>who governs what agents actually do?</strong></p>
@@ -37,13 +37,13 @@ POSTS = [
 
 <p>As enterprises move from single-agent experiments to multi-agent deployments, the coordination problem becomes critical. Without a governance layer, you're not deploying agents — you're deploying chaos with a friendly API.</p>
 
-<p>AgentJunction was built to solve this problem. It provides deterministic execution governance for autonomous systems, ensuring that every agent action is validated, authorized, and auditable. Because autonomy without authority isn't intelligence — it's liability.</p>"""
+<p>OpenWeave was built to solve this problem. It provides deterministic execution governance for autonomous systems, ensuring that every agent action is validated, authorized, and auditable. Because autonomy without authority isn't intelligence — it's liability.</p>"""
     },
     {
         "title": "The Problem with Uncontrolled Bot Workflows",
         "slug": "the-problem-with-uncontrolled-bot-workflows",
         "excerpt": "Bot workflows without enforcement infrastructure create invisible risks. Here's why permissive agent architectures fail at scale and what to do about it.",
-        "meta_title": "The Problem with Uncontrolled Bot Workflows | AgentJunction",
+        "meta_title": "The Problem with Uncontrolled Bot Workflows | OpenWeave",
         "meta_description": "Uncontrolled bot workflows create cascading failures, compliance gaps, and untraceable state mutations. Learn why enforcement infrastructure is non-negotiable.",
         "tags": "bot-workflows,risk-management,agent-architecture,enforcement",
         "content": """<p>Every organization running bot workflows faces the same hidden risk: <strong>permissive execution</strong>. Bots are given API keys, granted permissions, and trusted to follow the rules. But most architectures provide no mechanism to enforce those rules at runtime.</p>
@@ -64,22 +64,22 @@ POSTS = [
 
 <p>The root cause is architectural. Most bot frameworks treat the backend as a dumb data store. The bot decides what to do, and the API writes it down. There's no validation layer between intent and execution.</p>
 
-<p>AgentJunction inverts this model. The backend is the sole authority on valid state transitions. Every mutation — whether from a human agent, a bot, or an API call — is validated against the workspace's state machine before it's persisted. Invalid transitions are rejected with clear error messages. Valid transitions are committed and logged.</p>
+<p>OpenWeave inverts this model. The backend is the sole authority on valid state transitions. Every mutation — whether from a human agent, a bot, or an API call — is validated against the workspace's state machine before it's persisted. Invalid transitions are rejected with clear error messages. Valid transitions are committed and logged.</p>
 
 <p>This is the difference between a workflow system and a governance system. Workflows describe what should happen. Governance ensures it does.</p>"""
     },
     {
-        "title": "How AgentJunction Enforces Deterministic Agent Execution",
-        "slug": "how-agentjunction-enforces-deterministic-agent-execution",
-        "excerpt": "AgentJunction's backend-enforced state machines ensure every agent action is validated, authorized, and auditable. Here's how the architecture works.",
-        "meta_title": "How AgentJunction Enforces Deterministic Agent Execution | AgentJunction",
-        "meta_description": "Learn how AgentJunction uses backend-enforced state machines, transition rules, and audit logging to ensure deterministic execution for autonomous agents.",
-        "tags": "agentjunction,state-machines,deterministic-execution,architecture",
-        "content": """<p>AgentJunction is execution governance infrastructure for autonomous systems. It ensures that every action taken by an agent — human or AI — is validated against predefined rules before it's committed. Here's how the architecture enforces deterministic execution.</p>
+        "title": "How OpenWeave Enforces Deterministic Agent Execution",
+        "slug": "how-openweave-enforces-deterministic-agent-execution",
+        "excerpt": "OpenWeave's backend-enforced state machines ensure every agent action is validated, authorized, and auditable. Here's how the architecture works.",
+        "meta_title": "How OpenWeave Enforces Deterministic Agent Execution | OpenWeave",
+        "meta_description": "Learn how OpenWeave uses backend-enforced state machines, transition rules, and audit logging to ensure deterministic execution for autonomous agents.",
+        "tags": "openweave,state-machines,deterministic-execution,architecture",
+        "content": """<p>OpenWeave is execution governance infrastructure for autonomous systems. It ensures that every action taken by an agent — human or AI — is validated against predefined rules before it's committed. Here's how the architecture enforces deterministic execution.</p>
 
 <h2>Backend-Enforced State Machines</h2>
 
-<p>At the core of AgentJunction is a configurable state machine system. Each workspace defines its own set of statuses and valid transitions between them. These aren't suggestions or UI hints — they're enforced at the API layer.</p>
+<p>At the core of OpenWeave is a configurable state machine system. Each workspace defines its own set of statuses and valid transitions between them. These aren't suggestions or UI hints — they're enforced at the API layer.</p>
 
 <p>When any actor (human or bot) attempts to change a ticket's status, the backend checks:</p>
 <ol>
@@ -92,7 +92,7 @@ POSTS = [
 
 <h2>Actor-Type Authorization</h2>
 
-<p>Not all transitions should be available to all actors. AgentJunction's transition rules include an <code>actor_type</code> field that specifies whether a transition can be performed by humans, bots, or both. This means you can design workflows where bots handle triage and initial processing, but only humans can approve escalations or close tickets.</p>
+<p>Not all transitions should be available to all actors. OpenWeave's transition rules include an <code>actor_type</code> field that specifies whether a transition can be performed by humans, bots, or both. This means you can design workflows where bots handle triage and initial processing, but only humans can approve escalations or close tickets.</p>
 
 <h2>Complete Audit Trail</h2>
 
@@ -110,7 +110,7 @@ POSTS = [
 
 
 class Command(BaseCommand):
-    help = 'Seed blog posts for AgentJunction'
+    help = 'Seed blog posts for OpenWeave'
 
     def handle(self, *args, **options):
         author = User.objects.filter(is_superuser=True).first() or User.objects.first()

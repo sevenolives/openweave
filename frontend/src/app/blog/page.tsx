@@ -21,10 +21,10 @@ async function getPosts(page = 1): Promise<{ results: BlogPost[]; count: number;
 }
 
 export const metadata: Metadata = {
-  title: 'Blog | AgentJunction — Execution Governance for Autonomous Systems',
-  description: 'Insights on execution governance, autonomous agent management, and deterministic workflows from the AgentJunction team.',
+  title: 'Blog | OpenWeave — Execution Governance for Autonomous Systems',
+  description: 'Insights on execution governance, autonomous agent management, and deterministic workflows from the OpenWeave team.',
   openGraph: {
-    title: 'Blog | AgentJunction',
+    title: 'Blog | OpenWeave',
     description: 'Insights on execution governance, autonomous agent management, and deterministic workflows.',
     url: 'https://uat.openweave.dev/blog',
     type: 'website',
@@ -41,7 +41,7 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
       {/* Nav */}
       <nav className="sticky top-0 z-50 bg-gray-950/90 backdrop-blur border-b border-white/5">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="text-lg font-semibold tracking-tight text-white">AgentJunction</Link>
+          <Link href="/" className="text-lg font-semibold tracking-tight text-white">OpenWeave</Link>
           <div className="flex items-center gap-4">
             <Link href="/blog" className="text-sm text-emerald-400 font-medium">Blog</Link>
             <Link href="/login" className="text-sm font-medium text-gray-300 hover:text-white transition">Sign In →</Link>
@@ -106,7 +106,7 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
 
       <footer className="border-t border-white/5 py-8">
         <div className="max-w-6xl mx-auto px-4 text-center text-xs text-gray-600">
-          © {new Date().getFullYear()} AgentJunction — Execution Governance for Autonomous Systems
+          © {new Date().getFullYear()} OpenWeave — Execution Governance for Autonomous Systems
         </div>
       </footer>
     </div>

@@ -57,7 +57,7 @@ function LoginForm() {
             </svg>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
-            Agent Desk
+            OpenWeave
           </h1>
           <p className="mt-2 text-sm text-gray-500">
             Agentic support & ticketing system

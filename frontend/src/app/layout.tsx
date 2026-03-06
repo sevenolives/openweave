@@ -3,7 +3,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "Agent Desk - Support & Ticketing System",
+  title: "OpenWeave - Execution Governance for Autonomous Systems",
   description: "An agentic support and ticketing system for modern teams",
 };
 
