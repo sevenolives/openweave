@@ -21,7 +21,7 @@ from .serializers import (
     WorkspaceSerializer, WorkspaceMemberSerializer, WorkspaceInviteSerializer,
     JoinRequestSerializer, TicketAttachmentSerializer, ProjectAgentSerializer,
     StatusDefinitionSerializer, StatusTransitionSerializer,
-    BlogPostListSerializer, BlogPostDetailSerializer,
+    BlogPostListSerializer, BlogPostDetailSerializer, BlogPostCreateSerializer,
 )
 from .permissions import (
     IsAdminAgent, IsAdminOrReadOnly, IsAdminOrOwner, is_admin_or_owner,
@@ -1098,13 +1098,17 @@ class ProjectAgentViewSet(viewsets.ModelViewSet):
 
 
 @extend_schema(tags=['blog'])
-class BlogPostViewSet(viewsets.ReadOnlyModelViewSet):
-    """Public blog posts. No authentication required."""
-    permission_classes = [AllowAny]
+class BlogPostViewSet(viewsets.ModelViewSet):
+    """Public blog posts. Read = no auth. Create/Update/Delete = admin only."""
     lookup_field = 'slug'
     filter_backends = [filters.SearchFilter]
     search_fields = ['title', 'content']
     pagination_class = None  # import below
+
+    def get_permissions(self):
+        if self.action in ('list', 'retrieve'):
+            return [AllowAny()]
+        return [permissions.IsAdminUser()]
 
     def get_pagination_class(self):
         from .pagination import FlexiblePageNumberPagination
@@ -1116,7 +1120,10 @@ class BlogPostViewSet(viewsets.ReadOnlyModelViewSet):
         self.pagination_class = FlexiblePageNumberPagination
 
     def get_queryset(self):
-        qs = BlogPost.objects.filter(is_published=True).select_related('author').order_by('-published_at')
+        if self.action in ('list', 'retrieve'):
+            qs = BlogPost.objects.filter(is_published=True).select_related('author').order_by('-published_at')
+        else:
+            qs = BlogPost.objects.select_related('author').order_by('-published_at')
         tag = self.request.query_params.get('tag')
         if tag:
             qs = qs.filter(tags__icontains=tag)
@@ -1125,4 +1132,6 @@ class BlogPostViewSet(viewsets.ReadOnlyModelViewSet):
     def get_serializer_class(self):
         if self.action == 'retrieve':
             return BlogPostDetailSerializer
+        if self.action in ('create', 'update', 'partial_update'):
+            return BlogPostCreateSerializer
         return BlogPostListSerializer

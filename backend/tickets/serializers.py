@@ -407,4 +407,12 @@ class BlogPostDetailSerializer(serializers.ModelSerializer):
                   'published_at', 'created_at', 'updated_at']
 
 
+class BlogPostCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BlogPost
+        fields = ['id', 'title', 'slug', 'content', 'excerpt', 'author',
+                  'featured_image_url', 'meta_title', 'meta_description', 'tags',
+                  'is_published', 'published_at']
+
+
 # Auth uses vanilla SimpleJWT TokenObtainPairView (username + password)
