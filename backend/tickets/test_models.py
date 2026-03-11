@@ -16,7 +16,7 @@ class UserModelTest(TestCase):
             'username': 'testuser',
             'email': 'test@example.com',
             'password': 'testpass123',
-            'agent_type': 'HUMAN',
+            'user_type': 'HUMAN',
             'role': 'MEMBER'
         }
     
@@ -25,7 +25,7 @@ class UserModelTest(TestCase):
         agent = User.objects.create_user(**self.agent_data)
         self.assertEqual(agent.username, 'testuser')
         self.assertEqual(agent.email, 'test@example.com')
-        self.assertEqual(agent.agent_type, 'HUMAN')
+        self.assertEqual(agent.user_type, 'HUMAN')
         self.assertEqual(agent.role, 'MEMBER')
         self.assertTrue(agent.is_active)
         self.assertFalse(agent.is_staff)
@@ -38,9 +38,9 @@ class UserModelTest(TestCase):
     
     def test_create_bot_agent(self):
         """Test creating a bot agent."""
-        self.agent_data['agent_type'] = 'BOT'
+        self.agent_data['user_type'] = 'BOT'
         agent = User.objects.create_user(**self.agent_data)
-        self.assertEqual(agent.agent_type, 'BOT')
+        self.assertEqual(agent.user_type, 'BOT')
     
     def test_agent_str(self):
         """Test string representation of agent."""

@@ -92,46 +92,20 @@ Every ticket has an `approved_status`: `UNAPPROVED` (default) or `APPROVED`.
 - Bots CAN create tickets (bugs/features they discover) — these start as `UNAPPROVED` and must wait for human approval.
 
 ### Status Flow
-Statuses: `OPEN`, `IN_PROGRESS`, `BLOCKED`, `IN_TESTING`, `REVIEW`, `COMPLETED` (terminal), `CANCELLED` (terminal)
 
-**Status transitions are enforced by the backend.** The state machine is workspace-specific and stored in the database. If you attempt an invalid transition, you will get a 400 error. Always check allowed transitions via `GET /api/status-transitions/?workspace=<id>&actor_type=BOT`.
+**Status transitions are enforced by the backend.** The state machine is workspace-specific and stored in the database. If you attempt an invalid transition, you will get a 400 error.
 
-### Bot Status Transition Map
+**Always discover transitions from the API — do not assume any hardcoded flow.**
 
-Bots have a restricted set of transitions. **If you get a 400 error on a status change, the transition is not allowed for bots.** Here is the standard bot flow:
-
-```
-OPEN → IN_PROGRESS       (pick up the ticket)
-OPEN → CANCELLED          (ticket no longer needed)
-
-IN_PROGRESS → IN_TESTING  (code done, ready to test)
-IN_PROGRESS → BLOCKED     (waiting on something)
-IN_PROGRESS → REVIEW      (needs human review)
-IN_PROGRESS → CANCELLED   (abandon work)
-
-BLOCKED → IN_PROGRESS     (blocker resolved)
-BLOCKED → CANCELLED       (abandon)
-
-IN_TESTING → IN_PROGRESS  (tests failed, back to work)
-IN_TESTING → BLOCKED      (testing blocked)
-IN_TESTING → REVIEW       (tests pass, send to review)
-
-REVIEW → IN_PROGRESS      (changes requested)
-REVIEW → IN_TESTING       (needs more testing)
-REVIEW → COMPLETED        (review approved, done!)
-```
-
-**The happy path for bots:**
-```
-OPEN → IN_PROGRESS → IN_TESTING → REVIEW → COMPLETED
-```
+- `GET /api/status-definitions/?workspace=<id>` — list all statuses, their colors, and whether they are terminal
+- `GET /api/status-transitions/?workspace=<id>` — list all allowed transitions (includes `actor_type`: BOT or HUMAN)
+- `GET /api/status-transitions/?workspace=<id>&actor_type=BOT` — bot-only transitions
 
 **Key rules:**
-- Bots **cannot** skip steps (e.g., OPEN → COMPLETED is not allowed)
-- Bots **cannot** move directly to COMPLETED from IN_PROGRESS — must go through IN_TESTING and REVIEW
-- If a transition fails with 400, check the error message — it will tell you the allowed transitions
-- Humans have broader transitions and can override as needed
-- Each workspace may have different transitions — always query the API for the current workspace's rules
+- Each workspace defines its own states and transitions — always query first
+- If a transition fails with 400, read the error message — it tells you exactly what's allowed
+- Terminal states cannot be transitioned out of
+- Some states may require ticket approval before bots can enter them (approval gates)
 
 ### Re-opened Tickets
 Tickets may be **re-opened** by humans or other agents. Any ticket in `OPEN` state should be treated with extra attention — it may have been previously worked on, tested, and found to be not properly fixed. **Always read all comments** to understand the full history before starting work on a re-opened ticket.
@@ -145,16 +119,13 @@ Tickets may be **re-opened** by humans or other agents. Any ticket in `OPEN` sta
 ### Bot Workflow
 0. **FIRST: Verify `approved_status=APPROVED`** — if the ticket is not approved, STOP. Do not proceed. Move on to another ticket.
 1. Pick up approved ticket → **read all comments first** (`GET /comments/?ticket=<id>`) to understand context, prior work, and decisions
-2. Move to `IN_PROGRESS` (OPEN → IN_PROGRESS), comment what you're doing
-3. Do the work → comment with progress
-4. Move to `IN_TESTING` (IN_PROGRESS → IN_TESTING) → test your own work, comment with test results
-5. If tests pass → move to `REVIEW` (IN_TESTING → REVIEW), comment confirmation and what was tested
-6. If tests fail → move back to `IN_PROGRESS` (IN_TESTING → IN_PROGRESS), comment what's broken
-7. If blocked → move to `BLOCKED` (IN_PROGRESS → BLOCKED), comment what you're waiting on
-8. Once review passes → move to `COMPLETED` (REVIEW → COMPLETED)
-9. **If you need help or can't complete the task** → reassign to an appropriate human or bot teammate, comment what you've tried and what's needed
+2. **Query allowed transitions** for your workspace: `GET /api/status-transitions/?workspace=<id>&actor_type=BOT`
+3. Move ticket through statuses according to the allowed transitions, commenting at each step
+4. Test your own work before moving toward completion
+5. If blocked → move to a blocked/waiting state, comment what you're waiting on
+6. If you need help → reassign to an appropriate human or bot teammate, comment what you've tried and what's needed
 
-**⚠️ If a status transition fails (400 error):** Read the error message. It means that transition is not allowed for bots. Check the Bot Status Transition Map above. You may be trying to skip a step — follow the happy path: `OPEN → IN_PROGRESS → IN_TESTING → REVIEW → COMPLETED`.
+**⚠️ If a status transition fails (400 error):** Read the error message — it tells you exactly which transitions are allowed for your actor type from the current state.
 
 **Important:** Always read comments before starting work on any ticket. Comments contain context from humans and other bots — requirements clarifications, prior attempts, blockers, and test results. Skipping comments means missing critical context.
 

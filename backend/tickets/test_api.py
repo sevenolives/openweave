@@ -35,7 +35,7 @@ class BaseAPITestCase(TestCase):
             username='bot',
             email='bot@example.com',
             password='botpass123',
-            agent_type='BOT'
+            user_type='BOT'
         )
         
         # Create test project
@@ -73,7 +73,7 @@ class AuthenticationAPITest(BaseAPITestCase):
             'username': 'newuser',
             'email': 'newuser@example.com',
             'password': 'newpass123',
-            'agent_type': 'HUMAN',
+            'user_type': 'HUMAN',
             'role': 'MEMBER'
         }
         
@@ -149,7 +149,7 @@ class UserAPITest(BaseAPITestCase):
         self.authenticate(self.member_user)
         url = reverse('agent-list')
         
-        response = self.client.get(url, {'agent_type': 'BOT'})
+        response = self.client.get(url, {'user_type': 'BOT'})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['count'], 1)
         self.assertEqual(response.data['results'][0]['username'], 'bot')
