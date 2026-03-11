@@ -742,7 +742,7 @@ export default function StateMachinePage() {
                           }}
                           style={{ ...selectStyle, fontSize: isSmall ? 13 : 12, padding: isSmall ? '6px 10px' : '4px 8px', minWidth: isSmall ? 100 : 80, minHeight: 'auto' }}
                         >
-                          {states.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+                          {states.filter((s) => !s.is_terminal).map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
                         </select>
                         <span style={{ color: '#6b7280', fontWeight: 600, fontSize: isSmall ? 16 : 14 }}>→</span>
                         <select
