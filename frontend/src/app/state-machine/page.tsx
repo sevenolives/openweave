@@ -769,7 +769,6 @@ export default function StateMachinePage() {
                             color: 'white', background: ACTOR_COLORS[t.actor],
                             border: '1px solid ' + ACTOR_COLORS[t.actor],
                             cursor: 'pointer', height: isSmall ? 44 : 'auto', minHeight: isSmall ? 44 : 'auto',
-                            appearance: 'none', WebkitAppearance: 'none',
                           }}
                         >
                           <option value="BOT" style={{ background: '#18181b', color: '#e5e7eb' }}>BOT</option>
