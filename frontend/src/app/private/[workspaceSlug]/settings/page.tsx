@@ -434,230 +434,589 @@ export default function WorkspaceSettingsPage() {
         </>)}
 
         {/* === STATE MACHINE TAB === */}
-        {settingsTab === 'state-machine' && (<>
-        {/* Status State Machine */}
-        <div className="bg-white border border-gray-200 rounded-xl mb-6">
-          <div className="px-5 py-4 border-b border-gray-100">
-            <h2 className="font-semibold text-gray-900">Status Configuration</h2>
-            <p className="text-xs text-gray-500 mt-1">Define statuses and allowed transitions for tickets in this workspace.</p>
-          </div>
+        {settingsTab === 'state-machine' && (() => {
+          // Style constants from the public page
+          const COLORS_HEX: Record<string, string> = {
+            gray: '#9ca3af', blue: '#3b82f6', red: '#ef4444', purple: '#a855f7',
+            amber: '#f59e0b', green: '#22c55e', yellow: '#eab308', indigo: '#6366f1',
+            pink: '#ec4899', orange: '#f97316',
+          };
 
-          {/* Tabs */}
-          <div className="px-5 pt-4 flex gap-2">
-            <button onClick={() => setStatusTab('diagram')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${statusTab === 'diagram' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:bg-gray-100'}`}>Diagram</button>
-            <button onClick={() => setStatusTab('statuses')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${statusTab === 'statuses' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:bg-gray-100'}`}>Statuses</button>
-            <button onClick={() => setStatusTab('transitions')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${statusTab === 'transitions' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:bg-gray-100'}`}>Transitions</button>
-          </div>
+          const ACTOR_COLORS: Record<string, string> = {
+            BOT: '#a855f7', HUMAN: '#3b82f6', ALL: '#6b7280',
+          };
 
-          {statusTab === 'diagram' && (
-            <div>
-              <div style={{ 
-                height: '500px',
-                width: '100%', 
-                background: 'white',
-                position: 'relative',
-                overflow: 'hidden',
-              }}>
-                {statuses.length === 0 ? (
-                  <div className="flex items-center justify-center h-full text-gray-500">
-                    <div className="text-center">
-                      <div className="text-4xl mb-4">⬡</div>
-                      <p className="text-lg mb-2">No statuses defined yet</p>
-                      <p className="text-sm opacity-70">Add statuses in the Statuses tab to see the diagram</p>
-                    </div>
-                  </div>
-                ) : (
-                  <ReactFlow
-                    nodes={buildNodes}
-                    edges={buildEdges}
-                    fitView
-                    fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
-                    nodesDraggable={false}
-                    nodesConnectable={false}
-                    elementsSelectable={false}
-                    proOptions={{ hideAttribution: true }}
-                    minZoom={0.1}
-                    maxZoom={2}
-                    panOnScroll={true}
-                    zoomOnScroll={true}
-                    zoomOnPinch={true}
-                    panOnDrag={true}
-                  >
-                    <Background 
-                      gap={20} 
-                      size={1} 
-                      color="#cbd5e1"
-                    />
-                    <Controls 
-                      showInteractive={false}
-                      position="bottom-right"
-                    />
-                  </ReactFlow>
-                )}
+          const [isSmall, setIsSmall] = useState(false);
+          const [isMobile, setIsMobile] = useState(false);
+
+          useEffect(() => {
+            const check = () => {
+              const width = window.innerWidth;
+              setIsSmall(width <= 768);
+              setIsMobile(width <= 640);
+            };
+            check();
+            window.addEventListener('resize', check);
+            return () => window.removeEventListener('resize', check);
+          }, []);
+
+          const tabStyle = (v: 'diagram' | 'statuses' | 'transitions'): React.CSSProperties => ({
+            padding: isMobile ? '16px 12px' : isSmall ? '14px 16px' : '12px 20px',
+            fontSize: isMobile ? '15px' : isSmall ? '14px' : '13px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            background: 'none',
+            border: 'none',
+            borderBottom: statusTab === v ? '3px solid #818cf8' : '3px solid transparent',
+            color: statusTab === v ? '#a5b4fc' : '#6b7280',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            minHeight: isMobile ? '56px' : isSmall ? '48px' : 'auto',
+            flex: isMobile || isSmall ? '1' : 'none',
+            textAlign: 'center',
+            position: 'relative',
+          });
+
+          const btnStyle: React.CSSProperties = {
+            padding: isMobile ? '16px 24px' : isSmall ? '14px 20px' : '10px 18px',
+            fontSize: isMobile ? '15px' : isSmall ? '14px' : '13px',
+            fontWeight: 600,
+            background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: isMobile ? '12px' : '10px',
+            cursor: 'pointer',
+            minHeight: isMobile ? '52px' : isSmall ? '48px' : '38px',
+            boxShadow: '0 4px 14px rgba(79,70,229,0.25), 0 1px 3px rgba(0,0,0,0.1)',
+            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            userSelect: 'none',
+          };
+
+          const inputStyle: React.CSSProperties = {
+            padding: '12px 16px',
+            fontSize: '14px',
+            border: '1px solid #3f3f46',
+            borderRadius: '12px',
+            outline: 'none',
+            background: 'rgba(24, 24, 27, 0.8)',
+            backdropFilter: 'blur(8px)',
+            color: '#e5e7eb',
+            minHeight: '44px',
+            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+          };
+
+          const selectStyle: React.CSSProperties = { 
+            ...inputStyle, 
+            paddingRight: isMobile ? '48px' : '36px',
+            cursor: 'pointer',
+            appearance: 'none',
+            WebkitAppearance: 'none',
+            height: '44px',
+            boxSizing: 'border-box',
+          };
+
+          const removeBtnStyle: React.CSSProperties = {
+            background: 'rgba(239,68,68,0.1)',
+            border: '1px solid rgba(239,68,68,0.2)',
+            color: '#ef4444',
+            cursor: 'pointer',
+            fontSize: isMobile ? '18px' : isSmall ? '16px' : '14px',
+            padding: isMobile ? '12px' : isSmall ? '10px' : '8px',
+            borderRadius: isMobile ? '10px' : '8px',
+            minWidth: isMobile ? '44px' : isSmall ? '40px' : '32px',
+            minHeight: isMobile ? '44px' : isSmall ? '40px' : '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            userSelect: 'none',
+          };
+
+          const [fromId, setFromId] = useState('');
+          const [toId, setToId] = useState('');
+          const [newActor, setNewActor] = useState<'BOT' | 'HUMAN' | 'ALL'>('BOT');
+
+          const addTransition = () => {
+            if (!fromId || !toId || fromId === toId) return;
+            const f = Number(fromId), t = Number(toId);
+            if (transitions.some((tr) => tr.from_status === f && tr.to_status === t)) {
+              toast('This transition already exists', 'error');
+              return;
+            }
+            handleAddTransition(f, t, newActor);
+            setFromId('');
+            setToId('');
+          };
+
+          const removeTransition = (id: number) => {
+            handleDeleteTransition(id);
+          };
+
+          return (
+            <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #27272a', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', background: '#18181b' }}>
+              {/* Tabs */}
+              <div style={{ display: 'flex', borderBottom: '1px solid #27272a', background: 'linear-gradient(135deg, #111 0%, #0f0f0f 100%)', position: 'sticky', top: 0, zIndex: 10 }}>
+                <button onClick={() => setStatusTab('diagram')} style={tabStyle('diagram')}>⬡ Diagram</button>
+                <button onClick={() => setStatusTab('statuses')} style={tabStyle('statuses')}>● States</button>
+                <button onClick={() => setStatusTab('transitions')} style={tabStyle('transitions')}>→ Transitions</button>
               </div>
-              
-              <div className="px-5 py-4 border-t border-gray-100 bg-gray-50">
-                <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-3">
-                  <span className="flex items-center gap-2">
-                    <span className="w-3 h-0.5 bg-purple-500"></span>
-                    <span>🤖 Bot (animated)</span>
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <span className="w-3 h-0.5 border-b-2 border-dashed border-blue-500"></span>
-                    <span>👤 Human (dashed)</span>
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <span className="w-3 h-0.5 bg-gray-500"></span>
-                    <span>🔄 All</span>
-                  </span>
-                  <span>⭐ Default state</span>
-                  <span>🏁 Terminal state</span>
+
+              {/* Diagram tab */}
+              {statusTab === 'diagram' && (
+                <div>
+                  <div style={{ 
+                    height: isMobile ? 320 : isSmall ? 380 : 480, 
+                    width: '100%', 
+                    background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}>
+                    {statuses.length === 0 ? (
+                      <div style={{ 
+                        textAlign: 'center', 
+                        padding: '60px 20px', 
+                        color: '#6b7280', 
+                        background: 'rgba(255,255,255,0.02)',
+                        borderRadius: '12px',
+                        border: '1px dashed #374151',
+                        margin: '40px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        height: 'calc(100% - 80px)'
+                      }}>
+                        <div style={{ fontSize: '48px', marginBottom: '16px' }}>⬡</div>
+                        <p style={{ fontSize: '16px', marginBottom: '8px', color: '#374151' }}>No states defined yet</p>
+                        <p style={{ fontSize: '14px', opacity: 0.7, color: '#374151' }}>Add your first state in the States tab to get started</p>
+                      </div>
+                    ) : (
+                      <ReactFlow
+                        nodes={buildNodes}
+                        edges={buildEdges}
+                        fitView
+                        fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
+                        nodesDraggable={false}
+                        nodesConnectable={false}
+                        elementsSelectable={false}
+                        proOptions={{ hideAttribution: true }}
+                        minZoom={0.1}
+                        maxZoom={2}
+                        panOnScroll={!isMobile}
+                        zoomOnScroll={!isMobile}
+                        zoomOnPinch={isMobile}
+                        panOnDrag={true}
+                        preventScrolling={isMobile}
+                      >
+                        <Background 
+                          gap={isMobile ? 15 : 20} 
+                          size={1} 
+                          color="#cbd5e1"
+                        />
+                        <Controls 
+                          showInteractive={false}
+                          position={isMobile ? 'bottom-left' : 'bottom-right'}
+                        />
+                      </ReactFlow>
+                    )}
+                    
+                    {/* Mobile help overlay */}
+                    {isMobile && statuses.length > 0 && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '12px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        background: 'rgba(0,0,0,0.75)',
+                        backdropFilter: 'blur(8px)',
+                        color: 'white',
+                        padding: '8px 16px',
+                        borderRadius: '20px',
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        textAlign: 'center',
+                        opacity: 0.9,
+                        pointerEvents: 'none',
+                        zIndex: 10,
+                        border: '1px solid rgba(255,255,255,0.1)'
+                      }}>
+                        👆 Pinch to zoom • Drag to pan
+                      </div>
+                    )}
+                  </div>
+                  <div style={{
+                    padding: isSmall ? '16px 12px' : '12px 16px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: isSmall ? 'flex-start' : 'center',
+                    flexDirection: isSmall ? 'column' : 'row',
+                    gap: isSmall ? '12px' : '8px',
+                    borderTop: '1px solid #27272a',
+                    background: '#111',
+                  }}>
+                    <div style={{ display: 'flex', gap: isSmall ? 8 : 16, fontSize: isSmall ? 12 : 11, color: '#6b7280', flexWrap: 'wrap', alignItems: 'center' }}>
+                      <span>🤖 <span style={{ color: '#a855f7' }}>Bot (animated)</span></span>
+                      <span>👤 <span style={{ color: '#3b82f6' }}>Human (dashed)</span></span>
+                      <span>🔄 <span style={{ color: '#6b7280' }}>All</span></span>
+                      <span>⭐ Default state</span>
+                      <span>🏁 Terminal state</span>
+                    </div>
+                    {humanOnlyTerminals.length > 0 && (
+                      <div style={{
+                        fontSize: isSmall ? 12 : 11,
+                        color: '#d97706',
+                        fontWeight: 600,
+                        background: 'rgba(217,119,6,0.1)',
+                        padding: '6px 10px',
+                        borderRadius: 6,
+                        border: '1px solid rgba(217,119,6,0.3)',
+                      }}>
+                        ⚠ Human-only: {humanOnlyTerminals.map((s) => s.label).join(', ')}
+                      </div>
+                    )}
+                    {statuses.filter((s) => s.is_bot_requires_approval).length > 0 && (
+                      <div style={{
+                        fontSize: isSmall ? 13 : 12,
+                        color: '#eab308',
+                        fontWeight: 600,
+                        background: 'rgba(234,179,8,0.1)',
+                        padding: '6px 10px',
+                        borderRadius: 6,
+                        border: '1px solid rgba(234,179,8,0.2)',
+                      }}>
+                        🔒 Approval gate: {statuses.filter((s) => s.is_bot_requires_approval).map((s) => s.label).join(', ')}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                
-                {humanOnlyTerminals.length > 0 && (
-                  <div className="mb-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
-                    <span className="text-sm font-medium text-amber-700">
-                      ⚠ Human-only terminals: {humanOnlyTerminals.map((s) => s.label).join(', ')}
-                    </span>
-                  </div>
-                )}
-                
-                {statuses.filter((s) => s.is_bot_requires_approval).length > 0 && (
-                  <div className="p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <span className="text-sm font-medium text-yellow-700">
-                      🔒 Approval gates: {statuses.filter((s) => s.is_bot_requires_approval).map((s) => s.label).join(', ')}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+              )}
 
-          {statusTab === 'statuses' && (
-            <div className="p-5">
-              {/* Status list */}
-              <div className="space-y-2 mb-4">
-                {statuses.map(sd => (
-                  <div key={sd.id} className="p-3 rounded-lg border border-gray-100 hover:border-gray-200 transition">
-                    {/* Row 1: Color dot + label display + badges + actions */}
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className={`w-3 h-3 rounded-full flex-shrink-0 ${COLOR_CLASSES[sd.color] || 'bg-gray-400'}`} />
-                      <span className="text-sm font-semibold text-gray-900">{sd.label}</span>
-                      <span className="text-xs font-mono text-gray-400">{sd.key}</span>
-                      <div className="flex-1" />
-                      {!sd.is_default && (
-                        <button onClick={() => handleSetDefault(sd)} className="text-xs text-indigo-600 hover:text-indigo-800 p-1.5 rounded hover:bg-indigo-50 min-w-[44px] min-h-[44px] flex items-center justify-center" title="Set as default">⭐</button>
-                      )}
-                      {!sd.in_use && !sd.is_default && (
-                        <button onClick={() => handleDeleteStatus(sd)} className="text-xs text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-50 min-w-[44px] min-h-[44px] flex items-center justify-center" title="Delete status">🗑️</button>
-                      )}
+              {/* States tab */}
+              {statusTab === 'statuses' && (
+                <div style={{ padding: isSmall ? 12 : 16 }}>
+                  <div style={{ marginBottom: 20 }}>
+                    <h3 style={{ fontSize: isSmall ? 16 : 14, fontWeight: 600, color: '#e5e7eb', marginBottom: 8 }}>Workflow States</h3>
+                    <p style={{ fontSize: isSmall ? 14 : 13, color: '#9ca3af', lineHeight: 1.5 }}>
+                      Define the statuses your tickets can be in. Mark terminal states and set one as default.
+                    </p>
+                  </div>
+
+                  {statuses.length === 0 ? (
+                    <div style={{ 
+                      textAlign: 'center', 
+                      padding: '60px 20px', 
+                      color: '#6b7280', 
+                      background: 'rgba(255,255,255,0.02)',
+                      borderRadius: '12px',
+                      border: '1px dashed #374151'
+                    }}>
+                      <div style={{ fontSize: '48px', marginBottom: '16px' }}>⬡</div>
+                      <p style={{ fontSize: '16px', marginBottom: '8px' }}>No states defined yet</p>
+                      <p style={{ fontSize: '14px', opacity: 0.7 }}>Add your first state below to get started</p>
                     </div>
-                    {/* Row 2: Badges */}
-                    <div className="flex flex-wrap gap-1.5 mb-2">
-                      <button onClick={() => handleUpdateStatus(sd.id, { is_terminal: !sd.is_terminal })} className={`text-[10px] px-1.5 py-0.5 rounded cursor-pointer hover:opacity-80 ${sd.is_terminal ? 'bg-gray-200 text-gray-700' : 'bg-gray-50 text-gray-400 border border-dashed border-gray-300'}`}>{sd.is_terminal ? '● Terminal' : '○ Non-terminal'}</button>
-                      <button onClick={() => handleUpdateStatus(sd.id, { is_bot_requires_approval: !sd.is_bot_requires_approval })} className={`text-[10px] px-1.5 py-0.5 rounded cursor-pointer hover:opacity-80 ${sd.is_bot_requires_approval ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-gray-50 text-gray-400 border border-dashed border-gray-300'}`}>{sd.is_bot_requires_approval ? '🔒 Approval Gate' : 'No gate'}</button>
-                      {sd.is_default && <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-600">Default</span>}
-                      {sd.in_use && <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-600">In Use</span>}
+                  ) : (
+                    statuses.map((s) => (
+                      <div key={s.id} style={{
+                        display: 'flex',
+                        alignItems: isMobile ? 'flex-start' : isSmall ? 'flex-start' : 'center',
+                        gap: isMobile ? 12 : isSmall ? 10 : 12,
+                        padding: isMobile ? '20px' : isSmall ? '16px' : '14px',
+                        background: 'rgba(255,255,255,0.02)',
+                        border: '1px solid rgba(255,255,255,0.05)',
+                        borderRadius: '12px',
+                        marginBottom: '12px',
+                        flexDirection: isMobile || isSmall ? 'column' : 'row',
+                        transition: 'all 0.2s ease',
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
+                          <div style={{ 
+                            position: 'relative',
+                            width: isMobile ? 24 : 20, 
+                            height: isMobile ? 24 : 20,
+                            borderRadius: '50%',
+                            background: COLORS_HEX[s.color] || '#9ca3af',
+                            flexShrink: 0,
+                            boxShadow: `0 0 0 3px ${(COLORS_HEX[s.color] || '#9ca3af')}20`,
+                            cursor: 'pointer'
+                          }}>
+                            <select
+                              value={s.color}
+                              onChange={(e) => handleUpdateStatus(s.id, { color: e.target.value })}
+                              style={{ 
+                                position: 'absolute',
+                                inset: 0,
+                                opacity: 0,
+                                cursor: 'pointer',
+                                width: '100%',
+                                height: '100%'
+                              }}
+                              title="Change color"
+                            >
+                              {COLORS.map((c) => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                          </div>
+                          <input
+                            value={s.label}
+                            onChange={(e) => {
+                              const newLabel = e.target.value;
+                              setStatuses(prev => prev.map(st => st.id === s.id ? { ...st, label: newLabel } : st));
+                            }}
+                            onBlur={(e) => {
+                              if (e.target.value !== s.label) {
+                                handleUpdateStatus(s.id, { label: e.target.value });
+                              }
+                            }}
+                            style={{ 
+                              fontSize: isMobile ? 16 : isSmall ? 15 : 14, 
+                              fontWeight: 600, 
+                              color: '#e5e7eb', 
+                              background: 'transparent', 
+                              border: '1px solid transparent', 
+                              borderRadius: '8px', 
+                              padding: '8px 12px', 
+                              outline: 'none', 
+                              flex: 1, 
+                              minWidth: 0,
+                              transition: 'all 0.2s ease'
+                            }}
+                            onFocus={(e) => { 
+                              e.target.style.borderColor = '#4f46e5'; 
+                              e.target.style.background = 'rgba(24,24,27,0.8)';
+                              e.target.style.boxShadow = '0 0 0 3px rgba(79,70,229,0.1)';
+                            }}
+                            onBlur={(e) => { 
+                              e.target.style.borderColor = 'transparent'; 
+                              e.target.style.background = 'transparent';
+                              e.target.style.boxShadow = 'none';
+                              if (e.target.value !== s.label) {
+                                handleUpdateStatus(s.id, { label: e.target.value });
+                              }
+                            }}
+                          />
+                        </div>
+                        <div style={{ 
+                          display: 'flex', 
+                          gap: isMobile ? 10 : 8, 
+                          alignItems: 'center', 
+                          flexWrap: 'wrap',
+                          width: isMobile || isSmall ? '100%' : 'auto'
+                        }}>
+                          <button
+                            onClick={() => !s.is_default && handleSetDefault(s)}
+                            disabled={s.is_default}
+                            style={{
+                              fontSize: isMobile ? 13 : isSmall ? 12 : 11,
+                              background: s.is_default 
+                                ? 'linear-gradient(135deg, #312e81 0%, #4f46e5 100%)' 
+                                : 'rgba(39,39,42,0.8)',
+                              color: s.is_default ? '#a5b4fc' : '#9ca3af',
+                              border: s.is_default ? 'none' : '1px solid #3f3f46',
+                              padding: isMobile ? '10px 16px' : isSmall ? '8px 12px' : '6px 10px',
+                              borderRadius: isMobile ? '10px' : '8px',
+                              fontWeight: 600,
+                              cursor: s.is_default ? 'default' : 'pointer',
+                              minHeight: isMobile ? '40px' : '32px',
+                              transition: 'all 0.2s ease',
+                            }}
+                          >
+                            {s.is_default ? '⭐ Default' : 'Set Default'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleUpdateStatus(s.id, { is_terminal: !s.is_terminal });
+                            }}
+                            style={{
+                              fontSize: isMobile ? 13 : isSmall ? 12 : 11,
+                              background: s.is_terminal ? 'rgba(39,39,42,0.8)' : 'transparent',
+                              color: s.is_terminal ? '#9ca3af' : '#6b7280',
+                              border: s.is_terminal ? '1px solid #3f3f46' : '1px dashed #3f3f46',
+                              padding: isMobile ? '10px 16px' : isSmall ? '8px 12px' : '6px 10px',
+                              borderRadius: isMobile ? '10px' : '8px',
+                              fontWeight: 600, 
+                              cursor: 'pointer',
+                              minHeight: isMobile ? '40px' : '32px',
+                              transition: 'all 0.2s ease',
+                            }}
+                          >
+                            {s.is_terminal ? '🏁 Terminal' : 'Non-terminal'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleUpdateStatus(s.id, { is_bot_requires_approval: !s.is_bot_requires_approval });
+                            }}
+                            style={{
+                              fontSize: isMobile ? 13 : isSmall ? 12 : 11,
+                              background: s.is_bot_requires_approval ? 'rgba(234,179,8,0.15)' : 'transparent',
+                              color: s.is_bot_requires_approval ? '#eab308' : '#6b7280',
+                              border: s.is_bot_requires_approval ? '1px solid rgba(234,179,8,0.3)' : '1px dashed #3f3f46',
+                              padding: isMobile ? '10px 16px' : isSmall ? '8px 12px' : '6px 10px',
+                              borderRadius: isMobile ? '10px' : '8px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              minHeight: isMobile ? '40px' : '32px',
+                              transition: 'all 0.2s ease',
+                            }}
+                          >
+                            {s.is_bot_requires_approval ? '🔒 Approval Gate' : 'No gate'}
+                          </button>
+                          {!s.in_use && !s.is_default && (
+                            <button onClick={() => handleDeleteStatus(s)} style={removeBtnStyle}>✕</button>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+
+                  <div style={{ display: 'flex', gap: isSmall ? 12 : 8, marginTop: 20, alignItems: isSmall ? 'stretch' : 'center', flexDirection: isSmall ? 'column' : 'row', flexWrap: isSmall ? 'nowrap' : 'wrap' }}>
+                    <input
+                      value={newStatusLabel}
+                      onChange={(e) => setNewStatusLabel(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddStatus()}
+                      placeholder="Status name..."
+                      style={{ ...inputStyle, flex: isSmall ? 'none' : '1', minWidth: isSmall ? '100%' : 120 }}
+                    />
+                    <div style={{ display: 'flex', gap: isSmall ? 12 : 8, alignItems: 'center', flexDirection: isSmall ? 'column' : 'row', width: isSmall ? '100%' : 'auto' }}>
+                      <select value={newStatusColor} onChange={(e) => setNewStatusColor(e.target.value)} style={{ ...selectStyle, width: isSmall ? '100%' : 'auto' }}>
+                        {COLORS.map((c) => (
+                          <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+                        ))}
+                      </select>
+                      <label style={{ fontSize: isSmall ? 14 : 12, color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', userSelect: 'none' }}>
+                        <input type="checkbox" checked={newStatusTerminal} onChange={(e) => setNewStatusTerminal(e.target.checked)} style={{ width: isSmall ? 18 : 14, height: isSmall ? 18 : 14, cursor: 'pointer' }} />
+                        Terminal state
+                      </label>
+                      <button 
+                        onClick={handleAddStatus} 
+                        disabled={!newStatusLabel.trim()} 
+                        style={{ 
+                          ...btnStyle, 
+                          opacity: !newStatusLabel.trim() ? 0.5 : 1, 
+                          cursor: !newStatusLabel.trim() ? 'not-allowed' : 'pointer', 
+                          width: isSmall ? '100%' : 'auto' 
+                        }}
+                      >
+                        + Add Status
+                      </button>
                     </div>
-                    {/* Row 3: Edit controls */}
-                    <div className="flex gap-2">
-                      <input type="text" value={sd.label} className="px-4 py-3 text-sm border border-gray-200 rounded-xl flex-1 min-w-0" onBlur={e => { if (e.target.value !== sd.label) handleUpdateStatus(sd.id, { label: e.target.value }); }} onChange={e => { setStatuses(prev => prev.map(s => s.id === sd.id ? { ...s, label: e.target.value } : s)); }} />
-                      <select value={sd.color} onChange={e => handleUpdateStatus(sd.id, { color: e.target.value })} className="px-4 py-3 h-[44px] text-sm border border-gray-200 rounded-xl bg-white">
-                        {COLORS.map(c => <option key={c} value={c}>{c}</option>)}
+                  </div>
+                </div>
+              )}
+
+              {/* Transitions tab */}
+              {statusTab === 'transitions' && (
+                <div style={{ padding: isSmall ? 12 : 16 }}>
+                  <div style={{ marginBottom: 20 }}>
+                    <h3 style={{ fontSize: isSmall ? 16 : 14, fontWeight: 600, color: '#e5e7eb', marginBottom: 8 }}>State Transitions</h3>
+                    <p style={{ fontSize: isSmall ? 14 : 13, color: '#9ca3af', lineHeight: 1.5 }}>
+                      Define allowed moves between states and who can make them.
+                    </p>
+                  </div>
+
+                  {transitions.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px 20px', color: '#6b7280', fontStyle: 'italic' }}>
+                      No transitions defined yet. Add your first transition below.
+                    </div>
+                  ) : (
+                    transitions.map((t) => {
+                      const f = statuses.find((s) => s.id === t.from_status);
+                      const to = statuses.find((s) => s.id === t.to_status);
+                      return (
+                        <div key={t.id} style={{
+                          display: 'flex',
+                          alignItems: isSmall ? 'flex-start' : 'center',
+                          gap: isSmall ? 6 : 10,
+                          padding: isSmall ? '8px 0' : '8px 0',
+                          borderBottom: '1px solid #27272a',
+                          fontSize: isSmall ? 14 : 13,
+                          flexDirection: isSmall ? 'column' : 'row',
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: isSmall ? 8 : 6, flex: 1, minWidth: 0, flexWrap: 'wrap' }}>
+                            <select
+                              value={t.from_status}
+                              onChange={(e) => {
+                                const v = Number(e.target.value);
+                                if (v === t.to_status) return;
+                                // Update transition via API
+                                handleDeleteTransition(t.id);
+                                handleAddTransition(v, t.to_status, t.actor_type);
+                              }}
+                              style={{ ...selectStyle, fontSize: isSmall ? 13 : 12, padding: isSmall ? '0 14px' : '4px 8px', minWidth: isSmall ? 100 : 80, height: isSmall ? 44 : 'auto', minHeight: isSmall ? 44 : 'auto' }}
+                            >
+                              {statuses.filter((s) => !s.is_terminal).map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+                            </select>
+                            <span style={{ color: '#6b7280', fontWeight: 600, fontSize: isSmall ? 16 : 14 }}>→</span>
+                            <select
+                              value={t.to_status}
+                              onChange={(e) => {
+                                const v = Number(e.target.value);
+                                if (v === t.from_status) return;
+                                // Update transition via API
+                                handleDeleteTransition(t.id);
+                                handleAddTransition(t.from_status, v, t.actor_type);
+                              }}
+                              style={{ ...selectStyle, fontSize: isSmall ? 13 : 12, padding: isSmall ? '0 14px' : '4px 8px', minWidth: isSmall ? 100 : 80, height: isSmall ? 44 : 'auto', minHeight: isSmall ? 44 : 'auto' }}
+                            >
+                              {statuses.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+                            </select>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <select
+                              value={t.actor_type}
+                              onChange={(e) => {
+                                // Update transition via API
+                                handleDeleteTransition(t.id);
+                                handleAddTransition(t.from_status, t.to_status, e.target.value);
+                              }}
+                              style={{
+                                fontSize: isSmall ? 13 : 10, fontWeight: 700,
+                                padding: isSmall ? '0 14px' : '4px 8px', borderRadius: isSmall ? 10 : 6,
+                                color: 'white', background: ACTOR_COLORS[t.actor_type],
+                                border: '1px solid ' + ACTOR_COLORS[t.actor_type],
+                                cursor: 'pointer', height: isSmall ? 44 : 'auto', minHeight: isSmall ? 44 : 'auto',
+                              }}
+                            >
+                              <option value="BOT" style={{ background: '#18181b', color: '#e5e7eb' }}>BOT</option>
+                              <option value="HUMAN" style={{ background: '#18181b', color: '#e5e7eb' }}>HUMAN</option>
+                              <option value="ALL" style={{ background: '#18181b', color: '#e5e7eb' }}>ALL</option>
+                            </select>
+                            <button onClick={() => removeTransition(t.id)} style={removeBtnStyle}>✕</button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+
+                  <div style={{ display: 'flex', gap: isSmall ? 12 : 8, marginTop: 20, alignItems: isSmall ? 'stretch' : 'center', flexDirection: isSmall ? 'column' : 'row', flexWrap: isSmall ? 'nowrap' : 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: isSmall ? 8 : 6, flex: isSmall ? 'none' : '1', minWidth: isSmall ? '100%' : 200 }}>
+                      <select value={fromId} onChange={(e) => setFromId(e.target.value)} style={{ ...selectStyle, flex: 1 }}>
+                        <option value="">From...</option>
+                        {statuses.filter((s) => !s.is_terminal).map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+                      </select>
+                      <span style={{ color: '#6b7280', fontWeight: 600, fontSize: isSmall ? 16 : 14, flexShrink: 0 }}>→</span>
+                      <select value={toId} onChange={(e) => setToId(e.target.value)} style={{ ...selectStyle, flex: 1 }}>
+                        <option value="">To...</option>
+                        {statuses.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
                       </select>
                     </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Add new status */}
-              <div className="p-3 rounded-lg border border-dashed border-gray-200 bg-gray-50 space-y-3">
-                <p className="text-xs font-medium text-gray-500">Add new status</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-xs text-gray-500 block mb-1">Key</label>
-                    <input type="text" value={newStatusKey} onChange={e => setNewStatusKey(e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, ''))} placeholder="QA_REVIEW" className="px-4 py-3 text-sm border border-gray-300 rounded-xl w-full font-mono" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500 block mb-1">Label</label>
-                    <input type="text" value={newStatusLabel} onChange={e => setNewStatusLabel(e.target.value)} placeholder="QA Review" className="px-4 py-3 text-sm border border-gray-300 rounded-xl w-full" />
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div>
-                    <label className="text-xs text-gray-500 block mb-1">Color</label>
-                    <select value={newStatusColor} onChange={e => setNewStatusColor(e.target.value)} className="px-4 py-3 h-[44px] text-sm border border-gray-300 rounded-xl bg-white">
-                      {COLORS.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
-                  <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer mt-4">
-                    <input type="checkbox" checked={newStatusTerminal} onChange={e => setNewStatusTerminal(e.target.checked)} className="rounded" />
-                    Terminal
-                  </label>
-                  <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer mt-4">
-                    <input type="checkbox" checked={newStatusApprovalGate} onChange={e => setNewStatusApprovalGate(e.target.checked)} className="rounded" />
-                    Approval Gate
-                  </label>
-                </div>
-                <button onClick={handleAddStatus} disabled={addingStatus || !newStatusKey.trim() || !newStatusLabel.trim()} className="w-full px-3 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition min-h-[44px]">
-                  {addingStatus ? 'Adding…' : '+ Add Status'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {statusTab === 'transitions' && (
-            <div className="p-5">
-              <p className="text-xs text-gray-500 mb-3">Allowed moves between states. Each has an actor: <strong>Bot</strong>, <strong>Human</strong>, or <strong>All</strong>.</p>
-
-              {/* Flat transition list */}
-              <div className="divide-y divide-gray-100 mb-4">
-                {transitions.map(t => {
-                  const from = statuses.find(s => s.id === t.from_status);
-                  const to = statuses.find(s => s.id === t.to_status);
-                  return (
-                    <div key={t.id} className="flex items-center gap-2 py-2">
-                      <span className="text-sm text-gray-700 min-w-[80px]">{from?.label || '?'}</span>
-                      <span className="text-gray-400 text-xs">→</span>
-                      <span className="text-sm text-gray-700 min-w-[80px]">{to?.label || '?'}</span>
-                      <span className={`ml-auto px-2 py-0.5 rounded text-xs font-bold text-white ${t.actor_type === 'BOT' ? 'bg-purple-500' : t.actor_type === 'HUMAN' ? 'bg-blue-500' : 'bg-gray-500'}`}>{t.actor_type}</span>
-                      <button onClick={() => handleDeleteTransition(t.id)} className="text-red-400 hover:text-red-600 p-1 rounded hover:bg-red-50 min-w-[32px] min-h-[32px] flex items-center justify-center">✕</button>
+                    <div style={{ display: 'flex', gap: isSmall ? 12 : 8, alignItems: 'center', flexDirection: isSmall ? 'column' : 'row', width: isSmall ? '100%' : 'auto' }}>
+                      <select value={newActor} onChange={(e) => setNewActor(e.target.value as 'BOT' | 'HUMAN' | 'ALL')} style={{ ...selectStyle, width: isSmall ? '100%' : 'auto' }}>
+                        <option value="BOT">Bot Only</option>
+                        <option value="HUMAN">Human Only</option>
+                        <option value="ALL">Bot or Human</option>
+                      </select>
+                      <button
+                        onClick={addTransition}
+                        disabled={!fromId || !toId || fromId === toId}
+                        style={{ ...btnStyle, opacity: (!fromId || !toId || fromId === toId) ? 0.5 : 1, cursor: (!fromId || !toId || fromId === toId) ? 'not-allowed' : 'pointer', width: isSmall ? '100%' : 'auto' }}
+                      >
+                        + Add Transition
+                      </button>
                     </div>
-                  );
-                })}
-                {transitions.length === 0 && <p className="py-4 text-sm text-gray-400 text-center">No transitions yet</p>}
-              </div>
-
-              {/* Add transition */}
-              <div className="flex flex-wrap items-center gap-2 p-3 rounded-lg border border-dashed border-gray-200 bg-gray-50">
-                <select id="add-from" className="px-3 py-2 h-[40px] text-sm border border-gray-300 rounded-lg bg-white flex-1 min-w-[100px]" defaultValue="">
-                  <option value="" disabled>From…</option>
-                  {statuses.filter(s => !s.is_terminal).map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-                </select>
-                <span className="text-gray-400 text-sm">→</span>
-                <select id="add-to" className="px-3 py-2 h-[40px] text-sm border border-gray-300 rounded-lg bg-white flex-1 min-w-[100px]" defaultValue="">
-                  <option value="" disabled>To…</option>
-                  {statuses.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-                </select>
-                <select id="add-actor" className="px-3 py-2 h-[40px] text-sm border border-gray-300 rounded-lg bg-white" defaultValue="BOT">
-                  <option value="BOT">Bot</option>
-                  <option value="HUMAN">Human</option>
-                  <option value="ALL">All</option>
-                </select>
-                <button onClick={() => {
-                  const fromEl = document.getElementById('add-from') as HTMLSelectElement;
-                  const toEl = document.getElementById('add-to') as HTMLSelectElement;
-                  const actorEl = document.getElementById('add-actor') as HTMLSelectElement;
-                  if (fromEl?.value && toEl?.value) {
-                    handleAddTransition(Number(fromEl.value), Number(toEl.value), actorEl.value);
-                    fromEl.value = ''; toEl.value = '';
-                  }
-                }} className="px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 min-h-[40px]">+ Add</button>
-              </div>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-        </>)}
+          );
+        })()}
       </div>
     </Layout>
   );
