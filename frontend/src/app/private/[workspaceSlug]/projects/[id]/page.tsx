@@ -176,7 +176,7 @@ export default function ProjectSettingsPage() {
                             <option value="MEMBER">Member</option>
                           </select>
                         </div>
-                        <button onClick={() => handleRemoveMember(agent.id)} disabled={memberSaving} className="ml-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50" title="Remove">
+                        <button onClick={() => handleRemoveMember(agent.id)} disabled={memberSaving} className="ml-2 min-w-[44px] h-[44px] flex items-center justify-center text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50" title="Remove">
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
                       </>
@@ -192,11 +192,11 @@ export default function ProjectSettingsPage() {
             </div>
             {isAdmin && availableUsers.length > 0 && (
               <div className="flex gap-2">
-                <select value={selectedUserId} onChange={e => setSelectedUserId(e.target.value)} className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white min-h-[44px]">
+                <select value={selectedUserId} onChange={e => setSelectedUserId(e.target.value)} className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white h-[44px]">
                   <option value="">Select a user…</option>
                   {availableUsers.map(u => <option key={u.id} value={u.id}>{u.username} ({u.user_type})</option>)}
                 </select>
-                <button onClick={handleAddMember} disabled={!selectedUserId || memberSaving} className="px-5 py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors min-h-[44px]">
+                <button onClick={handleAddMember} disabled={!selectedUserId || memberSaving} className="px-5 py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors h-[44px]">
                   Add
                 </button>
               </div>

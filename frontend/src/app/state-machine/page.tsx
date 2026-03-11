@@ -394,6 +394,8 @@ export default function StateMachinePage() {
     cursor: 'pointer',
     appearance: 'none',
     WebkitAppearance: 'none',
+    height: '44px',
+    boxSizing: 'border-box',
   };
 
   const removeBtnStyle: React.CSSProperties = {

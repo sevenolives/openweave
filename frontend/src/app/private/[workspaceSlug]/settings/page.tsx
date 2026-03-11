@@ -318,7 +318,7 @@ export default function WorkspaceSettingsPage() {
                     {/* Row 3: Edit controls */}
                     <div className="flex gap-2">
                       <input type="text" value={sd.label} className="px-4 py-3 text-sm border border-gray-200 rounded-xl flex-1 min-w-0" onBlur={e => { if (e.target.value !== sd.label) handleUpdateStatus(sd.id, { label: e.target.value }); }} onChange={e => { setStatuses(prev => prev.map(s => s.id === sd.id ? { ...s, label: e.target.value } : s)); }} />
-                      <select value={sd.color} onChange={e => handleUpdateStatus(sd.id, { color: e.target.value })} className="px-4 py-3 text-sm border border-gray-200 rounded-xl bg-white">
+                      <select value={sd.color} onChange={e => handleUpdateStatus(sd.id, { color: e.target.value })} className="px-4 py-3 h-[44px] text-sm border border-gray-200 rounded-xl bg-white">
                         {COLORS.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </div>
@@ -342,7 +342,7 @@ export default function WorkspaceSettingsPage() {
                 <div className="flex items-center gap-3">
                   <div>
                     <label className="text-xs text-gray-500 block mb-1">Color</label>
-                    <select value={newStatusColor} onChange={e => setNewStatusColor(e.target.value)} className="px-4 py-3 text-sm border border-gray-300 rounded-xl bg-white">
+                    <select value={newStatusColor} onChange={e => setNewStatusColor(e.target.value)} className="px-4 py-3 h-[44px] text-sm border border-gray-300 rounded-xl bg-white">
                       {COLORS.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
@@ -385,11 +385,11 @@ export default function WorkspaceSettingsPage() {
                       })}
                       {/* Add transition from this status */}
                       <div className="flex items-center gap-2 mt-1">
-                        <select id={`add-to-${fromStatus.id}`} className="px-4 py-3 text-sm border border-gray-200 rounded-xl bg-white" defaultValue="">
+                        <select id={`add-to-${fromStatus.id}`} className="px-4 py-3 h-[44px] text-sm border border-gray-200 rounded-xl bg-white" defaultValue="">
                           <option value="" disabled>→ target…</option>
                           {statuses.filter(s => s.id !== fromStatus.id).map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
                         </select>
-                        <select id={`add-actor-${fromStatus.id}`} className="px-4 py-3 text-sm border border-gray-200 rounded-xl bg-white" defaultValue="BOT">
+                        <select id={`add-actor-${fromStatus.id}`} className="px-4 py-3 h-[44px] text-sm border border-gray-200 rounded-xl bg-white" defaultValue="BOT">
                           <option value="BOT">BOT</option>
                           <option value="HUMAN">HUMAN</option>
                           <option value="ALL">ALL</option>
