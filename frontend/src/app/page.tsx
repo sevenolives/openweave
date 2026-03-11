@@ -244,6 +244,9 @@ export default function HomePage() {
             OpenWeave enforces deterministic state transitions across humans and AI agents. Every action is validated, every transition is authorized, every change is auditable.
           </p>
         </div>
+        <div className="relative max-w-4xl mx-auto px-4 pb-10 landing-fade-in" style={{ animationDelay: '.15s' }}>
+          <StateMachineDiagram />
+        </div>
         <div className="relative px-4 pb-16 md:pb-24 landing-fade-in" style={{ animationDelay: '.2s' }}>
           <JoinSection />
         </div>
