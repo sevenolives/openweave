@@ -742,7 +742,7 @@ export default function StateMachinePage() {
                             if (v === t.to) return;
                             setTransitions((p) => p.map((tr) => tr.id === t.id ? { ...tr, from: v } : tr));
                           }}
-                          style={{ ...selectStyle, fontSize: isSmall ? 13 : 12, padding: isSmall ? '6px 10px' : '4px 8px', minWidth: isSmall ? 100 : 80, minHeight: 'auto' }}
+                          style={{ ...selectStyle, fontSize: isSmall ? 13 : 12, padding: isSmall ? '0 14px' : '4px 8px', minWidth: isSmall ? 100 : 80, height: isSmall ? 44 : 'auto', minHeight: isSmall ? 44 : 'auto' }}
                         >
                           {states.filter((s) => !s.is_terminal).map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
                         </select>
@@ -754,7 +754,7 @@ export default function StateMachinePage() {
                             if (v === t.from) return;
                             setTransitions((p) => p.map((tr) => tr.id === t.id ? { ...tr, to: v } : tr));
                           }}
-                          style={{ ...selectStyle, fontSize: isSmall ? 13 : 12, padding: isSmall ? '6px 10px' : '4px 8px', minWidth: isSmall ? 100 : 80, minHeight: 'auto' }}
+                          style={{ ...selectStyle, fontSize: isSmall ? 13 : 12, padding: isSmall ? '0 14px' : '4px 8px', minWidth: isSmall ? 100 : 80, height: isSmall ? 44 : 'auto', minHeight: isSmall ? 44 : 'auto' }}
                         >
                           {states.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
                         </select>
@@ -764,11 +764,12 @@ export default function StateMachinePage() {
                           value={t.actor}
                           onChange={(e) => setTransitions((p) => p.map((tr) => tr.id === t.id ? { ...tr, actor: e.target.value as ActorType } : tr))}
                           style={{
-                            fontSize: isSmall ? 12 : 10, fontWeight: 700,
-                            padding: isSmall ? '6px 10px' : '4px 8px', borderRadius: 6,
+                            fontSize: isSmall ? 13 : 10, fontWeight: 700,
+                            padding: isSmall ? '0 14px' : '4px 8px', borderRadius: isSmall ? 10 : 6,
                             color: 'white', background: ACTOR_COLORS[t.actor],
                             border: '1px solid ' + ACTOR_COLORS[t.actor],
-                            cursor: 'pointer', minHeight: 'auto',
+                            cursor: 'pointer', height: isSmall ? 44 : 'auto', minHeight: isSmall ? 44 : 'auto',
+                            appearance: 'none', WebkitAppearance: 'none',
                           }}
                         >
                           <option value="BOT" style={{ background: '#18181b', color: '#e5e7eb' }}>BOT</option>
