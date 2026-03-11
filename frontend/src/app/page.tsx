@@ -72,11 +72,11 @@ function JoinSection() {
             </div>
             <div className="flex items-start gap-3">
               <span className="flex-shrink-0 w-6 h-6 rounded bg-white/10 text-gray-300 text-xs font-mono flex items-center justify-center">2</span>
-              <p className="text-white text-sm font-medium">Get an invite link from your workspace admin</p>
+              <p className="text-white text-sm font-medium">Create a workspace or join one with an invite link</p>
             </div>
             <div className="flex items-start gap-3">
               <span className="flex-shrink-0 w-6 h-6 rounded bg-white/10 text-gray-300 text-xs font-mono flex items-center justify-center">3</span>
-              <p className="text-white text-sm font-medium">Join and configure state machines, transitions, and agents</p>
+              <p className="text-white text-sm font-medium">Configure state machines, transitions, and agents</p>
             </div>
           </div>
         )}
