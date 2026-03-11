@@ -365,56 +365,72 @@ export default function StateMachinePage() {
 
   /* ---- Styles ---- */
   const tabStyle = (v: TabKey): React.CSSProperties => ({
-    padding: isSmall ? '12px 16px' : '10px 18px',
-    fontSize: isSmall ? '14px' : '13px',
+    padding: isMobile ? '16px 12px' : isSmall ? '14px 16px' : '12px 20px',
+    fontSize: isMobile ? '15px' : isSmall ? '14px' : '13px',
     fontWeight: 600,
     cursor: 'pointer',
     background: 'none',
     border: 'none',
-    borderBottom: tab === v ? '2px solid #818cf8' : '2px solid transparent',
+    borderBottom: tab === v ? '3px solid #818cf8' : '3px solid transparent',
     color: tab === v ? '#a5b4fc' : '#6b7280',
-    transition: 'all 0.2s ease',
-    minHeight: isSmall ? '48px' : 'auto',
-    flex: isSmall ? '1' : 'none',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    minHeight: isMobile ? '56px' : isSmall ? '48px' : 'auto',
+    flex: isMobile || isSmall ? '1' : 'none',
     textAlign: 'center',
+    position: 'relative',
   });
 
   const btnStyle: React.CSSProperties = {
-    padding: isSmall ? '12px 20px' : '8px 16px',
-    fontSize: isSmall ? '14px' : '12px',
+    padding: isMobile ? '16px 24px' : isSmall ? '14px 20px' : '10px 18px',
+    fontSize: isMobile ? '15px' : isSmall ? '14px' : '13px',
     fontWeight: 600,
-    background: '#4f46e5',
+    background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
     color: 'white',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: isMobile ? '12px' : '10px',
     cursor: 'pointer',
-    minHeight: isSmall ? '44px' : '32px',
-    boxShadow: '0 2px 8px rgba(79,70,229,0.3)',
+    minHeight: isMobile ? '52px' : isSmall ? '48px' : '38px',
+    boxShadow: '0 4px 14px rgba(79,70,229,0.25), 0 1px 3px rgba(0,0,0,0.1)',
+    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+    userSelect: 'none',
   };
 
   const inputStyle: React.CSSProperties = {
-    padding: isSmall ? '12px 14px' : '8px 12px',
-    fontSize: isSmall ? '16px' : '13px',
+    padding: isMobile ? '16px 16px' : isSmall ? '14px 14px' : '10px 12px',
+    fontSize: isMobile ? '16px' : isSmall ? '15px' : '13px',
     border: '1px solid #3f3f46',
-    borderRadius: '8px',
+    borderRadius: isMobile ? '12px' : '10px',
     outline: 'none',
-    background: '#18181b',
+    background: 'rgba(24, 24, 27, 0.8)',
+    backdropFilter: 'blur(8px)',
     color: '#e5e7eb',
-    minHeight: isSmall ? '44px' : '32px',
+    minHeight: isMobile ? '52px' : isSmall ? '48px' : '38px',
+    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
   };
 
-  const selectStyle: React.CSSProperties = { ...inputStyle, paddingRight: '32px' };
+  const selectStyle: React.CSSProperties = { 
+    ...inputStyle, 
+    paddingRight: isMobile ? '48px' : '36px',
+    cursor: 'pointer',
+    appearance: 'none',
+    WebkitAppearance: 'none',
+  };
 
   const removeBtnStyle: React.CSSProperties = {
-    background: 'none',
-    border: 'none',
+    background: 'rgba(239,68,68,0.1)',
+    border: '1px solid rgba(239,68,68,0.2)',
     color: '#ef4444',
     cursor: 'pointer',
-    fontSize: isSmall ? '18px' : '14px',
-    padding: isSmall ? '8px' : '4px 8px',
-    borderRadius: '4px',
-    minWidth: isSmall ? '40px' : '24px',
-    minHeight: isSmall ? '40px' : '24px',
+    fontSize: isMobile ? '18px' : isSmall ? '16px' : '14px',
+    padding: isMobile ? '12px' : isSmall ? '10px' : '8px',
+    borderRadius: isMobile ? '10px' : '8px',
+    minWidth: isMobile ? '44px' : isSmall ? '40px' : '32px',
+    minHeight: isMobile ? '44px' : isSmall ? '40px' : '32px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+    userSelect: 'none',
   };
 
   /* ---- Render ---- */
@@ -442,21 +458,70 @@ export default function StateMachinePage() {
           {/* Diagram tab */}
           {tab === 'diagram' && (
             <div>
-              <div style={{ height: isSmall ? 360 : 440, width: '100%', background: 'white' }}>
+              <div style={{ 
+                height: isMobile ? 320 : isSmall ? 380 : 480, 
+                width: '100%', 
+                background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+                position: 'relative',
+                overflow: 'hidden',
+                borderRadius: '0 0 12px 12px'
+              }}>
                 <ReactFlow
+                  key={diagramKey}
                   nodes={nodes}
                   edges={edges}
                   fitView
+                  fitViewOptions={{
+                    padding: isMobile ? 0.15 : 0.1,
+                    maxZoom: isMobile ? 1.2 : 1.5,
+                    minZoom: isMobile ? 0.3 : 0.2
+                  }}
                   nodesDraggable={false}
                   nodesConnectable={false}
                   elementsSelectable={false}
                   proOptions={{ hideAttribution: true }}
-                  minZoom={0.2}
-                  maxZoom={2}
+                  minZoom={isMobile ? 0.3 : 0.2}
+                  maxZoom={isMobile ? 1.8 : 2.5}
+                  panOnScroll={!isMobile}
+                  zoomOnScroll={!isMobile}
+                  zoomOnPinch={isMobile}
+                  panOnDrag={true}
+                  preventScrolling={isMobile}
                 >
-                  <Background gap={20} size={1} color="#f1f5f9" />
-                  <Controls showInteractive={false} />
+                  <Background 
+                    gap={isMobile ? 15 : 20} 
+                    size={1} 
+                    color="#cbd5e1"
+                  />
+                  <Controls 
+                    showInteractive={false}
+                    position={isMobile ? 'bottom-left' : 'bottom-right'}
+                  />
                 </ReactFlow>
+                
+                {/* Mobile help overlay */}
+                {isMobile && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '12px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: 'rgba(0,0,0,0.75)',
+                    backdropFilter: 'blur(8px)',
+                    color: 'white',
+                    padding: '8px 16px',
+                    borderRadius: '20px',
+                    fontSize: '13px',
+                    fontWeight: 500,
+                    textAlign: 'center',
+                    opacity: 0.9,
+                    pointerEvents: 'none',
+                    zIndex: 10,
+                    border: '1px solid rgba(255,255,255,0.1)'
+                  }}>
+                    👆 Pinch to zoom • Drag to pan
+                  </div>
+                )}
               </div>
               <div style={{
                 padding: isSmall ? '16px 12px' : '12px 16px',
@@ -503,52 +568,113 @@ export default function StateMachinePage() {
               </div>
 
               {states.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px 20px', color: '#6b7280', fontStyle: 'italic' }}>
-                  No states defined yet. Add your first state below.
+                <div style={{ 
+                  textAlign: 'center', 
+                  padding: '60px 20px', 
+                  color: '#6b7280', 
+                  background: 'rgba(255,255,255,0.02)',
+                  borderRadius: '12px',
+                  border: '1px dashed #374151'
+                }}>
+                  <div style={{ fontSize: '48px', marginBottom: '16px' }}>⬡</div>
+                  <p style={{ fontSize: '16px', marginBottom: '8px' }}>No states defined yet</p>
+                  <p style={{ fontSize: '14px', opacity: 0.7 }}>Add your first state below to get started</p>
                 </div>
               ) : (
                 states.map((s) => (
                   <div key={s.id} style={{
                     display: 'flex',
-                    alignItems: isSmall ? 'flex-start' : 'center',
-                    gap: isSmall ? 8 : 12,
-                    padding: isSmall ? '12px 0' : '10px 0',
-                    borderBottom: '1px solid #27272a',
-                    flexDirection: isSmall ? 'column' : 'row',
+                    alignItems: isMobile ? 'flex-start' : isSmall ? 'flex-start' : 'center',
+                    gap: isMobile ? 12 : isSmall ? 10 : 12,
+                    padding: isMobile ? '20px' : isSmall ? '16px' : '14px',
+                    background: 'rgba(255,255,255,0.02)',
+                    border: '1px solid rgba(255,255,255,0.05)',
+                    borderRadius: '12px',
+                    marginBottom: '12px',
+                    flexDirection: isMobile || isSmall ? 'column' : 'row',
+                    transition: 'all 0.2s ease',
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-                      <select
-                        value={s.color}
-                        onChange={(e) => setStates((p) => p.map((st) => st.id === s.id ? { ...st, color: e.target.value as ColorName } : st))}
-                        style={{ width: isSmall ? 24 : 20, height: isSmall ? 24 : 20, borderRadius: '50%', background: COLORS[s.color], border: '2px solid #3f3f46', cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none', flexShrink: 0, padding: 0 }}
-                        title="Change color"
-                      >
-                        {(Object.keys(COLORS) as ColorName[]).map((c) => <option key={c} value={c}>{c}</option>)}
-                      </select>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
+                      <div style={{ 
+                        position: 'relative',
+                        width: isMobile ? 24 : 20, 
+                        height: isMobile ? 24 : 20,
+                        borderRadius: '50%',
+                        background: COLORS[s.color],
+                        flexShrink: 0,
+                        boxShadow: `0 0 0 3px ${COLORS[s.color]}20`,
+                        cursor: 'pointer'
+                      }}>
+                        <select
+                          value={s.color}
+                          onChange={(e) => setStates((p) => p.map((st) => st.id === s.id ? { ...st, color: e.target.value as ColorName } : st))}
+                          style={{ 
+                            position: 'absolute',
+                            inset: 0,
+                            opacity: 0,
+                            cursor: 'pointer',
+                            width: '100%',
+                            height: '100%'
+                          }}
+                          title="Change color"
+                        >
+                          {(Object.keys(COLORS) as ColorName[]).map((c) => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
                       <input
                         value={s.label}
                         onChange={(e) => setStates((p) => p.map((st) => st.id === s.id ? { ...st, label: e.target.value } : st))}
-                        style={{ fontSize: isSmall ? 15 : 13, fontWeight: 600, color: '#e5e7eb', background: 'transparent', border: '1px solid transparent', borderRadius: 4, padding: '2px 6px', outline: 'none', flex: 1, minWidth: 0 }}
-                        onFocus={(e) => { e.target.style.borderColor = '#3f3f46'; e.target.style.background = '#27272a'; }}
-                        onBlur={(e) => { e.target.style.borderColor = 'transparent'; e.target.style.background = 'transparent'; }}
+                        style={{ 
+                          fontSize: isMobile ? 16 : isSmall ? 15 : 14, 
+                          fontWeight: 600, 
+                          color: '#e5e7eb', 
+                          background: 'transparent', 
+                          border: '1px solid transparent', 
+                          borderRadius: '8px', 
+                          padding: '8px 12px', 
+                          outline: 'none', 
+                          flex: 1, 
+                          minWidth: 0,
+                          transition: 'all 0.2s ease'
+                        }}
+                        onFocus={(e) => { 
+                          e.target.style.borderColor = '#4f46e5'; 
+                          e.target.style.background = 'rgba(24,24,27,0.8)';
+                          e.target.style.boxShadow = '0 0 0 3px rgba(79,70,229,0.1)';
+                        }}
+                        onBlur={(e) => { 
+                          e.target.style.borderColor = 'transparent'; 
+                          e.target.style.background = 'transparent';
+                          e.target.style.boxShadow = 'none';
+                        }}
                       />
                     </div>
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      gap: isMobile ? 10 : 8, 
+                      alignItems: 'center', 
+                      flexWrap: 'wrap',
+                      width: isMobile || isSmall ? '100%' : 'auto'
+                    }}>
                       <button
                         onClick={() => !s.is_default && setDefaultState(s.id)}
                         disabled={s.is_default}
                         style={{
-                          fontSize: isSmall ? 11 : 10,
-                          background: s.is_default ? '#312e81' : '#27272a',
+                          fontSize: isMobile ? 13 : isSmall ? 12 : 11,
+                          background: s.is_default 
+                            ? 'linear-gradient(135deg, #312e81 0%, #4f46e5 100%)' 
+                            : 'rgba(39,39,42,0.8)',
                           color: s.is_default ? '#a5b4fc' : '#9ca3af',
                           border: s.is_default ? 'none' : '1px solid #3f3f46',
-                          padding: isSmall ? '4px 8px' : '3px 6px',
-                          borderRadius: 6,
+                          padding: isMobile ? '10px 16px' : isSmall ? '8px 12px' : '6px 10px',
+                          borderRadius: isMobile ? '10px' : '8px',
                           fontWeight: 600,
                           cursor: s.is_default ? 'default' : 'pointer',
+                          minHeight: isMobile ? '40px' : '32px',
+                          transition: 'all 0.2s ease',
                         }}
                       >
-                        {s.is_default ? 'Default' : 'Set Default'}
+                        {s.is_default ? '⭐ Default' : 'Set Default'}
                       </button>
                       <button
                         onClick={() => {
@@ -556,15 +682,19 @@ export default function StateMachinePage() {
                           showToast(`${s.label} is ${s.is_terminal ? 'no longer' : 'now'} terminal`, 'info');
                         }}
                         style={{
-                          fontSize: isSmall ? 11 : 10,
-                          background: s.is_terminal ? '#27272a' : 'transparent',
+                          fontSize: isMobile ? 13 : isSmall ? 12 : 11,
+                          background: s.is_terminal ? 'rgba(39,39,42,0.8)' : 'transparent',
                           color: s.is_terminal ? '#9ca3af' : '#6b7280',
-                          border: s.is_terminal ? 'none' : '1px dashed #3f3f46',
-                          padding: isSmall ? '4px 8px' : '3px 6px',
-                          borderRadius: 6, fontWeight: 600, cursor: 'pointer',
+                          border: s.is_terminal ? '1px solid #3f3f46' : '1px dashed #3f3f46',
+                          padding: isMobile ? '10px 16px' : isSmall ? '8px 12px' : '6px 10px',
+                          borderRadius: isMobile ? '10px' : '8px',
+                          fontWeight: 600, 
+                          cursor: 'pointer',
+                          minHeight: isMobile ? '40px' : '32px',
+                          transition: 'all 0.2s ease',
                         }}
                       >
-                        {s.is_terminal ? 'Terminal' : 'Non-terminal'}
+                        {s.is_terminal ? '🏁 Terminal' : 'Non-terminal'}
                       </button>
                       <button onClick={() => removeState(s.id)} style={removeBtnStyle}>✕</button>
                     </div>
@@ -745,29 +875,89 @@ export default function StateMachinePage() {
       </div>
 
       {/* Toasts */}
-      <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 1000, pointerEvents: 'none' }}>
-        {toasts.map((toast) => (
-          <div key={toast.id} style={{
-            background: '#1f1f1f',
-            border: `1px solid ${toast.type === 'error' ? '#ef4444' : toast.type === 'success' ? '#22c55e' : toast.type === 'warning' ? '#f59e0b' : '#374151'}`,
-            borderRadius: 8,
-            padding: '12px 16px',
-            marginBottom: 8,
-            color: '#e5e7eb',
-            fontSize: 14,
-            boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
-            pointerEvents: 'auto',
-            maxWidth: 320,
-            wordWrap: 'break-word',
-            animation: 'slideIn 0.3s ease',
-          }}>
-            {toast.message}
-          </div>
-        ))}
+      <div style={{ 
+        position: 'fixed', 
+        top: isMobile ? 16 : 20, 
+        right: isMobile ? 16 : 20, 
+        left: isMobile ? 16 : 'auto',
+        zIndex: 1000, 
+        pointerEvents: 'none' 
+      }}>
+        {toasts.map((toast) => {
+          const colors = {
+            error: { bg: '#7f1d1d', border: '#ef4444', icon: '❌' },
+            success: { bg: '#14532d', border: '#22c55e', icon: '✅' },
+            warning: { bg: '#78350f', border: '#f59e0b', icon: '⚠️' },
+            info: { bg: '#1e3a8a', border: '#3b82f6', icon: 'ℹ️' }
+          };
+          const style = colors[toast.type];
+          
+          return (
+            <div key={toast.id} style={{
+              background: `linear-gradient(135deg, ${style.bg}cc 0%, ${style.bg}aa 100%)`,
+              backdropFilter: 'blur(12px)',
+              border: `1px solid ${style.border}66`,
+              borderRadius: isMobile ? '12px' : '10px',
+              padding: isMobile ? '16px 20px' : '12px 16px',
+              marginBottom: isMobile ? 12 : 8,
+              color: '#ffffff',
+              fontSize: isMobile ? 15 : 14,
+              fontWeight: 500,
+              boxShadow: `0 8px 32px ${style.bg}40, 0 4px 16px rgba(0,0,0,0.2)`,
+              pointerEvents: 'auto',
+              maxWidth: isMobile ? '100%' : 360,
+              wordWrap: 'break-word',
+              animation: 'slideInToast 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '12px'
+            }}>
+              <span style={{ fontSize: isMobile ? '18px' : '16px', flexShrink: 0 }}>{style.icon}</span>
+              <span style={{ flex: 1, lineHeight: 1.4 }}>{toast.message}</span>
+            </div>
+          );
+        })}
       </div>
 
       <style>{`
-        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideInToast { 
+          from { 
+            transform: translateX(100%) scale(0.9); 
+            opacity: 0; 
+          } 
+          to { 
+            transform: translateX(0) scale(1); 
+            opacity: 1; 
+          } 
+        }
+        
+        /* Custom scrollbar for webkit browsers */
+        ::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+          background: rgba(0, 0, 0, 0.1);
+          border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.3);
+        }
+        
+        /* Focus styles for better accessibility */
+        button:focus-visible,
+        input:focus-visible,
+        select:focus-visible {
+          outline: 2px solid #6366f1;
+          outline-offset: 2px;
+        }
       `}</style>
     </div>
   );
