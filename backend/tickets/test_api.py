@@ -293,9 +293,9 @@ class TicketAPITest(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['title'], 'Test Ticket')
 
-    def test_update_ticket(self):
-        """Test updating a ticket."""
-        self.authenticate(self.member_user)
+    def test_update_ticket_as_admin(self):
+        """Test updating a ticket as workspace owner."""
+        self.authenticate(self.admin_user)
         url = reverse('ticket-detail', kwargs={'pk': self.ticket.pk})
 
         response = self.client.patch(url, {'title': 'Updated Title'}, format='json')

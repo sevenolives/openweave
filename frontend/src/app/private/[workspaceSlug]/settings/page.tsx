@@ -50,7 +50,7 @@ interface StateMachineSettingsProps {
   handleSetDefault: (sd: StatusDefinition) => Promise<void>;
   handleAddTransition: (fromId: number, toId: number, actorType: string) => Promise<void>;
   handleDeleteTransition: (id: number) => Promise<void>;
-  toast: (msg: string, type?: string) => void;
+  toast: (msg: string, type?: 'success' | 'error' | 'info') => void;
 }
 
 function StateMachineSettings({
