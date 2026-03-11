@@ -7,6 +7,9 @@ import { useToast } from '@/components/Toast';
 import FormField, { parseFieldErrors, inputClass } from '@/components/FormField';
 import { api, Workspace, WorkspaceMember, WorkspaceInvite, StatusDefinition, StatusTransition } from '@/lib/api';
 import { useWorkspace } from '@/hooks/useWorkspace';
+import dynamic from 'next/dynamic';
+
+const StateFlowDiagram = dynamic(() => import('@/components/StateFlowDiagram'), { ssr: false });
 
 const COLORS = ['gray', 'blue', 'red', 'purple', 'amber', 'green', 'yellow', 'indigo', 'pink', 'orange'];
 const COLOR_CLASSES: Record<string, string> = {
@@ -34,7 +37,7 @@ export default function WorkspaceSettingsPage() {
   const [newStatusColor, setNewStatusColor] = useState('gray');
   const [newStatusTerminal, setNewStatusTerminal] = useState(false);
   const [addingStatus, setAddingStatus] = useState(false);
-  const [statusTab, setStatusTab] = useState<'statuses' | 'transitions'>('statuses');
+  const [statusTab, setStatusTab] = useState<'statuses' | 'transitions' | 'workflow'>('statuses');
   const { toast } = useToast();
 
   const loadData = useCallback(async (ws: Workspace) => {
@@ -288,6 +291,7 @@ export default function WorkspaceSettingsPage() {
           <div className="px-5 pt-4 flex gap-2">
             <button onClick={() => setStatusTab('statuses')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${statusTab === 'statuses' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:bg-gray-100'}`}>Statuses</button>
             <button onClick={() => setStatusTab('transitions')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${statusTab === 'transitions' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:bg-gray-100'}`}>Transitions</button>
+            <button onClick={() => setStatusTab('workflow')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${statusTab === 'workflow' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:bg-gray-100'}`}>Workflow</button>
           </div>
 
           {statusTab === 'statuses' && (
@@ -355,6 +359,12 @@ export default function WorkspaceSettingsPage() {
                   {addingStatus ? 'Adding…' : '+ Add Status'}
                 </button>
               </div>
+            </div>
+          )}
+
+          {statusTab === 'workflow' && (
+            <div className="p-5 relative">
+              <StateFlowDiagram statuses={statuses} transitions={transitions} />
             </div>
           )}
 
