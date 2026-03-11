@@ -118,27 +118,31 @@ function buildNodes(states: WorkflowState[], transitions: Transition[]): Node[] 
   });
 }
 
-function buildEdges(transitions: Transition[]): Edge[] {
-  return transitions.map((t) => ({
+function buildEdges(transitions: Transition[], states: WorkflowState[]): Edge[] {
+  return transitions.map((t) => {
+    const targetState = states.find((s) => s.id === t.to);
+    const isGatedBot = (t.actor === 'BOT' || t.actor === 'ALL') && targetState?.is_bot_requires_approval;
+    const edgeColor = isGatedBot ? '#eab308' : ACTOR_COLORS[t.actor];
+    return {
     id: `e${t.id}`,
     source: String(t.from),
     target: String(t.to),
-    animated: t.actor === 'BOT',
+    animated: t.actor === 'BOT' && !isGatedBot,
     style: {
-      stroke: ACTOR_COLORS[t.actor],
+      stroke: edgeColor,
       strokeWidth: 2,
-      strokeDasharray: t.actor === 'HUMAN' ? '5,5' : 'none',
+      strokeDasharray: t.actor === 'HUMAN' ? '5,5' : isGatedBot ? '8,4' : 'none',
     },
     markerEnd: {
       type: MarkerType.ArrowClosed,
-      color: ACTOR_COLORS[t.actor],
+      color: edgeColor,
       width: 14,
       height: 14,
     },
-    label: t.actor,
-    labelStyle: { fontSize: 9, fontWeight: 700, fill: ACTOR_COLORS[t.actor] },
+    label: isGatedBot ? `${t.actor} 🔒` : t.actor,
+    labelStyle: { fontSize: 9, fontWeight: 700, fill: edgeColor },
     labelBgStyle: { fill: 'white', fillOpacity: 0.9 },
-  }));
+  };});
 }
 
 /* ------------------------------------------------------------------ */
@@ -185,7 +189,7 @@ export default function StateMachinePage() {
   }, [states, transitions]);
 
   const nodes = useMemo(() => buildNodes(states, transitions), [states, transitions]);
-  const edges = useMemo(() => buildEdges(transitions), [transitions]);
+  const edges = useMemo(() => buildEdges(transitions, states), [transitions, states]);
 
   /* Toast helper */
   const showToast = useCallback((message: string, type: Toast['type'] = 'info') => {
