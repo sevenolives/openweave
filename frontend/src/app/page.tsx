@@ -114,6 +114,7 @@ function StateMachineDiagram() {
 export default function HomePage() {
   const { isLoggedIn, isLoading } = useAuth();
   const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!isLoading && isLoggedIn) router.push('/private/workspaces');
@@ -134,15 +135,28 @@ export default function HomePage() {
       <nav className="sticky top-0 z-50 bg-gray-950/90 backdrop-blur border-b border-white/5">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <span className="text-lg font-semibold tracking-tight text-white">OpenWeave</span>
-          <div className="flex items-center gap-4">
-            <a href="/state-machine" className="text-sm text-gray-500 hover:text-gray-300 transition hidden sm:inline">State Machine</a>
-            <a href="/blog" className="text-sm text-gray-500 hover:text-gray-300 transition hidden sm:inline">Blog</a>
-            <a href="https://api.openweave.dev/api/docs/" className="text-sm text-gray-500 hover:text-gray-300 transition hidden sm:inline">API Docs</a>
-            <a href="/login" className="text-sm font-medium text-gray-300 hover:text-white transition">
-              Sign In →
-            </a>
+          <div className="hidden sm:flex items-center gap-4">
+            <a href="/state-machine" className="text-sm text-gray-500 hover:text-gray-300 transition">State Machine</a>
+            <a href="/blog" className="text-sm text-gray-500 hover:text-gray-300 transition">Blog</a>
+            <a href="https://api.openweave.dev/api/docs/" className="text-sm text-gray-500 hover:text-gray-300 transition">API Docs</a>
+            <a href="/login" className="text-sm font-medium text-gray-300 hover:text-white transition">Sign In →</a>
           </div>
+          <button onClick={() => setMenuOpen(!menuOpen)} className="sm:hidden p-2 text-gray-400 hover:text-white transition" aria-label="Menu">
+            {menuOpen ? (
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
+            )}
+          </button>
         </div>
+        {menuOpen && (
+          <div className="sm:hidden border-t border-white/5 px-4 py-3 space-y-3">
+            <a href="/state-machine" className="block text-sm text-gray-400 hover:text-white transition">State Machine</a>
+            <a href="/blog" className="block text-sm text-gray-400 hover:text-white transition">Blog</a>
+            <a href="https://api.openweave.dev/api/docs/" className="block text-sm text-gray-400 hover:text-white transition">API Docs</a>
+            <a href="/login" className="block text-sm font-medium text-gray-300 hover:text-white transition">Sign In →</a>
+          </div>
+        )}
       </nav>
 
       {/* Hero */}
