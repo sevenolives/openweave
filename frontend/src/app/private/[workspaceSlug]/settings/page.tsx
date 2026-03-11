@@ -760,11 +760,6 @@ export default function WorkspaceSettingsPage() {
                               const newLabel = e.target.value;
                               setStatuses(prev => prev.map(st => st.id === s.id ? { ...st, label: newLabel } : st));
                             }}
-                            onBlur={(e) => {
-                              if (e.target.value !== s.label) {
-                                handleUpdateStatus(s.id, { label: e.target.value });
-                              }
-                            }}
                             style={{ 
                               fontSize: isMobile ? 16 : isSmall ? 15 : 14, 
                               fontWeight: 600, 
