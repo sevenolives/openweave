@@ -86,13 +86,13 @@ export default function AgentsPage() {
 
         {/* Filters */}
         <div className="flex flex-wrap gap-3 mb-6">
-          <select value={filterRole} onChange={e => setFilterRole(e.target.value)} className="px-3 py-2.5 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500">
+          <select value={filterRole} onChange={e => setFilterRole(e.target.value)} className="px-4 py-3 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500">
             <option value="">All Roles</option>
             <option value="OWNER">Owner</option>
             <option value="ADMIN">Admin</option>
             <option value="MEMBER">Member</option>
           </select>
-          <select value={filterType} onChange={e => setFilterType(e.target.value)} className="px-3 py-2.5 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500">
+          <select value={filterType} onChange={e => setFilterType(e.target.value)} className="px-4 py-3 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500">
             <option value="">All Types</option>
             <option value="HUMAN">Human</option>
             <option value="BOT">Bot</option>

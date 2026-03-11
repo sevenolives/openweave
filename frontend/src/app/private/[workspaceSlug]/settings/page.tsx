@@ -317,8 +317,8 @@ export default function WorkspaceSettingsPage() {
                     </div>
                     {/* Row 3: Edit controls */}
                     <div className="flex gap-2">
-                      <input type="text" value={sd.label} className="text-sm border border-gray-200 rounded px-2 py-1.5 flex-1 min-w-0" onBlur={e => { if (e.target.value !== sd.label) handleUpdateStatus(sd.id, { label: e.target.value }); }} onChange={e => { setStatuses(prev => prev.map(s => s.id === sd.id ? { ...s, label: e.target.value } : s)); }} />
-                      <select value={sd.color} onChange={e => handleUpdateStatus(sd.id, { color: e.target.value })} className="text-sm border border-gray-200 rounded px-2 py-1.5 bg-white">
+                      <input type="text" value={sd.label} className="px-4 py-3 text-sm border border-gray-200 rounded-xl flex-1 min-w-0" onBlur={e => { if (e.target.value !== sd.label) handleUpdateStatus(sd.id, { label: e.target.value }); }} onChange={e => { setStatuses(prev => prev.map(s => s.id === sd.id ? { ...s, label: e.target.value } : s)); }} />
+                      <select value={sd.color} onChange={e => handleUpdateStatus(sd.id, { color: e.target.value })} className="px-4 py-3 text-sm border border-gray-200 rounded-xl bg-white">
                         {COLORS.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </div>
@@ -332,17 +332,17 @@ export default function WorkspaceSettingsPage() {
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-xs text-gray-500 block mb-1">Key</label>
-                    <input type="text" value={newStatusKey} onChange={e => setNewStatusKey(e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, ''))} placeholder="QA_REVIEW" className="text-sm border border-gray-300 rounded px-2 py-2 w-full font-mono" />
+                    <input type="text" value={newStatusKey} onChange={e => setNewStatusKey(e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, ''))} placeholder="QA_REVIEW" className="px-4 py-3 text-sm border border-gray-300 rounded-xl w-full font-mono" />
                   </div>
                   <div>
                     <label className="text-xs text-gray-500 block mb-1">Label</label>
-                    <input type="text" value={newStatusLabel} onChange={e => setNewStatusLabel(e.target.value)} placeholder="QA Review" className="text-sm border border-gray-300 rounded px-2 py-2 w-full" />
+                    <input type="text" value={newStatusLabel} onChange={e => setNewStatusLabel(e.target.value)} placeholder="QA Review" className="px-4 py-3 text-sm border border-gray-300 rounded-xl w-full" />
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <div>
                     <label className="text-xs text-gray-500 block mb-1">Color</label>
-                    <select value={newStatusColor} onChange={e => setNewStatusColor(e.target.value)} className="text-sm border border-gray-300 rounded px-2 py-2 bg-white">
+                    <select value={newStatusColor} onChange={e => setNewStatusColor(e.target.value)} className="px-4 py-3 text-sm border border-gray-300 rounded-xl bg-white">
                       {COLORS.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
@@ -385,11 +385,11 @@ export default function WorkspaceSettingsPage() {
                       })}
                       {/* Add transition from this status */}
                       <div className="flex items-center gap-2 mt-1">
-                        <select id={`add-to-${fromStatus.id}`} className="text-xs border border-gray-200 rounded px-2 py-1 bg-white" defaultValue="">
+                        <select id={`add-to-${fromStatus.id}`} className="px-4 py-3 text-sm border border-gray-200 rounded-xl bg-white" defaultValue="">
                           <option value="" disabled>→ target…</option>
                           {statuses.filter(s => s.id !== fromStatus.id).map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
                         </select>
-                        <select id={`add-actor-${fromStatus.id}`} className="text-xs border border-gray-200 rounded px-2 py-1 bg-white" defaultValue="BOT">
+                        <select id={`add-actor-${fromStatus.id}`} className="px-4 py-3 text-sm border border-gray-200 rounded-xl bg-white" defaultValue="BOT">
                           <option value="BOT">BOT</option>
                           <option value="HUMAN">HUMAN</option>
                           <option value="ALL">ALL</option>

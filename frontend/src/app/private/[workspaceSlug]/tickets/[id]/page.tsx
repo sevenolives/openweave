@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import FormField, { parseFieldErrors, inputClass } from '@/components/FormField';
+import FormField, { parseFieldErrors, inputClass, selectClass } from '@/components/FormField';
 import { useAuth } from '@/hooks/useAuth';
 import { api, Ticket, Comment, User, TicketAttachment, ApiError, StatusDefinition } from '@/lib/api';
 import { useWorkspace } from '@/hooks/useWorkspace';
@@ -157,28 +157,28 @@ export default function TicketDetailPage() {
                     </FormField>
                     <div className="grid grid-cols-2 gap-4">
                       <FormField label="Status" error={fieldErrors.status}>
-                        <select value={editStatus} onChange={e => setEditStatus(e.target.value)} className={`${inputClass(fieldErrors.status)} bg-white`}>
+                        <select value={editStatus} onChange={e => setEditStatus(e.target.value)} className={selectClass(fieldErrors.status)}>
                           {statuses.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
                         </select>
                       </FormField>
                       <FormField label="Priority" error={fieldErrors.priority}>
-                        <select value={editPriority} onChange={e => setEditPriority(e.target.value)} className={`${inputClass(fieldErrors.priority)} bg-white`}>
+                        <select value={editPriority} onChange={e => setEditPriority(e.target.value)} className={selectClass(fieldErrors.priority)}>
                           {ALL_PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
                         </select>
                       </FormField>
                       <FormField label="Type" error={fieldErrors.ticket_type}>
-                        <select value={editTicketType} onChange={e => setEditTicketType(e.target.value)} className={`${inputClass(fieldErrors.ticket_type)} bg-white`}>
+                        <select value={editTicketType} onChange={e => setEditTicketType(e.target.value)} className={selectClass(fieldErrors.ticket_type)}>
                           <option value="BUG">🐛 Bug</option><option value="FEATURE">✨ Feature</option>
                         </select>
                       </FormField>
                       <FormField label="Approved Status" error={fieldErrors.approved_status}>
-                        <select value={editApproval} onChange={e => setEditApproval(e.target.value)} className={`${inputClass(fieldErrors.approved_status)} bg-white`}>
+                        <select value={editApproval} onChange={e => setEditApproval(e.target.value)} className={selectClass(fieldErrors.approved_status)}>
                           <option value="UNAPPROVED">Unapproved</option><option value="APPROVED">✓ Approved</option>
                         </select>
                       </FormField>
                     </div>
                     <FormField label="Assigned To" error={fieldErrors.assigned_to}>
-                      <select value={editAssigned} onChange={e => setEditAssigned(e.target.value)} className={`${inputClass(fieldErrors.assigned_to)} bg-white`}>
+                      <select value={editAssigned} onChange={e => setEditAssigned(e.target.value)} className={selectClass(fieldErrors.assigned_to)}>
                         <option value="">Unassigned</option>
                         {projectAgents.map(a => <option key={a.id} value={String(a.id)}>{a.username} ({a.user_type})</option>)}
                       </select>
@@ -449,7 +449,7 @@ export default function TicketDetailPage() {
                       toast('Assignment updated');
                     } catch (e: any) { toast(e?.message || 'Failed to assign', 'error'); }
                   }}
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="">Unassigned</option>
                   {projectAgents.map(a => <option key={a.id} value={String(a.id)}>{a.username} ({a.user_type})</option>)}

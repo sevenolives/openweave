@@ -6,7 +6,7 @@ import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import FormField, { parseFieldErrors, inputClass } from '@/components/FormField';
+import FormField, { parseFieldErrors, inputClass, selectClass } from '@/components/FormField';
 import { api, Ticket, Project, User, WorkspaceMember, ApiError, PaginatedResponse, StatusDefinition } from '@/lib/api';
 import { useWorkspace } from '@/hooks/useWorkspace';
 // Auth handled by (private) layout
@@ -264,35 +264,35 @@ function TicketsPage() {
         <div className="flex flex-wrap gap-3 mb-6">
           <input
             type="text" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
-            className="px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-full sm:w-64"
+            className="px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-full sm:w-64"
             placeholder="Search tickets..."
           />
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
             <option value="">All statuses</option>
             {statuses.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
           </select>
-          <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)} className="px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
+          <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)} className="px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
             <option value="">All priorities</option>
             <option value="LOW">Low</option>
             <option value="MEDIUM">Medium</option>
             <option value="HIGH">High</option>
             <option value="CRITICAL">Critical</option>
           </select>
-          <select value={filterProject} onChange={e => { hasUserSelectedProject.current = true; setFilterProject(Number(e.target.value) || ''); setPage(1); }} className="px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
+          <select value={filterProject} onChange={e => { hasUserSelectedProject.current = true; setFilterProject(Number(e.target.value) || ''); setPage(1); }} className="px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
             <option value="">All projects</option>
             {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
-          <select value={filterAssigned} onChange={e => { setFilterAssigned(e.target.value); setPage(1); }} className="px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
+          <select value={filterAssigned} onChange={e => { setFilterAssigned(e.target.value); setPage(1); }} className="px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
             <option value="">All users</option>
             {wsUsers.map(u => <option key={u.id} value={u.id}>{u.name || u.username}</option>)}
           </select>
-          <select value={filterApproved} onChange={e => { setFilterApproved(e.target.value); setPage(1); }} className="px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
+          <select value={filterApproved} onChange={e => { setFilterApproved(e.target.value); setPage(1); }} className="px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
             <option value="">All approvals</option>
             <option value="APPROVED">✓ Approved</option>
             <option value="UNAPPROVED">Unapproved</option>
           </select>
           {hasFilters && (
-            <button onClick={() => { setSearch(''); setFilterStatus(''); setFilterPriority(''); setFilterProject(''); setFilterAssigned(''); setFilterApproved(''); }} className="px-3 py-2.5 text-sm text-gray-500 hover:text-gray-700">
+            <button onClick={() => { setSearch(''); setFilterStatus(''); setFilterPriority(''); setFilterProject(''); setFilterAssigned(''); setFilterApproved(''); }} className="px-4 py-3 text-sm text-gray-500 hover:text-gray-700">
               Clear filters
             </button>
           )}
@@ -445,7 +445,7 @@ function TicketsPage() {
               <h2 className="text-lg font-bold text-gray-900 mb-4">New Ticket</h2>
               <form onSubmit={handleCreateTicket} className="space-y-4">
                 <FormField label="Project" error={fieldErrors.project} required>
-                  <select value={newProject} onChange={e => setNewProject(Number(e.target.value) || '')} className={`${inputClass(fieldErrors.project)} bg-white`} required>
+                  <select value={newProject} onChange={e => setNewProject(Number(e.target.value) || '')} className={selectClass(fieldErrors.project)} required>
                     <option value="">Select a project</option>
                     {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
@@ -458,18 +458,18 @@ function TicketsPage() {
                 </FormField>
                 <div className="grid grid-cols-2 gap-3">
                   <FormField label="Type" error={fieldErrors.ticket_type}>
-                    <select value={newTicketType} onChange={e => setNewTicketType(e.target.value)} className={`${inputClass(fieldErrors.ticket_type)} bg-white`}>
+                    <select value={newTicketType} onChange={e => setNewTicketType(e.target.value)} className={selectClass(fieldErrors.ticket_type)}>
                       <option value="BUG">🐛 Bug</option><option value="FEATURE">✨ Feature</option>
                     </select>
                   </FormField>
                   <FormField label="Priority" error={fieldErrors.priority}>
-                    <select value={newPriority} onChange={e => setNewPriority(e.target.value)} className={`${inputClass(fieldErrors.priority)} bg-white`}>
+                    <select value={newPriority} onChange={e => setNewPriority(e.target.value)} className={selectClass(fieldErrors.priority)}>
                       <option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option><option value="CRITICAL">Critical</option>
                     </select>
                   </FormField>
                 </div>
                 <FormField label="Assign To" error={fieldErrors.assigned_to}>
-                  <select value={newAssigned} onChange={e => setNewAssigned(e.target.value)} className={`${inputClass(fieldErrors.assigned_to)} bg-white`}>
+                  <select value={newAssigned} onChange={e => setNewAssigned(e.target.value)} className={selectClass(fieldErrors.assigned_to)}>
                     <option value="">Unassigned</option>
                     {createProjectAgents.map(u => <option key={u.id} value={String(u.id)}>{u.username} ({u.user_type})</option>)}
                   </select>

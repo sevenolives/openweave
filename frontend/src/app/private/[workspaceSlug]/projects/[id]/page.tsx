@@ -170,7 +170,7 @@ export default function ProjectSettingsPage() {
                                 } catch (err: any) { toast(err?.message || 'Failed', 'error'); }
                               }
                             }}
-                            className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 bg-white"
+                            className="px-4 py-3 text-sm border border-gray-300 rounded-xl bg-white"
                           >
                             <option value="ADMIN">Admin</option>
                             <option value="MEMBER">Member</option>

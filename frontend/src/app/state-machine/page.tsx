@@ -376,15 +376,15 @@ export default function StateMachinePage() {
   };
 
   const inputStyle: React.CSSProperties = {
-    padding: isMobile ? '16px 16px' : isSmall ? '14px 14px' : '10px 12px',
-    fontSize: isMobile ? '16px' : isSmall ? '15px' : '13px',
+    padding: '12px 16px',
+    fontSize: '14px',
     border: '1px solid #3f3f46',
-    borderRadius: isMobile ? '12px' : '10px',
+    borderRadius: '12px',
     outline: 'none',
     background: 'rgba(24, 24, 27, 0.8)',
     backdropFilter: 'blur(8px)',
     color: '#e5e7eb',
-    minHeight: isMobile ? '52px' : isSmall ? '48px' : '38px',
+    minHeight: '44px',
     transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
   };
 
