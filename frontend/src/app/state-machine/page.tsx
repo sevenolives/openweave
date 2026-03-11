@@ -30,7 +30,7 @@ interface WorkflowState {
   color: ColorName;
   is_terminal: boolean;
   is_default: boolean;
-  requires_approval: boolean;
+  approval_required: boolean;
   pos: number;
 }
 
@@ -62,13 +62,13 @@ const ACTOR_COLORS: Record<ActorType, string> = {
 };
 
 const DEFAULT_STATES: WorkflowState[] = [
-  { id: 1, key: 'OPEN', label: 'Open', color: 'gray', is_terminal: false, is_default: true, requires_approval: false, pos: 0 },
-  { id: 2, key: 'IN_PROGRESS', label: 'In Progress', color: 'blue', is_terminal: false, is_default: false, requires_approval: false, pos: 1 },
-  { id: 3, key: 'BLOCKED', label: 'Blocked', color: 'red', is_terminal: false, is_default: false, requires_approval: false, pos: 2 },
-  { id: 4, key: 'IN_TESTING', label: 'In Testing', color: 'purple', is_terminal: false, is_default: false, requires_approval: false, pos: 3 },
-  { id: 5, key: 'REVIEW', label: 'Review', color: 'amber', is_terminal: false, is_default: false, requires_approval: false, pos: 4 },
-  { id: 6, key: 'COMPLETED', label: 'Completed', color: 'green', is_terminal: true, is_default: false, requires_approval: true, pos: 5 },
-  { id: 7, key: 'CANCELLED', label: 'Cancelled', color: 'gray', is_terminal: true, is_default: false, requires_approval: false, pos: 6 },
+  { id: 1, key: 'OPEN', label: 'Open', color: 'gray', is_terminal: false, is_default: true, approval_required: false, pos: 0 },
+  { id: 2, key: 'IN_PROGRESS', label: 'In Progress', color: 'blue', is_terminal: false, is_default: false, approval_required: false, pos: 1 },
+  { id: 3, key: 'BLOCKED', label: 'Blocked', color: 'red', is_terminal: false, is_default: false, approval_required: false, pos: 2 },
+  { id: 4, key: 'IN_TESTING', label: 'In Testing', color: 'purple', is_terminal: false, is_default: false, approval_required: false, pos: 3 },
+  { id: 5, key: 'REVIEW', label: 'Review', color: 'amber', is_terminal: false, is_default: false, approval_required: false, pos: 4 },
+  { id: 6, key: 'COMPLETED', label: 'Completed', color: 'green', is_terminal: true, is_default: false, approval_required: true, pos: 5 },
+  { id: 7, key: 'CANCELLED', label: 'Cancelled', color: 'gray', is_terminal: true, is_default: false, approval_required: false, pos: 6 },
 ];
 
 const DEFAULT_TRANSITIONS: Transition[] = [
@@ -98,7 +98,7 @@ function buildNodes(states: WorkflowState[], transitions: Transition[]): Node[] 
     return {
       id: String(s.id),
       position: { x: (nd?.x ?? 0) - 70, y: (nd?.y ?? 0) - 20 },
-      data: { label: s.requires_approval ? `🔒 ${s.label}` : s.label },
+      data: { label: s.approval_required ? `🔒 ${s.label}` : s.label },
       type: 'default',
       style: {
         background: 'white',
@@ -226,7 +226,7 @@ export default function StateMachinePage() {
     }
     const key = trimmed.toUpperCase().replace(/[^A-Z0-9]/g, '_');
     const isFirst = states.length === 0;
-    setStates((p) => [...p, { id: nextStateId, key, label: trimmed, color: newColor, is_terminal: newTerminal, is_default: isFirst, requires_approval: false, pos: p.length }]);
+    setStates((p) => [...p, { id: nextStateId, key, label: trimmed, color: newColor, is_terminal: newTerminal, is_default: isFirst, approval_required: false, pos: p.length }]);
     setNextStateId((n) => n + 1);
     setNewLabel('');
     setNewTerminal(false);
@@ -275,7 +275,7 @@ export default function StateMachinePage() {
 
   const exportConfig = useCallback(() => {
     const config = {
-      states: states.map((s) => ({ key: s.key, label: s.label, color: s.color, is_terminal: s.is_terminal, is_default: s.is_default, requires_approval: s.requires_approval })),
+      states: states.map((s) => ({ key: s.key, label: s.label, color: s.color, is_terminal: s.is_terminal, is_default: s.is_default, approval_required: s.approval_required })),
       transitions: transitions.map((t) => {
         const f = states.find((s) => s.id === t.from);
         const to = states.find((s) => s.id === t.to);
@@ -304,7 +304,7 @@ export default function StateMachinePage() {
         const newStates: WorkflowState[] = config.states.map((s: any, i: number) => {
           const nid = 100 + i;
           idMap[s.key] = nid;
-          return { id: nid, key: s.key, label: s.label, color: s.color || 'blue', is_terminal: !!s.is_terminal, is_default: !!s.is_default, requires_approval: !!s.requires_approval, pos: i };
+          return { id: nid, key: s.key, label: s.label, color: s.color || 'blue', is_terminal: !!s.is_terminal, is_default: !!s.is_default, approval_required: !!s.approval_required, pos: i };
         });
         const newTr: Transition[] = config.transitions
           .map((t: any, i: number) => ({ id: 200 + i, from: idMap[t.from], to: idMap[t.to], actor: t.actor || 'BOT' }))
@@ -532,7 +532,7 @@ export default function StateMachinePage() {
                     ⚠ Human-only: {humanOnlyTerminals.map((s) => s.label).join(', ')}
                   </div>
                 )}
-                {states.filter((s) => s.requires_approval).length > 0 && (
+                {states.filter((s) => s.approval_required).length > 0 && (
                   <div style={{
                     fontSize: isSmall ? 13 : 12,
                     color: '#eab308',
@@ -542,7 +542,7 @@ export default function StateMachinePage() {
                     borderRadius: 6,
                     border: '1px solid rgba(234,179,8,0.2)',
                   }}>
-                    🔒 Approval gate: {states.filter((s) => s.requires_approval).map((s) => s.label).join(', ')}
+                    🔒 Approval gate: {states.filter((s) => s.approval_required).map((s) => s.label).join(', ')}
                   </div>
                 )}
               </div>
@@ -690,14 +690,14 @@ export default function StateMachinePage() {
                       </button>
                       <button
                         onClick={() => {
-                          setStates((p) => p.map((st) => st.id === s.id ? { ...st, requires_approval: !st.requires_approval } : st));
-                          showToast(`${s.label} ${s.requires_approval ? 'no longer' : 'now'} requires approval`, 'info');
+                          setStates((p) => p.map((st) => st.id === s.id ? { ...st, approval_required: !st.approval_required } : st));
+                          showToast(`${s.label} ${s.approval_required ? 'no longer' : 'now'} requires approval`, 'info');
                         }}
                         style={{
                           fontSize: isMobile ? 13 : isSmall ? 12 : 11,
-                          background: s.requires_approval ? 'rgba(234,179,8,0.15)' : 'transparent',
-                          color: s.requires_approval ? '#eab308' : '#6b7280',
-                          border: s.requires_approval ? '1px solid rgba(234,179,8,0.3)' : '1px dashed #3f3f46',
+                          background: s.approval_required ? 'rgba(234,179,8,0.15)' : 'transparent',
+                          color: s.approval_required ? '#eab308' : '#6b7280',
+                          border: s.approval_required ? '1px solid rgba(234,179,8,0.3)' : '1px dashed #3f3f46',
                           padding: isMobile ? '10px 16px' : isSmall ? '8px 12px' : '6px 10px',
                           borderRadius: isMobile ? '10px' : '8px',
                           fontWeight: 600,
@@ -706,7 +706,7 @@ export default function StateMachinePage() {
                           transition: 'all 0.2s ease',
                         }}
                       >
-                        {s.requires_approval ? '🔒 Approval Gate' : 'No gate'}
+                        {s.approval_required ? '🔒 Approval Gate' : 'No gate'}
                       </button>
                       <button onClick={() => removeState(s.id)} style={removeBtnStyle}>✕</button>
                     </div>
