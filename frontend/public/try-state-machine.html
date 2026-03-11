@@ -9,23 +9,90 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #e5e7eb; min-height: 100vh; }
+    
+    /* Responsive Layout */
     .header { max-width: 900px; margin: 0 auto; padding: 40px 24px 24px; }
-    .header h1 { font-size: 28px; font-weight: 700; color: white; margin-bottom: 8px; }
-    .header p { font-size: 15px; color: #9ca3af; line-height: 1.6; }
-    .container { max-width: 900px; margin: 0 auto; padding: 0 24px 40px; }
-    #app { border-radius: 12px; overflow: hidden; border: 1px solid #27272a; }
+    .header h1 { font-size: clamp(24px, 5vw, 28px); font-weight: 700; color: white; margin-bottom: 8px; }
+    .header p { font-size: clamp(14px, 3vw, 15px); color: #9ca3af; line-height: 1.6; }
+    .container { max-width: 900px; margin: 0 auto; padding: 0 16px 40px; }
+    #app { border-radius: 12px; overflow: hidden; border: 1px solid #27272a; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+    
+    /* Mobile-first responsive design */
+    @media (max-width: 768px) {
+      .header { padding: 24px 16px 16px; }
+      .container { padding: 0 8px 24px; }
+      #app { border-radius: 8px; margin: 0 4px; }
+    }
+    
+    /* Enhanced Footer */
     .footer { max-width: 900px; margin: 0 auto; padding: 32px 24px; border-top: 1px solid #18181b; }
-    .footer h2 { font-size: 18px; font-weight: 600; color: white; margin-bottom: 12px; }
-    .footer p { font-size: 14px; color: #9ca3af; line-height: 1.7; margin-bottom: 8px; }
+    .footer h2 { font-size: clamp(16px, 4vw, 18px); font-weight: 600; color: white; margin-bottom: 12px; }
+    .footer p { font-size: clamp(13px, 3vw, 14px); color: #9ca3af; line-height: 1.7; margin-bottom: 8px; }
     .footer ul { padding-left: 20px; margin-bottom: 12px; }
-    .footer li { font-size: 14px; color: #9ca3af; line-height: 1.7; margin-bottom: 4px; }
+    .footer li { font-size: clamp(13px, 3vw, 14px); color: #9ca3af; line-height: 1.7; margin-bottom: 4px; }
     .footer strong { color: #d1d5db; }
     .footer em { color: #6ee7b7; font-style: normal; }
-    .footer a { color: #6ee7b7; text-decoration: none; }
-    .footer a:hover { text-decoration: underline; }
+    .footer a { color: #6ee7b7; text-decoration: none; transition: color 0.2s ease; }
+    .footer a:hover { text-decoration: underline; color: #86efac; }
     .footer hr { border: none; border-top: 1px solid #18181b; margin: 20px 0; }
-    .back { display: inline-block; margin-bottom: 16px; font-size: 13px; color: #6ee7b7; text-decoration: none; }
-    .back:hover { text-decoration: underline; }
+    .back { display: inline-block; margin-bottom: 16px; font-size: 13px; color: #6ee7b7; text-decoration: none; transition: color 0.2s ease; }
+    .back:hover { text-decoration: underline; color: #86efac; }
+    
+    /* Loading State */
+    .loading { 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      height: 200px; 
+      color: #9ca3af; 
+      font-size: 14px;
+    }
+    
+    /* Enhanced Focus States for Accessibility */
+    button:focus, input:focus, select:focus { 
+      outline: 2px solid #6366f1; 
+      outline-offset: 2px; 
+    }
+    
+    /* Improved Error States */
+    .error-text { 
+      color: #ef4444; 
+      font-size: 12px; 
+      margin-top: 4px; 
+      display: block;
+    }
+    
+    /* Enhanced Interactive Elements */
+    .interactive-hover:hover { 
+      transform: translateY(-1px); 
+      transition: transform 0.2s ease; 
+    }
+    
+    /* Button hover effects */
+    button:not(:disabled):hover {
+      filter: brightness(1.1);
+      transition: all 0.2s ease;
+    }
+    
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+    
+    /* Input focus effects */
+    input:focus, select:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+    
+    /* Smooth animations */
+    * {
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    @media (max-width: 768px) {
+      .footer { padding: 24px 16px; }
+    }
   </style>
 </head>
 <body>
@@ -140,8 +207,17 @@
 
     function addS() {
       if(!nl.trim()) return;
-      var k = nl.toUpperCase().replace(/[^A-Z0-9]/g,'_');
-      setSS(function(p){return p.concat([{id:nid,key:k,label:nl,color:nc,is_terminal:nt,is_default:false,pos:p.length}])});
+      
+      // Check for duplicate names
+      var trimmed = nl.trim();
+      var existing = ss.find(function(s) { return s.label.toLowerCase() === trimmed.toLowerCase(); });
+      if (existing) {
+        alert('A state with this name already exists');
+        return;
+      }
+      
+      var k = trimmed.toUpperCase().replace(/[^A-Z0-9]/g,'_');
+      setSS(function(p){return p.concat([{id:nid,key:k,label:trimmed,color:nc,is_terminal:nt,is_default:false,pos:p.length}])});
       setNid(function(n){return n+1}); setNL(''); setNT(false);
     }
     function remS(id) {
@@ -150,19 +226,96 @@
     }
     function addT() {
       if(!nf||!nto||nf===nto) return;
+      
+      // Check for duplicate transitions
+      var existing = tr.find(function(t) { 
+        return t.from === Number(nf) && t.to === Number(nto); 
+      });
+      if (existing) {
+        alert('This transition already exists');
+        return;
+      }
+      
       setTR(function(p){return p.concat([{id:tid,from:Number(nf),to:Number(nto),actor:na}])});
       setTid(function(n){return n+1}); setNF(''); setNTO('');
     }
     function remT(id) { setTR(function(p){return p.filter(function(x){return x.id!==id})}); }
 
+    // Responsive styling helpers
+    var isMobile = window.innerWidth <= 768;
+    var [isSmallScreen, setIsSmallScreen] = useState(isMobile);
+    
+    React.useEffect(function() {
+      function handleResize() {
+        setIsSmallScreen(window.innerWidth <= 768);
+      }
+      window.addEventListener('resize', handleResize);
+      return function() { window.removeEventListener('resize', handleResize); };
+    }, []);
+    
     var tabSt = function(v) {
-      return {padding:'10px 18px',fontSize:'13px',fontWeight:600,cursor:'pointer',background:'none',border:'none',
-        borderBottom: tab===v?'2px solid #818cf8':'2px solid transparent',
-        color: tab===v?'#a5b4fc':'#6b7280'};
+      return {
+        padding: isSmallScreen ? '12px 16px' : '10px 18px',
+        fontSize: isSmallScreen ? '14px' : '13px',
+        fontWeight: 600,
+        cursor: 'pointer',
+        background: 'none',
+        border: 'none',
+        borderBottom: tab === v ? '2px solid #818cf8' : '2px solid transparent',
+        color: tab === v ? '#a5b4fc' : '#6b7280',
+        transition: 'all 0.2s ease',
+        minHeight: isSmallScreen ? '48px' : 'auto',
+        flex: isSmallScreen ? '1' : 'none',
+        textAlign: 'center'
+      };
     };
-    var btnSt = {padding:'7px 16px',fontSize:'12px',fontWeight:600,background:'#4f46e5',color:'white',border:'none',borderRadius:'6px',cursor:'pointer'};
-    var inpSt = {padding:'7px 10px',fontSize:'12px',border:'1px solid #3f3f46',borderRadius:'6px',outline:'none',background:'#18181b',color:'#e5e7eb'};
-    var selSt = Object.assign({},inpSt);
+    
+    var btnSt = {
+      padding: isSmallScreen ? '12px 20px' : '8px 16px',
+      fontSize: isSmallScreen ? '14px' : '12px',
+      fontWeight: 600,
+      background: '#4f46e5',
+      color: 'white',
+      border: 'none',
+      borderRadius: '8px',
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+      minHeight: isSmallScreen ? '44px' : '32px',
+      boxShadow: '0 2px 8px rgba(79, 70, 229, 0.3)'
+    };
+    
+    var inpSt = {
+      padding: isSmallScreen ? '12px 14px' : '8px 12px',
+      fontSize: isSmallScreen ? '16px' : '13px', // 16px prevents zoom on iOS
+      border: '1px solid #3f3f46',
+      borderRadius: '8px',
+      outline: 'none',
+      background: '#18181b',
+      color: '#e5e7eb',
+      transition: 'all 0.2s ease',
+      minHeight: isSmallScreen ? '44px' : '32px'
+    };
+    
+    var selSt = Object.assign({}, inpSt, {
+      backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 4 5\'><path fill=\'%236b7280\' d=\'M2 0L0 2h4zm0 5L0 3h4z\'/></svg>")',
+      backgroundRepeat: 'no-repeat',
+      backgroundPosition: 'right 8px center',
+      backgroundSize: '12px',
+      paddingRight: '32px'
+    });
+    
+    var removeBtnSt = {
+      background: 'none',
+      border: 'none',
+      color: '#ef4444',
+      cursor: 'pointer',
+      fontSize: isSmallScreen ? '18px' : '14px',
+      padding: isSmallScreen ? '8px' : '4px 8px',
+      borderRadius: '4px',
+      transition: 'all 0.2s ease',
+      minWidth: isSmallScreen ? '40px' : '24px',
+      minHeight: isSmallScreen ? '40px' : '24px'
+    };
 
     // Bot reachability analysis
     var botTr = tr.filter(function(x){return x.actor==='BOT'||x.actor==='ALL'});
@@ -177,88 +330,432 @@
     }
     var humanOnly = ss.filter(function(x){return x.is_terminal && !reached[x.id]});
 
-    return h('div', {style:{background:'#18181b'}},
+    return h('div', {style:{background:'#18181b', borderRadius:'12px', overflow:'hidden'}},
       // Tabs
-      h('div', {style:{display:'flex',borderBottom:'1px solid #27272a',background:'#111111'}},
-        h('button',{onClick:function(){setTab('diagram')},style:tabSt('diagram')},'⬡ Diagram'),
-        h('button',{onClick:function(){setTab('states')},style:tabSt('states')},'● States'),
-        h('button',{onClick:function(){setTab('transitions')},style:tabSt('transitions')},'→ Transitions')
+      h('div', {style:{
+        display:'flex',
+        borderBottom:'1px solid #27272a',
+        background:'linear-gradient(135deg, #111111 0%, #0f0f0f 100%)',
+        position:'sticky',
+        top:0,
+        zIndex:10
+      }},
+        h('button',{
+          onClick:function(){setTab('diagram')},
+          style:tabSt('diagram'),
+          'aria-label':'View diagram tab'
+        }, isSmallScreen ? '⬡' : '⬡ Diagram'),
+        h('button',{
+          onClick:function(){setTab('states')},
+          style:tabSt('states'),
+          'aria-label':'Manage states tab'
+        }, isSmallScreen ? '●' : '● States'),
+        h('button',{
+          onClick:function(){setTab('transitions')},
+          style:tabSt('transitions'),
+          'aria-label':'Manage transitions tab'
+        }, isSmallScreen ? '→' : '→ Transitions')
       ),
 
       // Diagram
       tab==='diagram' && h('div',null,
-        h('div',{style:{height:'440px',width:'100%',background:'white'}},
-          h(ReactFlow,{nodes:nodes,edges:eds,fitView:true,nodesDraggable:false,nodesConnectable:false,elementsSelectable:false,proOptions:{hideAttribution:true}},
-            h(Background,{gap:20,size:1,color:'#f1f5f9'}),
-            h(Controls,{showInteractive:false})
-          )
+        h('div',{
+          style:{
+            height: isSmallScreen ? '360px' : '440px',
+            width:'100%',
+            background:'white',
+            borderRadius: '8px 8px 0 0'
+          }
+        },
+          nodes.length === 0 ? 
+            h('div', {className: 'loading'}, 'Loading diagram...') :
+            h(ReactFlow,{
+              nodes:nodes,
+              edges:eds,
+              fitView:true,
+              nodesDraggable:false,
+              nodesConnectable:false,
+              elementsSelectable:false,
+              proOptions:{hideAttribution:true},
+              minZoom:0.2,
+              maxZoom:2
+            },
+              h(Background,{gap:20,size:1,color:'#f1f5f9'}),
+              h(Controls,{showInteractive:false})
+            )
         ),
-        h('div',{style:{padding:'12px 16px',display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:'8px',borderTop:'1px solid #27272a'}},
-          h('div',{style:{display:'flex',gap:'16px',fontSize:'11px',color:'#6b7280'}},
-            h('span',null,'● ',h('span',{style:{color:'#a855f7'}},'Bot (animated)')),
-            h('span',null,'● ',h('span',{style:{color:'#3b82f6'}},'Human')),
-            h('span',null,'● ',h('span',{style:{color:'#6b7280'}},'All')),
-            h('span',null,'◆ Rounded = terminal')
+        h('div',{
+          style:{
+            padding: isSmallScreen ? '16px 12px' : '12px 16px',
+            display:'flex',
+            justifyContent:'space-between',
+            alignItems: isSmallScreen ? 'flex-start' : 'center',
+            flexDirection: isSmallScreen ? 'column' : 'row',
+            gap: isSmallScreen ? '12px' : '8px',
+            borderTop:'1px solid #27272a',
+            background:'#111111'
+          }
+        },
+          h('div',{
+            style:{
+              display:'flex',
+              gap: isSmallScreen ? '8px' : '16px',
+              fontSize: isSmallScreen ? '12px' : '11px',
+              color:'#6b7280',
+              flexWrap:'wrap',
+              alignItems:'center'
+            }
+          },
+            h('span',{style:{display:'flex',alignItems:'center',gap:'4px'}},
+              '●', h('span',{style:{color:'#a855f7'}},'Bot (animated)')
+            ),
+            h('span',{style:{display:'flex',alignItems:'center',gap:'4px'}},
+              '●', h('span',{style:{color:'#3b82f6'}},'Human')
+            ),
+            h('span',{style:{display:'flex',alignItems:'center',gap:'4px'}},
+              '●', h('span',{style:{color:'#6b7280'}},'All')
+            ),
+            h('span',{style:{display:'flex',alignItems:'center',gap:'4px'}},
+              '◆ Rounded = terminal'
+            )
           ),
-          humanOnly.length>0 && h('div',{style:{fontSize:'11px',color:'#d97706',fontWeight:600}},
+          humanOnly.length>0 && h('div',{
+            style:{
+              fontSize: isSmallScreen ? '12px' : '11px',
+              color:'#d97706',
+              fontWeight:600,
+              background:'rgba(217, 119, 6, 0.1)',
+              padding:'6px 10px',
+              borderRadius:'6px',
+              border:'1px solid rgba(217, 119, 6, 0.3)'
+            }
+          },
             '⚠ Human-only: '+humanOnly.map(function(x){return x.label}).join(', ')
           )
         )
       ),
 
       // States
-      tab==='states' && h('div',{style:{padding:'16px'}},
+      tab==='states' && h('div',{style:{padding: isSmallScreen ? '12px' : '16px'}},
+        h('div',{style:{marginBottom:'20px'}},
+          h('h3',{style:{
+            fontSize: isSmallScreen ? '16px' : '14px',
+            fontWeight:600,
+            color:'#e5e7eb',
+            marginBottom:'8px'
+          }}, 'Workflow States'),
+          h('p',{style:{
+            fontSize: isSmallScreen ? '14px' : '13px',
+            color:'#9ca3af',
+            lineHeight:'1.5'
+          }}, 'Define the statuses your tickets can be in. Mark terminal states and set one as default.')
+        ),
+        
+        ss.length === 0 ? h('div',{style:{
+          textAlign:'center',
+          padding:'40px 20px',
+          color:'#6b7280',
+          fontStyle:'italic'
+        }}, 'No states defined yet. Add your first state below.') : 
+        
         ss.map(function(s) {
-          return h('div',{key:s.id,style:{display:'flex',alignItems:'center',gap:'10px',padding:'8px 0',borderBottom:'1px solid #27272a'}},
-            h('div',{style:{width:12,height:12,borderRadius:'50%',background:COLORS[s.color],flexShrink:0}}),
-            h('span',{style:{fontSize:'13px',fontWeight:600,color:'#e5e7eb',flex:1}},s.label),
-            s.is_default && h('span',{style:{fontSize:'10px',background:'#312e81',color:'#a5b4fc',padding:'2px 6px',borderRadius:'4px',fontWeight:600}},'Default'),
-            s.is_terminal && h('span',{style:{fontSize:'10px',background:'#27272a',color:'#9ca3af',padding:'2px 6px',borderRadius:'4px',fontWeight:600}},'Terminal'),
-            h('button',{onClick:function(){remS(s.id)},style:{background:'none',border:'none',color:'#ef4444',cursor:'pointer',fontSize:'14px',padding:'4px 8px'}},'✕')
+          return h('div',{
+            key:s.id,
+            style:{
+              display:'flex',
+              alignItems: isSmallScreen ? 'flex-start' : 'center',
+              gap: isSmallScreen ? '8px' : '12px',
+              padding: isSmallScreen ? '12px 0' : '10px 0',
+              borderBottom:'1px solid #27272a',
+              flexDirection: isSmallScreen ? 'column' : 'row'
+            }
+          },
+            h('div',{style:{
+              display:'flex',
+              alignItems:'center',
+              gap:'8px',
+              flex:1,
+              minWidth:0
+            }},
+              h('div',{style:{
+                width: isSmallScreen ? 16 : 12,
+                height: isSmallScreen ? 16 : 12,
+                borderRadius:'50%',
+                background:COLORS[s.color],
+                flexShrink:0
+              }}),
+              h('span',{style:{
+                fontSize: isSmallScreen ? '15px' : '13px',
+                fontWeight:600,
+                color:'#e5e7eb',
+                wordBreak:'break-word'
+              }}, s.label)
+            ),
+            
+            h('div',{style:{
+              display:'flex',
+              gap:'6px',
+              alignItems:'center',
+              flexWrap:'wrap'
+            }},
+              s.is_default && h('span',{style:{
+                fontSize: isSmallScreen ? '11px' : '10px',
+                background:'#312e81',
+                color:'#a5b4fc',
+                padding: isSmallScreen ? '4px 8px' : '3px 6px',
+                borderRadius:'6px',
+                fontWeight:600
+              }},'Default'),
+              s.is_terminal && h('span',{style:{
+                fontSize: isSmallScreen ? '11px' : '10px',
+                background:'#27272a',
+                color:'#9ca3af',
+                padding: isSmallScreen ? '4px 8px' : '3px 6px',
+                borderRadius:'6px',
+                fontWeight:600
+              }},'Terminal'),
+              h('button',{
+                onClick:function(){remS(s.id)},
+                style:removeBtnSt,
+                'aria-label': 'Remove ' + s.label
+              },'✕')
+            )
           );
         }),
-        h('div',{style:{display:'flex',gap:'8px',marginTop:'16px',alignItems:'center',flexWrap:'wrap'}},
-          h('input',{value:nl,onChange:function(e){setNL(e.target.value)},placeholder:'Status name...',style:Object.assign({},inpSt,{flex:1,minWidth:'120px'})}),
-          h('select',{value:nc,onChange:function(e){setNC(e.target.value)},style:selSt},
-            Object.keys(COLORS).map(function(c){return h('option',{key:c,value:c},c)})
-          ),
-          h('label',{style:{fontSize:'12px',color:'#9ca3af',display:'flex',alignItems:'center',gap:'4px'}},
-            h('input',{type:'checkbox',checked:nt,onChange:function(e){setNT(e.target.checked)}}),
-            'Terminal'
-          ),
-          h('button',{onClick:addS,style:btnSt},'+ Add')
+        
+        h('div',{style:{
+          display:'flex',
+          gap: isSmallScreen ? '12px' : '8px',
+          marginTop:'20px',
+          alignItems: isSmallScreen ? 'stretch' : 'center',
+          flexDirection: isSmallScreen ? 'column' : 'row',
+          flexWrap: isSmallScreen ? 'nowrap' : 'wrap'
+        }},
+          h('input',{
+            value:nl,
+            onChange:function(e){setNL(e.target.value)},
+            onKeyPress:function(e){if(e.key==='Enter')addS()},
+            placeholder:'Status name...',
+            style:Object.assign({},inpSt,{flex:isSmallScreen?'none':'1',minWidth:isSmallScreen?'100%':'120px'}),
+            'aria-label':'Status name'
+          }),
+          h('div',{style:{
+            display:'flex',
+            gap: isSmallScreen ? '12px' : '8px',
+            alignItems:'center',
+            flexDirection: isSmallScreen ? 'column' : 'row',
+            width: isSmallScreen ? '100%' : 'auto'
+          }},
+            h('select',{
+              value:nc,
+              onChange:function(e){setNC(e.target.value)},
+              style:Object.assign({},selSt,{width:isSmallScreen?'100%':'auto'}),
+              'aria-label':'Status color'
+            },
+              Object.keys(COLORS).map(function(c){return h('option',{key:c,value:c},c.charAt(0).toUpperCase()+c.slice(1))})
+            ),
+            h('label',{style:{
+              fontSize: isSmallScreen ? '14px' : '12px',
+              color:'#9ca3af',
+              display:'flex',
+              alignItems:'center',
+              gap:'6px',
+              cursor:'pointer',
+              userSelect:'none'
+            }},
+              h('input',{
+                type:'checkbox',
+                checked:nt,
+                onChange:function(e){setNT(e.target.checked)},
+                style:{
+                  width: isSmallScreen ? '18px' : '14px',
+                  height: isSmallScreen ? '18px' : '14px',
+                  cursor:'pointer'
+                }
+              }),
+              'Terminal state'
+            ),
+            h('button',{
+              onClick:addS,
+              disabled:!nl.trim(),
+              style:Object.assign({},btnSt,{
+                opacity:!nl.trim()?0.5:1,
+                cursor:!nl.trim()?'not-allowed':'pointer',
+                width: isSmallScreen ? '100%' : 'auto'
+              }),
+              'aria-label':'Add new status'
+            },'+ Add Status')
+          )
         )
       ),
 
       // Transitions
-      tab==='transitions' && h('div',{style:{padding:'16px'}},
+      tab==='transitions' && h('div',{style:{padding: isSmallScreen ? '12px' : '16px'}},
+        h('div',{style:{marginBottom:'20px'}},
+          h('h3',{style:{
+            fontSize: isSmallScreen ? '16px' : '14px',
+            fontWeight:600,
+            color:'#e5e7eb',
+            marginBottom:'8px'
+          }}, 'State Transitions'),
+          h('p',{style:{
+            fontSize: isSmallScreen ? '14px' : '13px',
+            color:'#9ca3af',
+            lineHeight:'1.5'
+          }}, 'Define allowed moves between states and who can make them.')
+        ),
+        
+        tr.length === 0 ? h('div',{style:{
+          textAlign:'center',
+          padding:'40px 20px',
+          color:'#6b7280',
+          fontStyle:'italic'
+        }}, 'No transitions defined yet. Add your first transition below.') :
+        
         tr.map(function(x) {
           var f = ss.filter(function(s){return s.id===x.from})[0];
           var t2 = ss.filter(function(s){return s.id===x.to})[0];
-          return h('div',{key:x.id,style:{display:'flex',alignItems:'center',gap:'8px',padding:'6px 0',borderBottom:'1px solid #27272a',fontSize:'13px'}},
-            h('span',{style:{fontWeight:600,color:'#e5e7eb'}},f?f.label:'?'),
-            h('span',{style:{color:'#6b7280'}},'→'),
-            h('span',{style:{fontWeight:600,color:'#e5e7eb'}},t2?t2.label:'?'),
-            h('span',{style:{fontSize:'10px',fontWeight:700,padding:'2px 6px',borderRadius:'4px',color:'white',background:AC[x.actor]}},x.actor),
-            h('button',{onClick:function(){remT(x.id)},style:{marginLeft:'auto',background:'none',border:'none',color:'#ef4444',cursor:'pointer',fontSize:'14px',padding:'4px 8px'}},'✕')
+          return h('div',{
+            key:x.id,
+            style:{
+              display:'flex',
+              alignItems: isSmallScreen ? 'flex-start' : 'center',
+              gap: isSmallScreen ? '8px' : '10px',
+              padding: isSmallScreen ? '12px 0' : '8px 0',
+              borderBottom:'1px solid #27272a',
+              fontSize: isSmallScreen ? '14px' : '13px',
+              flexDirection: isSmallScreen ? 'column' : 'row'
+            }
+          },
+            h('div',{style:{
+              display:'flex',
+              alignItems:'center',
+              gap: isSmallScreen ? '8px' : '6px',
+              flex:1,
+              minWidth:0
+            }},
+              h('span',{style:{
+                fontWeight:600,
+                color:'#e5e7eb',
+                background:'#1f2937',
+                padding: isSmallScreen ? '6px 10px' : '4px 8px',
+                borderRadius:'6px',
+                fontSize: isSmallScreen ? '13px' : '12px'
+              }}, f ? f.label : '?'),
+              h('span',{style:{
+                color:'#6b7280',
+                fontWeight:600,
+                fontSize: isSmallScreen ? '16px' : '14px'
+              }},'→'),
+              h('span',{style:{
+                fontWeight:600,
+                color:'#e5e7eb',
+                background:'#1f2937',
+                padding: isSmallScreen ? '6px 10px' : '4px 8px',
+                borderRadius:'6px',
+                fontSize: isSmallScreen ? '13px' : '12px'
+              }}, t2 ? t2.label : '?')
+            ),
+            
+            h('div',{style:{
+              display:'flex',
+              alignItems:'center',
+              gap:'8px'
+            }},
+              h('span',{style:{
+                fontSize: isSmallScreen ? '12px' : '10px',
+                fontWeight:700,
+                padding: isSmallScreen ? '6px 10px' : '4px 8px',
+                borderRadius:'6px',
+                color:'white',
+                background:AC[x.actor],
+                textTransform:'uppercase',
+                letterSpacing:'0.5px'
+              }}, x.actor),
+              h('button',{
+                onClick:function(){remT(x.id)},
+                style:removeBtnSt,
+                'aria-label': 'Remove transition from ' + (f?f.label:'') + ' to ' + (t2?t2.label:'')
+              },'✕')
+            )
           );
         }),
-        h('div',{style:{display:'flex',gap:'8px',marginTop:'16px',alignItems:'center',flexWrap:'wrap'}},
-          h('select',{value:nf,onChange:function(e){setNF(e.target.value)},style:Object.assign({},selSt,{flex:1,minWidth:'100px'})},
-            h('option',{value:''},'From...'),
-            ss.map(function(s){return h('option',{key:s.id,value:s.id},s.label)})
+        
+        h('div',{style:{
+          display:'flex',
+          gap: isSmallScreen ? '12px' : '8px',
+          marginTop:'20px',
+          alignItems: isSmallScreen ? 'stretch' : 'center',
+          flexDirection: isSmallScreen ? 'column' : 'row',
+          flexWrap: isSmallScreen ? 'nowrap' : 'wrap'
+        }},
+          h('div',{style:{
+            display:'flex',
+            alignItems:'center',
+            gap: isSmallScreen ? '8px' : '6px',
+            flex: isSmallScreen ? 'none' : '1',
+            minWidth: isSmallScreen ? '100%' : '200px'
+          }},
+            h('select',{
+              value:nf,
+              onChange:function(e){setNF(e.target.value)},
+              style:Object.assign({},selSt,{
+                flex:1,
+                minWidth: isSmallScreen ? '0' : '80px'
+              }),
+              'aria-label':'From state'
+            },
+              h('option',{value:''},'From...'),
+              ss.map(function(s){return h('option',{key:s.id,value:s.id},s.label)})
+            ),
+            h('span',{style:{
+              color:'#6b7280',
+              fontWeight:600,
+              fontSize: isSmallScreen ? '16px' : '14px',
+              flexShrink:0
+            }},'→'),
+            h('select',{
+              value:nto,
+              onChange:function(e){setNTO(e.target.value)},
+              style:Object.assign({},selSt,{
+                flex:1,
+                minWidth: isSmallScreen ? '0' : '80px'
+              }),
+              'aria-label':'To state'
+            },
+              h('option',{value:''},'To...'),
+              ss.map(function(s){return h('option',{key:s.id,value:s.id},s.label)})
+            )
           ),
-          h('span',{style:{color:'#6b7280',fontWeight:600}},'→'),
-          h('select',{value:nto,onChange:function(e){setNTO(e.target.value)},style:Object.assign({},selSt,{flex:1,minWidth:'100px'})},
-            h('option',{value:''},'To...'),
-            ss.map(function(s){return h('option',{key:s.id,value:s.id},s.label)})
-          ),
-          h('select',{value:na,onChange:function(e){setNA(e.target.value)},style:selSt},
-            h('option',{value:'BOT'},'Bot'),
-            h('option',{value:'HUMAN'},'Human'),
-            h('option',{value:'ALL'},'All')
-          ),
-          h('button',{onClick:addT,style:btnSt},'+ Add')
+          
+          h('div',{style:{
+            display:'flex',
+            gap: isSmallScreen ? '12px' : '8px',
+            alignItems:'center',
+            flexDirection: isSmallScreen ? 'column' : 'row',
+            width: isSmallScreen ? '100%' : 'auto'
+          }},
+            h('select',{
+              value:na,
+              onChange:function(e){setNA(e.target.value)},
+              style:Object.assign({},selSt,{width:isSmallScreen?'100%':'auto'}),
+              'aria-label':'Who can perform this transition'
+            },
+              h('option',{value:'BOT'},'Bot Only'),
+              h('option',{value:'HUMAN'},'Human Only'),
+              h('option',{value:'ALL'},'Bot or Human')
+            ),
+            h('button',{
+              onClick:addT,
+              disabled:!nf||!nto||nf===nto,
+              style:Object.assign({},btnSt,{
+                opacity:(!nf||!nto||nf===nto)?0.5:1,
+                cursor:(!nf||!nto||nf===nto)?'not-allowed':'pointer',
+                width: isSmallScreen ? '100%' : 'auto'
+              }),
+              'aria-label':'Add new transition'
+            },'+ Add Transition')
+          )
         )
       )
     );
