@@ -1,7 +1,18 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import {
+  ReactFlow,
+  Background,
+  Controls,
+  MarkerType,
+  Position,
+  type Node,
+  type Edge,
+} from '@xyflow/react';
+import dagre from 'dagre';
+import '@xyflow/react/dist/style.css';
 import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import FormField, { parseFieldErrors, inputClass } from '@/components/FormField';
@@ -13,6 +24,12 @@ const COLOR_CLASSES: Record<string, string> = {
   gray: 'bg-gray-400', blue: 'bg-blue-500', red: 'bg-red-500', purple: 'bg-purple-500',
   amber: 'bg-amber-500', green: 'bg-green-500', yellow: 'bg-yellow-500', indigo: 'bg-indigo-500',
   pink: 'bg-pink-500', orange: 'bg-orange-500',
+};
+
+const COLOR_HEX: Record<string, string> = {
+  gray: '#9ca3af', red: '#ef4444', blue: '#3b82f6', green: '#22c55e',
+  amber: '#f59e0b', purple: '#a855f7', pink: '#ec4899', indigo: '#6366f1',
+  yellow: '#eab308', orange: '#f97316',
 };
 
 export default function WorkspaceSettingsPage() {
@@ -35,7 +52,7 @@ export default function WorkspaceSettingsPage() {
   const [newStatusTerminal, setNewStatusTerminal] = useState(false);
   const [newStatusApprovalGate, setNewStatusApprovalGate] = useState(false);
   const [addingStatus, setAddingStatus] = useState(false);
-  const [statusTab, setStatusTab] = useState<'statuses' | 'transitions'>('statuses');
+  const [statusTab, setStatusTab] = useState<'statuses' | 'transitions' | 'diagram'>('diagram');
   const { toast } = useToast();
 
   const loadData = useCallback(async (ws: Workspace) => {
@@ -185,6 +202,99 @@ export default function WorkspaceSettingsPage() {
     } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
   };
 
+  // Diagram building functions
+  const buildNodes = useMemo(() => {
+    if (statuses.length === 0) return [];
+    
+    const g = new dagre.graphlib.Graph();
+    g.setGraph({ rankdir: 'TB', nodesep: 50, ranksep: 70 });
+    g.setDefaultEdgeLabel(() => ({}));
+    statuses.forEach((s) => g.setNode(String(s.id), { width: 140, height: 40 }));
+    transitions.forEach((t) => g.setEdge(String(t.from_status), String(t.to_status)));
+    dagre.layout(g);
+
+    return statuses.map((s) => {
+      const nd = g.node(String(s.id));
+      const color = COLOR_HEX[s.color] || '#9ca3af';
+      return {
+        id: String(s.id),
+        position: { x: (nd?.x ?? 0) - 70, y: (nd?.y ?? 0) - 20 },
+        data: { label: s.is_bot_requires_approval ? `🔒 ${s.label}` : s.label },
+        type: 'default',
+        style: {
+          background: 'white',
+          border: `2px solid ${color}`,
+          borderRadius: s.is_terminal ? '20px' : '8px',
+          padding: '6px 12px',
+          fontSize: '12px',
+          fontWeight: 600,
+          color: '#1f2937',
+          boxShadow: s.is_default ? `0 0 0 3px ${color}44` : '0 1px 4px rgba(0,0,0,0.1)',
+          minWidth: '100px',
+          textAlign: 'center' as const,
+        },
+        sourcePosition: Position.Bottom,
+        targetPosition: Position.Top,
+      };
+    });
+  }, [statuses, transitions]);
+
+  const buildEdges = useMemo(() => {
+    const ACTOR_COLORS = {
+      BOT: '#a855f7', 
+      HUMAN: '#3b82f6', 
+      ALL: '#6b7280',
+    };
+
+    return transitions.map((t) => {
+      const targetStatus = statuses.find((s) => s.id === t.to_status);
+      const isGatedBot = (t.actor_type === 'BOT' || t.actor_type === 'ALL') && targetStatus?.is_bot_requires_approval;
+      const edgeColor = isGatedBot ? '#eab308' : ACTOR_COLORS[t.actor_type];
+      
+      return {
+        id: `e${t.id}`,
+        source: String(t.from_status),
+        target: String(t.to_status),
+        animated: t.actor_type === 'BOT' && !isGatedBot,
+        style: {
+          stroke: edgeColor,
+          strokeWidth: 2,
+          strokeDasharray: t.actor_type === 'HUMAN' ? '5,5' : isGatedBot ? '8,4' : 'none',
+        },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          color: edgeColor,
+          width: 14,
+          height: 14,
+        },
+        label: isGatedBot ? `${t.actor_type} 🔒` : t.actor_type,
+        labelStyle: { fontSize: 9, fontWeight: 700, fill: edgeColor },
+        labelBgStyle: { fill: 'white', fillOpacity: 0.9 },
+      };
+    });
+  }, [transitions, statuses]);
+
+  // Check for human-only terminals (for warnings)
+  const humanOnlyTerminals = useMemo(() => {
+    const botTransitions = transitions.filter((t) => t.actor_type === 'BOT' || t.actor_type === 'ALL');
+    const defaultStatus = statuses.find((s) => s.is_default);
+    if (!defaultStatus) return [];
+    
+    const reached = new Set<number>();
+    const queue = [defaultStatus.id];
+    while (queue.length) {
+      const current = queue.shift()!;
+      botTransitions.forEach((t) => {
+        if (t.from_status === current && !reached.has(t.to_status)) {
+          reached.add(t.to_status);
+          queue.push(t.to_status);
+        }
+      });
+    }
+    
+    return statuses.filter((s) => s.is_terminal && !reached.has(s.id));
+  }, [statuses, transitions]);
+
 
   if (!workspace) return <Layout><div className="p-8 text-center text-gray-500">Workspace not found</div></Layout>;
 
@@ -288,9 +398,94 @@ export default function WorkspaceSettingsPage() {
 
           {/* Tabs */}
           <div className="px-5 pt-4 flex gap-2">
+            <button onClick={() => setStatusTab('diagram')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${statusTab === 'diagram' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:bg-gray-100'}`}>Diagram</button>
             <button onClick={() => setStatusTab('statuses')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${statusTab === 'statuses' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:bg-gray-100'}`}>Statuses</button>
             <button onClick={() => setStatusTab('transitions')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${statusTab === 'transitions' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:bg-gray-100'}`}>Transitions</button>
           </div>
+
+          {statusTab === 'diagram' && (
+            <div>
+              <div style={{ 
+                height: '500px',
+                width: '100%', 
+                background: 'white',
+                position: 'relative',
+                overflow: 'hidden',
+              }}>
+                {statuses.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-gray-500">
+                    <div className="text-center">
+                      <div className="text-4xl mb-4">⬡</div>
+                      <p className="text-lg mb-2">No statuses defined yet</p>
+                      <p className="text-sm opacity-70">Add statuses in the Statuses tab to see the diagram</p>
+                    </div>
+                  </div>
+                ) : (
+                  <ReactFlow
+                    nodes={buildNodes}
+                    edges={buildEdges}
+                    fitView
+                    fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
+                    nodesDraggable={false}
+                    nodesConnectable={false}
+                    elementsSelectable={false}
+                    proOptions={{ hideAttribution: true }}
+                    minZoom={0.1}
+                    maxZoom={2}
+                    panOnScroll={true}
+                    zoomOnScroll={true}
+                    zoomOnPinch={true}
+                    panOnDrag={true}
+                  >
+                    <Background 
+                      gap={20} 
+                      size={1} 
+                      color="#cbd5e1"
+                    />
+                    <Controls 
+                      showInteractive={false}
+                      position="bottom-right"
+                    />
+                  </ReactFlow>
+                )}
+              </div>
+              
+              <div className="px-5 py-4 border-t border-gray-100 bg-gray-50">
+                <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-3">
+                  <span className="flex items-center gap-2">
+                    <span className="w-3 h-0.5 bg-purple-500"></span>
+                    <span>🤖 Bot (animated)</span>
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <span className="w-3 h-0.5 border-b-2 border-dashed border-blue-500"></span>
+                    <span>👤 Human (dashed)</span>
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <span className="w-3 h-0.5 bg-gray-500"></span>
+                    <span>🔄 All</span>
+                  </span>
+                  <span>⭐ Default state</span>
+                  <span>🏁 Terminal state</span>
+                </div>
+                
+                {humanOnlyTerminals.length > 0 && (
+                  <div className="mb-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                    <span className="text-sm font-medium text-amber-700">
+                      ⚠ Human-only terminals: {humanOnlyTerminals.map((s) => s.label).join(', ')}
+                    </span>
+                  </div>
+                )}
+                
+                {statuses.filter((s) => s.is_bot_requires_approval).length > 0 && (
+                  <div className="p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <span className="text-sm font-medium text-yellow-700">
+                      🔒 Approval gates: {statuses.filter((s) => s.is_bot_requires_approval).map((s) => s.label).join(', ')}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {statusTab === 'statuses' && (
             <div className="p-5">
