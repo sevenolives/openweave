@@ -726,8 +726,8 @@ export default function StateMachinePage() {
                     <div key={t.id} style={{
                       display: 'flex',
                       alignItems: isSmall ? 'flex-start' : 'center',
-                      gap: isSmall ? 8 : 10,
-                      padding: isSmall ? '12px 0' : '8px 0',
+                      gap: isSmall ? 6 : 10,
+                      padding: isSmall ? '8px 0' : '8px 0',
                       borderBottom: '1px solid #27272a',
                       fontSize: isSmall ? 14 : 13,
                       flexDirection: isSmall ? 'column' : 'row',
