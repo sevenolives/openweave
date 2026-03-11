@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Blog | OpenWeave',
     description: 'Insights on execution governance, autonomous agent management, and deterministic workflows.',
-    url: 'https://uat.openweave.dev/blog',
+    url: 'https://openweave.dev/blog',
     type: 'website',
   },
 };

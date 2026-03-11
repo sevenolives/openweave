@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://backend-production-758b.up.railway.app/api';
-const SITE_URL = 'https://uat.openweave.dev';
+const SITE_URL = 'https://openweave.dev';
 
 interface BlogPost {
   id: number;
