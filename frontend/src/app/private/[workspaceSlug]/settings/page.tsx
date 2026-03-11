@@ -54,7 +54,23 @@ export default function WorkspaceSettingsPage() {
   const [addingStatus, setAddingStatus] = useState(false);
   const [settingsTab, setSettingsTab] = useState<'general' | 'members' | 'state-machine'>('general');
   const [statusTab, setStatusTab] = useState<'diagram' | 'statuses' | 'transitions'>('diagram');
+  const [isSmall, setIsSmall] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [fromId, setFromId] = useState('');
+  const [toId, setToId] = useState('');
+  const [newActor, setNewActor] = useState<'BOT' | 'HUMAN' | 'ALL'>('BOT');
   const { toast } = useToast();
+
+  useEffect(() => {
+    const check = () => {
+      const width = window.innerWidth;
+      setIsSmall(width <= 768);
+      setIsMobile(width <= 640);
+    };
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   const loadData = useCallback(async (ws: Workspace) => {
     try {
@@ -138,12 +154,13 @@ export default function WorkspaceSettingsPage() {
   };
 
   const handleAddStatus = async () => {
-    if (!workspace || !newStatusKey.trim() || !newStatusLabel.trim()) return;
+    if (!workspace || !newStatusLabel.trim()) return;
+    const autoKey = newStatusLabel.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '');
     setAddingStatus(true);
     try {
       await api.createStatusDefinition({
         workspace: workspace.id,
-        key: newStatusKey.toUpperCase().replace(/\s+/g, '_'),
+        key: autoKey,
         label: newStatusLabel,
         color: newStatusColor,
         is_terminal: newStatusTerminal,
@@ -435,7 +452,6 @@ export default function WorkspaceSettingsPage() {
 
         {/* === STATE MACHINE TAB === */}
         {settingsTab === 'state-machine' && (() => {
-          // Style constants from the public page
           const COLORS_HEX: Record<string, string> = {
             gray: '#9ca3af', blue: '#3b82f6', red: '#ef4444', purple: '#a855f7',
             amber: '#f59e0b', green: '#22c55e', yellow: '#eab308', indigo: '#6366f1',
@@ -445,20 +461,6 @@ export default function WorkspaceSettingsPage() {
           const ACTOR_COLORS: Record<string, string> = {
             BOT: '#a855f7', HUMAN: '#3b82f6', ALL: '#6b7280',
           };
-
-          const [isSmall, setIsSmall] = useState(false);
-          const [isMobile, setIsMobile] = useState(false);
-
-          useEffect(() => {
-            const check = () => {
-              const width = window.innerWidth;
-              setIsSmall(width <= 768);
-              setIsMobile(width <= 640);
-            };
-            check();
-            window.addEventListener('resize', check);
-            return () => window.removeEventListener('resize', check);
-          }, []);
 
           const tabStyle = (v: 'diagram' | 'statuses' | 'transitions'): React.CSSProperties => ({
             padding: isMobile ? '16px 12px' : isSmall ? '14px 16px' : '12px 20px',
@@ -531,24 +533,16 @@ export default function WorkspaceSettingsPage() {
             userSelect: 'none',
           };
 
-          const [fromId, setFromId] = useState('');
-          const [toId, setToId] = useState('');
-          const [newActor, setNewActor] = useState<'BOT' | 'HUMAN' | 'ALL'>('BOT');
-
           const addTransition = () => {
             if (!fromId || !toId || fromId === toId) return;
             const f = Number(fromId), t = Number(toId);
-            if (transitions.some((tr) => tr.from_status === f && tr.to_status === t)) {
+            if (transitions.some((tr: any) => tr.from_status === f && tr.to_status === t)) {
               toast('This transition already exists', 'error');
               return;
             }
             handleAddTransition(f, t, newActor);
             setFromId('');
             setToId('');
-          };
-
-          const removeTransition = (id: number) => {
-            handleDeleteTransition(id);
           };
 
           return (
@@ -973,7 +967,7 @@ export default function WorkspaceSettingsPage() {
                               <option value="HUMAN" style={{ background: '#18181b', color: '#e5e7eb' }}>HUMAN</option>
                               <option value="ALL" style={{ background: '#18181b', color: '#e5e7eb' }}>ALL</option>
                             </select>
-                            <button onClick={() => removeTransition(t.id)} style={removeBtnStyle}>✕</button>
+                            <button onClick={() => handleDeleteTransition(t.id)} style={removeBtnStyle}>✕</button>
                           </div>
                         </div>
                       );
