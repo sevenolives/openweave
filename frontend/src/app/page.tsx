@@ -135,6 +135,7 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <span className="text-lg font-semibold tracking-tight text-white">OpenWeave</span>
           <div className="flex items-center gap-4">
+            <a href="/state-machine" className="text-sm text-gray-500 hover:text-gray-300 transition hidden sm:inline">State Machine</a>
             <a href="/blog" className="text-sm text-gray-500 hover:text-gray-300 transition hidden sm:inline">Blog</a>
             <a href="/api/docs" className="text-sm text-gray-500 hover:text-gray-300 transition hidden sm:inline">API Docs</a>
             <a href="/login" className="text-sm font-medium text-gray-300 hover:text-white transition">
@@ -233,6 +234,11 @@ export default function HomePage() {
           <h2 className="text-3xl md:text-4xl font-bold">Server-Enforced State Machine</h2>
           <div className="mt-10">
             <StateMachineDiagram />
+            <div className="mt-4 text-center">
+              <a href="/state-machine" className="inline-flex items-center gap-2 text-sm text-emerald-400 hover:text-emerald-300 transition font-medium">
+                Try the interactive state machine →
+              </a>
+            </div>
           </div>
           <div className="mt-10 grid gap-4 md:grid-cols-3">
             {[
