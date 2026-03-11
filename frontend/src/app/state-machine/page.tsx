@@ -423,9 +423,21 @@ export default function StateMachinePage() {
   /* ---- Render ---- */
   return (
     <div style={{ background: '#0a0a0a', color: '#e5e7eb', minHeight: '100vh', fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+      {/* Nav */}
+      <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(10,10,10,0.9)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ maxWidth: 900, margin: '0 auto', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <a href="/" style={{ fontSize: 18, fontWeight: 600, color: 'white', textDecoration: 'none', letterSpacing: '-0.02em' }}>OpenWeave</a>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+            <a href="/docs" style={{ fontSize: 14, color: '#6b7280', textDecoration: 'none' }}>Docs</a>
+            <a href="/blog" style={{ fontSize: 14, color: '#6b7280', textDecoration: 'none' }}>Blog</a>
+            <a href="/policies" style={{ fontSize: 14, color: '#6b7280', textDecoration: 'none' }}>Policies</a>
+            <a href="/login" style={{ fontSize: 14, fontWeight: 500, color: '#d1d5db', textDecoration: 'none' }}>Sign In →</a>
+          </div>
+        </div>
+      </nav>
+
       {/* Header */}
       <div style={{ maxWidth: 900, margin: '0 auto', padding: isSmall ? '24px 16px 16px' : '40px 24px 24px' }}>
-        <a href="/blog" style={{ display: 'inline-block', marginBottom: 16, fontSize: 13, color: '#6ee7b7', textDecoration: 'none' }}>← Back to Blog</a>
         <h1 style={{ fontSize: 'clamp(24px, 5vw, 28px)', fontWeight: 700, color: 'white', marginBottom: 8 }}>Design Your Workflow</h1>
         <p style={{ fontSize: 'clamp(14px, 3vw, 15px)', color: '#9ca3af', lineHeight: 1.6 }}>
           Every team works differently. Define your states, draw the transitions, and see your workflow take shape.
