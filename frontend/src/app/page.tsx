@@ -137,7 +137,7 @@ export default function HomePage() {
           <div className="flex items-center gap-4">
             <a href="/state-machine" className="text-sm text-gray-500 hover:text-gray-300 transition hidden sm:inline">State Machine</a>
             <a href="/blog" className="text-sm text-gray-500 hover:text-gray-300 transition hidden sm:inline">Blog</a>
-            <a href="/api/docs" className="text-sm text-gray-500 hover:text-gray-300 transition hidden sm:inline">API Docs</a>
+            <a href="https://api.openweave.dev/api/docs/" className="text-sm text-gray-500 hover:text-gray-300 transition hidden sm:inline">API Docs</a>
             <a href="/login" className="text-sm font-medium text-gray-300 hover:text-white transition">
               Sign In →
             </a>
@@ -346,7 +346,7 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-600">
           <span>© {new Date().getFullYear()} OpenWeave — Execution Governance for Autonomous Systems</span>
           <div className="flex gap-6">
-            <a href="/api/docs" className="hover:text-gray-400 transition">API</a>
+            <a href="https://api.openweave.dev/api/docs/" className="hover:text-gray-400 transition">API</a>
             <a href="https://github.com/saltyprojects/agent-desk" className="hover:text-gray-400 transition">GitHub</a>
           </div>
         </div>
