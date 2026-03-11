@@ -87,26 +87,96 @@ function JoinSection() {
 
 function StateMachineDiagram() {
   const states = [
-    { key: 'OPEN', label: 'Open', color: 'border-gray-500', x: 0 },
-    { key: 'IN_PROGRESS', label: 'In Progress', color: 'border-blue-500', x: 1 },
-    { key: 'IN_TESTING', label: 'In Testing', color: 'border-purple-500', x: 2 },
-    { key: 'REVIEW', label: 'Review', color: 'border-amber-500', x: 3 },
-    { key: 'COMPLETED', label: 'Completed', color: 'border-emerald-500', x: 4 },
+    { key: 'OPEN', label: 'Open', color: '#6b7280', bg: 'rgba(107,114,128,0.15)' },
+    { key: 'IN_PROGRESS', label: 'In Progress', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
+    { key: 'IN_TESTING', label: 'In Testing', color: '#a855f7', bg: 'rgba(168,85,247,0.15)' },
+    { key: 'REVIEW', label: 'Review', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
+    { key: 'COMPLETED', label: 'Completed', color: '#10b981', bg: 'rgba(16,185,129,0.15)' },
   ];
+
+  const transitions = [
+    { from: 0, to: 1, actor: '🤖 Bot', label: 'picks up' },
+    { from: 1, to: 2, actor: '🤖 Bot', label: 'runs tests' },
+    { from: 2, to: 3, actor: '🤖 Bot', label: 'sends to review' },
+    { from: 3, to: 4, actor: '👤 Human', label: 'approves' },
+  ];
+
+  const [activeStep, setActiveStep] = useState(-1);
+  const [showReject, setShowReject] = useState(false);
+
+  useEffect(() => {
+    let step = -1;
+    const interval = setInterval(() => {
+      step++;
+      if (step === transitions.length) {
+        // Show rejected transition attempt
+        setShowReject(true);
+        setTimeout(() => setShowReject(false), 1500);
+        step = -1;
+        setTimeout(() => setActiveStep(-1), 1500);
+        return;
+      }
+      setActiveStep(step);
+      setShowReject(false);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const currentState = activeStep >= 0 ? transitions[activeStep].to : 0;
+  const currentTransition = activeStep >= 0 ? transitions[activeStep] : null;
+
   return (
-    <div className="flex items-center justify-center gap-2 flex-wrap">
-      {states.map((s, i) => (
-        <div key={s.key} className="flex items-center gap-2">
-          <div className={`px-3 py-1.5 rounded border ${s.color} bg-white/5 text-xs font-mono text-gray-300`}>
-            {s.label}
+    <div className="space-y-4">
+      {/* State nodes */}
+      <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap">
+        {states.map((s, i) => (
+          <div key={s.key} className="flex items-center gap-1.5 sm:gap-2">
+            <div
+              className="px-2 sm:px-3 py-1.5 rounded border text-xs font-mono transition-all duration-500"
+              style={{
+                borderColor: s.color,
+                backgroundColor: i === currentState ? s.bg : 'rgba(255,255,255,0.02)',
+                color: i === currentState ? s.color : '#9ca3af',
+                transform: i === currentState ? 'scale(1.1)' : 'scale(1)',
+                boxShadow: i === currentState ? `0 0 20px ${s.bg}` : 'none',
+              }}
+            >
+              {s.label}
+            </div>
+            {i < states.length - 1 && (
+              <svg className="w-3 h-3 sm:w-4 sm:h-4 text-gray-700 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            )}
           </div>
-          {i < states.length - 1 && (
-            <svg className="w-4 h-4 text-gray-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          )}
-        </div>
-      ))}
+        ))}
+      </div>
+
+      {/* Transition label */}
+      <div className="h-8 flex items-center justify-center">
+        {showReject ? (
+          <div className="flex items-center gap-2 text-xs animate-pulse">
+            <span className="text-red-400 font-mono">✕ Bot tried REVIEW → COMPLETED</span>
+            <span className="text-red-500/60">— requires human approval</span>
+          </div>
+        ) : currentTransition ? (
+          <div className="flex items-center gap-2 text-xs landing-fade-in">
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+              currentTransition.actor.includes('Bot')
+                ? 'bg-emerald-500/20 text-emerald-400'
+                : 'bg-blue-500/20 text-blue-400'
+            }`}>
+              {currentTransition.actor}
+            </span>
+            <span className="text-gray-500">{currentTransition.label}</span>
+            <span className="text-gray-600 font-mono">
+              {states[currentTransition.from].label} → {states[currentTransition.to].label}
+            </span>
+          </div>
+        ) : (
+          <span className="text-xs text-gray-600">watching ticket lifecycle...</span>
+        )}
+      </div>
     </div>
   );
 }
@@ -139,6 +209,7 @@ export default function HomePage() {
             <a href="/docs" className="text-sm text-gray-500 hover:text-gray-300 transition">Docs</a>
             <a href="/state-machine" className="text-sm text-gray-500 hover:text-gray-300 transition">State Machine</a>
             <a href="/blog" className="text-sm text-gray-500 hover:text-gray-300 transition">Blog</a>
+            <a href="/policies" className="text-sm text-gray-500 hover:text-gray-300 transition">Policies</a>
             <a href="https://api.openweave.dev/api/docs/" className="text-sm text-gray-500 hover:text-gray-300 transition">API Docs</a>
             <a href="/login" className="text-sm font-medium text-gray-300 hover:text-white transition">Sign In →</a>
           </div>
@@ -154,6 +225,7 @@ export default function HomePage() {
           <div className="sm:hidden border-t border-white/5 px-4 py-3 space-y-3">
             <a href="/state-machine" className="block text-sm text-gray-400 hover:text-white transition">State Machine</a>
             <a href="/blog" className="block text-sm text-gray-400 hover:text-white transition">Blog</a>
+            <a href="/policies" className="block text-sm text-gray-400 hover:text-white transition">Policies</a>
             <a href="https://api.openweave.dev/api/docs/" className="block text-sm text-gray-400 hover:text-white transition">API Docs</a>
             <a href="/login" className="block text-sm font-medium text-gray-300 hover:text-white transition">Sign In →</a>
           </div>
@@ -361,6 +433,7 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-600">
           <span>© {new Date().getFullYear()} OpenWeave — Execution Governance for Autonomous Systems</span>
           <div className="flex gap-6">
+            <a href="/policies" className="hover:text-gray-400 transition">Policies</a>
             <a href="https://api.openweave.dev/api/docs/" className="hover:text-gray-400 transition">API</a>
             <a href="https://github.com/saltyprojects/agent-desk" className="hover:text-gray-400 transition">GitHub</a>
           </div>
