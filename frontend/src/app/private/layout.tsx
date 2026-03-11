@@ -24,5 +24,5 @@ export default function PrivateLayout({ children }: { children: React.ReactNode 
 
   if (!isLoggedIn) return null;
 
-  return <>{children}</>;
+  return <div className="app-selects">{children}</div>;
 }
