@@ -608,63 +608,52 @@ export default function WorkspaceSettingsPage() {
 
           {statusTab === 'transitions' && (
             <div className="p-5">
-              <p className="text-xs text-gray-500 mb-4">Define which transitions are allowed. <strong>BOT</strong> transitions enforce rules for agents. <strong>HUMAN</strong> transitions allow humans to move between states. <strong>ALL</strong> applies to both.</p>
+              <p className="text-xs text-gray-500 mb-3">Allowed moves between states. Each has an actor: <strong>Bot</strong>, <strong>Human</strong>, or <strong>All</strong>.</p>
 
-              {/* Transition matrix grouped by from_status */}
-              {statuses.map(fromStatus => {
-                const fromTransitions = transitions.filter(t => t.from_status === fromStatus.id);
-                return (
-                  <div key={fromStatus.id} className="mb-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className={`w-2 h-2 rounded-full ${COLOR_CLASSES[fromStatus.color] || 'bg-gray-400'}`} />
-                      <span className="text-sm font-semibold text-gray-700">{fromStatus.label}</span>
-                      <span className="text-xs text-gray-400">→</span>
+              {/* Flat transition list */}
+              <div className="divide-y divide-gray-100 mb-4">
+                {transitions.map(t => {
+                  const from = statuses.find(s => s.id === t.from_status);
+                  const to = statuses.find(s => s.id === t.to_status);
+                  return (
+                    <div key={t.id} className="flex items-center gap-2 py-2">
+                      <span className="text-sm text-gray-700 min-w-[80px]">{from?.label || '?'}</span>
+                      <span className="text-gray-400 text-xs">→</span>
+                      <span className="text-sm text-gray-700 min-w-[80px]">{to?.label || '?'}</span>
+                      <span className={`ml-auto px-2 py-0.5 rounded text-xs font-bold text-white ${t.actor_type === 'BOT' ? 'bg-purple-500' : t.actor_type === 'HUMAN' ? 'bg-blue-500' : 'bg-gray-500'}`}>{t.actor_type}</span>
+                      <button onClick={() => handleDeleteTransition(t.id)} className="text-red-400 hover:text-red-600 p-1 rounded hover:bg-red-50 min-w-[32px] min-h-[32px] flex items-center justify-center">✕</button>
                     </div>
-                    <div className="ml-4 space-y-1">
-                      {fromTransitions.map(t => {
-                        const toStatus = statuses.find(s => s.id === t.to_status);
-                        return (
-                          <div key={t.id} className="flex items-center gap-2 text-sm py-1">
-                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${t.actor_type === 'BOT' ? 'bg-purple-100 text-purple-700' : t.actor_type === 'HUMAN' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>{t.actor_type}</span>
-                            <span className="text-gray-600">{toStatus?.label || '?'}</span>
-                            <button onClick={() => handleDeleteTransition(t.id)} className="text-red-400 hover:text-red-600 text-xs ml-auto">✕</button>
-                          </div>
-                        );
-                      })}
-                      {/* Add transition from this status */}
-                      <div className="flex items-center gap-2 mt-1">
-                        <select id={`add-to-${fromStatus.id}`} className="px-4 py-3 h-[44px] text-sm border border-gray-200 rounded-xl bg-white" defaultValue="">
-                          <option value="" disabled>→ target…</option>
-                          {statuses.filter(s => s.id !== fromStatus.id).map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-                        </select>
-                        <select id={`add-actor-${fromStatus.id}`} className="px-4 py-3 h-[44px] text-sm border border-gray-200 rounded-xl bg-white" defaultValue="BOT">
-                          <option value="BOT">BOT</option>
-                          <option value="HUMAN">HUMAN</option>
-                          <option value="ALL">ALL</option>
-                        </select>
-                        <button onClick={() => {
-                          const toEl = document.getElementById(`add-to-${fromStatus.id}`) as HTMLSelectElement;
-                          const actorEl = document.getElementById(`add-actor-${fromStatus.id}`) as HTMLSelectElement;
-                          if (toEl?.value) {
-                            handleAddTransition(fromStatus.id, Number(toEl.value), actorEl.value);
-                            toEl.value = '';
-                          }
-                        }} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium px-2 py-1 rounded hover:bg-indigo-50">+ Add</button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-              {statuses.filter(s => s.is_terminal).length > 0 && (
-                <div className="mt-4 p-3 rounded-lg bg-gray-50 border border-gray-100">
-                  <p className="text-xs text-gray-500"><strong>Terminal states</strong> (marked with ● Terminal badge above):</p>
-                  <div className="flex gap-2 mt-1">
-                    {statuses.filter(s => s.is_terminal).map(s => (
-                      <span key={s.id} className="text-xs font-mono text-gray-600 px-2 py-0.5 rounded bg-white border border-gray-200">{s.label}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
+                  );
+                })}
+                {transitions.length === 0 && <p className="py-4 text-sm text-gray-400 text-center">No transitions yet</p>}
+              </div>
+
+              {/* Add transition */}
+              <div className="flex flex-wrap items-center gap-2 p-3 rounded-lg border border-dashed border-gray-200 bg-gray-50">
+                <select id="add-from" className="px-3 py-2 h-[40px] text-sm border border-gray-300 rounded-lg bg-white flex-1 min-w-[100px]" defaultValue="">
+                  <option value="" disabled>From…</option>
+                  {statuses.filter(s => !s.is_terminal).map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                </select>
+                <span className="text-gray-400 text-sm">→</span>
+                <select id="add-to" className="px-3 py-2 h-[40px] text-sm border border-gray-300 rounded-lg bg-white flex-1 min-w-[100px]" defaultValue="">
+                  <option value="" disabled>To…</option>
+                  {statuses.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                </select>
+                <select id="add-actor" className="px-3 py-2 h-[40px] text-sm border border-gray-300 rounded-lg bg-white" defaultValue="BOT">
+                  <option value="BOT">Bot</option>
+                  <option value="HUMAN">Human</option>
+                  <option value="ALL">All</option>
+                </select>
+                <button onClick={() => {
+                  const fromEl = document.getElementById('add-from') as HTMLSelectElement;
+                  const toEl = document.getElementById('add-to') as HTMLSelectElement;
+                  const actorEl = document.getElementById('add-actor') as HTMLSelectElement;
+                  if (fromEl?.value && toEl?.value) {
+                    handleAddTransition(Number(fromEl.value), Number(toEl.value), actorEl.value);
+                    fromEl.value = ''; toEl.value = '';
+                  }
+                }} className="px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 min-h-[40px]">+ Add</button>
+              </div>
             </div>
           )}
         </div>
