@@ -23,7 +23,6 @@ export interface User {
   email: string;
   name: string;
   user_type: 'HUMAN' | 'BOT';
-  role: 'ADMIN' | 'MEMBER';
   skills: string[];
   description: string;
   is_active: boolean;
@@ -543,13 +542,6 @@ class ApiClient {
   async getWorkspaceMembers(params?: Record<string, string>): Promise<WorkspaceMember[]> {
     const response = await this.getWorkspaceMembersPaginated(params);
     return response.results || [];
-  }
-
-  async updateWorkspaceMember(id: number, data: { role: string }): Promise<WorkspaceMember> {
-    return this.request<WorkspaceMember>(`/workspace-members/${id}/`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
   }
 
   async removeWorkspaceMember(id: number): Promise<void> {

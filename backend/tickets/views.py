@@ -85,7 +85,7 @@ class JoinView(APIView):
             OpenApiExample(
                 'Case 1: Response',
                 value={
-                    'user': {'id': 1, 'username': 'alice', 'email': '', 'name': 'Alice', 'user_type': 'HUMAN', 'role': 'MEMBER', 'skills': [], 'is_active': True},
+                    'user': {'id': 1, 'username': 'alice', 'email': '', 'name': 'Alice', 'user_type': 'HUMAN', 'skills': [], 'is_active': True},
                     'access': 'eyJ...access_token',
                     'refresh': 'eyJ...refresh_token',
                 },
@@ -99,7 +99,7 @@ class JoinView(APIView):
             OpenApiExample(
                 'Case 2: Response',
                 value={
-                    'user': {'id': 2, 'username': 'bob', 'email': '', 'name': 'Bob', 'user_type': 'HUMAN', 'role': 'MEMBER', 'skills': [], 'is_active': True},
+                    'user': {'id': 2, 'username': 'bob', 'email': '', 'name': 'Bob', 'user_type': 'HUMAN', 'skills': [], 'is_active': True},
                     'workspace': {'id': 1, 'name': 'Acme', 'slug': 'acme', 'owner': 1, 'member_count': 2, 'created_at': '2025-01-01T00:00:00Z'},
                     'access': 'eyJ...access_token',
                     'refresh': 'eyJ...refresh_token',
@@ -116,7 +116,7 @@ class JoinView(APIView):
                 value={
                     'api_token': 'abc123tokenkey',
                     'workspace': {'id': 1, 'name': 'Acme', 'slug': 'acme', 'owner': 1, 'member_count': 3, 'created_at': '2025-01-01T00:00:00Z'},
-                    'user': {'id': 3, 'username': 'support-bot', 'email': '', 'name': 'Support Bot', 'user_type': 'BOT', 'role': 'MEMBER', 'skills': [], 'is_active': True},
+                    'user': {'id': 3, 'username': 'support-bot', 'email': '', 'name': 'Support Bot', 'user_type': 'BOT', 'skills': [], 'is_active': True},
                 },
                 response_only=True, status_codes=['201'],
             ),
@@ -264,7 +264,6 @@ class UserViewSet(viewsets.ModelViewSet):
             OpenApiParameter(name='project', description='Filter by project ID', type=int),
             OpenApiParameter(name='search', description='Search in username, email, name', type=str),
             OpenApiParameter(name='user_type', description='Filter by user_type (HUMAN, BOT)', type=str),
-            OpenApiParameter(name='role', description='Filter by role (ADMIN, MEMBER)', type=str),
             OpenApiParameter(name='is_active', description='Filter by active status', type=bool),
         ],
     )
@@ -313,8 +312,8 @@ class UserViewSet(viewsets.ModelViewSet):
         responses={200: UserSerializer, 400: _error_detail},
         examples=[
             OpenApiExample(
-                'Update role',
-                value={'role': 'ADMIN'},
+                'Update name',
+                value={'name': 'New Name'},
                 request_only=True,
             ),
         ],

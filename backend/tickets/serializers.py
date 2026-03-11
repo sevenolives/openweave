@@ -17,13 +17,12 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'username', 'email', 'name',
-            'user_type', 'role', 'skills', 'description', 'is_active', 'password'
+            'user_type', 'skills', 'description', 'is_active', 'password'
         ]
         extra_kwargs = {
             'password': {'write_only': True},
             'email': {'help_text': 'Email address.'},
             'user_type': {'help_text': 'HUMAN or BOT.'},
-            'role': {'help_text': 'ADMIN or MEMBER.'},
             'skills': {'help_text': 'List of skill tags (JSON array).'},
             'description': {'help_text': 'What this user/bot can do.'},
             'is_active': {'help_text': 'Whether the user account is active.'},
@@ -52,7 +51,7 @@ class UserSimpleSerializer(serializers.ModelSerializer):
     """Simplified user serializer for nested usage."""
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'name', 'user_type', 'role', 'description']
+        fields = ['id', 'username', 'email', 'name', 'user_type', 'description']
 
 
 class ProjectAgentSerializer(serializers.ModelSerializer):

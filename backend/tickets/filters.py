@@ -118,11 +118,6 @@ class UserFilter(django_filters.FilterSet):
         field_name='user_type'
     )
     
-    role = django_filters.ChoiceFilter(
-        choices=User.ROLES,
-        field_name='role'
-    )
-    
     is_active = django_filters.BooleanFilter(field_name='is_active')
     
     # Filter by workspace membership
@@ -136,7 +131,7 @@ class UserFilter(django_filters.FilterSet):
 
     class Meta:
         model = User
-        fields = ['user_type', 'role', 'is_active']
+        fields = ['user_type', 'is_active']
 
     def search_users(self, queryset, name, value):
         """
