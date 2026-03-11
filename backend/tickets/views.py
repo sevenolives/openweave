@@ -347,8 +347,16 @@ class ProjectViewSet(viewsets.ModelViewSet):
             qs = qs.filter(workspace_id=workspace_id)
 
         user = self.request.user
-        if user.is_superuser or is_admin_or_owner(user):
+        if user.is_superuser:
             return qs
+        # Check admin/owner scoped to specific workspace if available
+        if workspace_id:
+            try:
+                workspace = Workspace.objects.get(id=workspace_id)
+                if is_admin_or_owner(user, workspace):
+                    return qs
+            except Workspace.DoesNotExist:
+                pass
         # Non-admins only see projects they are assigned to
         return qs.filter(agents=user).distinct()
 
@@ -446,10 +454,21 @@ class TicketViewSet(viewsets.ModelViewSet):
             raise Http404
         return super().get_object()
 
+    def _get_workspace(self):
+        """Get workspace from query params if available."""
+        workspace_id = self.request.query_params.get('workspace')
+        if workspace_id:
+            try:
+                return Workspace.objects.get(id=workspace_id)
+            except Workspace.DoesNotExist:
+                pass
+        return None
+
     def get_queryset(self):
         qs = Ticket.objects.select_related('project', 'assigned_to', 'created_by')
         user = self.request.user
-        if user.is_superuser or is_admin_or_owner(user):
+        workspace = self._get_workspace()
+        if user.is_superuser or is_admin_or_owner(user, workspace):
             return qs.all()
         # Non-admins only see tickets for projects they are assigned to
         return qs.filter(project__agents=user).distinct()
@@ -507,15 +526,18 @@ class TicketViewSet(viewsets.ModelViewSet):
 
     @extend_schema(summary="Delete ticket", description="Delete a ticket. Admin only.", responses={204: None, 403: _error_detail})
     def destroy(self, request, *args, **kwargs):
-        if not is_admin_or_owner(request.user):
+        ticket = self.get_object()
+        workspace = ticket.project.workspace if ticket.project else None
+        if not is_admin_or_owner(request.user, workspace):
             return Response({'detail': 'Only admins can delete tickets.'}, status=status.HTTP_403_FORBIDDEN)
         return super().destroy(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         project = serializer.validated_data.get('project')
+        workspace = project.workspace if project else None
         if not ProjectAgent.objects.filter(
             project=project, agent=self.request.user
-        ).exists() and not is_admin_or_owner(self.request.user):
+        ).exists() and not is_admin_or_owner(self.request.user, workspace):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("You must be a member of this project to create tickets in it.")
         serializer.save(created_by=self.request.user)
@@ -543,7 +565,8 @@ class TicketViewSet(viewsets.ModelViewSet):
         is_project_admin = ProjectAgent.objects.filter(
             project=instance.project, agent=user, role='ADMIN'
         ).exists()
-        if not user.is_superuser and not is_admin_or_owner(user) and not is_project_admin:
+        workspace = instance.project.workspace if instance.project else None
+        if not user.is_superuser and not is_admin_or_owner(user, workspace) and not is_project_admin:
             if instance.assigned_to_id != user.id:
                 from rest_framework.exceptions import PermissionDenied
                 raise PermissionDenied("You can only work on tickets assigned to you.")
@@ -570,7 +593,7 @@ class TicketAttachmentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = TicketAttachment.objects.select_related('uploaded_by', 'ticket')
         user = self.request.user
-        if user.is_superuser or is_admin_or_owner(user):
+        if user.is_superuser:
             return qs.all()
         # Non-admins only see attachments for tickets in their projects
         return qs.filter(ticket__project__agents=user).distinct()
@@ -610,7 +633,8 @@ class TicketAttachmentViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         obj = self.get_object()
-        if not is_admin_or_owner(request.user) and obj.uploaded_by != request.user:
+        workspace = obj.ticket.project.workspace if obj.ticket and obj.ticket.project else None
+        if not is_admin_or_owner(request.user, workspace) and obj.uploaded_by != request.user:
             return Response({'detail': 'You can only delete your own attachments.'}, status=status.HTTP_403_FORBIDDEN)
         obj.file.delete(save=False)
         return super().destroy(request, *args, **kwargs)
@@ -632,7 +656,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = Comment.objects.select_related('ticket', 'author')
         user = self.request.user
-        if user.is_superuser or is_admin_or_owner(user):
+        if user.is_superuser:
             return qs.all()
         # Non-admins only see comments for tickets in their projects
         return qs.filter(ticket__project__agents=user).distinct()
@@ -670,22 +694,25 @@ class CommentViewSet(viewsets.ModelViewSet):
     )
     def partial_update(self, request, *args, **kwargs):
         obj = self.get_object()
-        if not is_admin_or_owner(request.user) and obj.author != request.user:
+        workspace = obj.ticket.project.workspace if obj.ticket and obj.ticket.project else None
+        if not is_admin_or_owner(request.user, workspace) and obj.author != request.user:
             return Response({'detail': 'You can only edit your own comments.'}, status=status.HTTP_403_FORBIDDEN)
         return super().partial_update(request, *args, **kwargs)
 
     @extend_schema(summary="Delete comment", description="Delete a comment. Only the author or admin can delete.", responses={204: None, 403: _error_detail})
     def destroy(self, request, *args, **kwargs):
         obj = self.get_object()
-        if not is_admin_or_owner(request.user) and obj.author != request.user:
+        workspace = obj.ticket.project.workspace if obj.ticket and obj.ticket.project else None
+        if not is_admin_or_owner(request.user, workspace) and obj.author != request.user:
             return Response({'detail': 'You can only delete your own comments.'}, status=status.HTTP_403_FORBIDDEN)
         return super().destroy(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         ticket = serializer.validated_data.get('ticket')
+        workspace = ticket.project.workspace if ticket.project else None
         if not ProjectAgent.objects.filter(
             project=ticket.project, agent=self.request.user
-        ).exists() and not is_admin_or_owner(self.request.user):
+        ).exists() and not is_admin_or_owner(self.request.user, workspace):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("You must be a member of this project to comment on its tickets.")
         serializer.save(author=self.request.user)
@@ -703,7 +730,26 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ['-timestamp']
 
     def get_queryset(self):
-        return AuditLog.objects.select_related('performed_by').all()
+        qs = AuditLog.objects.select_related('performed_by')
+        user = self.request.user
+        if user.is_superuser:
+            return qs.all()
+        # Filter audit logs to entities in workspaces user belongs to
+        from django.db.models import Q
+        member_ws = WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True)
+        owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
+        ws_ids = set(list(member_ws) + list(owned_ws))
+        if not ws_ids:
+            return qs.none()
+        # Get project and ticket IDs in these workspaces
+        project_ids = Project.objects.filter(workspace_id__in=ws_ids).values_list('id', flat=True)
+        ticket_ids = Ticket.objects.filter(project_id__in=project_ids).values_list('id', flat=True)
+        return qs.filter(
+            Q(entity_type='Project', entity_id__in=project_ids) |
+            Q(entity_type='Ticket', entity_id__in=ticket_ids) |
+            Q(entity_type='Workspace', entity_id__in=ws_ids) |
+            Q(performed_by=user)
+        )
 
     @extend_schema(
         summary="List audit logs",
@@ -817,7 +863,7 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
         super().check_object_permissions(request, obj)
         if request.method not in ('GET', 'HEAD', 'OPTIONS'):
             # Only owner has full access
-            if obj.owner != request.user and not is_admin_or_owner(request.user):
+            if obj.owner != request.user and not is_admin_or_owner(request.user, obj):
                 self.permission_denied(request)
 
 
@@ -866,7 +912,7 @@ class WorkspaceMemberViewSet(viewsets.ModelViewSet):
         super().check_object_permissions(request, obj)
         if request.method not in ('GET', 'HEAD', 'OPTIONS'):
             # Owner always has full access
-            if obj.workspace.owner != request.user and not is_admin_or_owner(request.user):
+            if obj.workspace.owner != request.user and not is_admin_or_owner(request.user, obj.workspace):
                 self.permission_denied(request)
 
 
@@ -915,14 +961,14 @@ class WorkspaceInviteViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         workspace = serializer.validated_data['workspace']
         # Only owner can create invites
-        if not is_admin_or_owner(self.request.user):
+        if not is_admin_or_owner(self.request.user, workspace):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("Only workspace owner can create invites.")
         serializer.save(created_by=self.request.user)
 
     def perform_destroy(self, instance):
         from rest_framework.exceptions import PermissionDenied
-        if not is_admin_or_owner(self.request.user):
+        if not is_admin_or_owner(self.request.user, instance.workspace):
             raise PermissionDenied("Only workspace owner can delete invites.")
         instance.delete()
 
@@ -942,7 +988,7 @@ class StatusDefinitionViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = StatusDefinition.objects.all()
         user = self.request.user
-        if user.is_superuser or is_admin_or_owner(user):
+        if user.is_superuser:
             return qs
         from django.db.models import Q
         member_ws = WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True)
@@ -954,7 +1000,7 @@ class StatusDefinitionViewSet(viewsets.ModelViewSet):
         if request.method not in ('GET', 'HEAD', 'OPTIONS'):
             if obj.workspace.owner == request.user:
                 return
-            if not is_admin_or_owner(request.user):
+            if not is_admin_or_owner(request.user, obj.workspace):
                 self.permission_denied(request)
 
     def perform_destroy(self, instance):
@@ -991,7 +1037,7 @@ class StatusTransitionViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = StatusTransition.objects.select_related('from_status', 'to_status')
         user = self.request.user
-        if user.is_superuser or is_admin_or_owner(user):
+        if user.is_superuser:
             return qs
         from django.db.models import Q
         member_ws = WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True)
@@ -1003,7 +1049,7 @@ class StatusTransitionViewSet(viewsets.ModelViewSet):
         if request.method not in ('GET', 'HEAD', 'OPTIONS'):
             if obj.workspace.owner == request.user:
                 return
-            if not is_admin_or_owner(request.user):
+            if not is_admin_or_owner(request.user, obj.workspace):
                 self.permission_denied(request)
 
 
@@ -1051,6 +1097,13 @@ class DashboardView(APIView):
             return Response({'detail': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
 
         tickets = Ticket.objects.filter(project__workspace_id=ws_id)
+        # Non-admin/non-owner users only see tickets for projects they're assigned to
+        try:
+            workspace = Workspace.objects.get(id=ws_id)
+        except Workspace.DoesNotExist:
+            return Response({'detail': 'Workspace not found'}, status=status.HTTP_404_NOT_FOUND)
+        if not request.user.is_superuser and not is_admin_or_owner(request.user, workspace):
+            tickets = tickets.filter(project__agents=request.user).distinct()
         today = timezone.now().date()
 
         # Dynamic status counts from StatusDefinition
@@ -1094,7 +1147,18 @@ class ProjectAgentViewSet(viewsets.ModelViewSet):
     filterset_fields = ['project']
 
     def get_queryset(self):
-        return ProjectAgent.objects.select_related('agent', 'project').all()
+        qs = ProjectAgent.objects.select_related('agent', 'project')
+        user = self.request.user
+        if user.is_superuser:
+            return qs.all()
+        # Filter to projects in workspaces the user belongs to
+        from django.db.models import Q
+        member_ws = WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True)
+        owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
+        ws_ids = set(list(member_ws) + list(owned_ws))
+        if not ws_ids:
+            return qs.none()
+        return qs.filter(project__workspace_id__in=ws_ids)
 
 
 @extend_schema(tags=['blog'])

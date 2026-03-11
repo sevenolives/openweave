@@ -7,13 +7,19 @@ from rest_framework import permissions
 from .models import User, ProjectAgent, Workspace
 
 
-def is_admin_or_owner(user):
-    """Check if user is a superuser or a workspace owner."""
+def is_admin_or_owner(user, workspace=None):
+    """Check if user is a superuser or a workspace owner.
+    
+    When workspace is provided, checks ownership of that specific workspace.
+    When workspace is None, falls back to checking ownership of any workspace (legacy).
+    """
     if not user.is_authenticated:
         return False
     if user.is_superuser:
         return True
-    # Workspace owners have full admin privileges
+    if workspace is not None:
+        return Workspace.objects.filter(id=workspace.id, owner=user).exists()
+    # Legacy: owning any workspace
     return Workspace.objects.filter(owner=user).exists()
 
 
