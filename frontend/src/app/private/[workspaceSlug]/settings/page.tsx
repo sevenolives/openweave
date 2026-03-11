@@ -52,7 +52,8 @@ export default function WorkspaceSettingsPage() {
   const [newStatusTerminal, setNewStatusTerminal] = useState(false);
   const [newStatusApprovalGate, setNewStatusApprovalGate] = useState(false);
   const [addingStatus, setAddingStatus] = useState(false);
-  const [statusTab, setStatusTab] = useState<'statuses' | 'transitions' | 'diagram'>('diagram');
+  const [settingsTab, setSettingsTab] = useState<'general' | 'members' | 'state-machine'>('general');
+  const [statusTab, setStatusTab] = useState<'diagram' | 'statuses' | 'transitions'>('diagram');
   const { toast } = useToast();
 
   const loadData = useCallback(async (ws: Workspace) => {
@@ -298,12 +299,22 @@ export default function WorkspaceSettingsPage() {
 
   if (!workspace) return <Layout><div className="p-8 text-center text-gray-500">Workspace not found</div></Layout>;
 
+  const tabClass = (tab: string, active: boolean) => `px-4 py-2.5 text-sm font-medium rounded-t-lg border-b-2 transition-colors ${active ? 'border-indigo-600 text-indigo-700 bg-white' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`;
+
   return (
     <Layout>
       <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">{workspace.name} — Settings</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">{workspace.name} — Settings</h1>
 
-        {/* Workspace Details */}
+        {/* Top-level tabs */}
+        <div className="flex gap-1 mb-6 border-b border-gray-200">
+          <button onClick={() => setSettingsTab('general')} className={tabClass('general', settingsTab === 'general')}>General</button>
+          <button onClick={() => setSettingsTab('members')} className={tabClass('members', settingsTab === 'members')}>Members</button>
+          <button onClick={() => setSettingsTab('state-machine')} className={tabClass('state-machine', settingsTab === 'state-machine')}>State Machine</button>
+        </div>
+
+        {/* === GENERAL TAB === */}
+        {settingsTab === 'general' && (<>
         <div className="bg-white border border-gray-200 rounded-xl mb-6">
           <div className="px-5 py-4 border-b border-gray-100">
             <h2 className="font-semibold text-gray-900">Workspace Details</h2>
@@ -322,7 +333,38 @@ export default function WorkspaceSettingsPage() {
           </div>
         </div>
 
-        {/* Members */}
+        {/* Danger Zone */}
+        <div className="bg-white rounded-xl border border-red-200">
+          <div className="px-5 py-4 border-b border-red-100">
+            <h2 className="font-semibold text-red-600">Danger Zone</h2>
+          </div>
+          <div className="px-5 py-4 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-900">Delete this workspace</p>
+              <p className="text-xs text-gray-500">This action cannot be undone. All projects, tickets, and data will be permanently deleted.</p>
+            </div>
+            <button
+              onClick={async () => {
+                if (!workspace) return;
+                const confirmed = confirm(`Are you sure you want to delete "${workspace.name}"? This cannot be undone.`);
+                if (!confirmed) return;
+                try {
+                  await api.deleteWorkspace(workspace.id);
+                  toast('Workspace deleted');
+                  await refreshWorkspaces();
+                  router.push('/private/workspaces');
+                } catch (e: any) { toast(e?.message || 'Failed to delete workspace', 'error'); }
+              }}
+              className="px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 transition-colors flex-shrink-0"
+            >
+              Delete Workspace
+            </button>
+          </div>
+        </div>
+        </>)}
+
+        {/* === MEMBERS TAB === */}
+        {settingsTab === 'members' && (<>
         <div className="bg-white border border-gray-200 rounded-xl mb-6">
           <div className="px-5 py-4 border-b border-gray-100">
             <h2 className="font-semibold text-gray-900">Members ({members.filter(m => m.user.id !== workspace?.owner).length + 1})</h2>
@@ -389,6 +431,10 @@ export default function WorkspaceSettingsPage() {
             {invites.length === 0 && <p className="px-5 py-4 text-sm text-gray-400">No invite links yet.</p>}
           </div>
         </div>
+        </>)}
+
+        {/* === STATE MACHINE TAB === */}
+        {settingsTab === 'state-machine' && (<>
         {/* Status State Machine */}
         <div className="bg-white border border-gray-200 rounded-xl mb-6">
           <div className="px-5 py-4 border-b border-gray-100">
@@ -622,35 +668,7 @@ export default function WorkspaceSettingsPage() {
             </div>
           )}
         </div>
-
-        {/* Danger Zone */}
-        <div className="bg-white rounded-xl border border-red-200">
-          <div className="px-5 py-4 border-b border-red-100">
-            <h2 className="font-semibold text-red-600">Danger Zone</h2>
-          </div>
-          <div className="px-5 py-4 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-900">Delete this workspace</p>
-              <p className="text-xs text-gray-500">This action cannot be undone. All projects, tickets, and data will be permanently deleted.</p>
-            </div>
-            <button
-              onClick={async () => {
-                if (!workspace) return;
-                const confirmed = confirm(`Are you sure you want to delete "${workspace.name}"? This cannot be undone.`);
-                if (!confirmed) return;
-                try {
-                  await api.deleteWorkspace(workspace.id);
-                  toast('Workspace deleted');
-                  await refreshWorkspaces();
-                  router.push('/private/workspaces');
-                } catch (e: any) { toast(e?.message || 'Failed to delete workspace', 'error'); }
-              }}
-              className="px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 transition-colors flex-shrink-0"
-            >
-              Delete Workspace
-            </button>
-          </div>
-        </div>
+        </>)}
       </div>
     </Layout>
   );
