@@ -83,51 +83,33 @@ const DEFAULT_TRANSITIONS: Transition[] = [
 /*  Dagre layout                                                       */
 /* ------------------------------------------------------------------ */
 
-function buildNodes(states: WorkflowState[], transitions: Transition[], isMobile: boolean = false): Node[] {
+function buildNodes(states: WorkflowState[], transitions: Transition[]): Node[] {
   const g = new dagre.graphlib.Graph();
-  const nodesep = isMobile ? 60 : 80;
-  const ranksep = isMobile ? 80 : 100;
-  const nodeWidth = isMobile ? 140 : 160;
-  const nodeHeight = isMobile ? 45 : 50;
-  
-  g.setGraph({ rankdir: 'TB', nodesep, ranksep });
+  g.setGraph({ rankdir: 'TB', nodesep: 50, ranksep: 70 });
   g.setDefaultEdgeLabel(() => ({}));
-  states.forEach((s) => g.setNode(String(s.id), { width: nodeWidth, height: nodeHeight }));
+  states.forEach((s) => g.setNode(String(s.id), { width: 140, height: 40 }));
   transitions.forEach((t) => g.setEdge(String(t.from), String(t.to)));
   dagre.layout(g);
 
   return states.map((s) => {
     const nd = g.node(String(s.id));
     const color = COLORS[s.color] || '#9ca3af';
-    const halfWidth = nodeWidth / 2;
-    const halfHeight = nodeHeight / 2;
-    
     return {
       id: String(s.id),
-      position: { x: (nd?.x ?? 0) - halfWidth, y: (nd?.y ?? 0) - halfHeight },
-      data: {
-        label: s.label + (s.is_default ? ' ⭐' : '') + (s.is_terminal ? ' 🏁' : ''),
-      },
+      position: { x: (nd?.x ?? 0) - 70, y: (nd?.y ?? 0) - 20 },
+      data: { label: s.label },
       type: 'default',
       style: {
-        background: s.is_default
-          ? `linear-gradient(135deg, ${color}15 0%, ${color}25 100%)`
-          : 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-        border: `${isMobile ? 3 : 2}px solid ${color}`,
-        borderRadius: s.is_terminal ? (isMobile ? '22px' : '25px') : (isMobile ? '10px' : '12px'),
-        padding: isMobile ? '8px 12px' : '10px 16px',
-        fontSize: isMobile ? '12px' : '13px',
+        background: 'white',
+        border: `2px solid ${color}`,
+        borderRadius: s.is_terminal ? '20px' : '8px',
+        padding: '6px 12px',
+        fontSize: '12px',
         fontWeight: 600,
-        color: s.is_default ? color : '#1e293b',
-        boxShadow: s.is_default
-          ? `0 0 0 ${isMobile ? 2 : 3}px ${color}33, 0 6px 20px ${color}20`
-          : '0 3px 12px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08)',
-        minWidth: `${nodeWidth - 20}px`,
+        color: '#1f2937',
+        boxShadow: s.is_default ? `0 0 0 3px ${color}44` : '0 1px 4px rgba(0,0,0,0.1)',
+        minWidth: '100px',
         textAlign: 'center' as const,
-        cursor: 'default',
-        userSelect: 'none' as const,
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        transform: s.is_default ? 'scale(1.05)' : 'scale(1)',
       },
       sourcePosition: Position.Bottom,
       targetPosition: Position.Top,
@@ -143,20 +125,18 @@ function buildEdges(transitions: Transition[]): Edge[] {
     animated: t.actor === 'BOT',
     style: {
       stroke: ACTOR_COLORS[t.actor],
-      strokeWidth: t.actor === 'BOT' ? 3 : 2,
+      strokeWidth: 2,
       strokeDasharray: t.actor === 'HUMAN' ? '5,5' : 'none',
     },
     markerEnd: {
       type: MarkerType.ArrowClosed,
       color: ACTOR_COLORS[t.actor],
-      width: 18,
-      height: 18,
+      width: 14,
+      height: 14,
     },
-    label: t.actor === 'BOT' ? '🤖 Bot' : t.actor === 'HUMAN' ? '👤 Human' : '🔄 All',
-    labelStyle: { fontSize: 10, fontWeight: 700, fill: ACTOR_COLORS[t.actor] },
-    labelBgStyle: { fill: 'white', fillOpacity: 0.95, rx: 4, ry: 4 },
-    labelBgPadding: [4, 8] as [number, number],
-    labelShowBg: true,
+    label: t.actor,
+    labelStyle: { fontSize: 9, fontWeight: 700, fill: ACTOR_COLORS[t.actor] },
+    labelBgStyle: { fill: 'white', fillOpacity: 0.9 },
   }));
 }
 
@@ -203,7 +183,7 @@ export default function StateMachinePage() {
     setDiagramKey(prev => prev + 1);
   }, [states, transitions]);
 
-  const nodes = useMemo(() => buildNodes(states, transitions, isMobile), [states, transitions, isMobile]);
+  const nodes = useMemo(() => buildNodes(states, transitions), [states, transitions]);
   const edges = useMemo(() => buildEdges(transitions), [transitions]);
 
   /* Toast helper */
@@ -450,9 +430,9 @@ export default function StateMachinePage() {
         <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #27272a', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', background: '#18181b' }}>
           {/* Tabs */}
           <div style={{ display: 'flex', borderBottom: '1px solid #27272a', background: 'linear-gradient(135deg, #111 0%, #0f0f0f 100%)', position: 'sticky', top: 0, zIndex: 10 }}>
-            <button onClick={() => setTab('diagram')} style={tabStyle('diagram')}>{isSmall ? '⬡' : '⬡ Diagram'}</button>
-            <button onClick={() => setTab('states')} style={tabStyle('states')}>{isSmall ? '●' : '● States'}</button>
-            <button onClick={() => setTab('transitions')} style={tabStyle('transitions')}>{isSmall ? '→' : '→ Transitions'}</button>
+            <button onClick={() => setTab('diagram')} style={tabStyle('diagram')}>⬡ Diagram</button>
+            <button onClick={() => setTab('states')} style={tabStyle('states')}>● States</button>
+            <button onClick={() => setTab('transitions')} style={tabStyle('transitions')}>→ Transitions</button>
           </div>
 
           {/* Diagram tab */}
@@ -471,17 +451,13 @@ export default function StateMachinePage() {
                   nodes={nodes}
                   edges={edges}
                   fitView
-                  fitViewOptions={{
-                    padding: isMobile ? 0.15 : 0.1,
-                    maxZoom: isMobile ? 1.2 : 1.5,
-                    minZoom: isMobile ? 0.3 : 0.2
-                  }}
+                  fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
                   nodesDraggable={false}
                   nodesConnectable={false}
                   elementsSelectable={false}
                   proOptions={{ hideAttribution: true }}
-                  minZoom={isMobile ? 0.3 : 0.2}
-                  maxZoom={isMobile ? 1.8 : 2.5}
+                  minZoom={0.1}
+                  maxZoom={2}
                   panOnScroll={!isMobile}
                   zoomOnScroll={!isMobile}
                   zoomOnPinch={isMobile}
