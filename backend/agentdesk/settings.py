@@ -108,6 +108,8 @@ CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = [
     'https://*.up.railway.app',
     'https://*.railway.app',
+    'https://openweave.dev',
+    'https://*.openweave.dev',
     'http://localhost:3000',
     'http://localhost:8000',
 ]
