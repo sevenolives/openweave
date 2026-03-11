@@ -546,6 +546,13 @@ export default function WorkspaceSettingsPage() {
           };
 
           return (
+            <div style={{ background: '#0a0a0a', borderRadius: 16, padding: isSmall ? '24px 16px' : '32px 24px', color: '#e5e7eb' }}>
+            {/* Header */}
+            <h2 style={{ fontSize: 'clamp(20px, 4vw, 24px)', fontWeight: 700, color: 'white', marginBottom: 8 }}>Design Your Workflow</h2>
+            <p style={{ fontSize: 'clamp(13px, 3vw, 14px)', color: '#9ca3af', lineHeight: 1.6, marginBottom: 20 }}>
+              Every team works differently. Define your states, draw the transitions, and see your workflow take shape.
+            </p>
+
             <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #27272a', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', background: '#18181b' }}>
               {/* Tabs */}
               <div style={{ display: 'flex', borderBottom: '1px solid #27272a', background: 'linear-gradient(135deg, #111 0%, #0f0f0f 100%)', position: 'sticky', top: 0, zIndex: 10 }}>
@@ -1003,6 +1010,26 @@ export default function WorkspaceSettingsPage() {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* How It Works */}
+            <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid #18181b' }}>
+              <h3 style={{ fontSize: 'clamp(15px, 3vw, 16px)', fontWeight: 600, color: 'white', marginBottom: 12 }}>How It Works</h3>
+              <p style={{ fontSize: 'clamp(12px, 2.5vw, 13px)', color: '#9ca3af', lineHeight: 1.7, marginBottom: 8 }}>
+                <strong style={{ color: '#d1d5db' }}>States</strong> are the statuses your tickets can be in. Mark them <em style={{ color: '#6ee7b7', fontStyle: 'normal' }}>terminal</em> when they are end states. One state is the <em style={{ color: '#6ee7b7', fontStyle: 'normal' }}>default</em> — where new tickets start.
+              </p>
+              <p style={{ fontSize: 'clamp(12px, 2.5vw, 13px)', color: '#9ca3af', lineHeight: 1.7, marginBottom: 8 }}>
+                <strong style={{ color: '#d1d5db' }}>Transitions</strong> are the allowed moves. Each one has an actor type:
+              </p>
+              <ul style={{ paddingLeft: 20, marginBottom: 12 }}>
+                <li style={{ fontSize: 'clamp(12px, 2.5vw, 13px)', color: '#9ca3af', lineHeight: 1.7, marginBottom: 4 }}><strong style={{ color: '#d1d5db' }}>Bot</strong> — the agent can make this move autonomously</li>
+                <li style={{ fontSize: 'clamp(12px, 2.5vw, 13px)', color: '#9ca3af', lineHeight: 1.7, marginBottom: 4 }}><strong style={{ color: '#d1d5db' }}>Human</strong> — only a person can make this move</li>
+                <li style={{ fontSize: 'clamp(12px, 2.5vw, 13px)', color: '#9ca3af', lineHeight: 1.7, marginBottom: 4 }}><strong style={{ color: '#d1d5db' }}>All</strong> — either can</li>
+              </ul>
+              <p style={{ fontSize: 'clamp(12px, 2.5vw, 13px)', color: '#9ca3af', lineHeight: 1.7 }}>
+                The diagram builds itself as you configure. Purple animated edges are bot paths. Blue edges are human-only. States marked with 🔒 are <em style={{ color: '#eab308', fontStyle: 'normal' }}>approval gates</em> — bots cannot move tickets into them unless the ticket is approved.
+              </p>
+            </div>
             </div>
           );
         })()}
