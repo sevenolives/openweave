@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>State Machine Builder | OpenWeave</title>
+  <meta name="description" content="Try the OpenWeave state machine builder — define states, transitions, and bot permissions in a live interactive demo.">
+  <link href="https://cdn.jsdelivr.net/npm/@xyflow/react@12.6.0/dist/style.css" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #e5e7eb; min-height: 100vh; }
+    .header { max-width: 900px; margin: 0 auto; padding: 40px 24px 24px; }
+    .header h1 { font-size: 28px; font-weight: 700; color: white; margin-bottom: 8px; }
+    .header p { font-size: 15px; color: #9ca3af; line-height: 1.6; }
+    .container { max-width: 900px; margin: 0 auto; padding: 0 24px 40px; }
+    #app { border-radius: 12px; overflow: hidden; border: 1px solid #27272a; }
+    .footer { max-width: 900px; margin: 0 auto; padding: 32px 24px; border-top: 1px solid #18181b; }
+    .footer h2 { font-size: 18px; font-weight: 600; color: white; margin-bottom: 12px; }
+    .footer p { font-size: 14px; color: #9ca3af; line-height: 1.7; margin-bottom: 8px; }
+    .footer ul { padding-left: 20px; margin-bottom: 12px; }
+    .footer li { font-size: 14px; color: #9ca3af; line-height: 1.7; margin-bottom: 4px; }
+    .footer strong { color: #d1d5db; }
+    .footer em { color: #6ee7b7; font-style: normal; }
+    .footer a { color: #6ee7b7; text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+    .footer hr { border: none; border-top: 1px solid #18181b; margin: 20px 0; }
+    .back { display: inline-block; margin-bottom: 16px; font-size: 13px; color: #6ee7b7; text-decoration: none; }
+    .back:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <a href="/blog" class="back">← Back to Blog</a>
+    <h1>Design Your Workflow</h1>
+    <p>Every team works differently. Define your states, draw the transitions, and see your workflow take shape.</p>
+  </div>
+  <div class="container">
+    <div id="app"></div>
+  </div>
+  <div class="footer">
+    <h2>How It Works</h2>
+    <p><strong>States</strong> are the statuses your tickets can be in. Mark them <em>terminal</em> when they are end states. One state is the <em>default</em> — where new tickets start.</p>
+    <p><strong>Transitions</strong> are the allowed moves. Each one has an actor type:</p>
+    <ul>
+      <li><strong>Bot</strong> — the agent can make this move autonomously</li>
+      <li><strong>Human</strong> — only a person can make this move</li>
+      <li><strong>All</strong> — either can</li>
+    </ul>
+    <p>The diagram builds itself as you configure. Purple animated edges are bot paths. Blue edges are human-only. If a terminal state has no bot path leading to it, the ⚠ warning tells you — that is a human checkpoint.</p>
+    <hr>
+    <p>This is how <a href="https://openweave.dev">OpenWeave</a> handles execution governance. The state machine is workspace-level config — no code, no deploys. Admins draw the lines, bots follow them.</p>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xyflow/react@12.6.0/dist/umd/index.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js"></script>
+  <script>
+(function() {
+  var h = React.createElement;
+  var useState = React.useState, useMemo = React.useMemo;
+  var RF = window.xyflowReact;
+  if (!RF) { document.getElementById('app').innerHTML = '<p style="padding:40px;color:#ef4444;">Failed to load diagram library.</p>'; return; }
+  var ReactFlow = RF.ReactFlow, Background = RF.Background, Controls = RF.Controls, MarkerType = RF.MarkerType, Position = RF.Position;
+
+  var COLORS = { gray:'#9ca3af',blue:'#3b82f6',red:'#ef4444',purple:'#a855f7',amber:'#f59e0b',green:'#22c55e',yellow:'#eab308',indigo:'#6366f1',pink:'#ec4899',orange:'#f97316' };
+  var AC = { BOT:'#a855f7', HUMAN:'#3b82f6', ALL:'#6b7280' };
+
+  var DS = [
+    {id:1,key:'OPEN',label:'Open',color:'gray',is_terminal:false,is_default:true,pos:0},
+    {id:2,key:'IN_PROGRESS',label:'In Progress',color:'blue',is_terminal:false,is_default:false,pos:1},
+    {id:3,key:'BLOCKED',label:'Blocked',color:'red',is_terminal:false,is_default:false,pos:2},
+    {id:4,key:'IN_TESTING',label:'In Testing',color:'purple',is_terminal:false,is_default:false,pos:3},
+    {id:5,key:'REVIEW',label:'Review',color:'amber',is_terminal:false,is_default:false,pos:4},
+    {id:6,key:'COMPLETED',label:'Completed',color:'green',is_terminal:true,is_default:false,pos:5},
+    {id:7,key:'CANCELLED',label:'Cancelled',color:'gray',is_terminal:true,is_default:false,pos:6}
+  ];
+  var DTR = [
+    {id:1,from:1,to:2,actor:'BOT'},{id:2,from:1,to:3,actor:'BOT'},{id:3,from:1,to:7,actor:'BOT'},
+    {id:4,from:2,to:4,actor:'BOT'},{id:5,from:2,to:3,actor:'BOT'},{id:6,from:2,to:5,actor:'BOT'},
+    {id:7,from:3,to:2,actor:'BOT'},{id:8,from:4,to:5,actor:'BOT'},{id:9,from:4,to:3,actor:'BOT'},
+    {id:10,from:5,to:6,actor:'HUMAN'},{id:11,from:5,to:2,actor:'BOT'}
+  ];
+
+  function layout(ss, tr) {
+    var g = new dagre.graphlib.Graph();
+    g.setGraph({rankdir:'TB',nodesep:80,ranksep:100});
+    g.setDefaultEdgeLabel(function(){return{}});
+    ss.forEach(function(x){g.setNode(String(x.id),{width:160,height:50})});
+    tr.forEach(function(x){g.setEdge(String(x.from),String(x.to))});
+    dagre.layout(g);
+    return ss.map(function(x) {
+      var nd = g.node(String(x.id));
+      return {
+        id: String(x.id),
+        position: {x:(nd?nd.x:0)-80, y:(nd?nd.y:0)-25},
+        data: {label:x.label},
+        type: 'default',
+        style: {
+          background:'white', border:'2px solid '+(COLORS[x.color]||'#9ca3af'),
+          borderRadius: x.is_terminal?'20px':'8px', padding:'8px 16px',
+          fontSize:'13px', fontWeight:600, color:'#1f2937',
+          boxShadow: x.is_default?'0 0 0 3px '+(COLORS[x.color]||'#9ca3af')+'33':'none',
+          minWidth:'120px', textAlign:'center'
+        },
+        sourcePosition: Position.Bottom, targetPosition: Position.Top
+      };
+    });
+  }
+
+  function edges(tr) {
+    return tr.map(function(x) {
+      return {
+        id:'e'+x.id, source:String(x.from), target:String(x.to),
+        animated: x.actor==='BOT',
+        style: {stroke:AC[x.actor],strokeWidth:2},
+        markerEnd: {type:MarkerType.ArrowClosed,color:AC[x.actor],width:16,height:16},
+        label: x.actor,
+        labelStyle: {fontSize:9,fontWeight:700,fill:AC[x.actor]},
+        labelBgStyle: {fill:'white',fillOpacity:0.9}
+      };
+    });
+  }
+
+  function App() {
+    var _s = useState(DS), ss = _s[0], setSS = _s[1];
+    var _t = useState(DTR), tr = _t[0], setTR = _t[1];
+    var _tab = useState('diagram'), tab = _tab[0], setTab = _tab[1];
+    var _nid = useState(8), nid = _nid[0], setNid = _nid[1];
+    var _tid = useState(12), tid = _tid[0], setTid = _tid[1];
+    var _nl = useState(''), nl = _nl[0], setNL = _nl[1];
+    var _nc = useState('blue'), nc = _nc[0], setNC = _nc[1];
+    var _nt = useState(false), nt = _nt[0], setNT = _nt[1];
+    var _nf = useState(''), nf = _nf[0], setNF = _nf[1];
+    var _nto = useState(''), nto = _nto[0], setNTO = _nto[1];
+    var _na = useState('BOT'), na = _na[0], setNA = _na[1];
+
+    var nodes = useMemo(function(){return layout(ss,tr)},[ss,tr]);
+    var eds = useMemo(function(){return edges(tr)},[tr]);
+
+    function addS() {
+      if(!nl.trim()) return;
+      var k = nl.toUpperCase().replace(/[^A-Z0-9]/g,'_');
+      setSS(function(p){return p.concat([{id:nid,key:k,label:nl,color:nc,is_terminal:nt,is_default:false,pos:p.length}])});
+      setNid(function(n){return n+1}); setNL(''); setNT(false);
+    }
+    function remS(id) {
+      setSS(function(p){return p.filter(function(x){return x.id!==id})});
+      setTR(function(p){return p.filter(function(x){return x.from!==id&&x.to!==id})});
+    }
+    function addT() {
+      if(!nf||!nto||nf===nto) return;
+      setTR(function(p){return p.concat([{id:tid,from:Number(nf),to:Number(nto),actor:na}])});
+      setTid(function(n){return n+1}); setNF(''); setNTO('');
+    }
+    function remT(id) { setTR(function(p){return p.filter(function(x){return x.id!==id})}); }
+
+    var tabSt = function(v) {
+      return {padding:'10px 18px',fontSize:'13px',fontWeight:600,cursor:'pointer',background:'none',border:'none',
+        borderBottom: tab===v?'2px solid #818cf8':'2px solid transparent',
+        color: tab===v?'#a5b4fc':'#6b7280'};
+    };
+    var btnSt = {padding:'7px 16px',fontSize:'12px',fontWeight:600,background:'#4f46e5',color:'white',border:'none',borderRadius:'6px',cursor:'pointer'};
+    var inpSt = {padding:'7px 10px',fontSize:'12px',border:'1px solid #3f3f46',borderRadius:'6px',outline:'none',background:'#18181b',color:'#e5e7eb'};
+    var selSt = Object.assign({},inpSt);
+
+    // Bot reachability analysis
+    var botTr = tr.filter(function(x){return x.actor==='BOT'||x.actor==='ALL'});
+    var reached = {};
+    var def = ss.filter(function(x){return x.is_default})[0];
+    if (def) {
+      var q = [def.id];
+      while(q.length) {
+        var c = q.shift();
+        botTr.forEach(function(x) { if(x.from===c && !reached[x.to]) { reached[x.to]=true; q.push(x.to); } });
+      }
+    }
+    var humanOnly = ss.filter(function(x){return x.is_terminal && !reached[x.id]});
+
+    return h('div', {style:{background:'#18181b'}},
+      // Tabs
+      h('div', {style:{display:'flex',borderBottom:'1px solid #27272a',background:'#111111'}},
+        h('button',{onClick:function(){setTab('diagram')},style:tabSt('diagram')},'⬡ Diagram'),
+        h('button',{onClick:function(){setTab('states')},style:tabSt('states')},'● States'),
+        h('button',{onClick:function(){setTab('transitions')},style:tabSt('transitions')},'→ Transitions')
+      ),
+
+      // Diagram
+      tab==='diagram' && h('div',null,
+        h('div',{style:{height:'440px',width:'100%',background:'white'}},
+          h(ReactFlow,{nodes:nodes,edges:eds,fitView:true,nodesDraggable:false,nodesConnectable:false,elementsSelectable:false,proOptions:{hideAttribution:true}},
+            h(Background,{gap:20,size:1,color:'#f1f5f9'}),
+            h(Controls,{showInteractive:false})
+          )
+        ),
+        h('div',{style:{padding:'12px 16px',display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:'8px',borderTop:'1px solid #27272a'}},
+          h('div',{style:{display:'flex',gap:'16px',fontSize:'11px',color:'#6b7280'}},
+            h('span',null,'● ',h('span',{style:{color:'#a855f7'}},'Bot (animated)')),
+            h('span',null,'● ',h('span',{style:{color:'#3b82f6'}},'Human')),
+            h('span',null,'● ',h('span',{style:{color:'#6b7280'}},'All')),
+            h('span',null,'◆ Rounded = terminal')
+          ),
+          humanOnly.length>0 && h('div',{style:{fontSize:'11px',color:'#d97706',fontWeight:600}},
+            '⚠ Human-only: '+humanOnly.map(function(x){return x.label}).join(', ')
+          )
+        )
+      ),
+
+      // States
+      tab==='states' && h('div',{style:{padding:'16px'}},
+        ss.map(function(s) {
+          return h('div',{key:s.id,style:{display:'flex',alignItems:'center',gap:'10px',padding:'8px 0',borderBottom:'1px solid #27272a'}},
+            h('div',{style:{width:12,height:12,borderRadius:'50%',background:COLORS[s.color],flexShrink:0}}),
+            h('span',{style:{fontSize:'13px',fontWeight:600,color:'#e5e7eb',flex:1}},s.label),
+            s.is_default && h('span',{style:{fontSize:'10px',background:'#312e81',color:'#a5b4fc',padding:'2px 6px',borderRadius:'4px',fontWeight:600}},'Default'),
+            s.is_terminal && h('span',{style:{fontSize:'10px',background:'#27272a',color:'#9ca3af',padding:'2px 6px',borderRadius:'4px',fontWeight:600}},'Terminal'),
+            h('button',{onClick:function(){remS(s.id)},style:{background:'none',border:'none',color:'#ef4444',cursor:'pointer',fontSize:'14px',padding:'4px 8px'}},'✕')
+          );
+        }),
+        h('div',{style:{display:'flex',gap:'8px',marginTop:'16px',alignItems:'center',flexWrap:'wrap'}},
+          h('input',{value:nl,onChange:function(e){setNL(e.target.value)},placeholder:'Status name...',style:Object.assign({},inpSt,{flex:1,minWidth:'120px'})}),
+          h('select',{value:nc,onChange:function(e){setNC(e.target.value)},style:selSt},
+            Object.keys(COLORS).map(function(c){return h('option',{key:c,value:c},c)})
+          ),
+          h('label',{style:{fontSize:'12px',color:'#9ca3af',display:'flex',alignItems:'center',gap:'4px'}},
+            h('input',{type:'checkbox',checked:nt,onChange:function(e){setNT(e.target.checked)}}),
+            'Terminal'
+          ),
+          h('button',{onClick:addS,style:btnSt},'+ Add')
+        )
+      ),
+
+      // Transitions
+      tab==='transitions' && h('div',{style:{padding:'16px'}},
+        tr.map(function(x) {
+          var f = ss.filter(function(s){return s.id===x.from})[0];
+          var t2 = ss.filter(function(s){return s.id===x.to})[0];
+          return h('div',{key:x.id,style:{display:'flex',alignItems:'center',gap:'8px',padding:'6px 0',borderBottom:'1px solid #27272a',fontSize:'13px'}},
+            h('span',{style:{fontWeight:600,color:'#e5e7eb'}},f?f.label:'?'),
+            h('span',{style:{color:'#6b7280'}},'→'),
+            h('span',{style:{fontWeight:600,color:'#e5e7eb'}},t2?t2.label:'?'),
+            h('span',{style:{fontSize:'10px',fontWeight:700,padding:'2px 6px',borderRadius:'4px',color:'white',background:AC[x.actor]}},x.actor),
+            h('button',{onClick:function(){remT(x.id)},style:{marginLeft:'auto',background:'none',border:'none',color:'#ef4444',cursor:'pointer',fontSize:'14px',padding:'4px 8px'}},'✕')
+          );
+        }),
+        h('div',{style:{display:'flex',gap:'8px',marginTop:'16px',alignItems:'center',flexWrap:'wrap'}},
+          h('select',{value:nf,onChange:function(e){setNF(e.target.value)},style:Object.assign({},selSt,{flex:1,minWidth:'100px'})},
+            h('option',{value:''},'From...'),
+            ss.map(function(s){return h('option',{key:s.id,value:s.id},s.label)})
+          ),
+          h('span',{style:{color:'#6b7280',fontWeight:600}},'→'),
+          h('select',{value:nto,onChange:function(e){setNTO(e.target.value)},style:Object.assign({},selSt,{flex:1,minWidth:'100px'})},
+            h('option',{value:''},'To...'),
+            ss.map(function(s){return h('option',{key:s.id,value:s.id},s.label)})
+          ),
+          h('select',{value:na,onChange:function(e){setNA(e.target.value)},style:selSt},
+            h('option',{value:'BOT'},'Bot'),
+            h('option',{value:'HUMAN'},'Human'),
+            h('option',{value:'ALL'},'All')
+          ),
+          h('button',{onClick:addT,style:btnSt},'+ Add')
+        )
+      )
+    );
+  }
+
+  var root = document.getElementById('app');
+  if(root) ReactDOM.createRoot(root).render(h(App));
+})();
+  </script>
+</body>
+</html>
