@@ -33,6 +33,7 @@ export default function WorkspaceSettingsPage() {
   const [newStatusLabel, setNewStatusLabel] = useState('');
   const [newStatusColor, setNewStatusColor] = useState('gray');
   const [newStatusTerminal, setNewStatusTerminal] = useState(false);
+  const [newStatusApprovalGate, setNewStatusApprovalGate] = useState(false);
   const [addingStatus, setAddingStatus] = useState(false);
   const [statusTab, setStatusTab] = useState<'statuses' | 'transitions'>('statuses');
   const { toast } = useToast();
@@ -128,10 +129,11 @@ export default function WorkspaceSettingsPage() {
         label: newStatusLabel,
         color: newStatusColor,
         is_terminal: newStatusTerminal,
+        is_bot_requires_approval: newStatusApprovalGate,
         is_default: false,
         position: statuses.length,
       });
-      setNewStatusKey(''); setNewStatusLabel(''); setNewStatusColor('gray'); setNewStatusTerminal(false);
+      setNewStatusKey(''); setNewStatusLabel(''); setNewStatusColor('gray'); setNewStatusTerminal(false); setNewStatusApprovalGate(false);
       toast('Status created');
       loadData(workspace);
     } catch (e: any) { toast(e?.data?.key?.[0] || e?.data?.detail || e?.message || 'Failed', 'error'); }
@@ -312,6 +314,7 @@ export default function WorkspaceSettingsPage() {
                     {/* Row 2: Badges */}
                     <div className="flex flex-wrap gap-1.5 mb-2">
                       <button onClick={() => handleUpdateStatus(sd.id, { is_terminal: !sd.is_terminal })} className={`text-[10px] px-1.5 py-0.5 rounded cursor-pointer hover:opacity-80 ${sd.is_terminal ? 'bg-gray-200 text-gray-700' : 'bg-gray-50 text-gray-400 border border-dashed border-gray-300'}`}>{sd.is_terminal ? '● Terminal' : '○ Non-terminal'}</button>
+                      <button onClick={() => handleUpdateStatus(sd.id, { is_bot_requires_approval: !sd.is_bot_requires_approval })} className={`text-[10px] px-1.5 py-0.5 rounded cursor-pointer hover:opacity-80 ${sd.is_bot_requires_approval ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-gray-50 text-gray-400 border border-dashed border-gray-300'}`}>{sd.is_bot_requires_approval ? '🔒 Approval Gate' : 'No gate'}</button>
                       {sd.is_default && <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-600">Default</span>}
                       {sd.in_use && <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-600">In Use</span>}
                     </div>
@@ -349,6 +352,10 @@ export default function WorkspaceSettingsPage() {
                   <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer mt-4">
                     <input type="checkbox" checked={newStatusTerminal} onChange={e => setNewStatusTerminal(e.target.checked)} className="rounded" />
                     Terminal
+                  </label>
+                  <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer mt-4">
+                    <input type="checkbox" checked={newStatusApprovalGate} onChange={e => setNewStatusApprovalGate(e.target.checked)} className="rounded" />
+                    Approval Gate
                   </label>
                 </div>
                 <button onClick={handleAddStatus} disabled={addingStatus || !newStatusKey.trim() || !newStatusLabel.trim()} className="w-full px-3 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition min-h-[44px]">

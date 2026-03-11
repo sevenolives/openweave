@@ -120,6 +120,7 @@ class StatusDefinition(models.Model):
     color = models.CharField(max_length=30, default='gray', help_text="Color token, e.g. 'blue', 'red', '#ff0000'")
     is_terminal = models.BooleanField(default=False, help_text="Terminal states cannot transition out")
     is_default = models.BooleanField(default=False, help_text="Default status for new tickets")
+    is_bot_requires_approval = models.BooleanField(default=False, help_text="Bots need ticket approval before entering this state")
     position = models.PositiveIntegerField(default=0, help_text="Display order")
 
     class Meta:

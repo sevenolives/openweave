@@ -288,6 +288,17 @@ class TicketSerializer(serializers.ModelSerializer):
                             'status': f'{actor} cannot transition from {old_status} to {new_status}. '
                                       f'Allowed: {", ".join(valid_targets) if valid_targets else "none (terminal state)"}.'
                         })
+
+                    # Check approval gate for bot transitions
+                    if actor == 'BOT':
+                        try:
+                            target_status = StatusDefinition.objects.get(workspace_id=ws_id, key=new_status)
+                            if target_status.is_bot_requires_approval and self.instance.approved_status != 'APPROVED':
+                                raise serializers.ValidationError({
+                                    'status': 'Bot requires ticket approval before moving to this state.'
+                                })
+                        except StatusDefinition.DoesNotExist:
+                            pass  # This would be caught by status validation earlier
         return data
 
 
@@ -336,7 +347,7 @@ class StatusDefinitionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = StatusDefinition
-        fields = ['id', 'workspace', 'key', 'label', 'color', 'is_terminal', 'is_default', 'position', 'in_use']
+        fields = ['id', 'workspace', 'key', 'label', 'color', 'is_terminal', 'is_default', 'is_bot_requires_approval', 'position', 'in_use']
         read_only_fields = ['in_use']
         extra_kwargs = {
             'workspace': {'help_text': 'Workspace ID.'},
