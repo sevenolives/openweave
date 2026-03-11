@@ -83,41 +83,51 @@ const DEFAULT_TRANSITIONS: Transition[] = [
 /*  Dagre layout                                                       */
 /* ------------------------------------------------------------------ */
 
-function buildNodes(states: WorkflowState[], transitions: Transition[]): Node[] {
+function buildNodes(states: WorkflowState[], transitions: Transition[], isMobile: boolean = false): Node[] {
   const g = new dagre.graphlib.Graph();
-  g.setGraph({ rankdir: 'TB', nodesep: 80, ranksep: 100 });
+  const nodesep = isMobile ? 60 : 80;
+  const ranksep = isMobile ? 80 : 100;
+  const nodeWidth = isMobile ? 140 : 160;
+  const nodeHeight = isMobile ? 45 : 50;
+  
+  g.setGraph({ rankdir: 'TB', nodesep, ranksep });
   g.setDefaultEdgeLabel(() => ({}));
-  states.forEach((s) => g.setNode(String(s.id), { width: 160, height: 50 }));
+  states.forEach((s) => g.setNode(String(s.id), { width: nodeWidth, height: nodeHeight }));
   transitions.forEach((t) => g.setEdge(String(t.from), String(t.to)));
   dagre.layout(g);
 
   return states.map((s) => {
     const nd = g.node(String(s.id));
     const color = COLORS[s.color] || '#9ca3af';
+    const halfWidth = nodeWidth / 2;
+    const halfHeight = nodeHeight / 2;
+    
     return {
       id: String(s.id),
-      position: { x: (nd?.x ?? 0) - 80, y: (nd?.y ?? 0) - 25 },
+      position: { x: (nd?.x ?? 0) - halfWidth, y: (nd?.y ?? 0) - halfHeight },
       data: {
         label: s.label + (s.is_default ? ' ⭐' : '') + (s.is_terminal ? ' 🏁' : ''),
       },
       type: 'default',
       style: {
         background: s.is_default
-          ? 'linear-gradient(135deg, white 0%, #f8fafc 100%)'
-          : 'linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)',
-        border: `2px solid ${color}`,
-        borderRadius: s.is_terminal ? '25px' : '12px',
-        padding: '10px 16px',
-        fontSize: '13px',
+          ? `linear-gradient(135deg, ${color}15 0%, ${color}25 100%)`
+          : 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+        border: `${isMobile ? 3 : 2}px solid ${color}`,
+        borderRadius: s.is_terminal ? (isMobile ? '22px' : '25px') : (isMobile ? '10px' : '12px'),
+        padding: isMobile ? '8px 12px' : '10px 16px',
+        fontSize: isMobile ? '12px' : '13px',
         fontWeight: 600,
-        color: '#1e293b',
+        color: s.is_default ? color : '#1e293b',
         boxShadow: s.is_default
-          ? `0 0 0 3px ${color}33, 0 4px 12px rgba(0,0,0,0.15)`
-          : '0 2px 8px rgba(0,0,0,0.1)',
-        minWidth: '140px',
+          ? `0 0 0 ${isMobile ? 2 : 3}px ${color}33, 0 6px 20px ${color}20`
+          : '0 3px 12px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08)',
+        minWidth: `${nodeWidth - 20}px`,
         textAlign: 'center' as const,
         cursor: 'default',
         userSelect: 'none' as const,
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        transform: s.is_default ? 'scale(1.05)' : 'scale(1)',
       },
       sourcePosition: Position.Bottom,
       targetPosition: Position.Top,
@@ -173,16 +183,27 @@ export default function StateMachinePage() {
 
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [isSmall, setIsSmall] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [diagramKey, setDiagramKey] = useState(0);
   const importRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const check = () => setIsSmall(window.innerWidth <= 768);
+    const check = () => {
+      const width = window.innerWidth;
+      setIsSmall(width <= 768);
+      setIsMobile(width <= 640);
+    };
     check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  const nodes = useMemo(() => buildNodes(states, transitions), [states, transitions]);
+  // Force diagram re-render when data changes for better mobile layout
+  useEffect(() => {
+    setDiagramKey(prev => prev + 1);
+  }, [states, transitions]);
+
+  const nodes = useMemo(() => buildNodes(states, transitions, isMobile), [states, transitions, isMobile]);
   const edges = useMemo(() => buildEdges(transitions), [transitions]);
 
   /* Toast helper */
@@ -496,8 +517,21 @@ export default function StateMachinePage() {
                     flexDirection: isSmall ? 'column' : 'row',
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-                      <div style={{ width: isSmall ? 16 : 12, height: isSmall ? 16 : 12, borderRadius: '50%', background: COLORS[s.color], flexShrink: 0 }} />
-                      <span style={{ fontSize: isSmall ? 15 : 13, fontWeight: 600, color: '#e5e7eb', wordBreak: 'break-word' }}>{s.label}</span>
+                      <select
+                        value={s.color}
+                        onChange={(e) => setStates((p) => p.map((st) => st.id === s.id ? { ...st, color: e.target.value as ColorName } : st))}
+                        style={{ width: isSmall ? 24 : 20, height: isSmall ? 24 : 20, borderRadius: '50%', background: COLORS[s.color], border: '2px solid #3f3f46', cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none', flexShrink: 0, padding: 0 }}
+                        title="Change color"
+                      >
+                        {(Object.keys(COLORS) as ColorName[]).map((c) => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                      <input
+                        value={s.label}
+                        onChange={(e) => setStates((p) => p.map((st) => st.id === s.id ? { ...st, label: e.target.value } : st))}
+                        style={{ fontSize: isSmall ? 15 : 13, fontWeight: 600, color: '#e5e7eb', background: 'transparent', border: '1px solid transparent', borderRadius: 4, padding: '2px 6px', outline: 'none', flex: 1, minWidth: 0 }}
+                        onFocus={(e) => { e.target.style.borderColor = '#3f3f46'; e.target.style.background = '#27272a'; }}
+                        onBlur={(e) => { e.target.style.borderColor = 'transparent'; e.target.style.background = 'transparent'; }}
+                      />
                     </div>
                     <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                       <button
@@ -516,11 +550,22 @@ export default function StateMachinePage() {
                       >
                         {s.is_default ? 'Default' : 'Set Default'}
                       </button>
-                      {s.is_terminal && (
-                        <span style={{ fontSize: isSmall ? 11 : 10, background: '#27272a', color: '#9ca3af', padding: isSmall ? '4px 8px' : '3px 6px', borderRadius: 6, fontWeight: 600 }}>
-                          Terminal
-                        </span>
-                      )}
+                      <button
+                        onClick={() => {
+                          setStates((p) => p.map((st) => st.id === s.id ? { ...st, is_terminal: !st.is_terminal } : st));
+                          showToast(`${s.label} is ${s.is_terminal ? 'no longer' : 'now'} terminal`, 'info');
+                        }}
+                        style={{
+                          fontSize: isSmall ? 11 : 10,
+                          background: s.is_terminal ? '#27272a' : 'transparent',
+                          color: s.is_terminal ? '#9ca3af' : '#6b7280',
+                          border: s.is_terminal ? 'none' : '1px dashed #3f3f46',
+                          padding: isSmall ? '4px 8px' : '3px 6px',
+                          borderRadius: 6, fontWeight: 600, cursor: 'pointer',
+                        }}
+                      >
+                        {s.is_terminal ? 'Terminal' : 'Non-terminal'}
+                      </button>
                       <button onClick={() => removeState(s.id)} style={removeBtnStyle}>✕</button>
                     </div>
                   </div>
@@ -581,24 +626,47 @@ export default function StateMachinePage() {
                       fontSize: isSmall ? 14 : 13,
                       flexDirection: isSmall ? 'column' : 'row',
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: isSmall ? 8 : 6, flex: 1, minWidth: 0 }}>
-                        <span style={{ fontWeight: 600, color: '#e5e7eb', background: '#1f2937', padding: isSmall ? '6px 10px' : '4px 8px', borderRadius: 6, fontSize: isSmall ? 13 : 12 }}>{f?.label ?? '?'}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: isSmall ? 8 : 6, flex: 1, minWidth: 0, flexWrap: 'wrap' }}>
+                        <select
+                          value={t.from}
+                          onChange={(e) => {
+                            const v = Number(e.target.value);
+                            if (v === t.to) return;
+                            setTransitions((p) => p.map((tr) => tr.id === t.id ? { ...tr, from: v } : tr));
+                          }}
+                          style={{ ...selectStyle, fontSize: isSmall ? 13 : 12, padding: isSmall ? '6px 10px' : '4px 8px', minWidth: isSmall ? 100 : 80, minHeight: 'auto' }}
+                        >
+                          {states.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+                        </select>
                         <span style={{ color: '#6b7280', fontWeight: 600, fontSize: isSmall ? 16 : 14 }}>→</span>
-                        <span style={{ fontWeight: 600, color: '#e5e7eb', background: '#1f2937', padding: isSmall ? '6px 10px' : '4px 8px', borderRadius: 6, fontSize: isSmall ? 13 : 12 }}>{to?.label ?? '?'}</span>
+                        <select
+                          value={t.to}
+                          onChange={(e) => {
+                            const v = Number(e.target.value);
+                            if (v === t.from) return;
+                            setTransitions((p) => p.map((tr) => tr.id === t.id ? { ...tr, to: v } : tr));
+                          }}
+                          style={{ ...selectStyle, fontSize: isSmall ? 13 : 12, padding: isSmall ? '6px 10px' : '4px 8px', minWidth: isSmall ? 100 : 80, minHeight: 'auto' }}
+                        >
+                          {states.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+                        </select>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{
-                          fontSize: isSmall ? 12 : 10,
-                          fontWeight: 700,
-                          padding: isSmall ? '6px 10px' : '4px 8px',
-                          borderRadius: 6,
-                          color: 'white',
-                          background: ACTOR_COLORS[t.actor],
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.5px',
-                        }}>
-                          {t.actor}
-                        </span>
+                        <select
+                          value={t.actor}
+                          onChange={(e) => setTransitions((p) => p.map((tr) => tr.id === t.id ? { ...tr, actor: e.target.value as ActorType } : tr))}
+                          style={{
+                            fontSize: isSmall ? 12 : 10, fontWeight: 700,
+                            padding: isSmall ? '6px 10px' : '4px 8px', borderRadius: 6,
+                            color: 'white', background: ACTOR_COLORS[t.actor],
+                            border: '1px solid ' + ACTOR_COLORS[t.actor],
+                            cursor: 'pointer', minHeight: 'auto',
+                          }}
+                        >
+                          <option value="BOT" style={{ background: '#18181b', color: '#e5e7eb' }}>BOT</option>
+                          <option value="HUMAN" style={{ background: '#18181b', color: '#e5e7eb' }}>HUMAN</option>
+                          <option value="ALL" style={{ background: '#18181b', color: '#e5e7eb' }}>ALL</option>
+                        </select>
                         <button onClick={() => removeTransition(t.id)} style={removeBtnStyle}>✕</button>
                       </div>
                     </div>
