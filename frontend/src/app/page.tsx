@@ -136,6 +136,7 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <span className="text-lg font-semibold tracking-tight text-white">OpenWeave</span>
           <div className="hidden sm:flex items-center gap-4">
+            <a href="/docs" className="text-sm text-gray-500 hover:text-gray-300 transition">Docs</a>
             <a href="/state-machine" className="text-sm text-gray-500 hover:text-gray-300 transition">State Machine</a>
             <a href="/blog" className="text-sm text-gray-500 hover:text-gray-300 transition">Blog</a>
             <a href="https://api.openweave.dev/api/docs/" className="text-sm text-gray-500 hover:text-gray-300 transition">API Docs</a>
