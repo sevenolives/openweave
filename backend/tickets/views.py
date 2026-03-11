@@ -408,6 +408,10 @@ class ProjectViewSet(viewsets.ModelViewSet):
         return super().destroy(request, *args, **kwargs)
 
     def perform_create(self, serializer):
+        workspace = serializer.validated_data.get('workspace')
+        if workspace and not is_admin_or_owner(self.request.user, workspace):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Only workspace owners can create projects.")
         with transaction.atomic():
             project = serializer.save()
             AuditLog.objects.create(
@@ -1009,6 +1013,13 @@ class StatusDefinitionViewSet(viewsets.ModelViewSet):
             if not is_admin_or_owner(request.user, obj.workspace):
                 self.permission_denied(request)
 
+    def perform_create(self, serializer):
+        workspace = serializer.validated_data.get('workspace')
+        if workspace and not is_admin_or_owner(self.request.user, workspace):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Only workspace owners can manage status definitions.")
+        serializer.save()
+
     def perform_destroy(self, instance):
         from django.db import models as db_models
         # Cannot delete if tickets use this status
@@ -1057,6 +1068,13 @@ class StatusTransitionViewSet(viewsets.ModelViewSet):
                 return
             if not is_admin_or_owner(request.user, obj.workspace):
                 self.permission_denied(request)
+
+    def perform_create(self, serializer):
+        workspace = serializer.validated_data.get('workspace')
+        if workspace and not is_admin_or_owner(self.request.user, workspace):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Only workspace owners can manage transitions.")
+        serializer.save()
 
 
 class DashboardView(APIView):

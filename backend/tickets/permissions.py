@@ -19,8 +19,8 @@ def is_admin_or_owner(user, workspace=None):
         return True
     if workspace is not None:
         return Workspace.objects.filter(id=workspace.id, owner=user).exists()
-    # Legacy: owning any workspace
-    return Workspace.objects.filter(owner=user).exists()
+    # No workspace context = no admin privileges
+    return False
 
 
 class IsAdminAgent(permissions.BasePermission):
@@ -33,7 +33,9 @@ class IsAdminAgent(permissions.BasePermission):
 
 class IsAdminOrReadOnly(permissions.BasePermission):
     """
-    Permission that allows admins/owners full access, members read-only.
+    Permission that allows authenticated users read access.
+    Write access is allowed through — view-level checks (check_object_permissions,
+    perform_create) enforce workspace-specific ownership.
     """
     def has_permission(self, request, view):
         if not request.user.is_authenticated:
@@ -42,7 +44,8 @@ class IsAdminOrReadOnly(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
             
-        return is_admin_or_owner(request.user)
+        # Allow write requests through; view-level checks enforce workspace ownership
+        return True
 
 
 class IsAdminOrOwner(permissions.BasePermission):
