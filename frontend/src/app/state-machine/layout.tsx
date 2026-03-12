@@ -1,9 +1,12 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'State Machine Builder | OpenWeave',
+  title: 'Interactive State Machine Builder — AI Agent Workflow Control',
   description:
-    'Try the OpenWeave state machine builder — define states, transitions, and bot permissions to govern AI agent execution in your workflows.',
+    'Build and visualize AI state machines for autonomous agent control. Define states, transitions, approval gates, and bot workflow enforcement to prevent AI agents from skipping steps.',
+  alternates: {
+    canonical: 'https://openweave.dev/state-machine',
+  },
 };
 
 export default function StateMachineLayout({

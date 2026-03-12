@@ -1,9 +1,12 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Documentation | OpenWeave',
+  title: 'Documentation — AI Agent Governance Platform',
   description:
-    'Complete documentation for OpenWeave — authentication, state machines, approval gates, API reference, bot onboarding, and multi-agent rules.',
+    'Complete documentation for OpenWeave — AI agent governance, state machine enforcement, approval gates, bot workflow enforcement, multi-agent coordination, and deterministic agent execution.',
+  alternates: {
+    canonical: 'https://openweave.dev/docs',
+  },
 };
 
 export default function DocsLayout({

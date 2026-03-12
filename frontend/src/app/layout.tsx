@@ -5,13 +5,36 @@ import Analytics from "@/components/Analytics";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://openweave.dev"),
-  title: "OpenWeave - Execution Governance for Autonomous Systems",
+  title: {
+    default: "OpenWeave — Execution Governance for AI Agents & Autonomous Systems",
+    template: "%s | OpenWeave",
+  },
   description:
-    "OpenWeave enforces deterministic state transitions across humans and AI agents. Execution governance for autonomous systems.",
+    "OpenWeave is an AI agent governance platform that enforces deterministic state transitions, autonomous agent control, and execution governance across humans and AI agents.",
+  keywords: [
+    "AI agent governance",
+    "execution governance",
+    "autonomous agent control",
+    "AI state machine",
+    "bot workflow enforcement",
+    "AI agent compliance",
+    "SOC 2 AI agents",
+    "deterministic agent execution",
+    "AI agent approval gates",
+    "multi-agent coordination",
+    "agent state management",
+    "how to control AI agents in production",
+    "AI agent state machine enforcement",
+    "prevent AI agents from skipping steps",
+    "SOC 2 compliant AI agent platform",
+  ],
+  alternates: {
+    canonical: "https://openweave.dev",
+  },
   openGraph: {
-    title: "OpenWeave - Execution Governance for Autonomous Systems",
+    title: "OpenWeave — Execution Governance for AI Agents & Autonomous Systems",
     description:
-      "OpenWeave enforces deterministic state transitions across humans and AI agents. Execution governance for autonomous systems.",
+      "AI agent governance platform enforcing deterministic state transitions, autonomous agent control, and multi-agent coordination.",
     url: "https://openweave.dev",
     siteName: "OpenWeave",
     type: "website",
@@ -19,9 +42,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "OpenWeave - Execution Governance for Autonomous Systems",
+    title: "OpenWeave — Execution Governance for AI Agents & Autonomous Systems",
     description:
-      "OpenWeave enforces deterministic state transitions across humans and AI agents. Execution governance for autonomous systems.",
+      "AI agent governance platform enforcing deterministic state transitions, autonomous agent control, and multi-agent coordination.",
   },
 };
 
@@ -31,7 +54,7 @@ const organizationJsonLd = {
   name: "OpenWeave",
   url: "https://openweave.dev",
   description:
-    "Execution governance for autonomous systems. Deterministic state transitions across humans and AI agents.",
+    "AI agent governance platform providing execution governance for autonomous systems. Deterministic agent execution and autonomous agent control across humans and AI agents.",
 };
 
 const websiteJsonLd = {

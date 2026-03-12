@@ -238,10 +238,10 @@ export default function HomePage() {
         <div className="relative max-w-4xl mx-auto px-4 pt-16 pb-8 md:pt-28 md:pb-12 text-center">
           <p className="text-xs font-mono text-emerald-500 tracking-widest uppercase mb-4 landing-fade-in">Execution Governance</p>
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-[1.1] landing-fade-in" style={{ animationDelay: '.05s' }}>
-            Control Autonomous<br />Execution.
+            AI Agent Governance<br />for Autonomous Execution.
           </h1>
           <p className="mt-6 text-lg md:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed landing-fade-in" style={{ animationDelay: '.1s' }}>
-            OpenWeave enforces deterministic state transitions across humans and AI agents. Every action is validated, every transition is authorized, every change is auditable.
+            OpenWeave enforces deterministic agent execution across humans and AI agents. Every state transition is validated, every action is authorized, every change is auditable — autonomous agent control you can trust.
           </p>
         </div>
         <div className="relative max-w-4xl mx-auto px-4 pb-10 landing-fade-in" style={{ animationDelay: '.15s' }}>
@@ -256,7 +256,7 @@ export default function HomePage() {
       <Section className="py-20 md:py-28 border-t border-white/5">
         <div className="max-w-4xl mx-auto px-4">
           <p className="text-xs font-mono text-red-400 tracking-widest uppercase mb-4">The Problem</p>
-          <h2 className="text-3xl md:text-4xl font-bold">The Hidden Risk of Autonomous Agents</h2>
+          <h2 className="text-3xl md:text-4xl font-bold">Why AI Agents Need Execution Governance</h2>
           <div className="mt-10 grid gap-4 md:grid-cols-2">
             {[
               'Agents can mutate workflow state without validation.',
@@ -321,7 +321,7 @@ export default function HomePage() {
       <Section className="py-20 md:py-28 border-t border-white/5 bg-white/[0.01]">
         <div className="max-w-4xl mx-auto px-4">
           <p className="text-xs font-mono text-emerald-500 tracking-widest uppercase mb-4">How It Works</p>
-          <h2 className="text-3xl md:text-4xl font-bold">Server-Enforced State Machine</h2>
+          <h2 className="text-3xl md:text-4xl font-bold">Server-Enforced AI State Machine</h2>
           <div className="mt-10">
             <StateMachineDiagram />
             <div className="mt-4 text-center">
@@ -365,7 +365,7 @@ export default function HomePage() {
       <Section className="py-20 md:py-28 border-t border-white/5">
         <div className="max-w-4xl mx-auto px-4">
           <p className="text-xs font-mono text-emerald-500 tracking-widest uppercase mb-4">Architecture</p>
-          <h2 className="text-3xl md:text-4xl font-bold">Deterministic by Design</h2>
+          <h2 className="text-3xl md:text-4xl font-bold">Deterministic Agent Execution by Design</h2>
           <div className="mt-10 p-6 rounded-xl bg-white/[0.02] border border-white/5 font-mono text-sm text-gray-400 space-y-2">
             <p><span className="text-gray-500">$</span> <span className="text-white">PATCH /api/tickets/SA-42/</span></p>
             <p><span className="text-gray-500">&gt;</span> {`{ "status": "COMPLETED" }`}</p>
@@ -382,7 +382,7 @@ export default function HomePage() {
       <Section className="py-20 md:py-28 border-t border-white/5 bg-white/[0.01]">
         <div className="max-w-4xl mx-auto px-4">
           <p className="text-xs font-mono text-emerald-500 tracking-widest uppercase mb-4">Built For</p>
-          <h2 className="text-3xl md:text-4xl font-bold">Execution-Critical Environments</h2>
+          <h2 className="text-3xl md:text-4xl font-bold">Built for Multi-Agent Coordination</h2>
           <div className="mt-10 grid gap-3 md:grid-cols-2">
             {[
               'Organizations deploying internal AI agents',
