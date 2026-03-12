@@ -13,9 +13,9 @@ async function getBlogSlugs(): Promise<BlogPost[]> {
     const res = await fetch(`${API_BASE}/blog/?page_size=100`, { next: { revalidate: 3600 } });
     if (!res.ok) return [];
     const data = await res.json();
-    return (data.results || []).map((p: any) => ({
+    return (data.results || []).filter((p: any) => p.slug).map((p: any) => ({
       slug: p.slug,
-      updated_at: p.updated_at,
+      updated_at: p.updated_at || new Date().toISOString(),
     }));
   } catch {
     return [];
@@ -64,12 +64,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  const blogPages: MetadataRoute.Sitemap = blogPosts.map((post) => ({
-    url: `${SITE_URL}/blog/${post.slug}`,
-    lastModified: new Date(post.updated_at),
-    changeFrequency: 'weekly' as const,
-    priority: 0.7,
-  }));
+  const blogPages: MetadataRoute.Sitemap = blogPosts.map((post) => {
+    const date = new Date(post.updated_at);
+    return {
+      url: `${SITE_URL}/blog/${post.slug}`,
+      lastModified: isNaN(date.getTime()) ? new Date() : date,
+      changeFrequency: 'weekly' as const,
+      priority: 0.7,
+    };
+  });
 
   return [...staticPages, ...blogPages];
 }
