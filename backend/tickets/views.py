@@ -570,7 +570,9 @@ class TicketViewSet(viewsets.ModelViewSet):
         ).exists()
         workspace = instance.project.workspace if instance.project else None
         if not user.is_superuser and not is_admin_or_owner(user, workspace) and not is_project_admin:
-            if instance.assigned_to_id != user.id:
+            # Allow assignment changes (self-assign or reassign) even if not currently assigned
+            only_assigning = set(serializer.validated_data.keys()) <= {'assigned_to'}
+            if instance.assigned_to_id != user.id and not only_assigning:
                 from rest_framework.exceptions import PermissionDenied
                 raise PermissionDenied("You can only work on tickets assigned to you.")
 
