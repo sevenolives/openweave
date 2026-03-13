@@ -459,7 +459,8 @@ class ApiClient {
 
   // Users
   async getUsers(params?: Record<string, string>): Promise<User[]> {
-    const query = params ? '?' + new URLSearchParams(params).toString() : '';
+    const merged = { page_size: '100', ...params };
+    const query = '?' + new URLSearchParams(merged).toString();
     const response = await this.request<PaginatedResponse<User>>(`/users/${query}`);
     return response.results || [];
   }
@@ -541,7 +542,7 @@ class ApiClient {
   }
 
   async getWorkspaceMembers(params?: Record<string, string>): Promise<WorkspaceMember[]> {
-    const response = await this.getWorkspaceMembersPaginated(params);
+    const response = await this.getWorkspaceMembersPaginated({ page_size: '100', ...params });
     return response.results || [];
   }
 
