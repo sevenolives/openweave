@@ -588,10 +588,14 @@ class TicketViewSet(viewsets.ModelViewSet):
             project=instance.project, agent=user, role='ADMIN'
         ).exists()
         workspace = instance.project.workspace if instance.project else None
-        if not user.is_superuser and not is_admin_or_owner(user, workspace) and not is_project_admin:
-            # Allow assignment changes (self-assign or reassign) even if not currently assigned
-            only_assigning = set(serializer.validated_data.keys()) <= {'assigned_to'}
-            if instance.assigned_to_id != user.id and not only_assigning:
+        can_approve = ProjectAgent.objects.filter(
+            project=instance.project, agent=user, can_approve_tickets=True
+        ).exists()
+        if not user.is_superuser and not is_admin_or_owner(user, workspace) and not is_project_admin and not can_approve:
+            # Allow assignment changes or approval changes even if not currently assigned
+            allowed_fields = {'assigned_to', 'approved_status'}
+            only_allowed = set(serializer.validated_data.keys()) <= allowed_fields
+            if instance.assigned_to_id != user.id and not only_allowed:
                 from rest_framework.exceptions import PermissionDenied
                 raise PermissionDenied("You can only work on tickets assigned to you.")
 
