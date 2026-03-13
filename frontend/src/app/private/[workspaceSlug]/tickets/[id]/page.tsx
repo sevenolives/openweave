@@ -289,9 +289,9 @@ export default function TicketDetailPage() {
                       </div>
 
                       <form onSubmit={handleComment}>
-                        <div className="border-2 border-gray-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent transition-all">
+                        <div className="border-2 border-gray-200 rounded-xl focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent transition-all">
                           <MentionInput value={newComment} onChange={setNewComment} members={projectAgents} disabled={submitting} />
-                          <div className="flex justify-between items-center px-3 py-2.5 bg-gray-50 border-t border-gray-100">
+                          <div className="flex justify-between items-center px-3 py-2.5 bg-gray-50 border-t border-gray-100 rounded-b-xl">
                             <span className="text-xs text-gray-400">{newComment.length > 0 ? `${newComment.length} chars` : ''}</span>
                             <button type="submit" disabled={submitting || !newComment.trim()} className="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors">
                               {submitting ? 'Sending…' : 'Add Comment'}
