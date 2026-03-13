@@ -85,7 +85,9 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+# Use persistent volume on Railway (/data/media), fall back to local for dev
+import os as _os
+MEDIA_ROOT = '/data/media' if _os.path.isdir('/data') else BASE_DIR / 'media'
 
 STORAGES = {
     'default': {
