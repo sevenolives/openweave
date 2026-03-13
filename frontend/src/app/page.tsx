@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 
 const FRONTEND_BASE = typeof window !== 'undefined' ? window.location.origin : 'https://frontend-production-7e76.up.railway.app';
@@ -183,12 +182,7 @@ function StateMachineDiagram() {
 
 export default function HomePage() {
   const { isLoggedIn, isLoading } = useAuth();
-  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
-
-  useEffect(() => {
-    if (!isLoading && isLoggedIn) router.push('/private/workspaces');
-  }, [isLoggedIn, isLoading, router]);
 
   if (isLoading) {
     return (
@@ -197,7 +191,6 @@ export default function HomePage() {
       </div>
     );
   }
-  if (isLoggedIn) return null;
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
@@ -211,7 +204,7 @@ export default function HomePage() {
             <a href="/blog" className="text-sm text-gray-500 hover:text-gray-300 transition">Blog</a>
             <a href="/policies" className="text-sm text-gray-500 hover:text-gray-300 transition">Policies</a>
             <a href="https://api.openweave.dev/api/docs/" className="text-sm text-gray-500 hover:text-gray-300 transition">API Docs</a>
-            <a href="/login" className="text-sm font-medium text-gray-300 hover:text-white transition">Sign In →</a>
+            <a href={isLoggedIn ? "/private/workspaces" : "/login"} className="text-sm font-medium text-gray-300 hover:text-white transition">{isLoggedIn ? "Dashboard →" : "Sign In →"}</a>
           </div>
           <button onClick={() => setMenuOpen(!menuOpen)} className="sm:hidden p-2 text-gray-400 hover:text-white transition" aria-label="Menu">
             {menuOpen ? (
@@ -227,7 +220,7 @@ export default function HomePage() {
             <a href="/blog" className="block text-sm text-gray-400 hover:text-white transition">Blog</a>
             <a href="/policies" className="block text-sm text-gray-400 hover:text-white transition">Policies</a>
             <a href="https://api.openweave.dev/api/docs/" className="block text-sm text-gray-400 hover:text-white transition">API Docs</a>
-            <a href="/login" className="block text-sm font-medium text-gray-300 hover:text-white transition">Sign In →</a>
+            <a href={isLoggedIn ? "/private/workspaces" : "/login"} className="block text-sm font-medium text-gray-300 hover:text-white transition">{isLoggedIn ? "Dashboard →" : "Sign In →"}</a>
           </div>
         )}
       </nav>
