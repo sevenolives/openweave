@@ -213,9 +213,18 @@ class TicketSerializer(serializers.ModelSerializer):
     def validate_assigned_to(self, value):
         """Ensure assigned user belongs to the project. Admins can assign anyone."""
         if value:
-            # Admins/owners can assign anyone
+            # Get workspace context for permission check
             request = self.context.get('request')
-            if request and (request.user.is_superuser or is_admin_or_owner(request.user)):
+            workspace = None
+            if self.instance and self.instance.project:
+                workspace = self.instance.project.workspace
+            elif 'project' in self.initial_data:
+                try:
+                    workspace = Project.objects.get(id=self.initial_data['project']).workspace
+                except Project.DoesNotExist:
+                    pass
+            # Admins/owners can assign anyone
+            if request and (request.user.is_superuser or is_admin_or_owner(request.user, workspace)):
                 return value
             # For updates, use existing project; for creates, get from initial_data
             project = None
