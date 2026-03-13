@@ -1,6 +1,9 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, Project, Ticket, Comment, AuditLog, ProjectAgent, Workspace, WorkspaceMember, WorkspaceInvite, BlogPost
+from .models import (
+    User, Project, Ticket, Comment, AuditLog, ProjectAgent, Workspace,
+    WorkspaceMember, WorkspaceInvite, BlogPost, TicketAttachment, MediaFile,
+)
 
 
 @admin.register(Workspace)
@@ -172,6 +175,26 @@ class StatusDefinitionAdmin(admin.ModelAdmin):
 class StatusTransitionAdmin(admin.ModelAdmin):
     list_display = ['workspace', 'from_status', 'to_status', 'actor_type']
     list_filter = ['workspace', 'actor_type']
+
+
+@admin.register(TicketAttachment)
+class TicketAttachmentAdmin(admin.ModelAdmin):
+    list_display = ['id', 'ticket', 'filename', 'uploaded_by', 'created_at']
+    list_filter = ['created_at']
+    search_fields = ['filename', 'ticket__title', 'uploaded_by__username']
+    list_select_related = ('ticket', 'uploaded_by')
+    list_per_page = 50
+    readonly_fields = ['created_at']
+
+
+@admin.register(MediaFile)
+class MediaFileAdmin(admin.ModelAdmin):
+    list_display = ['id', 'filename', 'media_type', 'workspace', 'ticket', 'uploaded_by', 'size', 'created_at']
+    list_filter = ['media_type', 'created_at', 'workspace']
+    search_fields = ['filename', 'uploaded_by__username', 'workspace__name']
+    list_select_related = ('workspace', 'ticket', 'uploaded_by')
+    list_per_page = 50
+    readonly_fields = ['id', 'content_type', 'size', 'created_at']
 
 
 @admin.register(BlogPost)
