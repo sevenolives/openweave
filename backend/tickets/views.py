@@ -339,10 +339,16 @@ class ProjectViewSet(viewsets.ModelViewSet):
         qs = Project.objects.all()
         # Workspace filter is mandatory for list
         workspace_id = self.request.query_params.get('workspace')
-        if self.action == 'list':
-            if not workspace_id:
-                from rest_framework.exceptions import ValidationError
-                raise ValidationError({'workspace': 'This query parameter is required.'})
+        if self.action == 'list' and not workspace_id:
+            # Return only projects in workspaces the user belongs to
+            from django.db.models import Q
+            user = self.request.user
+            if user.is_superuser:
+                return qs
+            member_ws = WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True)
+            owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
+            ws_ids = set(list(member_ws) + list(owned_ws))
+            return qs.filter(workspace_id__in=ws_ids)
             qs = qs.filter(workspace_id=workspace_id)
 
         user = self.request.user
