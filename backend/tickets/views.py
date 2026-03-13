@@ -857,12 +857,13 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
         """Seed default status definitions and transitions for a new workspace."""
         defaults = [
             {'key': 'OPEN', 'label': 'Open', 'color': 'gray', 'is_terminal': False, 'is_default': True, 'is_bot_requires_approval': False, 'position': 0},
-            {'key': 'IN_PROGRESS', 'label': 'In Progress', 'color': 'blue', 'is_terminal': False, 'is_default': False, 'is_bot_requires_approval': False, 'position': 1},
-            {'key': 'BLOCKED', 'label': 'Blocked', 'color': 'red', 'is_terminal': False, 'is_default': False, 'is_bot_requires_approval': False, 'position': 2},
-            {'key': 'IN_TESTING', 'label': 'In Testing', 'color': 'purple', 'is_terminal': False, 'is_default': False, 'is_bot_requires_approval': False, 'position': 3},
-            {'key': 'REVIEW', 'label': 'Review', 'color': 'amber', 'is_terminal': False, 'is_default': False, 'is_bot_requires_approval': False, 'position': 4},
-            {'key': 'COMPLETED', 'label': 'Completed', 'color': 'green', 'is_terminal': True, 'is_default': False, 'is_bot_requires_approval': True, 'position': 5},
-            {'key': 'CANCELLED', 'label': 'Cancelled', 'color': 'gray', 'is_terminal': True, 'is_default': False, 'is_bot_requires_approval': False, 'position': 6},
+            {'key': 'IN_SPEC', 'label': 'In Spec', 'color': 'blue', 'is_terminal': False, 'is_default': False, 'is_bot_requires_approval': False, 'position': 1},
+            {'key': 'IN_DEV', 'label': 'In Dev', 'color': 'cyan', 'is_terminal': False, 'is_default': False, 'is_bot_requires_approval': False, 'position': 2},
+            {'key': 'BLOCKED', 'label': 'Blocked', 'color': 'red', 'is_terminal': False, 'is_default': False, 'is_bot_requires_approval': False, 'position': 3},
+            {'key': 'IN_TESTING', 'label': 'In Testing', 'color': 'purple', 'is_terminal': False, 'is_default': False, 'is_bot_requires_approval': False, 'position': 4},
+            {'key': 'REVIEW', 'label': 'Review', 'color': 'amber', 'is_terminal': False, 'is_default': False, 'is_bot_requires_approval': False, 'position': 5},
+            {'key': 'COMPLETED', 'label': 'Completed', 'color': 'green', 'is_terminal': True, 'is_default': False, 'is_bot_requires_approval': True, 'position': 6},
+            {'key': 'CANCELLED', 'label': 'Cancelled', 'color': 'gray', 'is_terminal': True, 'is_default': False, 'is_bot_requires_approval': False, 'position': 7},
         ]
         s = {}
         for d in defaults:
@@ -870,10 +871,11 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
 
         # Bot transitions — automated workflow
         for from_key, to_key in [
-            ('OPEN', 'IN_PROGRESS'),          # bot picks up ticket
-            ('IN_PROGRESS', 'IN_TESTING'),    # bot runs tests
-            ('IN_PROGRESS', 'BLOCKED'),       # bot detects blocker
-            ('BLOCKED', 'IN_PROGRESS'),       # bot unblocks
+            ('OPEN', 'IN_SPEC'),              # bot picks up ticket for spec
+            ('IN_SPEC', 'IN_DEV'),            # spec done, start dev
+            ('IN_DEV', 'IN_TESTING'),         # dev done, run tests
+            ('IN_DEV', 'BLOCKED'),            # bot detects blocker
+            ('BLOCKED', 'IN_DEV'),            # bot unblocks
             ('IN_TESTING', 'REVIEW'),         # tests pass, send to review
             ('IN_TESTING', 'BLOCKED'),        # tests fail
         ]:
@@ -883,15 +885,16 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
         for from_key, to_key in [
             ('OPEN', 'CANCELLED'),            # human cancels
             ('REVIEW', 'COMPLETED'),          # human approves & closes (approval gated)
-            ('REVIEW', 'IN_PROGRESS'),        # human rejects, send back
-            ('IN_PROGRESS', 'REVIEW'),        # human sends to review early
+            ('REVIEW', 'IN_DEV'),             # human rejects, send back to dev
+            ('IN_SPEC', 'IN_DEV'),            # human pushes to dev
+            ('IN_DEV', 'REVIEW'),             # human sends to review early
         ]:
             StatusTransition.objects.create(workspace=workspace, from_status=s[from_key], to_status=s[to_key], actor_type='HUMAN')
 
         # All transitions — either bot or human
         for from_key, to_key in [
             ('BLOCKED', 'OPEN'),              # reopen blocked ticket
-            ('IN_PROGRESS', 'OPEN'),          # deprioritize
+            ('IN_DEV', 'OPEN'),               # deprioritize
         ]:
             StatusTransition.objects.create(workspace=workspace, from_status=s[from_key], to_status=s[to_key], actor_type='ALL')
 
