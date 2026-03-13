@@ -8,6 +8,7 @@ from .views import (
     WorkspaceViewSet, WorkspaceMemberViewSet, WorkspaceInviteViewSet,
     TicketAttachmentViewSet, StatusDefinitionViewSet, StatusTransitionViewSet,
     ProjectAgentViewSet, JoinView, DashboardView, BlogPostViewSet,
+    MediaFileViewSet,
 )
 
 router = DefaultRouter()
@@ -24,6 +25,7 @@ router.register(r'status-definitions', StatusDefinitionViewSet)
 router.register(r'status-transitions', StatusTransitionViewSet)
 router.register(r'project-agents', ProjectAgentViewSet)
 router.register(r'blog', BlogPostViewSet, basename='blog')
+router.register(r'media', MediaFileViewSet, basename='media')
 
 
 # Schema overrides for SimpleJWT views

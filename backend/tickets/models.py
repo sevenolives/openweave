@@ -494,3 +494,61 @@ class BlogPost(models.Model):
         if self.is_published and not self.published_at:
             self.published_at = timezone.now()
         super().save(*args, **kwargs)
+
+
+def media_upload_path(instance, filename):
+    """Organize uploads: media/<workspace_id>/<type>/<YYYY>/<MM>/<filename>"""
+    from datetime import datetime
+    now = datetime.now()
+    return f"uploads/{instance.workspace_id}/{instance.media_type}/{now.year}/{now.month:02d}/{filename}"
+
+
+class MediaFile(models.Model):
+    """
+    General-purpose media file storage (images, video, audio).
+    Workspace-scoped, optionally linked to a ticket.
+    """
+    MEDIA_TYPES = [
+        ('image', 'Image'),
+        ('video', 'Video'),
+        ('audio', 'Audio'),
+        ('other', 'Other'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    workspace = models.ForeignKey('Workspace', on_delete=models.CASCADE, related_name='media_files')
+    ticket = models.ForeignKey('Ticket', on_delete=models.SET_NULL, null=True, blank=True, related_name='media_files')
+    file = models.FileField(upload_to=media_upload_path)
+    filename = models.CharField(max_length=255, help_text="Original filename")
+    media_type = models.CharField(max_length=10, choices=MEDIA_TYPES, default='other')
+    content_type = models.CharField(max_length=100, blank=True, help_text="MIME type")
+    size = models.PositiveIntegerField(default=0, help_text="File size in bytes")
+    uploaded_by = models.ForeignKey('User', on_delete=models.CASCADE, related_name='media_files')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.filename} ({self.media_type})"
+
+    class Meta:
+        db_table = 'media_files'
+        ordering = ['-created_at']
+
+    def save(self, *args, **kwargs):
+        if self.file and not self.content_type:
+            import mimetypes
+            ct, _ = mimetypes.guess_type(self.filename or self.file.name)
+            self.content_type = ct or 'application/octet-stream'
+        if self.file and not self.media_type or self.media_type == 'other':
+            ct = self.content_type or ''
+            if ct.startswith('image/'):
+                self.media_type = 'image'
+            elif ct.startswith('video/'):
+                self.media_type = 'video'
+            elif ct.startswith('audio/'):
+                self.media_type = 'audio'
+        if self.file and not self.size:
+            try:
+                self.size = self.file.size
+            except Exception:
+                pass
+        super().save(*args, **kwargs)
