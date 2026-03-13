@@ -27,7 +27,7 @@ export default function WorkspacesPage() {
       await refreshWorkspaces();
       setCurrentWorkspace(ws);
       toast('Workspace created');
-      router.push(`/private/${ws.slug}/dashboard`);
+      router.push(`/private/${ws.slug}/settings`);
     } catch (e: any) {
       setFieldErrors(parseFieldErrors(e));
       toast(e?.message || 'Failed to create workspace', 'error');
