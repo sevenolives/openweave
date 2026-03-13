@@ -324,14 +324,25 @@ class CommentSerializer(serializers.ModelSerializer):
     """Serializer for Comment model."""
     author_details = UserSimpleSerializer(source='author', read_only=True)
     ticket_details = CommentTicketSerializer(source='ticket', read_only=True)
+    mentions = serializers.SerializerMethodField(
+        help_text="List of user IDs mentioned via @[username] in the comment body."
+    )
 
     class Meta:
         model = Comment
         fields = [
             'id', 'ticket', 'author', 'author_details', 'ticket_details', 'body',
-            'created_at', 'updated_at'
+            'mentions', 'created_at', 'updated_at'
         ]
         read_only_fields = ['author', 'created_at', 'updated_at']
+
+    def get_mentions(self, obj):
+        import re
+        usernames = re.findall(r'@\[([^\]]+)\]', obj.body or '')
+        if not usernames:
+            return []
+        users = User.objects.filter(username__in=usernames).values_list('id', flat=True)
+        return list(users)
         extra_kwargs = {
             'ticket': {'help_text': 'Ticket ID to comment on.'},
             'body': {'help_text': 'Comment text content.'},

@@ -9,6 +9,8 @@ import FormField, { parseFieldErrors, inputClass, selectClass } from '@/componen
 import { useAuth } from '@/hooks/useAuth';
 import { api, Ticket, Comment, User, TicketAttachment, ApiError, StatusDefinition } from '@/lib/api';
 import { useWorkspace } from '@/hooks/useWorkspace';
+import MentionText from '@/components/MentionText';
+import MentionInput from '@/components/MentionInput';
 
 const PRIORITY_COLORS: Record<string, string> = {
   LOW: 'bg-green-100 text-green-700', MEDIUM: 'bg-yellow-100 text-yellow-700',
@@ -280,7 +282,7 @@ export default function TicketDetailPage() {
                                 <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${comment.author_details.user_type === 'BOT' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>{comment.author_details.user_type}</span>
                                 <span className="text-xs text-gray-400">{new Date(comment.created_at).toLocaleString()}</span>
                               </div>
-                              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{comment.body}</p>
+                              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap"><MentionText text={comment.body} /></p>
                             </div>
                           </div>
                         ))}
@@ -288,7 +290,7 @@ export default function TicketDetailPage() {
 
                       <form onSubmit={handleComment}>
                         <div className="border-2 border-gray-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent transition-all">
-                          <textarea rows={3} className="w-full px-4 py-3 text-sm resize-none focus:outline-none placeholder-gray-400" placeholder="Write a comment…" value={newComment} onChange={e => setNewComment(e.target.value)} disabled={submitting} />
+                          <MentionInput value={newComment} onChange={setNewComment} members={projectAgents} disabled={submitting} />
                           <div className="flex justify-between items-center px-3 py-2.5 bg-gray-50 border-t border-gray-100">
                             <span className="text-xs text-gray-400">{newComment.length > 0 ? `${newComment.length} chars` : ''}</span>
                             <button type="submit" disabled={submitting || !newComment.trim()} className="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors">

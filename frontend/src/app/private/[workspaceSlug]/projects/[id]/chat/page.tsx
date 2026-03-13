@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import { api, Comment, Project } from '@/lib/api';
+import MentionText from '@/components/MentionText';
 
 const PAGE_SIZE = 50;
 
@@ -248,7 +249,7 @@ export default function ProjectChatPage() {
                             )}
                             <span className="text-[11px] text-gray-400">{formatTime(comment.created_at)}</span>
                           </div>
-                          <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-wrap break-words">{comment.body}</p>
+                          <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-wrap break-words"><MentionText text={comment.body} /></p>
                         </div>
                       </div>
                     );
