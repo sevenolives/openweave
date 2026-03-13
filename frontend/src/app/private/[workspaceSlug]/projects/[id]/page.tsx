@@ -104,9 +104,14 @@ export default function ProjectSettingsPage() {
             <h1 className="text-2xl font-bold text-gray-900">{project.name}</h1>
             <p className="text-sm text-gray-500">Project Settings</p>
           </div>
-          <button onClick={() => router.push(`/private/${workspaceSlug}/tickets?project=${project.id}`)} className="ml-auto px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
-            View Tickets →
-          </button>
+          <div className="ml-auto flex items-center gap-2">
+            <button onClick={() => router.push(`/private/${workspaceSlug}/projects/${project.id}/chat`)} className="px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+              💬 Activity
+            </button>
+            <button onClick={() => router.push(`/private/${workspaceSlug}/tickets?project=${project.id}`)} className="px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+              View Tickets →
+            </button>
+          </div>
         </div>
 
         <div className="space-y-6">

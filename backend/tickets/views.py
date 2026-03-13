@@ -648,7 +648,7 @@ class TicketAttachmentViewSet(viewsets.ModelViewSet):
 @extend_schema(tags=['comments'])
 class CommentViewSet(viewsets.ModelViewSet):
     """CRUD operations for comments."""
-    queryset = Comment.objects.all()
+    queryset = Comment.objects.select_related('author', 'ticket', 'ticket__project').all()
     serializer_class = CommentSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]

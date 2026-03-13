@@ -75,6 +75,7 @@ export interface Comment {
   ticket: number;
   author: number;
   author_details: User;
+  ticket_details?: { id: number; ticket_slug: string; title: string };
   body: string;
   created_at: string;
   updated_at: string;

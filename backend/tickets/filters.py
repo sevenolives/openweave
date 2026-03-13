@@ -219,6 +219,11 @@ class CommentFilter(django_filters.FilterSet):
         field_name='ticket'
     )
     
+    ticket__project = django_filters.NumberFilter(
+        field_name='ticket__project_id',
+        label='Project ID (via ticket)'
+    )
+    
     author = django_filters.ModelChoiceFilter(
         queryset=User.objects.filter(is_active=True),
         field_name='author'
@@ -235,7 +240,7 @@ class CommentFilter(django_filters.FilterSet):
 
     class Meta:
         model = Comment
-        fields = ['ticket', 'author']
+        fields = ['ticket', 'ticket__project', 'author']
 
     def search_comments(self, queryset, name, value):
         """

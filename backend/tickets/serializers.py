@@ -311,14 +311,24 @@ class TicketSerializer(serializers.ModelSerializer):
         return data
 
 
+class CommentTicketSerializer(serializers.ModelSerializer):
+    """Minimal ticket info embedded in comments."""
+    ticket_slug = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = Ticket
+        fields = ['id', 'ticket_slug', 'title']
+
+
 class CommentSerializer(serializers.ModelSerializer):
     """Serializer for Comment model."""
     author_details = UserSimpleSerializer(source='author', read_only=True)
+    ticket_details = CommentTicketSerializer(source='ticket', read_only=True)
 
     class Meta:
         model = Comment
         fields = [
-            'id', 'ticket', 'author', 'author_details', 'body',
+            'id', 'ticket', 'author', 'author_details', 'ticket_details', 'body',
             'created_at', 'updated_at'
         ]
         read_only_fields = ['author', 'created_at', 'updated_at']
