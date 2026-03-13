@@ -10,7 +10,6 @@ import { api } from '@/lib/api';
 
 export default function WorkspacesPage() {
   const { workspaces, currentWorkspace, setCurrentWorkspace, refreshWorkspaces, isLoading: wsLoading } = useWorkspace();
-  const [autoRedirected, setAutoRedirected] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
@@ -18,14 +17,6 @@ export default function WorkspacesPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const router = useRouter();
   const { toast } = useToast();
-
-  // Auto-redirect to current workspace dashboard if coming from login
-  useEffect(() => {
-    if (!wsLoading && !autoRedirected && currentWorkspace) {
-      setAutoRedirected(true);
-      router.replace(`/private/${currentWorkspace.slug}/dashboard`);
-    }
-  }, [wsLoading, currentWorkspace, autoRedirected, router]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
