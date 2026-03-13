@@ -60,7 +60,7 @@ class ProjectAgentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProjectAgent
-        fields = ['id', 'project', 'user', 'role', 'joined_at']
+        fields = ['id', 'project', 'user', 'role', 'can_approve_tickets', 'joined_at']
         read_only_fields = ['id', 'project', 'user', 'joined_at']
 
 

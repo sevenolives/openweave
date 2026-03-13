@@ -199,6 +199,7 @@ class ProjectAgent(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
     agent = models.ForeignKey("User", on_delete=models.CASCADE)
     role = models.CharField(max_length=10, choices=PROJECT_ROLES, default='MEMBER')
+    can_approve_tickets = models.BooleanField(default=False, help_text="Whether this agent can approve tickets in this project")
     joined_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:

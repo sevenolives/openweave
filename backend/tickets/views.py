@@ -563,6 +563,25 @@ class TicketViewSet(viewsets.ModelViewSet):
                 from rest_framework.exceptions import PermissionDenied
                 raise PermissionDenied("Bots cannot change status on unapproved tickets. A human must approve first.")
 
+        # Validate approved_status changes — only superusers, workspace owners, project admins, or delegated approvers
+        if 'approved_status' in serializer.validated_data:
+            new_approval = serializer.validated_data['approved_status']
+            if new_approval != instance.approved_status:
+                workspace = instance.project.workspace if instance.project else None
+                has_approval_permission = (
+                    user.is_superuser
+                    or is_admin_or_owner(user, workspace)
+                    or ProjectAgent.objects.filter(
+                        project=instance.project, agent=user, role='ADMIN'
+                    ).exists()
+                    or ProjectAgent.objects.filter(
+                        project=instance.project, agent=user, can_approve_tickets=True
+                    ).exists()
+                )
+                if not has_approval_permission:
+                    from rest_framework.exceptions import PermissionDenied
+                    raise PermissionDenied("You do not have permission to change ticket approval status.")
+
         # Non-admin users can only update tickets assigned to them
         # Project admins and workspace owners can update any ticket in their project
         is_project_admin = ProjectAgent.objects.filter(

@@ -180,6 +180,25 @@ export default function ProjectSettingsPage() {
                             <option value="ADMIN">Admin</option>
                             <option value="MEMBER">Member</option>
                           </select>
+                          <label className="flex items-center gap-1.5 cursor-pointer" title="Allow this member to approve tickets">
+                            <input
+                              type="checkbox"
+                              checked={agentMemberships.find(m => m.user.id === agent.id)?.can_approve_tickets || false}
+                              onChange={async (e) => {
+                                const membership = agentMemberships.find(m => m.user.id === agent.id);
+                                if (membership) {
+                                  try {
+                                    await api.updateProjectAgent(membership.id, { can_approve_tickets: e.target.checked });
+                                    const updated = await api.getProjectAgentMemberships(projectId);
+                                    setAgentMemberships(updated);
+                                    toast(e.target.checked ? 'Can now approve tickets' : 'Approval permission removed');
+                                  } catch (err: any) { toast(err?.message || 'Failed', 'error'); }
+                                }
+                              }}
+                              className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                            />
+                            <span className="text-xs text-gray-600 whitespace-nowrap">Can Approve</span>
+                          </label>
                         </div>
                         <button onClick={() => handleRemoveMember(agent.id)} disabled={memberSaving} className="ml-2 min-w-[44px] h-[44px] flex items-center justify-center text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50" title="Remove">
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>

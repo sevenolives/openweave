@@ -96,6 +96,7 @@ export interface ProjectAgentMembership {
   project: number;
   user: User;
   role: 'ADMIN' | 'MEMBER';
+  can_approve_tickets: boolean;
   joined_at: string;
 }
 
@@ -364,6 +365,13 @@ class ApiClient {
     });
   }
 
+  async updateProjectAgent(membershipId: number, data: Partial<Pick<ProjectAgentMembership, 'role' | 'can_approve_tickets'>>): Promise<ProjectAgentMembership> {
+    return this.request<ProjectAgentMembership>(`/project-agents/${membershipId}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
   async createProject(project: Partial<Project>): Promise<Project> {
     return this.request<Project>('/projects/', {
       method: 'POST',
@@ -420,6 +428,11 @@ class ApiClient {
     const query = params ? '?' + new URLSearchParams(params).toString() : '';
     const response = await this.request<PaginatedResponse<Comment>>(`/comments/${query}`);
     return response.results || [];
+  }
+
+  async getCommentsPaginated(params?: Record<string, string>): Promise<PaginatedResponse<Comment>> {
+    const query = params ? '?' + new URLSearchParams(params).toString() : '';
+    return this.request<PaginatedResponse<Comment>>(`/comments/${query}`);
   }
 
   async createComment(comment: Partial<Comment>): Promise<Comment> {
