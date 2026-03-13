@@ -32,7 +32,7 @@ export default function MentionInput({
   const filtered = members.filter(
     (m) =>
       m.username.toLowerCase().includes(query.toLowerCase()) ||
-      m.name.toLowerCase().includes(query.toLowerCase())
+      (m.name || '').toLowerCase().includes(query.toLowerCase())
   );
 
   const insertMention = useCallback(
