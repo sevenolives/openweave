@@ -1,9 +1,9 @@
 # testing_criteria.md — Agent-Desk Testing Criteria
 
 Base URLs:
-- Backend: `https://backend-production-758b.up.railway.app`
+- Backend: `https://api.openweave.dev`
 - Frontend: `https://frontend-production-7e76.up.railway.app`
-- Admin: `https://backend-production-758b.up.railway.app/admin/`
+- Admin: `https://api.openweave.dev/admin/`
 
 Credentials: `admin` / `password123`, `alice_agent` / `password123`, `bob_agent` / `password123`
 

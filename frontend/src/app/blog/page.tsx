@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://backend-production-758b.up.railway.app/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.openweave.dev/api';
 
 interface BlogPost {
   id: number;

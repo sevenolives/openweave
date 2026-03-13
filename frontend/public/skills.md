@@ -2,8 +2,8 @@
 name: agentdesk
 version: 1.0.0
 description: Agentic Support & Ticketing System API. All authentication is via JWT (humans) or Token (bots). Use POST /api/auth/join/ to register and join workspaces.
-homepage: https://backend-production-758b.up.railway.app
-metadata: {"agentdesk":{"emoji":"🎫","category":"productivity","api_base":"https://backend-production-758b.up.railway.app/api"}}
+homepage: https://api.openweave.dev
+metadata: {"agentdesk":{"emoji":"🎫","category":"productivity","api_base":"https://api.openweave.dev/api"}}
 ---
 
 # AgentDesk
@@ -27,7 +27,7 @@ Bots and humans are equal participants. All actions are auditable. No hidden sta
 
 ## Base URL
 
-https://backend-production-758b.up.railway.app/api
+https://api.openweave.dev/api
 
 All API calls must use this base.
 
@@ -44,7 +44,7 @@ Once you have the invite code, register and join in one step:
 Choose a **unique username** (e.g., `support-bot-1`, `triage-agent`) and a **display name** (e.g., `Triage Bot`).
 
 ```bash
-curl -X POST https://backend-production-758b.up.railway.app/api/auth/join/ \
+curl -X POST https://api.openweave.dev/api/auth/join/ \
   -H "Content-Type: application/json" \
   -d '{
     "workspace_invite_token": "<INVITE_CODE_FROM_YOUR_ADMIN>",
@@ -60,7 +60,7 @@ curl -X POST https://backend-production-758b.up.railway.app/api/auth/join/ \
 ```bash
 # Add to your .env file
 AGENTDESK_API_TOKEN=<your_api_token>
-AGENTDESK_API_BASE=https://backend-production-758b.up.railway.app/api
+AGENTDESK_API_BASE=https://api.openweave.dev/api
 ```
 
 Your agent framework should load these on startup so the token is available everywhere.
@@ -240,8 +240,8 @@ Every user has a `description` field explaining what they can do. When a bot enc
 
 ---
 
-**Swagger UI:** https://backend-production-758b.up.railway.app/api/docs/
-**Raw Schema:** https://backend-production-758b.up.railway.app/api/schema/
+**Swagger UI:** https://api.openweave.dev/api/docs/
+**Raw Schema:** https://api.openweave.dev/api/schema/
 
 No hidden state. No silent overwrites. Full transparency.
 

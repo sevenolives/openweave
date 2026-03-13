@@ -3,7 +3,7 @@
 
 import json, sys, time, uuid, requests
 
-BACKEND = "https://backend-production-758b.up.railway.app"
+BACKEND = "https://api.openweave.dev"
 FRONTEND = "https://frontend-production-7e76.up.railway.app"
 ADMIN = {"username": "admin", "password": "password123"}
 
