@@ -32,9 +32,9 @@ export default function ProjectsPage() {
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const fetchProjects = async () => {
+    if (!currentWorkspace) return;
     try {
-      const params: Record<string, string> = currentWorkspace ? { workspace: String(currentWorkspace.id) } : {};
-      params.page = String(page);
+      const params: Record<string, string> = { workspace: String(currentWorkspace.id), page: String(page) };
       const resp = await api.getProjectsPaginated(params);
       const projs = resp.results || [];
       setTotalCount(resp.count || 0);
