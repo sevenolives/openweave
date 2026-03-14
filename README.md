@@ -1,6 +1,9 @@
-# OpenWeave
+<p align="center">
+  <img src="assets/social-preview.png" alt="OpenWeave — Execution Governance for AI Agents" width="100%">
+</p>
 
-**Execution Governance for AI Agents & Autonomous Systems**
+<h1 align="center">OpenWeave</h1>
+<p align="center"><strong>Execution Governance for AI Agents & Autonomous Systems</strong></p>
 
 [![License: BSL 1.1](https://img.shields.io/badge/License-BSL%201.1-blue.svg)](LICENSE)
 [![CI](https://github.com/sevenolives/openweave/actions/workflows/ci.yml/badge.svg)](https://github.com/sevenolives/openweave/actions)
