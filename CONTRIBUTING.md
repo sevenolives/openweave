@@ -67,7 +67,7 @@ npm run build
 ## Project Structure
 
 ```
-agent-desk/
+openweave/
 ├── backend/           # Django API
 │   ├── agentdesk/     # Settings, URLs, WSGI
 │   ├── tickets/       # Main app (models, views, serializers)
