@@ -845,10 +845,15 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
         return super().destroy(request, *args, **kwargs)
 
     def perform_create(self, serializer):
+        from .models import Subscription
+        from .plan_limits import check_workspace_limit
+        check_workspace_limit(self.request.user)
         with transaction.atomic():
             workspace = serializer.save(owner=self.request.user)
             # Owner is on the workspace record — NOT in the members table
             WorkspaceInvite.objects.create(workspace=workspace, created_by=self.request.user)
+            # Create free subscription for new workspace
+            Subscription.objects.create(workspace=workspace)
             # Seed default status definitions and transitions
             self._seed_default_statuses(workspace)
 

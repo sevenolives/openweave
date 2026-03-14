@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 
 const tiers = [
@@ -78,8 +79,18 @@ const faqs = [
 
 export default function PricingPage() {
   const { isLoggedIn, isLoading } = useAuth();
+  const router = useRouter();
   const [annual, setAnnual] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const handleProClick = () => {
+    if (isLoggedIn) {
+      // Redirect to workspaces — user picks workspace then goes to billing
+      router.push('/private/workspaces');
+    } else {
+      router.push('/login');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -203,16 +214,25 @@ export default function PricingPage() {
                   </li>
                 ))}
               </ul>
-              <a
-                href={tier.href}
-                className={`mt-8 block text-center rounded-lg px-6 py-3 text-sm font-medium transition ${
-                  tier.highlighted
-                    ? 'bg-emerald-500 text-white hover:bg-emerald-400'
-                    : 'border border-white/10 text-gray-300 hover:bg-white/5'
-                }`}
-              >
-                {tier.cta}
-              </a>
+              {tier.name === 'Pro' ? (
+                <button
+                  onClick={handleProClick}
+                  className="mt-8 block w-full text-center rounded-lg px-6 py-3 text-sm font-medium transition bg-emerald-500 text-white hover:bg-emerald-400"
+                >
+                  {isLoggedIn ? 'Upgrade to Pro' : 'Start Free Trial'}
+                </button>
+              ) : (
+                <a
+                  href={tier.href}
+                  className={`mt-8 block text-center rounded-lg px-6 py-3 text-sm font-medium transition ${
+                    tier.highlighted
+                      ? 'bg-emerald-500 text-white hover:bg-emerald-400'
+                      : 'border border-white/10 text-gray-300 hover:bg-white/5'
+                  }`}
+                >
+                  {tier.cta}
+                </a>
+              )}
             </div>
           );
         })}

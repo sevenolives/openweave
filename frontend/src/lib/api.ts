@@ -155,6 +155,14 @@ export interface StatusTransition {
   actor_type: 'BOT' | 'HUMAN' | 'ALL';
 }
 
+export interface SubscriptionStatus {
+  plan: 'free' | 'pro' | 'enterprise';
+  status: 'active' | 'cancelled' | 'past_due' | 'trialing';
+  current_period_end: string | null;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+}
+
 export interface DashboardStats {
   total_tickets: number;
   status_counts: Record<string, number>;
@@ -587,6 +595,32 @@ class ApiClient {
 
   async deleteInvite(id: number): Promise<void> {
     await this.request(`/invites/${id}/`, { method: 'DELETE' });
+  }
+
+  // Billing
+  async createCheckoutSession(workspaceId: number, plan: string): Promise<{ checkout_url: string }> {
+    return this.request<{ checkout_url: string }>('/billing/checkout/', {
+      method: 'POST',
+      body: JSON.stringify({
+        workspace_id: workspaceId,
+        plan,
+        frontend_url: typeof window !== 'undefined' ? window.location.origin : 'https://openweave.dev',
+      }),
+    });
+  }
+
+  async getSubscriptionStatus(workspaceId: number): Promise<SubscriptionStatus> {
+    return this.request<SubscriptionStatus>(`/billing/status/?workspace=${workspaceId}`);
+  }
+
+  async createPortalSession(workspaceId: number): Promise<{ portal_url: string }> {
+    return this.request<{ portal_url: string }>('/billing/portal/', {
+      method: 'POST',
+      body: JSON.stringify({
+        workspace_id: workspaceId,
+        frontend_url: typeof window !== 'undefined' ? window.location.origin : 'https://openweave.dev',
+      }),
+    });
   }
 
   async joinWorkspace(token: string): Promise<Workspace> {

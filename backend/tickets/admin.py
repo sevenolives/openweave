@@ -3,6 +3,7 @@ from django.contrib.auth.admin import UserAdmin
 from .models import (
     User, Project, Ticket, Comment, AuditLog, ProjectAgent, Workspace,
     WorkspaceMember, WorkspaceInvite, BlogPost, TicketAttachment, MediaFile,
+    Subscription,
 )
 
 
@@ -195,6 +196,16 @@ class MediaFileAdmin(admin.ModelAdmin):
     list_select_related = ('workspace', 'ticket', 'uploaded_by')
     list_per_page = 50
     readonly_fields = ['id', 'content_type', 'size', 'created_at']
+
+
+@admin.register(Subscription)
+class SubscriptionAdmin(admin.ModelAdmin):
+    list_display = ('workspace', 'plan', 'status', 'stripe_customer_id', 'current_period_end', 'created_at')
+    list_filter = ('plan', 'status')
+    search_fields = ('workspace__name', 'stripe_customer_id', 'stripe_subscription_id')
+    list_select_related = ('workspace',)
+    list_per_page = 50
+    readonly_fields = ('created_at', 'updated_at')
 
 
 @admin.register(BlogPost)

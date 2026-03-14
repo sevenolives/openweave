@@ -464,6 +464,27 @@ def ticket_post_delete(sender, instance, **kwargs):
     pass
 
 
+class Subscription(models.Model):
+    """Billing subscription for a workspace."""
+    PLAN_CHOICES = [('free', 'Free'), ('pro', 'Pro'), ('enterprise', 'Enterprise')]
+    STATUS_CHOICES = [('active', 'Active'), ('cancelled', 'Cancelled'), ('past_due', 'Past Due'), ('trialing', 'Trialing')]
+
+    workspace = models.OneToOneField('Workspace', on_delete=models.CASCADE, related_name='subscription')
+    plan = models.CharField(max_length=20, choices=PLAN_CHOICES, default='free')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    stripe_customer_id = models.CharField(max_length=255, blank=True, null=True)
+    stripe_subscription_id = models.CharField(max_length=255, blank=True, null=True)
+    current_period_end = models.DateTimeField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.workspace.name} - {self.plan}"
+
+    class Meta:
+        db_table = 'subscriptions'
+
+
 class BlogPost(models.Model):
     """Public blog post for SEO and content marketing."""
     title = models.CharField(max_length=255)
