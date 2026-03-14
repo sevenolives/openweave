@@ -164,7 +164,7 @@ class AuditLogAdmin(admin.ModelAdmin):
         return super().get_queryset(request).select_related('performed_by')
 
 
-from .models import StatusDefinition, StatusTransition
+from .models import StatusDefinition, StatusTransition, TransitionException
 
 @admin.register(StatusDefinition)
 class StatusDefinitionAdmin(admin.ModelAdmin):
@@ -176,6 +176,13 @@ class StatusDefinitionAdmin(admin.ModelAdmin):
 class StatusTransitionAdmin(admin.ModelAdmin):
     list_display = ['workspace', 'from_status', 'to_status', 'actor_type']
     list_filter = ['workspace', 'actor_type']
+
+
+@admin.register(TransitionException)
+class TransitionExceptionAdmin(admin.ModelAdmin):
+    list_display = ['workspace', 'from_status', 'to_status', 'exception_type', 'user', 'created_by', 'created_at']
+    list_filter = ['workspace', 'exception_type']
+    list_select_related = ('workspace', 'from_status', 'to_status', 'user', 'created_by')
 
 
 @admin.register(TicketAttachment)

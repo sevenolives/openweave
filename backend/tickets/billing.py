@@ -22,14 +22,14 @@ class CreateCheckoutSessionView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        workspace_id = request.data.get('workspace_id')
+        workspace_slug = request.data.get('workspace')
         plan = request.data.get('plan', 'pro_monthly')
 
-        if not workspace_id:
-            return Response({'detail': 'workspace_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not workspace_slug:
+            return Response({'detail': 'workspace is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            workspace = Workspace.objects.get(id=workspace_id)
+            workspace = Workspace.objects.get(slug=workspace_slug)
         except Workspace.DoesNotExist:
             return Response({'detail': 'Workspace not found.'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -181,12 +181,12 @@ class CustomerPortalView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        workspace_id = request.data.get('workspace_id')
-        if not workspace_id:
-            return Response({'detail': 'workspace_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        workspace_slug = request.data.get('workspace')
+        if not workspace_slug:
+            return Response({'detail': 'workspace is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            sub = Subscription.objects.get(workspace_id=workspace_id)
+            sub = Subscription.objects.get(workspace__slug=workspace_slug)
         except Subscription.DoesNotExist:
             return Response({'detail': 'No subscription found.'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -215,16 +215,16 @@ class CustomerPortalView(APIView):
 
 
 class SubscriptionStatusView(APIView):
-    """GET /api/billing/status/?workspace=<id> — get subscription status."""
+    """GET /api/billing/status/?workspace=<slug> — get subscription status."""
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        workspace_id = request.query_params.get('workspace')
-        if not workspace_id:
+        workspace_slug = request.query_params.get('workspace')
+        if not workspace_slug:
             return Response({'detail': 'workspace query param is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            workspace = Workspace.objects.get(id=workspace_id)
+            workspace = Workspace.objects.get(slug=workspace_slug)
         except Workspace.DoesNotExist:
             return Response({'detail': 'Workspace not found.'}, status=status.HTTP_404_NOT_FOUND)
 

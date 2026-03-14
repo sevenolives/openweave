@@ -35,12 +35,12 @@ export interface Project {
   created_at: string;
   updated_at: string;
   slug: string;
-  workspace?: number;
+  workspace?: string;
 }
 
 export interface Ticket {
   id: number;
-  project: number;
+  project: string;
   project_name: string;
   ticket_slug: string;
   title: string;
@@ -93,7 +93,7 @@ export interface Workspace {
 
 export interface ProjectAgentMembership {
   id: number;
-  project: number;
+  project: string;
   user: User;
   role: 'ADMIN' | 'MEMBER';
   can_approve_tickets: boolean;
@@ -102,14 +102,14 @@ export interface ProjectAgentMembership {
 
 export interface WorkspaceMember {
   id: number;
-  workspace: number;
+  workspace: string;
   user: User;
   joined_at: string;
 }
 
 export interface WorkspaceInvite {
   id: number;
-  workspace: number;
+  workspace: string;
   token: string;
   created_by: number;
   expires_at: string | null;
@@ -134,7 +134,7 @@ export interface PaginatedResponse<T> {
 
 export interface StatusDefinition {
   id: number;
-  workspace: number;
+  workspace: string;
   key: string;
   label: string;
   color: string;
@@ -147,7 +147,7 @@ export interface StatusDefinition {
 
 export interface StatusTransition {
   id: number;
-  workspace: number;
+  workspace: string;
   from_status: number;
   to_status: number;
   from_status_key: string;
@@ -352,17 +352,17 @@ class ApiClient {
     return response.results || [];
   }
 
-  async getProject(id: number): Promise<Project> {
-    return this.request<Project>(`/projects/${id}/`);
+  async getProject(slug: string): Promise<Project> {
+    return this.request<Project>(`/projects/${slug}/`);
   }
 
-  async getProjectAgents(projectId: number): Promise<User[]> {
-    const response = await this.request<PaginatedResponse<User>>(`/users/?project=${projectId}`);
+  async getProjectAgents(projectSlug: string): Promise<User[]> {
+    const response = await this.request<PaginatedResponse<User>>(`/users/?project=${projectSlug}`);
     return response.results || [];
   }
 
-  async getProjectAgentMemberships(projectId: number): Promise<ProjectAgentMembership[]> {
-    const response = await this.request<PaginatedResponse<ProjectAgentMembership>>(`/project-agents/?project=${projectId}`);
+  async getProjectAgentMemberships(projectSlug: string): Promise<ProjectAgentMembership[]> {
+    const response = await this.request<PaginatedResponse<ProjectAgentMembership>>(`/project-agents/?project=${projectSlug}`);
     return response.results || [];
   }
 
@@ -387,15 +387,15 @@ class ApiClient {
     });
   }
 
-  async updateProject(id: number, data: Partial<Project> & { agent_ids?: number[] }): Promise<Project> {
-    return this.request<Project>(`/projects/${id}/`, {
+  async updateProject(slug: string, data: Partial<Project> & { agent_ids?: number[] }): Promise<Project> {
+    return this.request<Project>(`/projects/${slug}/`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
   }
 
-  async deleteProject(id: number): Promise<void> {
-    await this.request(`/projects/${id}/`, { method: 'DELETE' });
+  async deleteProject(slug: string): Promise<void> {
+    await this.request(`/projects/${slug}/`, { method: 'DELETE' });
   }
 
   // Tickets
@@ -496,8 +496,8 @@ class ApiClient {
     return this.request<DashboardStats>(`/dashboard/${query}`);
   }
 
-  async getStatusDefinitions(workspaceId: number): Promise<StatusDefinition[]> {
-    const res = await this.request<{ results: StatusDefinition[] }>(`/status-definitions/?workspace=${workspaceId}&page_size=100`);
+  async getStatusDefinitions(workspaceSlug: string): Promise<StatusDefinition[]> {
+    const res = await this.request<{ results: StatusDefinition[] }>(`/status-definitions/?workspace=${workspaceSlug}&page_size=100`);
     return res.results;
   }
 
@@ -513,8 +513,8 @@ class ApiClient {
     await this.request<void>(`/status-definitions/${id}/`, { method: 'DELETE' });
   }
 
-  async getStatusTransitions(workspaceId: number): Promise<StatusTransition[]> {
-    const res = await this.request<{ results: StatusTransition[] }>(`/status-transitions/?workspace=${workspaceId}&page_size=500`);
+  async getStatusTransitions(workspaceSlug: string): Promise<StatusTransition[]> {
+    const res = await this.request<{ results: StatusTransition[] }>(`/status-transitions/?workspace=${workspaceSlug}&page_size=500`);
     return res.results;
   }
 
@@ -524,6 +524,19 @@ class ApiClient {
 
   async deleteStatusTransition(id: number): Promise<void> {
     await this.request<void>(`/status-transitions/${id}/`, { method: 'DELETE' });
+  }
+
+  async getTransitionExceptions(workspaceSlug: string): Promise<TransitionException[]> {
+    const res = await this.request<{ results: TransitionException[] }>(`/transition-exceptions/?workspace__slug=${workspaceSlug}&page_size=500`);
+    return res.results;
+  }
+
+  async createTransitionException(data: Partial<TransitionException>): Promise<TransitionException> {
+    return this.request<TransitionException>('/transition-exceptions/', { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  async deleteTransitionException(id: number): Promise<void> {
+    await this.request<void>(`/transition-exceptions/${id}/`, { method: 'DELETE' });
   }
 
   async updateMyProfile(data: { name?: string; email?: string; description?: string; skills?: string[] }): Promise<User> {
@@ -546,15 +559,15 @@ class ApiClient {
     });
   }
 
-  async updateWorkspace(id: number, data: Partial<Workspace>): Promise<Workspace> {
-    return this.request<Workspace>(`/workspaces/${id}/`, {
+  async updateWorkspace(slug: string, data: Partial<Workspace>): Promise<Workspace> {
+    return this.request<Workspace>(`/workspaces/${slug}/`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
   }
 
-  async deleteWorkspace(id: number): Promise<void> {
-    await this.request(`/workspaces/${id}/`, { method: 'DELETE' });
+  async deleteWorkspace(slug: string): Promise<void> {
+    await this.request(`/workspaces/${slug}/`, { method: 'DELETE' });
   }
 
   // Workspace Members
@@ -579,7 +592,7 @@ class ApiClient {
     return response.results || [];
   }
 
-  async createInvite(data: { workspace: number; expires_at?: string; max_uses?: number }): Promise<WorkspaceInvite> {
+  async createInvite(data: { workspace: string; expires_at?: string; max_uses?: number }): Promise<WorkspaceInvite> {
     return this.request<WorkspaceInvite>('/invites/', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -598,26 +611,26 @@ class ApiClient {
   }
 
   // Billing
-  async createCheckoutSession(workspaceId: number, plan: string): Promise<{ checkout_url: string }> {
+  async createCheckoutSession(workspaceSlug: string, plan: string): Promise<{ checkout_url: string }> {
     return this.request<{ checkout_url: string }>('/billing/checkout/', {
       method: 'POST',
       body: JSON.stringify({
-        workspace_id: workspaceId,
+        workspace: workspaceSlug,
         plan,
         frontend_url: typeof window !== 'undefined' ? window.location.origin : 'https://openweave.dev',
       }),
     });
   }
 
-  async getSubscriptionStatus(workspaceId: number): Promise<SubscriptionStatus> {
-    return this.request<SubscriptionStatus>(`/billing/status/?workspace=${workspaceId}`);
+  async getSubscriptionStatus(workspaceSlug: string): Promise<SubscriptionStatus> {
+    return this.request<SubscriptionStatus>(`/billing/status/?workspace=${workspaceSlug}`);
   }
 
-  async createPortalSession(workspaceId: number): Promise<{ portal_url: string }> {
+  async createPortalSession(workspaceSlug: string): Promise<{ portal_url: string }> {
     return this.request<{ portal_url: string }>('/billing/portal/', {
       method: 'POST',
       body: JSON.stringify({
-        workspace_id: workspaceId,
+        workspace: workspaceSlug,
         frontend_url: typeof window !== 'undefined' ? window.location.origin : 'https://openweave.dev',
       }),
     });
@@ -664,5 +677,22 @@ export function resolveMediaUrl(url: string): string {
   // Relative path — prefix with API origin
   const apiOrigin = (process.env.NEXT_PUBLIC_API_URL || 'https://api.openweave.dev/api').replace(/\/api\/?$/, '');
   return `${apiOrigin}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+export interface TransitionException {
+  id: number;
+  workspace: string;
+  from_status: number;
+  to_status: number;
+  from_status_key: string;
+  to_status_key: string;
+  from_status_label: string;
+  to_status_label: string;
+  exception_type: 'human' | 'bot';
+  user: number | null;
+  user_details: User | null;
+  reason: string;
+  created_by: number;
+  created_by_details: User | null;
+  created_at: string;
 }
 // build: 1773486565

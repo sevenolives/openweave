@@ -16,7 +16,7 @@ import '@xyflow/react/dist/style.css';
 import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import FormField, { parseFieldErrors, inputClass } from '@/components/FormField';
-import { api, Workspace, WorkspaceMember, WorkspaceInvite, StatusDefinition, StatusTransition } from '@/lib/api';
+import { api, Workspace, WorkspaceMember, WorkspaceInvite, StatusDefinition, StatusTransition, TransitionException, User } from '@/lib/api';
 import { useWorkspace } from '@/hooks/useWorkspace';
 
 const COLORS = ['gray', 'blue', 'red', 'purple', 'amber', 'green', 'yellow', 'indigo', 'pink', 'orange'];
@@ -51,6 +51,11 @@ interface StateMachineSettingsProps {
   handleAddTransition: (fromId: number, toId: number, actorType: string) => Promise<void>;
   handleDeleteTransition: (id: number) => Promise<void>;
   toast: (msg: string, type?: 'success' | 'error' | 'info') => void;
+  exceptions: TransitionException[];
+  workspaceSlug: string;
+  workspaceMembers: WorkspaceMember[];
+  handleAddException: (data: { workspace: string; from_status: number; to_status: number; exception_type: string; user?: number | null; reason: string }) => Promise<void>;
+  handleDeleteException: (id: number) => Promise<void>;
 }
 
 function StateMachineSettings({
@@ -59,13 +64,22 @@ function StateMachineSettings({
   newStatusTerminal, setNewStatusTerminal,
   handleAddStatus, handleUpdateStatus, handleDeleteStatus, handleSetDefault,
   handleAddTransition, handleDeleteTransition, toast,
+  exceptions, workspaceSlug, workspaceMembers, handleAddException, handleDeleteException,
 }: StateMachineSettingsProps) {
-  const [statusTab, setStatusTab] = useState<'diagram' | 'statuses' | 'transitions'>('diagram');
+  const [statusTab, setStatusTab] = useState<'diagram' | 'statuses' | 'transitions' | 'exceptions'>('diagram');
   const [isSmall, setIsSmall] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [fromId, setFromId] = useState('');
   const [toId, setToId] = useState('');
   const [newActor, setNewActor] = useState<'BOT' | 'HUMAN' | 'ALL'>('BOT');
+
+  // Exception form state
+  const [excFromId, setExcFromId] = useState('');
+  const [excToId, setExcToId] = useState('');
+  const [excType, setExcType] = useState<'human' | 'bot'>('human');
+  const [excUserId, setExcUserId] = useState<string>('');
+  const [excReason, setExcReason] = useState('');
+  const [addingException, setAddingException] = useState(false);
 
   useEffect(() => {
     const check = () => {
@@ -160,7 +174,7 @@ function StateMachineSettings({
     BOT: '#a855f7', HUMAN: '#3b82f6', ALL: '#6b7280',
   };
 
-  const tabStyle = (v: 'diagram' | 'statuses' | 'transitions'): React.CSSProperties => ({
+  const tabStyle = (v: 'diagram' | 'statuses' | 'transitions' | 'exceptions'): React.CSSProperties => ({
     padding: isMobile ? '16px 12px' : isSmall ? '14px 16px' : '12px 20px',
     fontSize: isMobile ? '15px' : isSmall ? '14px' : '13px',
     fontWeight: 600, cursor: 'pointer', background: 'none', border: 'none',
@@ -225,6 +239,7 @@ function StateMachineSettings({
           <button onClick={() => setStatusTab('diagram')} style={tabStyle('diagram')}>⬡ Diagram</button>
           <button onClick={() => setStatusTab('statuses')} style={tabStyle('statuses')}>● States</button>
           <button onClick={() => setStatusTab('transitions')} style={tabStyle('transitions')}>→ Transitions</button>
+          <button onClick={() => setStatusTab('exceptions')} style={tabStyle('exceptions')}>⚡ Exceptions</button>
         </div>
 
         {/* Diagram tab */}
@@ -458,6 +473,131 @@ function StateMachineSettings({
         )}
       </div>
 
+        {/* Exceptions tab */}
+        {statusTab === 'exceptions' && (
+          <div style={{ padding: isSmall ? 12 : 16 }}>
+            <div style={{ marginBottom: 20 }}>
+              <h3 style={{ fontSize: isSmall ? 16 : 14, fontWeight: 600, color: '#e5e7eb', marginBottom: 8 }}>Transition Exceptions</h3>
+              <p style={{ fontSize: isSmall ? 14 : 13, color: '#9ca3af', lineHeight: 1.5 }}>
+                Allow specific users or user types to bypass blocked transitions.
+              </p>
+            </div>
+
+            {exceptions.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: '#6b7280', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed #374151' }}>
+                <div style={{ fontSize: '36px', marginBottom: '12px' }}>⚡</div>
+                <p style={{ fontSize: '15px', marginBottom: '8px' }}>No exceptions defined</p>
+                <p style={{ fontSize: '13px', opacity: 0.7 }}>Add an exception below to allow specific bypasses</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {exceptions.map((exc) => (
+                  <div key={exc.id} style={{
+                    display: 'flex', flexDirection: isMobile ? 'column' : 'row',
+                    alignItems: isMobile ? 'flex-start' : 'center', gap: 12,
+                    padding: isMobile ? '16px' : '14px',
+                    background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
+                    borderRadius: '12px', transition: 'all 0.2s ease',
+                  }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+                        <span style={{ fontSize: isSmall ? 14 : 13, fontWeight: 600, color: '#e5e7eb' }}>
+                          {exc.from_status_label} → {exc.to_status_label}
+                        </span>
+                        <span style={{
+                          fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6,
+                          color: 'white',
+                          background: exc.exception_type === 'bot' ? '#a855f7' : '#3b82f6',
+                        }}>
+                          {exc.exception_type.toUpperCase()}
+                        </span>
+                        <span style={{ fontSize: isSmall ? 13 : 12, color: '#9ca3af' }}>
+                          {exc.user_details ? exc.user_details.username : 'All ' + exc.exception_type + 's'}
+                        </span>
+                      </div>
+                      {exc.reason && (
+                        <p style={{ fontSize: isSmall ? 13 : 12, color: '#6b7280', margin: '4px 0 0' }}>
+                          {exc.reason}
+                        </p>
+                      )}
+                      <p style={{ fontSize: 11, color: '#4b5563', margin: '4px 0 0' }}>
+                        by {exc.created_by_details?.username || 'unknown'} · {new Date(exc.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => { if (confirm('Delete this exception?')) handleDeleteException(exc.id); }}
+                      style={removeBtnStyle}
+                    >✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Add Exception Form */}
+            <div style={{ marginTop: 20, padding: isMobile ? '16px' : '16px 20px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px' }}>
+              <h4 style={{ fontSize: isSmall ? 15 : 13, fontWeight: 600, color: '#d1d5db', marginBottom: 12 }}>Add Exception</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', gap: isSmall ? 12 : 8, flexDirection: isSmall ? 'column' : 'row', alignItems: isSmall ? 'stretch' : 'center' }}>
+                  <select value={excFromId} onChange={(e) => setExcFromId(e.target.value)} style={{ ...selectStyle, flex: 1 }}>
+                    <option value="">From state...</option>
+                    {statuses.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+                  </select>
+                  <span style={{ color: '#6b7280', fontWeight: 600, fontSize: 14, textAlign: 'center' }}>→</span>
+                  <select value={excToId} onChange={(e) => setExcToId(e.target.value)} style={{ ...selectStyle, flex: 1 }}>
+                    <option value="">To state...</option>
+                    {statuses.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+                  </select>
+                </div>
+                <div style={{ display: 'flex', gap: isSmall ? 12 : 8, flexDirection: isSmall ? 'column' : 'row', alignItems: isSmall ? 'stretch' : 'center' }}>
+                  <select value={excType} onChange={(e) => setExcType(e.target.value as 'human' | 'bot')} style={{ ...selectStyle, flex: isSmall ? 'none' : '0 0 auto', width: isSmall ? '100%' : 'auto' }}>
+                    <option value="human">Human Exception</option>
+                    <option value="bot">Bot Exception</option>
+                  </select>
+                  <select value={excUserId} onChange={(e) => setExcUserId(e.target.value)} style={{ ...selectStyle, flex: 1 }}>
+                    <option value="">All {excType}s</option>
+                    {workspaceMembers
+                      .filter((m) => excType === 'bot' ? m.user.user_type === 'BOT' : m.user.user_type === 'HUMAN')
+                      .map((m) => <option key={m.user.id} value={m.user.id}>{m.user.username}</option>)
+                    }
+                  </select>
+                </div>
+                <input
+                  value={excReason}
+                  onChange={(e) => setExcReason(e.target.value)}
+                  placeholder="Reason (optional)..."
+                  style={{ ...inputStyle, width: '100%' }}
+                />
+                <button
+                  onClick={async () => {
+                    if (!excFromId || !excToId || excFromId === excToId) return;
+                    setAddingException(true);
+                    try {
+                      await handleAddException({
+                        workspace: workspaceSlug,
+                        from_status: Number(excFromId),
+                        to_status: Number(excToId),
+                        exception_type: excType,
+                        user: excUserId ? Number(excUserId) : null,
+                        reason: excReason,
+                      });
+                      setExcFromId(''); setExcToId(''); setExcReason(''); setExcUserId('');
+                    } finally { setAddingException(false); }
+                  }}
+                  disabled={!excFromId || !excToId || excFromId === excToId || addingException}
+                  style={{
+                    ...btnStyle,
+                    opacity: (!excFromId || !excToId || excFromId === excToId || addingException) ? 0.5 : 1,
+                    cursor: (!excFromId || !excToId || excFromId === excToId || addingException) ? 'not-allowed' : 'pointer',
+                    width: isSmall ? '100%' : 'auto', alignSelf: isSmall ? 'stretch' : 'flex-start',
+                  }}
+                >
+                  {addingException ? 'Adding...' : '+ Add Exception'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       {/* How It Works */}
       <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid #18181b' }}>
         <h3 style={{ fontSize: 'clamp(15px, 3vw, 16px)', fontWeight: 600, color: 'white', marginBottom: 12 }}>How It Works</h3>
@@ -501,20 +641,23 @@ export default function WorkspaceSettingsPage() {
   const [newStatusApprovalGate, setNewStatusApprovalGate] = useState(false);
   const [addingStatus, setAddingStatus] = useState(false);
   const [settingsTab, setSettingsTab] = useState<'general' | 'members' | 'state-machine'>('general');
+  const [exceptions, setExceptions] = useState<TransitionException[]>([]);
   const { toast } = useToast();
 
   const loadData = useCallback(async (ws: Workspace) => {
     try {
-      const [m, i, sd, st] = await Promise.all([
+      const [m, i, sd, st, exc] = await Promise.all([
         api.getWorkspaceMembers({ workspace: String(ws.id) }),
         api.getInvites({ workspace: String(ws.id) }),
-        api.getStatusDefinitions(ws.id),
-        api.getStatusTransitions(ws.id),
+        api.getStatusDefinitions(ws.slug),
+        api.getStatusTransitions(ws.slug),
+        api.getTransitionExceptions(ws.slug),
       ]);
       setMembers(m);
       setInvites(i);
       setStatuses(sd);
       setTransitions(st);
+      setExceptions(exc);
     } catch (e: any) { toast(e?.message || 'Failed to load workspace data', 'error'); }
     finally { setLoading(false); }
   }, [toast]);
@@ -534,7 +677,7 @@ export default function WorkspaceSettingsPage() {
     setSaving(true);
     setFieldErrors({});
     try {
-      const updated = await api.updateWorkspace(workspace.id, { name: editName, slug: editSlug });
+      const updated = await api.updateWorkspace(workspace.slug, { name: editName, slug: editSlug });
       setWorkspace(updated);
       await refreshWorkspaces();
       toast('Workspace updated');
@@ -559,7 +702,7 @@ export default function WorkspaceSettingsPage() {
   const handleCreateInvite = async () => {
     if (!workspace) return;
     try {
-      await api.createInvite({ workspace: workspace.id });
+      await api.createInvite({ workspace: workspace.slug });
       toast('Invite created');
       loadData(workspace);
     } catch (e: any) { toast(e?.message || 'Failed to create invite', 'error'); }
@@ -591,7 +734,7 @@ export default function WorkspaceSettingsPage() {
     setAddingStatus(true);
     try {
       await api.createStatusDefinition({
-        workspace: workspace.id,
+        workspace: workspace.slug,
         key: autoKey,
         label: newStatusLabel,
         color: newStatusColor,
@@ -638,7 +781,7 @@ export default function WorkspaceSettingsPage() {
   const handleAddTransition = async (fromId: number, toId: number, actorType: string) => {
     if (!workspace) return;
     try {
-      await api.createStatusTransition({ workspace: workspace.id, from_status: fromId, to_status: toId, actor_type: actorType as StatusTransition['actor_type'] });
+      await api.createStatusTransition({ workspace: workspace.slug, from_status: fromId, to_status: toId, actor_type: actorType as StatusTransition['actor_type'] });
       toast('Transition added');
       loadData(workspace);
     } catch (e: any) { toast(e?.data?.non_field_errors?.[0] || e?.message || 'Failed', 'error'); }
@@ -652,7 +795,21 @@ export default function WorkspaceSettingsPage() {
     } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
   };
 
+  const handleAddException = async (data: { workspace: string; from_status: number; to_status: number; exception_type: string; user?: number | null; reason: string }) => {
+    try {
+      await api.createTransitionException(data as any);
+      toast('Exception added');
+      if (workspace) loadData(workspace);
+    } catch (e: any) { toast(e?.message || 'Failed to add exception', 'error'); }
+  };
 
+  const handleDeleteException = async (id: number) => {
+    try {
+      await api.deleteTransitionException(id);
+      toast('Exception removed');
+      if (workspace) loadData(workspace);
+    } catch (e: any) { toast(e?.message || 'Failed to remove exception', 'error'); }
+  };
 
   if (!workspace) return <Layout><div className="p-8 text-center text-gray-500">Workspace not found</div></Layout>;
 
@@ -730,7 +887,7 @@ export default function WorkspaceSettingsPage() {
                 const confirmed = confirm(`Are you sure you want to delete "${workspace.name}"? This cannot be undone.`);
                 if (!confirmed) return;
                 try {
-                  await api.deleteWorkspace(workspace.id);
+                  await api.deleteWorkspace(workspace.slug);
                   toast('Workspace deleted');
                   await refreshWorkspaces();
                   router.push('/private/workspaces');
@@ -810,6 +967,11 @@ export default function WorkspaceSettingsPage() {
             handleAddTransition={handleAddTransition}
             handleDeleteTransition={handleDeleteTransition}
             toast={toast}
+            exceptions={exceptions}
+            workspaceSlug={workspaceSlug}
+            workspaceMembers={members}
+            handleAddException={handleAddException}
+            handleDeleteException={handleDeleteException}
           />
         )}
       </div>

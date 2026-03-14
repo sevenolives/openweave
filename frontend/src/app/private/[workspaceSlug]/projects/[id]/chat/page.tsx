@@ -131,7 +131,7 @@ export default function ProjectChatPage() {
   useEffect(() => {
     (async () => {
       try {
-        const p = await api.getProject(parseInt(projectId));
+        const p = await api.getProject(projectId);
         setProject(p);
       } catch {}
       await fetchInitial();

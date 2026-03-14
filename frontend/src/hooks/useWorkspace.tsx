@@ -26,13 +26,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       setWorkspaces(ws);
 
       // Restore from localStorage or pick first
-      const savedId = typeof window !== 'undefined' ? localStorage.getItem('currentWorkspaceId') : null;
-      const saved = savedId ? ws.find(w => w.id === Number(savedId)) : null;
+      const savedSlug = typeof window !== 'undefined' ? localStorage.getItem('currentWorkspaceSlug') : null;
+      const saved = savedSlug ? ws.find(w => w.slug === savedSlug) : null;
       if (saved) {
         setCurrentWorkspaceState(saved);
       } else if (ws.length > 0) {
         setCurrentWorkspaceState(ws[0]);
-        if (typeof window !== 'undefined') localStorage.setItem('currentWorkspaceId', String(ws[0].id));
+        if (typeof window !== 'undefined') localStorage.setItem('currentWorkspaceSlug', ws[0].slug);
       }
     } catch {
       // ignore
@@ -53,7 +53,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const setCurrentWorkspace = (ws: Workspace) => {
     setCurrentWorkspaceState(ws);
-    if (typeof window !== 'undefined') localStorage.setItem('currentWorkspaceId', String(ws.id));
+    if (typeof window !== 'undefined') localStorage.setItem('currentWorkspaceSlug', ws.slug);
   };
 
   return (

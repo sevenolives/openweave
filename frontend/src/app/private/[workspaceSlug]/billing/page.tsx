@@ -18,7 +18,7 @@ export default function BillingPage() {
 
   useEffect(() => {
     if (!currentWorkspace) return;
-    api.getSubscriptionStatus(currentWorkspace.id)
+    api.getSubscriptionStatus(currentWorkspace.slug)
       .then(setSubscription)
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -28,7 +28,7 @@ export default function BillingPage() {
     if (!currentWorkspace) return;
     setActionLoading(true);
     try {
-      const { checkout_url } = await api.createCheckoutSession(currentWorkspace.id, plan);
+      const { checkout_url } = await api.createCheckoutSession(currentWorkspace.slug, plan);
       window.location.href = checkout_url;
     } catch (err) {
       console.error(err);
@@ -40,7 +40,7 @@ export default function BillingPage() {
     if (!currentWorkspace) return;
     setActionLoading(true);
     try {
-      const { portal_url } = await api.createPortalSession(currentWorkspace.id);
+      const { portal_url } = await api.createPortalSession(currentWorkspace.slug);
       window.location.href = portal_url;
     } catch (err) {
       console.error(err);

@@ -25,7 +25,7 @@ export default function ProjectSettingsPage() {
   const router = useRouter();
   const params = useParams<{ workspaceSlug: string; id: string }>();
   const workspaceSlug = params.workspaceSlug;
-  const projectId = parseInt(params.id);
+  const projectSlug = params.id;
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
   const { currentWorkspace } = useWorkspace();
@@ -34,9 +34,9 @@ export default function ProjectSettingsPage() {
   const fetchData = async () => {
     try {
       const [p, agents, ticketResp, memberships] = await Promise.all([
-        api.getProject(projectId), api.getProjectAgents(projectId),
-        api.getTicketsPaginated({ project: String(projectId) }),
-        api.getProjectAgentMemberships(projectId),
+        api.getProject(projectSlug), api.getProjectAgents(projectSlug),
+        api.getTicketsPaginated({ project: projectSlug }),
+        api.getProjectAgentMemberships(projectSlug),
       ]);
       setHasTickets((ticketResp.count || 0) > 0);
       setProject(p); setProjectAgents(agents); setAgentMemberships(memberships);
@@ -48,7 +48,7 @@ export default function ProjectSettingsPage() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchData(); }, [projectId]);
+  useEffect(() => { fetchData(); }, [projectSlug]);
 
   const availableUsers = allUsers.filter(u => !projectAgents.some(a => a.id === u.id));
 
@@ -56,7 +56,7 @@ export default function ProjectSettingsPage() {
     if (!project) return;
     setSaving(true);
     try {
-      const updated = await api.updateProject(project.id, { name: editName, slug: editSlug, description: editDesc });
+      const updated = await api.updateProject(project.slug, { name: editName, slug: editSlug, description: editDesc });
       setProject(updated);
       toast('Settings saved');
     } catch (e: any) { toast(e?.message || 'Failed to save settings', 'error'); }
@@ -68,9 +68,9 @@ export default function ProjectSettingsPage() {
     setMemberSaving(true);
     try {
       const currentIds = projectAgents.map(a => a.id);
-      await api.updateProject(project.id, { agent_ids: [...currentIds, Number(selectedUserId)] });
+      await api.updateProject(project.slug, { agent_ids: [...currentIds, Number(selectedUserId)] });
       setSelectedUserId('');
-      const agents = await api.getProjectAgents(projectId);
+      const agents = await api.getProjectAgents(projectSlug);
       setProjectAgents(agents);
       toast('Member added');
     } catch (e: any) { toast(e?.message || 'Failed to add member', 'error'); }
@@ -82,8 +82,8 @@ export default function ProjectSettingsPage() {
     setMemberSaving(true);
     try {
       const currentIds = projectAgents.map(a => a.id).filter(id => id !== userId);
-      await api.updateProject(project.id, { agent_ids: currentIds });
-      const agents = await api.getProjectAgents(projectId);
+      await api.updateProject(project.slug, { agent_ids: currentIds });
+      const agents = await api.getProjectAgents(projectSlug);
       setProjectAgents(agents);
       toast('Member removed');
     } catch (e: any) { toast(e?.message || 'Failed to remove member', 'error'); }
@@ -105,10 +105,10 @@ export default function ProjectSettingsPage() {
             <p className="text-sm text-gray-500">Project Settings</p>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <button onClick={() => router.push(`/private/${workspaceSlug}/projects/${project.id}/chat`)} className="px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+            <button onClick={() => router.push(`/private/${workspaceSlug}/projects/${project.slug}/chat`)} className="px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
               💬 Activity
             </button>
-            <button onClick={() => router.push(`/private/${workspaceSlug}/tickets?project=${project.id}`)} className="px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+            <button onClick={() => router.push(`/private/${workspaceSlug}/tickets?project=${project.slug}`)} className="px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
               View Tickets →
             </button>
           </div>
@@ -169,7 +169,7 @@ export default function ProjectSettingsPage() {
                               if (membership) {
                                 try {
                                   await api.updateProjectAgentRole(membership.id, e.target.value);
-                                  const updated = await api.getProjectAgentMemberships(projectId);
+                                  const updated = await api.getProjectAgentMemberships(projectSlug);
                                   setAgentMemberships(updated);
                                   toast('Role updated');
                                 } catch (err: any) { toast(err?.message || 'Failed', 'error'); }
@@ -189,7 +189,7 @@ export default function ProjectSettingsPage() {
                                 if (membership) {
                                   try {
                                     await api.updateProjectAgent(membership.id, { can_approve_tickets: e.target.checked });
-                                    const updated = await api.getProjectAgentMemberships(projectId);
+                                    const updated = await api.getProjectAgentMemberships(projectSlug);
                                     setAgentMemberships(updated);
                                     toast(e.target.checked ? 'Can now approve tickets' : 'Approval permission removed');
                                   } catch (err: any) { toast(err?.message || 'Failed', 'error'); }

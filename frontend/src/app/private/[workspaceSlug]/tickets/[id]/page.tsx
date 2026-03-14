@@ -62,7 +62,7 @@ export default function TicketDetailPage() {
   const { currentWorkspace } = useWorkspace();
 
   useEffect(() => {
-    if (currentWorkspace) api.getStatusDefinitions(currentWorkspace.id).then(setStatuses).catch(() => {});
+    if (currentWorkspace) api.getStatusDefinitions(currentWorkspace.slug).then(setStatuses).catch(() => {});
   }, [currentWorkspace?.id]);
 
   const fetchData = async () => {
@@ -70,7 +70,7 @@ export default function TicketDetailPage() {
       const t = await api.getTicket(ticketId);
       const [c, att] = await Promise.all([api.getComments({ ticket: String(t.id) }), api.getAttachments({ ticket: String(t.id) })]);
       setTicket(t); setComments(c); setAttachments(att);
-      // Fetch project agents for assignment dropdowns
+      // Fetch project agents for assignment dropdowns (t.project is now the slug)
       try {
         const pAgents = await api.getProjectAgents(t.project);
         setAgents(pAgents); setProjectAgents(pAgents);
@@ -447,6 +447,7 @@ export default function TicketDetailPage() {
                   <div>
                     <dt className="text-xs font-medium text-gray-500 mb-1">Project</dt>
                     <dd><button onClick={() => router.push(`/private/${workspaceSlug}/projects/${ticket.project}`)} className="text-sm text-indigo-600 hover:text-indigo-800 font-medium">{ticket.project_name}</button></dd>
+
                   </div>
                   <div>
                     <dt className="text-xs font-medium text-gray-500 mb-1">Assigned To</dt>

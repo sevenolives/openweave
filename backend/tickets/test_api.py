@@ -1,6 +1,6 @@
 """
 Test cases for API endpoints.
-Updated to match the workspace-scoped API.
+Updated to match the workspace-scoped API with slug-based lookups.
 """
 from django.test import TestCase
 from django.urls import reverse
@@ -51,6 +51,7 @@ class BaseAPITestCase(TestCase):
         # Create test project in the workspace
         self.project = Project.objects.create(
             name='Test Project',
+            slug='TP',
             description='A test project',
             workspace=self.workspace,
         )
@@ -130,11 +131,11 @@ class UserAPITest(BaseAPITestCase):
     """Test User API endpoints."""
 
     def test_list_users(self):
-        """Test listing users with workspace filter."""
+        """Test listing users with workspace slug filter."""
         self.authenticate(self.member_user)
         url = reverse('user-list')
 
-        response = self.client.get(url, {'workspace': self.workspace.id})
+        response = self.client.get(url, {'workspace': self.workspace.slug})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertGreaterEqual(response.data['count'], 1)
 
@@ -142,7 +143,7 @@ class UserAPITest(BaseAPITestCase):
         """Test listing users without authentication."""
         url = reverse('user-list')
 
-        response = self.client.get(url, {'workspace': self.workspace.id})
+        response = self.client.get(url, {'workspace': self.workspace.slug})
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_list_users_requires_workspace(self):
@@ -158,7 +159,7 @@ class UserAPITest(BaseAPITestCase):
         self.authenticate(self.member_user)
         url = reverse('user-list')
 
-        response = self.client.get(url, {'workspace': self.workspace.id, 'search': 'admin'})
+        response = self.client.get(url, {'workspace': self.workspace.slug, 'search': 'admin'})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertGreaterEqual(response.data['count'], 1)
         usernames = [u['username'] for u in response.data['results']]
@@ -169,7 +170,7 @@ class UserAPITest(BaseAPITestCase):
         self.authenticate(self.member_user)
         url = reverse('user-list')
 
-        response = self.client.get(url, {'workspace': self.workspace.id, 'user_type': 'BOT'})
+        response = self.client.get(url, {'workspace': self.workspace.slug, 'user_type': 'BOT'})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertGreaterEqual(response.data['count'], 1)
         for u in response.data['results']:
@@ -180,11 +181,11 @@ class ProjectAPITest(BaseAPITestCase):
     """Test Project API endpoints."""
 
     def test_list_projects(self):
-        """Test listing projects with workspace filter."""
+        """Test listing projects with workspace slug filter."""
         self.authenticate(self.member_user)
         url = reverse('project-list')
 
-        response = self.client.get(url, {'workspace': self.workspace.id})
+        response = self.client.get(url, {'workspace': self.workspace.slug})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['count'], 1)
 
@@ -195,7 +196,7 @@ class ProjectAPITest(BaseAPITestCase):
         data = {
             'name': 'New Project',
             'description': 'A new project',
-            'workspace': self.workspace.id,
+            'workspace': self.workspace.slug,
         }
 
         response = self.client.post(url, data, format='json')
@@ -209,22 +210,32 @@ class ProjectAPITest(BaseAPITestCase):
         data = {
             'name': 'New Project',
             'description': 'A new project',
-            'workspace': self.workspace.id,
+            'workspace': self.workspace.slug,
         }
 
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_retrieve_project_by_slug(self):
+        """Test retrieving a project by slug."""
+        self.authenticate(self.member_user)
+        url = reverse('project-detail', kwargs={'slug': self.project.slug})
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['name'], 'Test Project')
+        self.assertEqual(response.data['workspace'], self.workspace.slug)
 
 
 class TicketAPITest(BaseAPITestCase):
     """Test Ticket API endpoints."""
 
     def test_list_tickets(self):
-        """Test listing tickets with workspace filter."""
+        """Test listing tickets with workspace slug filter."""
         self.authenticate(self.member_user)
         url = reverse('ticket-list')
 
-        response = self.client.get(url, {'workspace': self.workspace.id})
+        response = self.client.get(url, {'workspace': self.workspace.slug})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['count'], 1)
 
@@ -237,11 +248,11 @@ class TicketAPITest(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_create_ticket(self):
-        """Test creating a ticket."""
+        """Test creating a ticket with project slug."""
         self.authenticate(self.member_user)
         url = reverse('ticket-list')
         data = {
-            'project': self.project.id,
+            'project': self.project.slug,
             'title': 'New Test Ticket',
             'description': 'A new test ticket description',
             'priority': 'HIGH',
@@ -250,13 +261,15 @@ class TicketAPITest(BaseAPITestCase):
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Ticket.objects.filter(title='New Test Ticket').count(), 1)
+        # Verify project is returned as slug
+        self.assertEqual(response.data['project'], self.project.slug)
 
     def test_search_tickets(self):
         """Test searching tickets."""
         self.authenticate(self.member_user)
         url = reverse('ticket-list')
 
-        response = self.client.get(url, {'workspace': self.workspace.id, 'search': 'Test Ticket'})
+        response = self.client.get(url, {'workspace': self.workspace.slug, 'search': 'Test Ticket'})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['count'], 1)
 
@@ -265,7 +278,7 @@ class TicketAPITest(BaseAPITestCase):
         self.authenticate(self.member_user)
         url = reverse('ticket-list')
 
-        response = self.client.get(url, {'workspace': self.workspace.id, 'status': 'OPEN'})
+        response = self.client.get(url, {'workspace': self.workspace.slug, 'status': 'OPEN'})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['count'], 1)
 
@@ -275,28 +288,31 @@ class TicketAPITest(BaseAPITestCase):
         url = reverse('ticket-list')
 
         # No tickets with HIGH priority initially
-        response = self.client.get(url, {'workspace': self.workspace.id, 'priority': 'HIGH'})
+        response = self.client.get(url, {'workspace': self.workspace.slug, 'priority': 'HIGH'})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['count'], 0)
 
         # Filter by MEDIUM priority (default)
-        response = self.client.get(url, {'workspace': self.workspace.id, 'priority': 'MEDIUM'})
+        response = self.client.get(url, {'workspace': self.workspace.slug, 'priority': 'MEDIUM'})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['count'], 1)
 
-    def test_get_ticket_detail(self):
-        """Test getting a single ticket."""
+    def test_get_ticket_by_slug(self):
+        """Test getting a single ticket by ticket slug (e.g., TP-1)."""
         self.authenticate(self.member_user)
-        url = reverse('ticket-detail', kwargs={'pk': self.ticket.pk})
+        ticket_slug = self.ticket.ticket_slug  # e.g., TP-1
+        url = reverse('ticket-detail', kwargs={'pk': ticket_slug})
 
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['title'], 'Test Ticket')
+        self.assertEqual(response.data['ticket_slug'], ticket_slug)
 
     def test_update_ticket_as_admin(self):
-        """Test updating a ticket as workspace owner."""
+        """Test updating a ticket as workspace owner using ticket slug."""
         self.authenticate(self.admin_user)
-        url = reverse('ticket-detail', kwargs={'pk': self.ticket.pk})
+        ticket_slug = self.ticket.ticket_slug
+        url = reverse('ticket-detail', kwargs={'pk': ticket_slug})
 
         response = self.client.patch(url, {'title': 'Updated Title'}, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -336,6 +352,29 @@ class CommentAPITest(BaseAPITestCase):
         self.assertEqual(response.data['count'], 1)
 
 
+class WorkspaceAPITest(BaseAPITestCase):
+    """Test Workspace API endpoints."""
+
+    def test_retrieve_workspace_by_slug(self):
+        """Test retrieving a workspace by slug."""
+        self.authenticate(self.admin_user)
+        url = reverse('workspace-detail', kwargs={'slug': self.workspace.slug})
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['slug'], 'test-ws')
+
+    def test_update_workspace_by_slug(self):
+        """Test updating a workspace by slug."""
+        self.authenticate(self.admin_user)
+        url = reverse('workspace-detail', kwargs={'slug': self.workspace.slug})
+
+        response = self.client.patch(url, {'name': 'Updated Name'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.workspace.refresh_from_db()
+        self.assertEqual(self.workspace.name, 'Updated Name')
+
+
 class PaginationTest(BaseAPITestCase):
     """Test pagination functionality."""
 
@@ -352,7 +391,7 @@ class PaginationTest(BaseAPITestCase):
         self.authenticate(self.member_user)
         url = reverse('ticket-list')
 
-        response = self.client.get(url, {'workspace': self.workspace.id})
+        response = self.client.get(url, {'workspace': self.workspace.slug})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # Check pagination format
@@ -376,5 +415,5 @@ class RateLimitingTest(BaseAPITestCase):
 
         # Authenticated users should be able to make reasonable requests
         for i in range(10):
-            response = self.client.get(url, {'workspace': self.workspace.id})
+            response = self.client.get(url, {'workspace': self.workspace.slug})
             self.assertNotEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)

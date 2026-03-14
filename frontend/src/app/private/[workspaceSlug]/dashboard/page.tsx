@@ -40,7 +40,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!currentWorkspace) return;
     setLoading(true);
-    api.getDashboard({ workspace: String(currentWorkspace.id) })
+    api.getDashboard({ workspace: currentWorkspace.slug })
       .then(setData)
       .catch(() => {})
       .finally(() => setLoading(false));

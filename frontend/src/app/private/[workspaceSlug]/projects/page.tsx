@@ -14,14 +14,14 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
-  const [ticketCounts, setTicketCounts] = useState<Record<number, { total: number; open: number; inProgress: number; blocked: number; completed: number; cancelled: number }>>({});
+  const [ticketCounts, setTicketCounts] = useState<Record<string, { total: number; open: number; inProgress: number; blocked: number; completed: number; cancelled: number }>>({});
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [desc, setDesc] = useState('');
   const [creating, setCreating] = useState(false);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleteSlug, setDeleteSlug] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const router = useRouter();
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
@@ -34,18 +34,18 @@ export default function ProjectsPage() {
   const fetchProjects = async () => {
     if (!currentWorkspace) return;
     try {
-      const params: Record<string, string> = { workspace: String(currentWorkspace.id), page: String(page) };
+      const params: Record<string, string> = { workspace: currentWorkspace.slug, page: String(page) };
       const resp = await api.getProjectsPaginated(params);
       const projs = resp.results || [];
       setTotalCount(resp.count || 0);
       setProjects(projs);
       // Fetch ticket counts for each project
-      const counts: Record<number, any> = {};
+      const counts: Record<string, any> = {};
       await Promise.all(projs.map(async (p) => {
         try {
-          const resp = await api.getTicketsPaginated({ project: p.id.toString() });
+          const resp = await api.getTicketsPaginated({ project: p.slug });
           const tickets = resp.results || [];
-          counts[p.id] = {
+          counts[p.slug] = {
             total: resp.count ?? tickets.length,
             open: tickets.filter(t => t.status === 'OPEN').length,
             inProgress: tickets.filter(t => t.status === 'IN_PROGRESS').length,
@@ -53,7 +53,7 @@ export default function ProjectsPage() {
             completed: tickets.filter(t => t.status === 'COMPLETED').length,
             cancelled: tickets.filter(t => t.status === 'CANCELLED').length,
           };
-        } catch { counts[p.id] = { total: 0, open: 0, inProgress: 0, blocked: 0, completed: 0, cancelled: 0 }; }
+        } catch { counts[p.slug] = { total: 0, open: 0, inProgress: 0, blocked: 0, completed: 0, cancelled: 0 }; }
       }));
       setTicketCounts(counts);
     } catch (e: any) { toast(e?.message || 'Failed to load projects', 'error'); }
@@ -75,7 +75,7 @@ export default function ProjectsPage() {
     if (!name.trim()) return;
     setCreating(true);
     try {
-      await api.createProject({ name: name.trim(), description: desc.trim(), workspace: currentWorkspace?.id, ...(slug.trim() ? { slug: slug.trim().toUpperCase() } : {}) });
+      await api.createProject({ name: name.trim(), description: desc.trim(), workspace: currentWorkspace?.slug, ...(slug.trim() ? { slug: slug.trim().toUpperCase() } : {}) });
       toast('Project created');
       setName(''); setSlug(''); setDesc(''); setShowCreate(false);
       setFieldErrors({});
@@ -88,11 +88,11 @@ export default function ProjectsPage() {
   };
 
   const handleDelete = async () => {
-    if (!deleteId) return;
+    if (!deleteSlug) return;
     try {
-      await api.deleteProject(deleteId);
+      await api.deleteProject(deleteSlug);
       toast('Project deleted');
-      setDeleteId(null);
+      setDeleteSlug(null);
       await fetchProjects();
     } catch (e: any) { toast(e?.message || 'Failed to delete project', 'error'); }
   };
@@ -137,7 +137,7 @@ export default function ProjectsPage() {
           </div>
         )}
 
-        <ConfirmDialog open={!!deleteId} title="Delete Project" message="Are you sure? The project must have no tickets before it can be deleted." onConfirm={handleDelete} onCancel={() => setDeleteId(null)} />
+        <ConfirmDialog open={!!deleteSlug} title="Delete Project" message="Are you sure? The project must have no tickets before it can be deleted." onConfirm={handleDelete} onCancel={() => setDeleteSlug(null)} />
 
         {/* Content */}
         {loading ? (
@@ -159,17 +159,17 @@ export default function ProjectsPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {projects.map(project => {
-              const counts = ticketCounts[project.id] || { total: 0, open: 0, inProgress: 0, blocked: 0, completed: 0, cancelled: 0 };
+              const counts = ticketCounts[project.slug] || { total: 0, open: 0, inProgress: 0, blocked: 0, completed: 0, cancelled: 0 };
               const activeTickets = counts.open + counts.inProgress + counts.blocked;
               return (
-                <div key={project.id} onClick={() => router.push(`/private/${workspaceSlug}/tickets?project=${project.id}`)} className="bg-white rounded-xl border border-gray-200 p-5 hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-50 transition-all cursor-pointer group">
+                <div key={project.slug} onClick={() => router.push(`/private/${workspaceSlug}/tickets?project=${project.slug}`)} className="bg-white rounded-xl border border-gray-200 p-5 hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-50 transition-all cursor-pointer group">
                   <div className="flex items-start justify-between mb-2">
                     <h3 className="font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors truncate mr-2">{project.name}</h3>
                     <div className="flex items-center gap-1 flex-shrink-0">
-                      <button onClick={e => { e.stopPropagation(); router.push(`/private/${workspaceSlug}/projects/${project.id}`); }} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-all" title="Settings">
+                      <button onClick={e => { e.stopPropagation(); router.push(`/private/${workspaceSlug}/projects/${project.slug}`); }} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-all" title="Settings">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                       </button>
-                      <button onClick={e => { e.stopPropagation(); setDeleteId(project.id); }} className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                      <button onClick={e => { e.stopPropagation(); setDeleteSlug(project.slug); }} className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       </button>
                     </div>

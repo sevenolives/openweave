@@ -13,8 +13,6 @@ class TicketFilter(django_filters.FilterSet):
     # Search across title and description
     search = django_filters.CharFilter(method='search_tickets', label='Search')
     
-    # status and priority use Meta.fields for exact + __in lookups
-    
     # Filter by assigned agent
     assigned_to = django_filters.ModelChoiceFilter(
         queryset=User.objects.filter(is_active=True),
@@ -27,14 +25,11 @@ class TicketFilter(django_filters.FilterSet):
         field_name='created_by'
     )
     
-    # Filter by project
-    project = django_filters.ModelChoiceFilter(
-        queryset=Project.objects.all(),
-        field_name='project'
-    )
+    # Filter by project slug
+    project = django_filters.CharFilter(method='filter_by_project_slug', label='Project slug')
     
-    # Filter by workspace (via project)
-    workspace = django_filters.NumberFilter(field_name='project__workspace_id')
+    # Filter by workspace slug (via project)
+    workspace = django_filters.CharFilter(method='filter_by_workspace_slug', label='Workspace slug')
     
     # Date range filters
     created_after = django_filters.DateTimeFilter(
@@ -55,7 +50,6 @@ class TicketFilter(django_filters.FilterSet):
     class Meta:
         model = Ticket
         fields = {
-            'id': ['exact'],
             'status': ['exact', 'in'],
             'priority': ['exact', 'in'],
             'ticket_type': ['exact', 'in'],
@@ -64,13 +58,19 @@ class TicketFilter(django_filters.FilterSet):
             'updated_at': ['exact', 'gte', 'lte'],
         }
 
+    def filter_by_project_slug(self, queryset, name, value):
+        if value:
+            return queryset.filter(project__slug__iexact=value)
+        return queryset
+
+    def filter_by_workspace_slug(self, queryset, name, value):
+        if value:
+            return queryset.filter(project__workspace__slug=value)
+        return queryset
+
     def search_tickets(self, queryset, name, value):
-        """
-        Search across ticket title, description, and related fields.
-        """
         if not value:
             return queryset
-            
         return queryset.filter(
             Q(title__icontains=value) |
             Q(description__icontains=value) |
@@ -81,9 +81,6 @@ class TicketFilter(django_filters.FilterSet):
         ).distinct()
 
     def filter_assignment(self, queryset, name, value):
-        """
-        Filter by whether ticket is assigned or not.
-        """
         if value is True:
             return queryset.filter(assigned_to__isnull=False)
         elif value is False:
@@ -91,13 +88,8 @@ class TicketFilter(django_filters.FilterSet):
         return queryset
 
     def filter_overdue(self, queryset, name, value):
-        """
-        Filter overdue tickets (placeholder for future SLA implementation).
-        """
-        # This would be enhanced with SLA fields in the future
         if value is True:
-            # For now, consider tickets older than 7 days in IN_PROGRESS as overdue
-            from datetime import datetime, timedelta
+            from datetime import timedelta
             from django.utils import timezone
             week_ago = timezone.now() - timedelta(days=7)
             return queryset.filter(
@@ -120,26 +112,19 @@ class UserFilter(django_filters.FilterSet):
     
     is_active = django_filters.BooleanFilter(field_name='is_active')
     
-    # Filter by workspace membership
-    workspace = django_filters.NumberFilter(method='filter_by_workspace', label='Workspace ID')
+    # Filter by workspace slug
+    workspace = django_filters.CharFilter(method='filter_by_workspace', label='Workspace slug')
     
-    # Filter by project membership
-    project = django_filters.ModelChoiceFilter(
-        queryset=Project.objects.all(),
-        method='filter_by_project'
-    )
+    # Filter by project slug
+    project = django_filters.CharFilter(method='filter_by_project', label='Project slug')
 
     class Meta:
         model = User
         fields = ['user_type', 'is_active']
 
     def search_users(self, queryset, name, value):
-        """
-        Search across username, email, and name fields.
-        """
         if not value:
             return queryset
-            
         return queryset.filter(
             Q(username__icontains=value) |
             Q(email__icontains=value) |
@@ -147,27 +132,29 @@ class UserFilter(django_filters.FilterSet):
         ).distinct()
 
     def filter_by_workspace(self, queryset, name, value):
-        """
-        Filter users by workspace membership (members + owner).
-        """
         if value:
-            return queryset.filter(
-                Q(workspace_memberships__workspace_id=value) |
-                Q(owned_workspaces__id=value)
-            ).distinct()
+            from .models import Workspace
+            try:
+                ws = Workspace.objects.get(slug=value)
+                return queryset.filter(
+                    Q(workspace_memberships__workspace=ws) |
+                    Q(owned_workspaces=ws)
+                ).distinct()
+            except Workspace.DoesNotExist:
+                return queryset.none()
         return queryset
 
     def filter_by_project(self, queryset, name, value):
-        """
-        Filter users by project membership + workspace admins/owner.
-        Workspace admins and owners are always assignable to any project.
-        """
         if value:
-            ws_id = value.workspace_id
-            return queryset.filter(
-                Q(projectagent__project=value) |
-                Q(owned_workspaces__id=ws_id)
-            ).distinct()
+            try:
+                project = Project.objects.get(slug__iexact=value)
+                ws_id = project.workspace_id
+                return queryset.filter(
+                    Q(projectagent__project=project) |
+                    Q(owned_workspaces__id=ws_id)
+                ).distinct()
+            except Project.DoesNotExist:
+                return queryset.none()
         return queryset
 
 
@@ -176,6 +163,9 @@ class ProjectFilter(django_filters.FilterSet):
     FilterSet for Project model.
     """
     search = django_filters.CharFilter(method='search_projects', label='Search')
+    
+    # Filter by workspace slug
+    workspace = django_filters.CharFilter(method='filter_by_workspace', label='Workspace slug')
     
     # Filter by agent membership
     agent = django_filters.ModelChoiceFilter(
@@ -188,21 +178,19 @@ class ProjectFilter(django_filters.FilterSet):
         fields = ['name']
 
     def search_projects(self, queryset, name, value):
-        """
-        Search across project name and description.
-        """
         if not value:
             return queryset
-            
         return queryset.filter(
             Q(name__icontains=value) |
             Q(description__icontains=value)
         ).distinct()
 
+    def filter_by_workspace(self, queryset, name, value):
+        if value:
+            return queryset.filter(workspace__slug=value)
+        return queryset
+
     def filter_by_agent(self, queryset, name, value):
-        """
-        Filter projects by agent membership.
-        """
         if value:
             return queryset.filter(agents=value).distinct()
         return queryset
@@ -214,14 +202,12 @@ class CommentFilter(django_filters.FilterSet):
     """
     search = django_filters.CharFilter(method='search_comments', label='Search')
     
-    ticket = django_filters.ModelChoiceFilter(
-        queryset=Ticket.objects.all(),
-        field_name='ticket'
-    )
+    # Filter by ticket slug (e.g., OW-22)
+    ticket = django_filters.CharFilter(method='filter_by_ticket', label='Ticket slug or ID')
     
-    ticket__project = django_filters.NumberFilter(
-        field_name='ticket__project_id',
-        label='Project ID (via ticket)'
+    ticket__project = django_filters.CharFilter(
+        method='filter_by_project_slug',
+        label='Project slug (via ticket)'
     )
     
     author = django_filters.ModelChoiceFilter(
@@ -242,13 +228,29 @@ class CommentFilter(django_filters.FilterSet):
         model = Comment
         fields = ['ticket', 'ticket__project', 'author']
 
-    def search_comments(self, queryset, name, value):
-        """
-        Search within comment body.
-        """
+    def filter_by_ticket(self, queryset, name, value):
         if not value:
             return queryset
-            
+        # Try numeric ID first for backward compat, then ticket slug
+        if value.isdigit():
+            return queryset.filter(ticket_id=int(value))
+        # Ticket slug like OW-22
+        parts = value.rsplit('-', 1)
+        if len(parts) == 2 and parts[1].isdigit():
+            return queryset.filter(
+                ticket__project__slug__iexact=parts[0],
+                ticket__ticket_number=int(parts[1])
+            )
+        return queryset.none()
+
+    def filter_by_project_slug(self, queryset, name, value):
+        if value:
+            return queryset.filter(ticket__project__slug__iexact=value)
+        return queryset
+
+    def search_comments(self, queryset, name, value):
+        if not value:
+            return queryset
         return queryset.filter(body__icontains=value)
 
 
@@ -291,17 +293,27 @@ class AuditLogFilter(django_filters.FilterSet):
 
 class WorkspaceMemberFilter(django_filters.FilterSet):
     """FilterSet for WorkspaceMember model."""
-    workspace = django_filters.NumberFilter(field_name='workspace')
+    workspace = django_filters.CharFilter(method='filter_by_workspace', label='Workspace slug')
 
     class Meta:
         model = WorkspaceMember
         fields = ['workspace']
 
+    def filter_by_workspace(self, queryset, name, value):
+        if value:
+            return queryset.filter(workspace__slug=value)
+        return queryset
+
 
 class WorkspaceInviteFilter(django_filters.FilterSet):
     """FilterSet for WorkspaceInvite model."""
-    workspace = django_filters.NumberFilter(field_name='workspace')
+    workspace = django_filters.CharFilter(method='filter_by_workspace', label='Workspace slug')
 
     class Meta:
         model = WorkspaceInvite
         fields = ['workspace']
+
+    def filter_by_workspace(self, queryset, name, value):
+        if value:
+            return queryset.filter(workspace__slug=value)
+        return queryset

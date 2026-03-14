@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.core.exceptions import ValidationError
@@ -153,6 +154,30 @@ class StatusTransition(models.Model):
 
     def __str__(self):
         return f"{self.from_status.key} → {self.to_status.key} ({self.actor_type})"
+
+
+class TransitionException(models.Model):
+    """
+    Exception to allow specific users/types to bypass blocked transitions.
+    If user is NULL, applies to all humans/bots of that exception_type.
+    """
+    workspace = models.ForeignKey('Workspace', on_delete=models.CASCADE, related_name='transition_exceptions')
+    from_status = models.ForeignKey('StatusDefinition', on_delete=models.CASCADE, related_name='exception_from')
+    to_status = models.ForeignKey('StatusDefinition', on_delete=models.CASCADE, related_name='exception_to')
+    exception_type = models.CharField(max_length=10, choices=[('human', 'Human'), ('bot', 'Bot')])
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, blank=True, null=True, related_name='transition_exceptions')
+    reason = models.TextField(blank=True, default='')
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='created_exceptions')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'transition_exceptions'
+        unique_together = ['workspace', 'from_status', 'to_status', 'exception_type', 'user']
+        ordering = ['-created_at']
+
+    def __str__(self):
+        user_str = self.user.username if self.user else 'ALL'
+        return f"Exception: {self.from_status.key} → {self.to_status.key} ({self.exception_type}, {user_str})"
 
 
 class Project(models.Model):

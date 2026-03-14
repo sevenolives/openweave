@@ -97,9 +97,9 @@ export default function Layout({ children }: { children: ReactNode }) {
           {currentWorkspace && (
             <div className="px-3 py-2 border-b border-gray-100">
               <select
-                value={currentWorkspace.id}
+                value={currentWorkspace.slug}
                 onChange={e => {
-                  const ws = workspaces.find(w => w.id === Number(e.target.value));
+                  const ws = workspaces.find(w => w.slug === e.target.value);
                   if (ws) {
                     setCurrentWorkspace(ws);
                     // Extract current page and navigate to same page in new workspace
@@ -110,7 +110,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 className="w-full text-sm font-medium text-gray-900 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2"
               >
                 {workspaces.map(ws => (
-                  <option key={ws.id} value={ws.id}>{ws.name}</option>
+                  <option key={ws.slug} value={ws.slug}>{ws.name}</option>
                 ))}
               </select>
               <div className="flex gap-2 mt-2">

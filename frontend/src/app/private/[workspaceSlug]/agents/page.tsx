@@ -29,7 +29,7 @@ export default function AgentsPage() {
   useEffect(() => {
     if (!currentWorkspace) return;
     setLoading(true);
-    const wsId = String(currentWorkspace.id);
+    const wsId = currentWorkspace.slug;
     Promise.all([
       api.getWorkspaceMembersPaginated({ workspace: wsId, page: String(page) }),
       api.getTickets({ workspace: wsId }),

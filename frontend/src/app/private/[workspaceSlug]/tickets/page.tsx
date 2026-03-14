@@ -65,14 +65,14 @@ function TicketsPage() {
     return '';
   });
   const [filterPriority, setFilterPriority] = useState('');
-  const [filterProjectInit] = useState<number | ''>(() => {
+  const [filterProjectInit] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       const p = new URLSearchParams(window.location.search).get('project');
-      if (p) return Number(p);
+      if (p) return p;
     }
     return '';
   });
-  const [filterProject, setFilterProject] = useState<number | ''>(filterProjectInit);
+  const [filterProject, setFilterProject] = useState<string>(filterProjectInit);
   const [filterAssigned, setFilterAssigned] = useState('');
   const [filterApproved, setFilterApproved] = useState('');
   const [showCreate, setShowCreate] = useState(false);
@@ -81,14 +81,14 @@ function TicketsPage() {
   const [newDesc, setNewDesc] = useState('');
   const [newPriority, setNewPriority] = useState('MEDIUM');
   const [newTicketType, setNewTicketType] = useState('BUG');
-  const [newProject, setNewProject] = useState<number | ''>('');
+  const [newProject, setNewProject] = useState<string>('');
   const [newAssigned, setNewAssigned] = useState<string>('');
   const [newApproved, setNewApproved] = useState(false);
   const [wsUsers, setWsUsers] = useState<User[]>([]);
   const [createProjectAgents, setCreateProjectAgents] = useState<User[]>([]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [deleteTarget, setDeleteTarget] = useState<Ticket | null>(null);
-  const [projectAgentsMap, setProjectAgentsMap] = useState<Record<number, User[]>>({});
+  const [projectAgentsMap, setProjectAgentsMap] = useState<Record<string, User[]>>({});
   const hasUserSelectedProject = useRef(!!filterProjectInit);
   const [statuses, setStatuses] = useState<StatusDefinition[]>([]);
 
@@ -104,7 +104,7 @@ function TicketsPage() {
     const statusParam = searchParams.get('status');
     if (statusParam) setFilterStatus(statusParam);
     const projectParam = searchParams.get('project');
-    if (projectParam) setFilterProject(Number(projectParam));
+    if (projectParam) setFilterProject(projectParam);
     const priorityParam = searchParams.get('priority');
     if (priorityParam) setFilterPriority(priorityParam);
     const assignedParam = searchParams.get('assigned_to');
@@ -129,14 +129,14 @@ function TicketsPage() {
   // Load status definitions
   useEffect(() => {
     if (currentWorkspace) {
-      api.getStatusDefinitions(currentWorkspace.id).then(setStatuses).catch(() => {});
+      api.getStatusDefinitions(currentWorkspace.slug).then(setStatuses).catch(() => {});
     }
   }, [currentWorkspace?.id]);
 
   useEffect(() => {
     if (!currentWorkspace) return;
     setLoading(true);
-    const wsParams: Record<string, string> = { workspace: String(currentWorkspace.id) };
+    const wsParams: Record<string, string> = { workspace: currentWorkspace.slug };
     const ticketParams: Record<string, string> = { ...wsParams, page: String(page) };
     if (filterProject) ticketParams.project = String(filterProject);
     if (filterStatus) ticketParams.status = filterStatus;
@@ -144,7 +144,7 @@ function TicketsPage() {
     if (filterAssigned) ticketParams.assigned_to = filterAssigned;
     if (filterApproved) ticketParams.approved_status = filterApproved;
     if (debouncedSearch) ticketParams.search = debouncedSearch;
-    const membersPromise: Promise<User[]> = api.getUsers({ workspace: String(currentWorkspace.id) });
+    const membersPromise: Promise<User[]> = api.getUsers({ workspace: currentWorkspace.slug });
     Promise.all([api.getTicketsPaginated(ticketParams), api.getProjects(wsParams), membersPromise])
       .then(([resp, p, u]) => {
         setTickets(resp.results || []); setTotalCount(resp.count || 0); setProjects(p); setWsUsers(u);
@@ -155,11 +155,11 @@ function TicketsPage() {
 
   // Fetch project agents for all visible projects (for inline assign dropdown)
   useEffect(() => {
-    const projectIds = [...new Set(tickets.map(t => t.project))];
-    projectIds.forEach(pid => {
-      if (!projectAgentsMap[pid]) {
-        api.getProjectAgents(pid).then(agents => {
-          setProjectAgentsMap(prev => ({ ...prev, [pid]: agents }));
+    const projectSlugs = [...new Set(tickets.map(t => t.project))];
+    projectSlugs.forEach(slug => {
+      if (!projectAgentsMap[slug]) {
+        api.getProjectAgents(slug).then(agents => {
+          setProjectAgentsMap(prev => ({ ...prev, [slug]: agents }));
         }).catch(() => {});
       }
     });
@@ -168,7 +168,7 @@ function TicketsPage() {
   // Fetch project agents when create modal project selection changes
   useEffect(() => {
     if (newProject) {
-      api.getProjectAgents(newProject as number).then(setCreateProjectAgents).catch(() => setCreateProjectAgents([]));
+      api.getProjectAgents(newProject).then(setCreateProjectAgents).catch(() => setCreateProjectAgents([]));
     } else {
       setCreateProjectAgents([]);
     }
@@ -176,13 +176,13 @@ function TicketsPage() {
 
   // Group tickets by project (all filtering is backend-driven)
   const grouped = useMemo(() => {
-    const groups: Record<number, { project: Project | null; tickets: Ticket[] }> = {};
+    const groups: Record<string, { project: Project | null; tickets: Ticket[] }> = {};
     for (const t of tickets) {
-      const pid = t.project;
-      if (!groups[pid]) {
-        groups[pid] = { project: projects.find(p => p.id === pid) || null, tickets: [] };
+      const pslug = t.project;
+      if (!groups[pslug]) {
+        groups[pslug] = { project: projects.find(p => p.slug === pslug) || null, tickets: [] };
       }
-      groups[pid].tickets.push(t);
+      groups[pslug].tickets.push(t);
     }
     return Object.values(groups).sort((a, b) => (a.project?.name || '').localeCompare(b.project?.name || ''));
   }, [tickets, projects]);
@@ -191,9 +191,9 @@ function TicketsPage() {
 
   const loadData = () => {
     if (!currentWorkspace) return;
-    const wsParams: Record<string, string> = { workspace: String(currentWorkspace.id) };
+    const wsParams: Record<string, string> = { workspace: currentWorkspace.slug };
     const ticketParams: Record<string, string> = { ...wsParams, page: String(page) };
-    if (filterProject) ticketParams.project = String(filterProject);
+    if (filterProject) ticketParams.project = filterProject;
     if (filterStatus) ticketParams.status = filterStatus;
     if (filterPriority) ticketParams.priority = filterPriority;
     if (filterAssigned) ticketParams.assigned_to = filterAssigned;
@@ -211,7 +211,7 @@ function TicketsPage() {
     setCreating(true);
     try {
       await api.createTicket({
-        project: newProject as number, title: newTitle, description: newDesc,
+        project: newProject, title: newTitle, description: newDesc,
         priority: newPriority as any, ticket_type: newTicketType as any,
         approved_status: newApproved ? 'APPROVED' : 'UNAPPROVED' as any,
         ...(newAssigned ? { assigned_to: parseInt(newAssigned) } : {}),
@@ -278,9 +278,9 @@ function TicketsPage() {
             <option value="HIGH">High</option>
             <option value="CRITICAL">Critical</option>
           </select>
-          <select value={filterProject} onChange={e => { hasUserSelectedProject.current = true; setFilterProject(Number(e.target.value) || ''); setPage(1); }} className="px-4 py-3 h-[44px] border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
+          <select value={filterProject} onChange={e => { hasUserSelectedProject.current = true; setFilterProject(e.target.value); setPage(1); }} className="px-4 py-3 h-[44px] border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
             <option value="">All projects</option>
-            {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            {projects.map(p => <option key={p.slug} value={p.slug}>{p.name}</option>)}
           </select>
           <select value={filterAssigned} onChange={e => { setFilterAssigned(e.target.value); setPage(1); }} className="px-4 py-3 h-[44px] border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
             <option value="">All users</option>
@@ -322,7 +322,7 @@ function TicketsPage() {
                 {/* Project header */}
                 <div
                   className="px-5 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors"
-                  onClick={() => project && router.push(`/private/${workspaceSlug}/projects/${project.id}`)}
+                  onClick={() => project && router.push(`/private/${workspaceSlug}/projects/${project.slug}`)}
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
@@ -445,9 +445,9 @@ function TicketsPage() {
               <h2 className="text-lg font-bold text-gray-900 mb-4">New Ticket</h2>
               <form onSubmit={handleCreateTicket} className="space-y-4">
                 <FormField label="Project" error={fieldErrors.project} required>
-                  <select value={newProject} onChange={e => setNewProject(Number(e.target.value) || '')} className={selectClass(fieldErrors.project)} required>
+                  <select value={newProject} onChange={e => setNewProject(e.target.value)} className={selectClass(fieldErrors.project)} required>
                     <option value="">Select a project</option>
-                    {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    {projects.map(p => <option key={p.slug} value={p.slug}>{p.name}</option>)}
                   </select>
                 </FormField>
                 <FormField label="Title" error={fieldErrors.title} required>

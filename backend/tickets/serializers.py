@@ -3,7 +3,7 @@ from .permissions import is_admin_or_owner
 from .models import (
     User, Project, Ticket, Comment, AuditLog, Workspace, WorkspaceMember,
     WorkspaceInvite, TicketAttachment, StatusDefinition, StatusTransition, ProjectAgent,
-    BlogPost, MediaFile,
+    BlogPost, MediaFile, TransitionException,
 )
 
 
@@ -56,6 +56,7 @@ class UserSimpleSerializer(serializers.ModelSerializer):
 
 class ProjectAgentSerializer(serializers.ModelSerializer):
     """Serializer for ProjectAgent with role."""
+    project = serializers.SlugRelatedField(slug_field='slug', queryset=Project.objects.all())
     user = UserSimpleSerializer(source='agent', read_only=True)
 
     class Meta:
@@ -87,25 +88,23 @@ class WorkspaceSerializer(serializers.ModelSerializer):
 class WorkspaceMemberSerializer(serializers.ModelSerializer):
     """Serializer for WorkspaceMember model."""
     user = UserSimpleSerializer(read_only=True)
+    workspace = serializers.SlugRelatedField(slug_field='slug', queryset=Workspace.objects.all())
 
     class Meta:
         model = WorkspaceMember
         fields = ['id', 'workspace', 'user', 'joined_at']
-        read_only_fields = ['id', 'workspace', 'user', 'joined_at']
-        extra_kwargs = {
-            'workspace': {'help_text': 'Workspace ID.'},
-        }
+        read_only_fields = ['id', 'user', 'joined_at']
 
 
 class WorkspaceInviteSerializer(serializers.ModelSerializer):
     """Serializer for WorkspaceInvite model."""
+    workspace = serializers.SlugRelatedField(slug_field='slug', queryset=Workspace.objects.all())
 
     class Meta:
         model = WorkspaceInvite
         fields = ['id', 'workspace', 'token', 'created_by', 'expires_at', 'max_uses', 'use_count', 'is_active', 'created_at']
         read_only_fields = ['id', 'token', 'created_by', 'use_count', 'created_at']
         extra_kwargs = {
-            'workspace': {'help_text': 'Workspace ID to create invite for.'},
             'token': {'help_text': 'Auto-generated UUID invite token.'},
             'expires_at': {'help_text': 'Optional expiration datetime (ISO 8601).'},
             'max_uses': {'help_text': 'Optional maximum number of uses. Null = unlimited.'},
@@ -124,6 +123,11 @@ class JoinRequestSerializer(serializers.Serializer):
 
 class ProjectSerializer(serializers.ModelSerializer):
     """Serializer for Project model."""
+    workspace = serializers.SlugRelatedField(
+        slug_field='slug',
+        queryset=Workspace.objects.all(),
+        help_text='Workspace slug.',
+    )
     agent_ids = serializers.ListField(
         child=serializers.IntegerField(),
         write_only=True,
@@ -138,7 +142,6 @@ class ProjectSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'name': {'help_text': 'Project name.'},
             'description': {'help_text': 'Project description.'},
-            'workspace': {'help_text': 'Workspace ID this project belongs to.'},
         }
 
     def create(self, validated_data):
@@ -185,6 +188,11 @@ class TicketAttachmentSerializer(serializers.ModelSerializer):
 
 class TicketSerializer(serializers.ModelSerializer):
     """Serializer for Ticket model."""
+    project = serializers.SlugRelatedField(
+        slug_field='slug',
+        queryset=Project.objects.all(),
+        help_text='Project slug (e.g. "OW").',
+    )
     assigned_to_details = UserSimpleSerializer(source='assigned_to', read_only=True)
     created_by_details = UserSimpleSerializer(source='created_by', read_only=True)
     project_name = serializers.CharField(source='project.name', read_only=True, help_text="Name of the project.")
@@ -201,7 +209,6 @@ class TicketSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['created_by', 'created_at', 'updated_at', 'resolved_at', 'closed_at', 'ticket_slug']
         extra_kwargs = {
-            'project': {'help_text': 'Project ID.'},
             'title': {'help_text': 'Ticket title.'},
             'description': {'help_text': 'Detailed description of the issue.'},
             'status': {'help_text': 'OPEN, IN_PROGRESS, BLOCKED, IN_TESTING, REVIEW, COMPLETED, or CANCELLED.'},
@@ -210,31 +217,28 @@ class TicketSerializer(serializers.ModelSerializer):
             'created_by': {'help_text': 'Auto-set to the authenticated user.'},
         }
 
+    def _resolve_project(self):
+        """Resolve project from instance or initial_data (slug)."""
+        if self.instance:
+            return self.instance.project
+        project_val = self.initial_data.get('project')
+        if project_val:
+            try:
+                if isinstance(project_val, int) or (isinstance(project_val, str) and project_val.isdigit()):
+                    return Project.objects.get(id=int(project_val))
+                return Project.objects.get(slug__iexact=str(project_val))
+            except Project.DoesNotExist:
+                pass
+        return None
+
     def validate_assigned_to(self, value):
         """Ensure assigned user belongs to the project. Admins can assign anyone."""
         if value:
-            # Get workspace context for permission check
             request = self.context.get('request')
-            workspace = None
-            if self.instance and self.instance.project:
-                workspace = self.instance.project.workspace
-            elif 'project' in self.initial_data:
-                try:
-                    workspace = Project.objects.get(id=self.initial_data['project']).workspace
-                except Project.DoesNotExist:
-                    pass
-            # Admins/owners can assign anyone
+            project = self._resolve_project()
+            workspace = project.workspace if project else None
             if request and (request.user.is_superuser or is_admin_or_owner(request.user, workspace)):
                 return value
-            # For updates, use existing project; for creates, get from initial_data
-            project = None
-            if self.instance:
-                project = self.instance.project
-            elif 'project' in self.initial_data:
-                try:
-                    project = Project.objects.get(id=self.initial_data['project'])
-                except Project.DoesNotExist:
-                    pass
             if project:
                 is_project_agent = project.agents.filter(id=value.id).exists()
                 is_workspace_owner = project.workspace and project.workspace.owner_id == value.id
@@ -246,15 +250,7 @@ class TicketSerializer(serializers.ModelSerializer):
 
     def validate_status(self, value):
         """Validate status key exists in workspace's StatusDefinitions."""
-        # Get workspace from ticket's project
-        project = None
-        if self.instance:
-            project = self.instance.project
-        elif 'project' in self.initial_data:
-            try:
-                project = Project.objects.get(id=self.initial_data['project'])
-            except Project.DoesNotExist:
-                pass
+        project = self._resolve_project()
         if project and project.workspace_id:
             exists = StatusDefinition.objects.filter(
                 workspace_id=project.workspace_id, key=value
@@ -288,15 +284,27 @@ class TicketSerializer(serializers.ModelSerializer):
                         actor_type__in=[actor, 'ALL'],
                     ).exists()
                     if not allowed:
-                        valid_targets = list(StatusTransition.objects.filter(
+                        # Check for transition exceptions
+                        exception_type = 'bot' if actor == 'BOT' else 'human'
+                        from django.db.models import Q
+                        has_exception = TransitionException.objects.filter(
                             workspace_id=ws_id,
                             from_status__key=old_status,
-                            actor_type__in=[actor, 'ALL'],
-                        ).values_list('to_status__key', flat=True))
-                        raise serializers.ValidationError({
-                            'status': f'{actor} cannot transition from {old_status} to {new_status}. '
-                                      f'Allowed: {", ".join(valid_targets) if valid_targets else "none (terminal state)"}.'
-                        })
+                            to_status__key=new_status,
+                            exception_type=exception_type,
+                        ).filter(
+                            Q(user=user) | Q(user__isnull=True)
+                        ).exists()
+                        if not has_exception:
+                            valid_targets = list(StatusTransition.objects.filter(
+                                workspace_id=ws_id,
+                                from_status__key=old_status,
+                                actor_type__in=[actor, 'ALL'],
+                            ).values_list('to_status__key', flat=True))
+                            raise serializers.ValidationError({
+                                'status': f'{actor} cannot transition from {old_status} to {new_status}. '
+                                          f'Allowed: {", ".join(valid_targets) if valid_targets else "none (terminal state)"}.'
+                            })
 
                     # Check approval gate for bot transitions
                     if actor == 'BOT':
@@ -322,6 +330,7 @@ class CommentTicketSerializer(serializers.ModelSerializer):
 
 class CommentSerializer(serializers.ModelSerializer):
     """Serializer for Comment model."""
+    ticket = serializers.PrimaryKeyRelatedField(queryset=Ticket.objects.all())
     author_details = UserSimpleSerializer(source='author', read_only=True)
     ticket_details = CommentTicketSerializer(source='ticket', read_only=True)
     mentions = serializers.SerializerMethodField(
@@ -373,6 +382,7 @@ class AuditLogSerializer(serializers.ModelSerializer):
 
 class StatusDefinitionSerializer(serializers.ModelSerializer):
     """Serializer for StatusDefinition — workspace-level status config."""
+    workspace = serializers.SlugRelatedField(slug_field='slug', queryset=Workspace.objects.all())
     in_use = serializers.SerializerMethodField(help_text="Whether any tickets use this status")
 
     class Meta:
@@ -380,7 +390,6 @@ class StatusDefinitionSerializer(serializers.ModelSerializer):
         fields = ['id', 'workspace', 'key', 'label', 'color', 'is_terminal', 'is_default', 'is_bot_requires_approval', 'position', 'in_use']
         read_only_fields = ['in_use']
         extra_kwargs = {
-            'workspace': {'help_text': 'Workspace ID.'},
             'key': {'help_text': 'Unique status key within workspace, e.g. IN_PROGRESS.'},
         }
 
@@ -402,6 +411,7 @@ class StatusDefinitionSerializer(serializers.ModelSerializer):
 
 class StatusTransitionSerializer(serializers.ModelSerializer):
     """Serializer for StatusTransition — allowed status transitions."""
+    workspace = serializers.SlugRelatedField(slug_field='slug', queryset=Workspace.objects.all())
     from_status_key = serializers.CharField(source='from_status.key', read_only=True)
     to_status_key = serializers.CharField(source='to_status.key', read_only=True)
 
@@ -409,7 +419,6 @@ class StatusTransitionSerializer(serializers.ModelSerializer):
         model = StatusTransition
         fields = ['id', 'workspace', 'from_status', 'to_status', 'from_status_key', 'to_status_key', 'actor_type']
         extra_kwargs = {
-            'workspace': {'help_text': 'Workspace ID.'},
             'from_status': {'help_text': 'Source StatusDefinition ID.'},
             'to_status': {'help_text': 'Target StatusDefinition ID.'},
             'actor_type': {'help_text': 'BOT, HUMAN, or ALL.'},
@@ -423,6 +432,37 @@ class StatusTransitionSerializer(serializers.ModelSerializer):
         if from_s and to_s:
             if from_s == to_s:
                 raise serializers.ValidationError("Cannot transition to the same status.")
+            if from_s.workspace_id != ws.id or to_s.workspace_id != ws.id:
+                raise serializers.ValidationError("Both statuses must belong to the specified workspace.")
+        return data
+
+
+class TransitionExceptionSerializer(serializers.ModelSerializer):
+    """Serializer for TransitionException."""
+    workspace = serializers.SlugRelatedField(slug_field='slug', queryset=Workspace.objects.all())
+    from_status_key = serializers.CharField(source='from_status.key', read_only=True)
+    to_status_key = serializers.CharField(source='to_status.key', read_only=True)
+    from_status_label = serializers.CharField(source='from_status.label', read_only=True)
+    to_status_label = serializers.CharField(source='to_status.label', read_only=True)
+    user_details = UserSimpleSerializer(source='user', read_only=True)
+    created_by_details = UserSimpleSerializer(source='created_by', read_only=True)
+
+    class Meta:
+        model = TransitionException
+        fields = [
+            'id', 'workspace', 'from_status', 'to_status', 'from_status_key', 'to_status_key',
+            'from_status_label', 'to_status_label', 'exception_type', 'user', 'user_details',
+            'reason', 'created_by', 'created_by_details', 'created_at',
+        ]
+        read_only_fields = ['id', 'created_by', 'created_at']
+
+    def validate(self, data):
+        ws = data.get('workspace') or (self.instance.workspace if self.instance else None)
+        from_s = data.get('from_status')
+        to_s = data.get('to_status')
+        if from_s and to_s:
+            if from_s == to_s:
+                raise serializers.ValidationError("From and to status must be different.")
             if from_s.workspace_id != ws.id or to_s.workspace_id != ws.id:
                 raise serializers.ValidationError("Both statuses must belong to the specified workspace.")
         return data
@@ -456,6 +496,7 @@ class BlogPostCreateSerializer(serializers.ModelSerializer):
 
 
 class MediaFileSerializer(serializers.ModelSerializer):
+    workspace = serializers.SlugRelatedField(slug_field='slug', queryset=Workspace.objects.all())
     uploaded_by_username = serializers.CharField(source='uploaded_by.username', read_only=True)
     url = serializers.SerializerMethodField()
 

@@ -13,7 +13,7 @@ from rest_framework import serializers as drf_serializers
 from .models import (
     User, Project, Ticket, Comment, AuditLog, ProjectAgent, Workspace,
     WorkspaceMember, WorkspaceInvite, TicketAttachment, StatusDefinition, StatusTransition,
-    BlogPost, MediaFile,
+    BlogPost, MediaFile, TransitionException,
 )
 from .serializers import (
     UserSerializer, ProjectSerializer, TicketSerializer,
@@ -22,7 +22,7 @@ from .serializers import (
     JoinRequestSerializer, TicketAttachmentSerializer, ProjectAgentSerializer,
     StatusDefinitionSerializer, StatusTransitionSerializer,
     BlogPostListSerializer, BlogPostDetailSerializer, BlogPostCreateSerializer,
-    MediaFileSerializer,
+    MediaFileSerializer, TransitionExceptionSerializer,
 )
 from .permissions import (
     IsAdminAgent, IsAdminOrReadOnly, IsAdminOrOwner, is_admin_or_owner,
@@ -269,16 +269,16 @@ class UserViewSet(viewsets.ModelViewSet):
         ],
     )
     def list(self, request, *args, **kwargs):
-        workspace_id = request.query_params.get('workspace')
-        project_id = request.query_params.get('project')
-        if not workspace_id and not project_id:
+        workspace_slug = request.query_params.get('workspace')
+        project_slug = request.query_params.get('project')
+        if not workspace_slug and not project_slug:
             return Response({'detail': 'workspace or project filter is required.'}, status=status.HTTP_400_BAD_REQUEST)
         # Verify user has access to the workspace
-        if workspace_id:
+        if workspace_slug:
             user = request.user
             if not user.is_superuser:
-                is_member = WorkspaceMember.objects.filter(workspace_id=workspace_id, user=user).exists()
-                is_owner = Workspace.objects.filter(id=workspace_id, owner=user).exists()
+                is_member = WorkspaceMember.objects.filter(workspace__slug=workspace_slug, user=user).exists()
+                is_owner = Workspace.objects.filter(slug=workspace_slug, owner=user).exists()
                 if not is_member and not is_owner:
                     return Response({'detail': 'You do not have access to this workspace.'}, status=status.HTTP_403_FORBIDDEN)
         return super().list(request, *args, **kwargs)
@@ -329,6 +329,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
     permission_classes = [IsAdminOrReadOnly]
+    lookup_field = 'slug'
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_class = ProjectFilter
     search_fields = ['name', 'description']
@@ -339,20 +340,20 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = Project.objects.all()
         # Workspace filter is mandatory for list
-        workspace_id = self.request.query_params.get('workspace')
+        workspace_slug = self.request.query_params.get('workspace')
         if self.action == 'list':
-            if not workspace_id:
+            if not workspace_slug:
                 from rest_framework.exceptions import ValidationError
                 raise ValidationError({'workspace': 'This query parameter is required.'})
-            qs = qs.filter(workspace_id=workspace_id)
+            qs = qs.filter(workspace__slug=workspace_slug)
 
         user = self.request.user
         if user.is_superuser:
             return qs
         # Check admin/owner scoped to specific workspace if available
-        if workspace_id:
+        if workspace_slug:
             try:
-                workspace = Workspace.objects.get(id=workspace_id)
+                workspace = Workspace.objects.get(slug=workspace_slug)
                 if is_admin_or_owner(user, workspace):
                     return qs
             except Workspace.DoesNotExist:
@@ -459,11 +460,11 @@ class TicketViewSet(viewsets.ModelViewSet):
         return super().get_object()
 
     def _get_workspace(self):
-        """Get workspace from query params if available."""
-        workspace_id = self.request.query_params.get('workspace')
-        if workspace_id:
+        """Get workspace from query params if available (by slug)."""
+        workspace_slug = self.request.query_params.get('workspace')
+        if workspace_slug:
             try:
-                return Workspace.objects.get(id=workspace_id)
+                return Workspace.objects.get(slug=workspace_slug)
             except Workspace.DoesNotExist:
                 pass
         return None
@@ -804,6 +805,7 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
     queryset = Workspace.objects.all()
     serializer_class = WorkspaceSerializer
     permission_classes = [IsAdminOrReadOnly]
+    lookup_field = 'slug'
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def get_queryset(self):
@@ -1024,13 +1026,16 @@ class StatusDefinitionViewSet(viewsets.ModelViewSet):
     serializer_class = StatusDefinitionSerializer
     permission_classes = [permissions.IsAuthenticated, IsAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
-    filterset_fields = ['workspace']
     ordering_fields = ['position']
     ordering = ['position']
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def get_queryset(self):
         qs = StatusDefinition.objects.all()
+        # Filter by workspace slug
+        ws_slug = self.request.query_params.get('workspace')
+        if ws_slug:
+            qs = qs.filter(workspace__slug=ws_slug)
         user = self.request.user
         if user.is_superuser:
             return qs
@@ -1082,11 +1087,15 @@ class StatusTransitionViewSet(viewsets.ModelViewSet):
     serializer_class = StatusTransitionSerializer
     permission_classes = [permissions.IsAuthenticated, IsAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['workspace', 'actor_type', 'from_status', 'to_status']
+    filterset_fields = ['actor_type', 'from_status', 'to_status']
     http_method_names = ['get', 'post', 'delete', 'head', 'options']
 
     def get_queryset(self):
         qs = StatusTransition.objects.select_related('from_status', 'to_status')
+        # Filter by workspace slug
+        ws_slug = self.request.query_params.get('workspace')
+        if ws_slug:
+            qs = qs.filter(workspace__slug=ws_slug)
         user = self.request.user
         if user.is_superuser:
             return qs
@@ -1109,6 +1118,40 @@ class StatusTransitionViewSet(viewsets.ModelViewSet):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("Only workspace owners can manage transitions.")
         serializer.save()
+
+
+@extend_schema(tags=['statuses'])
+class TransitionExceptionViewSet(viewsets.ModelViewSet):
+    """Manage transition exceptions — allow specific users/types to bypass blocked transitions."""
+    queryset = TransitionException.objects.select_related('from_status', 'to_status', 'user', 'created_by')
+    serializer_class = TransitionExceptionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = {'workspace__slug': ['exact']}
+    http_method_names = ['get', 'post', 'delete', 'head', 'options']
+
+    def get_queryset(self):
+        qs = TransitionException.objects.select_related('from_status', 'to_status', 'user', 'created_by')
+        user = self.request.user
+        if user.is_superuser:
+            return qs
+        from django.db.models import Q
+        member_ws = WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True)
+        owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
+        return qs.filter(workspace_id__in=set(list(member_ws) + list(owned_ws)))
+
+    def perform_create(self, serializer):
+        workspace = serializer.validated_data.get('workspace')
+        if workspace and not is_admin_or_owner(self.request.user, workspace):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Only workspace admins can create transition exceptions.")
+        serializer.save(created_by=self.request.user)
+
+    def perform_destroy(self, instance):
+        if not is_admin_or_owner(self.request.user, instance.workspace):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Only workspace admins can delete transition exceptions.")
+        instance.delete()
 
 
 class DashboardView(APIView):
@@ -1141,25 +1184,25 @@ class DashboardView(APIView):
         from django.db.models import Q, Count
         from django.utils import timezone
 
-        workspace_id = request.query_params.get('workspace')
-        if not workspace_id:
+        workspace_slug = request.query_params.get('workspace')
+        if not workspace_slug:
             return Response({'detail': 'workspace parameter required'}, status=status.HTTP_400_BAD_REQUEST)
 
+        try:
+            workspace = Workspace.objects.get(slug=workspace_slug)
+        except Workspace.DoesNotExist:
+            return Response({'detail': 'Workspace not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        ws_id = workspace.id
         # Verify access
-        ws_id = int(workspace_id)
         has_access = (
-            Workspace.objects.filter(id=ws_id, owner=request.user).exists() or
-            WorkspaceMember.objects.filter(workspace_id=ws_id, user=request.user).exists()
+            workspace.owner_id == request.user.id or
+            WorkspaceMember.objects.filter(workspace=workspace, user=request.user).exists()
         )
         if not has_access and not request.user.is_superuser:
             return Response({'detail': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
 
         tickets = Ticket.objects.filter(project__workspace_id=ws_id)
-        # Non-admin/non-owner users only see tickets for projects they're assigned to
-        try:
-            workspace = Workspace.objects.get(id=ws_id)
-        except Workspace.DoesNotExist:
-            return Response({'detail': 'Workspace not found'}, status=status.HTTP_404_NOT_FOUND)
         if not request.user.is_superuser and not is_admin_or_owner(request.user, workspace):
             tickets = tickets.filter(project__agents=request.user).distinct()
         today = timezone.now().date()
@@ -1202,10 +1245,13 @@ class ProjectAgentViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     http_method_names = ['get', 'patch', 'head', 'options']
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['project']
 
     def get_queryset(self):
         qs = ProjectAgent.objects.select_related('agent', 'project')
+        # Filter by project slug
+        project_slug = self.request.query_params.get('project')
+        if project_slug:
+            qs = qs.filter(project__slug__iexact=project_slug)
         user = self.request.user
         if user.is_superuser:
             return qs.all()
@@ -1273,9 +1319,9 @@ class MediaFileViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = MediaFile.objects.select_related('uploaded_by', 'workspace', 'ticket')
-        workspace = self.request.query_params.get('workspace')
-        if workspace:
-            qs = qs.filter(workspace_id=workspace)
+        workspace_slug = self.request.query_params.get('workspace')
+        if workspace_slug:
+            qs = qs.filter(workspace__slug=workspace_slug)
         ticket = self.request.query_params.get('ticket')
         if ticket:
             qs = qs.filter(ticket_id=ticket)
@@ -1308,8 +1354,8 @@ class MediaFileViewSet(viewsets.ModelViewSet):
             raise ValidationError({'file': f'File too large. Max {max_size // (1024*1024)} MB for {media_type}.'})
 
         # Verify workspace membership
-        workspace_id = self.request.data.get('workspace')
-        if not workspace_id:
+        workspace_slug = self.request.data.get('workspace')
+        if not workspace_slug:
             raise ValidationError({'workspace': 'Workspace is required.'})
 
         serializer.save(
