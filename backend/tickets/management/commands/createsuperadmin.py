@@ -17,7 +17,10 @@ class Command(BaseCommand):
         # Get credentials from environment or use defaults
         username = os.environ.get('SUPERUSER_USERNAME', 'admin')
         email = os.environ.get('SUPERUSER_EMAIL', 'admin@agentdesk.com')
-        password = os.environ.get('SUPERUSER_PASSWORD', 'password123')
+        password = os.environ.get('SUPERUSER_PASSWORD')
+        if not password:
+            self.stderr.write("SUPERUSER_PASSWORD env var is required")
+            return
 
         # Check if a user with this email or username already exists
         existing_user = User.objects.filter(

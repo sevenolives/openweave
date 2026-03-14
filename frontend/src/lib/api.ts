@@ -1,5 +1,5 @@
 // API client for the Agent Desk backend
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.openweave.dev/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 // Custom error class with field-level errors from DRF
 export class ApiError extends Error {

@@ -1,28 +1,17 @@
-# Show HN: OpenWeave – State machines that enforce what AI agents can do
+# Show HN Draft
+
+**Title:** Show HN: OpenWeave – State machines that enforce what AI agents can do
 
 **URL:** https://openweave.dev
 
-We built OpenWeave because we kept running into the same problem: AI agents that do unexpected things in production. Monitoring tools tell you *what happened* after the fact. We wanted something that prevents bad things from happening in the first place.
+**Text:**
 
-OpenWeave is execution governance for autonomous systems. At its core, it's a state machine that controls what actions AI agents can take and when.
+We built OpenWeave because monitoring tools tell you what your AI agents did after the fact. We wanted something that prevents bad actions in the first place.
 
-**How it works:**
+OpenWeave is a state machine that controls what agents can do and when. You define states (Open → In Spec → In Dev → Testing → Review → Done), set which transitions bots vs. humans can make, and mark states as "approval gated" — bots literally cannot enter them without human sign-off. Enforced server-side with a hard 403, not a warning.
 
-- Define states for your workflow (Open → In Spec → In Dev → Testing → Review → Done)
-- Set which transitions bots can make vs. which require humans
-- Mark states as "approval gated" — bots literally cannot enter them without human sign-off
-- Every state change is enforced server-side. No exceptions.
+Agents discover their allowed transitions from the API at runtime. No hardcoded workflows.
 
-**Example:** A coding agent can move a ticket from "In Dev" to "Testing" (automated), but it cannot mark it "Completed" — that requires human approval. The API rejects the request. Not a warning, not a log entry. A hard 403.
+Live demo (no signup): https://openweave.dev/demo
 
-**What makes this different from LangSmith/Guardrails AI/AgentOps:**
-
-Those tools observe and monitor. OpenWeave enforces. The state machine is the source of truth, and agents discover their allowed transitions from the API at runtime.
-
-**Stack:** Django + Next.js, deployed on Railway. The state machine is visualized with React Flow so you can see your entire agent workflow at a glance.
-
-**Live demo:** https://openweave.dev/demo (no signup required)
-
-We're using it ourselves — our support bot runs through OpenWeave and can only perform actions its state machine allows.
-
-Would love feedback from anyone building with AI agents. What governance patterns are you using?
+Stack: Django + Next.js. Would love feedback from anyone building with AI agents.

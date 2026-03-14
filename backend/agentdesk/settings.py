@@ -6,6 +6,9 @@ import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-insecure-key-change-in-production')
+if not os.environ.get('SECRET_KEY') and not os.environ.get('DEBUG'):
+    import warnings
+    warnings.warn("SECRET_KEY is using insecure default! Set SECRET_KEY env var in production.")
 DEBUG = os.environ.get('DEBUG', 'False').lower() in ('true', '1', 'yes')
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
