@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL!;
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.openweave.dev/api';
 const SITE_URL = 'https://openweave.dev';
 
 interface BlogPost {
