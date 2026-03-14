@@ -9,3 +9,6 @@ backend/test_env/
 *.pyc
 backend/test.db
 .github/workflows/
+show-hn-draft.md
+master_prompt.md
+testing_criteria.md
