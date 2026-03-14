@@ -13,7 +13,9 @@ services:
       - "5432:5432"
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.local
     ports:
       - "8000:8000"
     environment:
