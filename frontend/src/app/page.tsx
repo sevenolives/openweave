@@ -203,6 +203,7 @@ export default function HomePage() {
             <a href="/blog" className="text-sm text-gray-500 hover:text-gray-300 transition">Blog</a>
             <a href="/policies" className="text-sm text-gray-500 hover:text-gray-300 transition">Policies</a>
             <a href="https://api.openweave.dev/api/docs/" className="text-sm text-gray-500 hover:text-gray-300 transition">API Docs</a>
+            <a href="https://github.com/sevenolives/openweave" className="text-sm text-gray-500 hover:text-gray-300 transition">⭐ GitHub</a>
             <a href={isLoggedIn ? "/private/workspaces" : "/login"} className="text-sm font-medium text-gray-300 hover:text-white transition">{isLoggedIn ? "Dashboard →" : "Sign In →"}</a>
           </div>
           <button onClick={() => setMenuOpen(!menuOpen)} className="sm:hidden p-2 text-gray-400 hover:text-white transition" aria-label="Menu">
@@ -220,6 +221,7 @@ export default function HomePage() {
             <a href="/blog" className="block text-sm text-gray-400 hover:text-white transition">Blog</a>
             <a href="/policies" className="block text-sm text-gray-400 hover:text-white transition">Policies</a>
             <a href="https://api.openweave.dev/api/docs/" className="block text-sm text-gray-400 hover:text-white transition">API Docs</a>
+            <a href="https://github.com/sevenolives/openweave" className="block text-sm text-gray-400 hover:text-white transition">⭐ GitHub</a>
             <a href={isLoggedIn ? "/private/workspaces" : "/login"} className="block text-sm font-medium text-gray-300 hover:text-white transition">{isLoggedIn ? "Dashboard →" : "Sign In →"}</a>
           </div>
         )}
@@ -417,7 +419,7 @@ export default function HomePage() {
             <a href="/login" className="inline-flex items-center justify-center rounded-lg bg-emerald-500 text-white font-medium px-6 py-3 hover:bg-emerald-400 transition text-sm">
               Request Access →
             </a>
-            <a href="https://github.com/saltyprojects/agent-desk" className="inline-flex items-center justify-center rounded-lg border border-white/10 text-gray-300 font-medium px-6 py-3 hover:bg-white/5 transition text-sm">
+            <a href="https://github.com/sevenolives/openweave" className="inline-flex items-center justify-center rounded-lg border border-white/10 text-gray-300 font-medium px-6 py-3 hover:bg-white/5 transition text-sm">
               View Source ↗
             </a>
           </div>
@@ -431,7 +433,7 @@ export default function HomePage() {
           <div className="flex gap-6">
             <a href="/policies" className="hover:text-gray-400 transition">Policies</a>
             <a href="https://api.openweave.dev/api/docs/" className="hover:text-gray-400 transition">API</a>
-            <a href="https://github.com/saltyprojects/agent-desk" className="hover:text-gray-400 transition">GitHub</a>
+            <a href="https://github.com/sevenolives/openweave" className="hover:text-gray-400 transition">GitHub</a>
           </div>
         </div>
       </footer>

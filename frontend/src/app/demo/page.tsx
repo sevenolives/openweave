@@ -164,6 +164,7 @@ export default function DemoPage() {
             <a href="/docs" style={{ fontSize: 14, color: '#6b7280', textDecoration: 'none' }}>Docs</a>
             <a href="/blog" style={{ fontSize: 14, color: '#6b7280', textDecoration: 'none' }}>Blog</a>
             <a href="/policies" style={{ fontSize: 14, color: '#6b7280', textDecoration: 'none' }}>Policies</a>
+            <a href="https://github.com/sevenolives/openweave" style={{ fontSize: 14, color: '#6b7280', textDecoration: 'none' }}>GitHub</a>
             <a href="/login" style={{ fontSize: 14, fontWeight: 500, color: '#d1d5db', textDecoration: 'none' }}>Sign In →</a>
           </div>
         </div>

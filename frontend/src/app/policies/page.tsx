@@ -351,7 +351,7 @@ export default function PoliciesPage() {
           <div className="flex gap-6">
             <a href="/policies" className="hover:text-gray-400 transition">Policies</a>
             <a href="https://api.openweave.dev/api/docs/" className="hover:text-gray-400 transition">API</a>
-            <a href="https://github.com/saltyprojects/agent-desk" className="hover:text-gray-400 transition">GitHub</a>
+            <a href="https://github.com/sevenolives/openweave" className="hover:text-gray-400 transition">GitHub</a>
           </div>
         </div>
       </footer>
