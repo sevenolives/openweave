@@ -4,6 +4,6 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "python manage.py collectstatic --no-input && python manage.py shell -c \"from django.db import connection; c=connection.cursor(); c.execute(\\\"DELETE FROM django_migrations WHERE app='tickets'\\\"); print(f'Cleared {c.rowcount} migration records')\" && python manage.py migrate --fake tickets 0001_initial && python manage.py migrate --no-input && python manage.py createsuperadmin && python manage.py seed_master && gunicorn agentdesk.wsgi --bind 0.0.0.0:$PORT"
+    "startCommand": "python manage.py collectstatic --no-input && python manage.py fix_squashed_migrations && python manage.py migrate --no-input && python manage.py createsuperadmin && python manage.py seed_master && gunicorn agentdesk.wsgi --bind 0.0.0.0:$PORT"
   }
 }
