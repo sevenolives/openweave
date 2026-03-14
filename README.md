@@ -3,7 +3,7 @@
 **Execution Governance for AI Agents & Autonomous Systems**
 
 [![License: BSL 1.1](https://img.shields.io/badge/License-BSL%201.1-blue.svg)](LICENSE)
-[![CI](https://github.com/saltyprojects/agent-desk/actions/workflows/ci.yml/badge.svg)](https://github.com/saltyprojects/agent-desk/actions)
+[![CI](https://github.com/sevenolives/openweave/actions/workflows/ci.yml/badge.svg)](https://github.com/sevenolives/openweave/actions)
 
 OpenWeave is a state machine that controls what AI agents can do and when. Define workflows, enforce transitions, and require human approval at critical steps — all server-side.
 
@@ -33,8 +33,8 @@ Monitoring tools tell you what agents did. OpenWeave **prevents** what they shou
 ## Quick Start
 
 ```bash
-git clone https://github.com/saltyprojects/agent-desk.git
-cd agent-desk
+git clone https://github.com/sevenolives/openweave.git
+cd openweave
 cp .env.example .env
 docker compose up
 ```

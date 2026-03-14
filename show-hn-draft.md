@@ -14,4 +14,6 @@ Agents discover their allowed transitions from the API at runtime. No hardcoded 
 
 Live demo (no signup): https://openweave.dev/demo
 
-Stack: Django + Next.js. Would love feedback from anyone building with AI agents.
+GitHub: https://github.com/sevenolives/openweave (BSL licensed, self-hostable)
+
+Stack: Django + Next.js. `docker compose up` to run locally. Would love feedback from anyone building with AI agents.

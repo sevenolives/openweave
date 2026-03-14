@@ -81,4 +81,4 @@ agent-desk/
 
 ## Questions?
 
-Open a [GitHub Discussion](https://github.com/saltyprojects/agent-desk/discussions) or file an issue.
+Open a [GitHub Discussion](https://github.com/sevenolives/openweave/discussions) or file an issue.
