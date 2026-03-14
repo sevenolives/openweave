@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.openweave.dev/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL!;
 const SITE_URL = 'https://openweave.dev';
 
 interface BlogPost {
