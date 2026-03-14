@@ -1,6 +1,7 @@
 """One-time command to fix migration records after squashing to 0001_initial."""
 from django.core.management.base import BaseCommand
 from django.db import connection
+from django.utils import timezone
 
 
 class Command(BaseCommand):
@@ -17,8 +18,10 @@ class Command(BaseCommand):
                 cursor.execute("DELETE FROM django_migrations WHERE app='tickets'")
                 self.stdout.write(f"Cleared {cursor.rowcount} old migration records")
 
+                now = timezone.now().isoformat()
                 cursor.execute(
-                    "INSERT INTO django_migrations (app, name, applied) VALUES ('tickets', '0001_initial', NOW())"
+                    "INSERT INTO django_migrations (app, name, applied) VALUES (%s, %s, %s)",
+                    ['tickets', '0001_initial', now]
                 )
                 self.stdout.write("Fake-applied 0001_initial")
             elif '0001_initial' in rows:
