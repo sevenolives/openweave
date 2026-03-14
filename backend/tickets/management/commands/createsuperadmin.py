@@ -31,7 +31,7 @@ class Command(BaseCommand):
             # Update existing user to make sure they're a superuser
             existing_user.is_staff = True
             existing_user.is_superuser = True
-            existing_user.agent_type = 'HUMAN'
+            existing_user.user_type = 'HUMAN'
             existing_user.role = 'ADMIN'
             
             # Update email and username if they're different
@@ -52,7 +52,7 @@ class Command(BaseCommand):
                 username=username,
                 email=email,
                 password=password,
-                agent_type='HUMAN',
+                user_type='HUMAN',
                 role='ADMIN'
             )
             self.stdout.write(
