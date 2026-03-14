@@ -7,6 +7,6 @@
     }
   },
   "deploy": {
-    "startCommand": "python manage.py collectstatic --no-input && python manage.py fix_squashed_migrations && python manage.py migrate --no-input && python manage.py createsuperadmin && python manage.py seed_master && gunicorn agentdesk.wsgi --bind 0.0.0.0:$PORT --timeout 120"
+    "startCommand": "python manage.py collectstatic --no-input && python manage.py migrate --no-input && python manage.py createsuperadmin && python manage.py seed_master && gunicorn agentdesk.wsgi --bind 0.0.0.0:$PORT --timeout 120"
   }
 }
