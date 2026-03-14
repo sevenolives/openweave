@@ -12,3 +12,4 @@ backend/test.db
 show-hn-draft.md
 master_prompt.md
 testing_criteria.md
+frontend/Dockerfile.local
