@@ -8,3 +8,4 @@ node_modules/
 backend/test_env/
 *.pyc
 backend/test.db
+.github/workflows/
