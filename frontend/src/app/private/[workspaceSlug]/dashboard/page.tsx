@@ -61,7 +61,52 @@ export default function DashboardPage() {
           <p className="text-sm text-gray-500 mt-1">Here&apos;s what&apos;s happening with your tickets today.</p>
         </div>
 
-        {loading ? (
+        {!loading && data && data.total_projects === 0 ? (
+          <div className="max-w-3xl mx-auto mt-4">
+            <div className="bg-white rounded-2xl border border-gray-200 p-8 sm:p-10 text-center mb-8">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">Welcome to OpenWeave! 🎉</h2>
+              <p className="text-gray-500 max-w-lg mx-auto">
+                OpenWeave enforces what your AI agents can do using state machines and approval gates.
+                Get started by setting up your first project.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <button
+                onClick={() => router.push(`/private/${workspaceSlug}/projects`)}
+                className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md hover:border-indigo-200 transition-all text-left group"
+              >
+                <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4 group-hover:bg-indigo-100 transition-colors">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-1">Create a Project</h3>
+                <p className="text-sm text-gray-500">Set up your first project to start tracking work.</p>
+              </button>
+
+              <button
+                onClick={() => router.push(`/private/${workspaceSlug}/settings`)}
+                className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md hover:border-indigo-200 transition-all text-left group"
+              >
+                <div className="w-10 h-10 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center mb-4 group-hover:bg-purple-100 transition-colors">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-1">Invite Team Members</h3>
+                <p className="text-sm text-gray-500">Collaborate with your team on projects and tickets.</p>
+              </button>
+
+              <button
+                onClick={() => router.push(`/private/${workspaceSlug}/state-machine`)}
+                className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md hover:border-indigo-200 transition-all text-left group"
+              >
+                <div className="w-10 h-10 rounded-lg bg-green-50 text-green-600 flex items-center justify-center mb-4 group-hover:bg-green-100 transition-colors">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-1">Explore the Demo</h3>
+                <p className="text-sm text-gray-500">See how state machines and approval gates work.</p>
+              </button>
+            </div>
+          </div>
+        ) : loading ? (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             {[1,2,3,4,5,6,7,8].map(i => (
               <div key={i} className="bg-white rounded-xl border border-gray-200 p-5 animate-pulse">

@@ -7,7 +7,7 @@ import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import FormField, { parseFieldErrors, inputClass, selectClass } from '@/components/FormField';
 import { useAuth } from '@/hooks/useAuth';
-import { api, Ticket, Comment, User, TicketAttachment, ApiError, StatusDefinition } from '@/lib/api';
+import { api, resolveMediaUrl, Ticket, Comment, User, TicketAttachment, ApiError, StatusDefinition } from '@/lib/api';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import MentionText from '@/components/MentionText';
 import MentionInput from '@/components/MentionInput';
@@ -361,21 +361,35 @@ export default function TicketDetailPage() {
                         const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(name);
                         const isVideo = /\.(mp4|webm|mov|avi|mkv)$/i.test(name);
                         const isAudio = /\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(name);
+                        const mediaUrl = resolveMediaUrl(att.url);
                         return (
                         <div key={att.id} className="rounded-lg bg-gray-50 group overflow-hidden">
                           {isImage && (
-                            <a href={att.url} target="_blank" rel="noopener noreferrer">
-                              <img src={att.url} alt={att.filename} className="w-full max-h-64 object-contain bg-gray-100 rounded-t-lg" />
+                            <a href={mediaUrl} target="_blank" rel="noopener noreferrer">
+                              <img
+                                src={mediaUrl}
+                                alt={att.filename}
+                                className="w-full max-h-64 object-contain bg-gray-100 rounded-t-lg"
+                                onError={(e) => {
+                                  // Replace broken image with a file icon fallback
+                                  const target = e.currentTarget;
+                                  target.style.display = 'none';
+                                  const fallback = document.createElement('div');
+                                  fallback.className = 'flex items-center gap-2 p-4 bg-gray-100 rounded-t-lg text-gray-500 text-sm';
+                                  fallback.innerHTML = '<svg class="w-6 h-6 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><span>Image not available</span>';
+                                  target.parentElement?.appendChild(fallback);
+                                }}
+                              />
                             </a>
                           )}
                           {isVideo && (
                             <video controls className="w-full max-h-64 bg-black rounded-t-lg">
-                              <source src={att.url} />
+                              <source src={mediaUrl} />
                             </video>
                           )}
                           {isAudio && (
                             <div className="p-3 bg-gray-100 rounded-t-lg">
-                              <audio controls className="w-full"><source src={att.url} /></audio>
+                              <audio controls className="w-full"><source src={mediaUrl} /></audio>
                             </div>
                           )}
                           <div className="flex items-center gap-3 p-2.5">
@@ -383,7 +397,7 @@ export default function TicketDetailPage() {
                             <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
                           )}
                           <div className="flex-1 min-w-0">
-                            <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-indigo-600 hover:text-indigo-800 truncate block">{att.filename}</a>
+                            <a href={mediaUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-indigo-600 hover:text-indigo-800 truncate block">{att.filename}</a>
                             <p className="text-xs text-gray-400">{att.uploaded_by_details?.username} · {new Date(att.created_at).toLocaleDateString()}</p>
                           </div>
                           <button

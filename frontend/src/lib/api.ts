@@ -617,3 +617,17 @@ class ApiClient {
 }
 
 export const api = new ApiClient(API_BASE_URL);
+
+/**
+ * Resolve an attachment/media URL to a full absolute URL.
+ * Backend FileField URLs may be relative (e.g. "/media/...") — this
+ * prefixes them with the API origin so they load correctly from the frontend.
+ */
+export function resolveMediaUrl(url: string): string {
+  if (!url) return url;
+  // Already absolute
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  // Relative path — prefix with API origin
+  const apiOrigin = (process.env.NEXT_PUBLIC_API_URL || 'https://api.openweave.dev/api').replace(/\/api\/?$/, '');
+  return `${apiOrigin}${url.startsWith('/') ? '' : '/'}${url}`;
+}

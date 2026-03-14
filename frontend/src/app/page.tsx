@@ -198,6 +198,7 @@ export default function HomePage() {
           <span className="text-lg font-semibold tracking-tight text-white">OpenWeave</span>
           <div className="hidden sm:flex items-center gap-4">
             <a href="/docs" className="text-sm text-gray-500 hover:text-gray-300 transition">Docs</a>
+            <a href="/demo" className="text-sm text-gray-500 hover:text-gray-300 transition">Try Demo</a>
             <a href="/state-machine" className="text-sm text-gray-500 hover:text-gray-300 transition">State Machine</a>
             <a href="/blog" className="text-sm text-gray-500 hover:text-gray-300 transition">Blog</a>
             <a href="/policies" className="text-sm text-gray-500 hover:text-gray-300 transition">Policies</a>
@@ -214,6 +215,7 @@ export default function HomePage() {
         </div>
         {menuOpen && (
           <div className="sm:hidden border-t border-white/5 px-4 py-3 space-y-3">
+            <a href="/demo" className="block text-sm text-gray-400 hover:text-white transition">Try Demo</a>
             <a href="/state-machine" className="block text-sm text-gray-400 hover:text-white transition">State Machine</a>
             <a href="/blog" className="block text-sm text-gray-400 hover:text-white transition">Blog</a>
             <a href="/policies" className="block text-sm text-gray-400 hover:text-white transition">Policies</a>
