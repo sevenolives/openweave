@@ -29,16 +29,16 @@ const ACTOR_COLORS: Record<string, string> = {
   BOT: '#a855f7', HUMAN: '#3b82f6', ALL: '#6b7280',
 };
 
-interface WState { id: number; key: string; label: string; color: ColorName; is_terminal: boolean; is_default: boolean; is_bot_requires_approval: boolean; pos: number; }
+interface WState { id: number; key: string; label: string; color: ColorName; is_terminal: boolean; is_default: boolean; pos: number; }
 interface Trans { id: number; from: number; to: number; actor: string; }
 
 const STATES: WState[] = [
-  { id: 1, key: 'OPEN', label: 'Open', color: 'gray', is_terminal: false, is_default: true, is_bot_requires_approval: false, pos: 0 },
-  { id: 2, key: 'IN_SPEC', label: 'In Spec', color: 'blue', is_terminal: false, is_default: false, is_bot_requires_approval: false, pos: 1 },
-  { id: 3, key: 'IN_DEV', label: 'In Dev', color: 'indigo', is_terminal: false, is_default: false, is_bot_requires_approval: false, pos: 2 },
-  { id: 4, key: 'IN_TESTING', label: 'In Testing', color: 'purple', is_terminal: false, is_default: false, is_bot_requires_approval: false, pos: 3 },
-  { id: 5, key: 'REVIEW', label: 'Review', color: 'amber', is_terminal: false, is_default: false, is_bot_requires_approval: false, pos: 4 },
-  { id: 6, key: 'COMPLETED', label: 'Completed', color: 'green', is_terminal: true, is_default: false, is_bot_requires_approval: true, pos: 5 },
+  { id: 1, key: 'OPEN', label: 'Open', color: 'gray', is_terminal: false, is_default: true, pos: 0 },
+  { id: 2, key: 'IN_SPEC', label: 'In Spec', color: 'blue', is_terminal: false, is_default: false, pos: 1 },
+  { id: 3, key: 'IN_DEV', label: 'In Dev', color: 'indigo', is_terminal: false, is_default: false, pos: 2 },
+  { id: 4, key: 'IN_TESTING', label: 'In Testing', color: 'purple', is_terminal: false, is_default: false, pos: 3 },
+  { id: 5, key: 'REVIEW', label: 'Review', color: 'amber', is_terminal: false, is_default: false, pos: 4 },
+  { id: 6, key: 'COMPLETED', label: 'Completed', color: 'green', is_terminal: true, is_default: false, pos: 5 },
 ];
 
 const TRANSITIONS: Trans[] = [
@@ -63,7 +63,7 @@ function buildNodes(states: WState[], transitions: Trans[]): Node[] {
     return {
       id: String(s.id),
       position: { x: (nd?.x ?? 0) - 60, y: (nd?.y ?? 0) - 20 },
-      data: { label: s.is_bot_requires_approval ? `🔒 ${s.label}` : s.label },
+      data: { label: s.label },
       type: 'default',
       style: {
         background: 'white', border: `2px solid ${color}`,
@@ -81,15 +81,13 @@ function buildNodes(states: WState[], transitions: Trans[]): Node[] {
 
 function buildEdges(transitions: Trans[], states: WState[]): Edge[] {
   return transitions.map((t) => {
-    const target = states.find((s) => s.id === t.to);
-    const isGated = (t.actor === 'BOT' || t.actor === 'ALL') && target?.is_bot_requires_approval;
-    const color = isGated ? '#eab308' : ACTOR_COLORS[t.actor];
+    const color = ACTOR_COLORS[t.actor];
     return {
       id: `e${t.id}`, source: String(t.from), target: String(t.to),
-      animated: t.actor === 'BOT' && !isGated,
-      style: { stroke: color, strokeWidth: 2, strokeDasharray: t.actor === 'HUMAN' ? '5,5' : isGated ? '8,4' : 'none' },
+      animated: t.actor === 'BOT',
+      style: { stroke: color, strokeWidth: 2, strokeDasharray: t.actor === 'HUMAN' ? '5,5' : 'none' },
       markerEnd: { type: MarkerType.ArrowClosed, color, width: 14, height: 14 },
-      label: isGated ? `${t.actor} 🔒` : t.actor,
+      label: t.actor,
       labelStyle: { fontSize: 9, fontWeight: 700, fill: color },
       labelBgStyle: { fill: 'white', fillOpacity: 0.9 },
     };

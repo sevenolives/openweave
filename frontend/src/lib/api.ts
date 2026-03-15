@@ -143,8 +143,9 @@ export interface StatusDefinition {
   is_bot_requires_approval: boolean;
   position: number;
   in_use: boolean;
-  who_can_enter: 'all' | 'humans' | 'bots';
   allowed_from: number[];
+  allowed_users: number[];
+  allowed_users_details: User[];
 }
 
 export interface StatusTransition {

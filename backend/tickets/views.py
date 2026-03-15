@@ -863,14 +863,14 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
     def _seed_default_statuses(workspace):
         """Seed default status definitions with gate-based permissions for a new workspace."""
         defaults = [
-            {'key': 'OPEN', 'label': 'Open', 'color': 'gray', 'is_terminal': False, 'is_default': True, 'is_bot_requires_approval': False, 'position': 0, 'who_can_enter': 'all'},
-            {'key': 'IN_SPEC', 'label': 'In Spec', 'color': 'blue', 'is_terminal': False, 'is_default': False, 'is_bot_requires_approval': False, 'position': 1, 'who_can_enter': 'all'},
-            {'key': 'IN_DEV', 'label': 'In Dev', 'color': 'cyan', 'is_terminal': False, 'is_default': False, 'is_bot_requires_approval': False, 'position': 2, 'who_can_enter': 'all'},
-            {'key': 'BLOCKED', 'label': 'Blocked', 'color': 'red', 'is_terminal': False, 'is_default': False, 'is_bot_requires_approval': False, 'position': 3, 'who_can_enter': 'all'},
-            {'key': 'IN_TESTING', 'label': 'In Testing', 'color': 'purple', 'is_terminal': False, 'is_default': False, 'is_bot_requires_approval': False, 'position': 4, 'who_can_enter': 'all'},
-            {'key': 'REVIEW', 'label': 'Review', 'color': 'amber', 'is_terminal': False, 'is_default': False, 'is_bot_requires_approval': False, 'position': 5, 'who_can_enter': 'humans'},
-            {'key': 'COMPLETED', 'label': 'Completed', 'color': 'green', 'is_terminal': True, 'is_default': False, 'is_bot_requires_approval': True, 'position': 6, 'who_can_enter': 'humans'},
-            {'key': 'CANCELLED', 'label': 'Cancelled', 'color': 'gray', 'is_terminal': True, 'is_default': False, 'is_bot_requires_approval': False, 'position': 7, 'who_can_enter': 'all'},
+            {'key': 'OPEN', 'label': 'Open', 'color': 'gray', 'is_terminal': False, 'is_default': True, 'position': 0},
+            {'key': 'IN_SPEC', 'label': 'In Spec', 'color': 'blue', 'is_terminal': False, 'is_default': False, 'position': 1},
+            {'key': 'IN_DEV', 'label': 'In Dev', 'color': 'cyan', 'is_terminal': False, 'is_default': False, 'position': 2},
+            {'key': 'BLOCKED', 'label': 'Blocked', 'color': 'red', 'is_terminal': False, 'is_default': False, 'position': 3},
+            {'key': 'IN_TESTING', 'label': 'In Testing', 'color': 'purple', 'is_terminal': False, 'is_default': False, 'position': 4},
+            {'key': 'REVIEW', 'label': 'Review', 'color': 'amber', 'is_terminal': False, 'is_default': False, 'position': 5},
+            {'key': 'COMPLETED', 'label': 'Completed', 'color': 'green', 'is_terminal': True, 'is_default': False, 'position': 6},
+            {'key': 'CANCELLED', 'label': 'Cancelled', 'color': 'gray', 'is_terminal': True, 'is_default': False, 'position': 7},
         ]
         for d in defaults:
             StatusDefinition.objects.create(workspace=workspace, **d)

@@ -169,24 +169,6 @@ GET /api/status-transitions/?workspace=<id>&actor_type=BOT`}</Code>
             </a>
           </p>
 
-          {/* Approval Gates */}
-          <H2 id="approval-gates">Approval Gates</H2>
-          <P>
-            States can be configured with <Pill>is_bot_requires_approval</Pill>. When enabled,
-            bots cannot transition a ticket into that state unless the ticket has <Pill>approved_status=APPROVED</Pill>.
-          </P>
-          <P>
-            This creates human checkpoints in the workflow. A human must approve the ticket before bot execution
-            can proceed past the gate. The backend enforces this — bots receive <Pill>403</Pill> when attempting
-            to enter approval-gated states on unapproved tickets.
-          </P>
-          <div className="p-4 rounded-lg bg-white/[0.02] border border-white/5 mt-3">
-            <p className="text-xs font-mono text-gray-500 mb-1">Flow</p>
-            <p className="text-sm text-gray-300">
-              Ticket created (UNAPPROVED) → Human reviews → Sets APPROVED → Bot can now execute
-            </p>
-          </div>
-
           {/* API Reference */}
           <H2 id="api-reference">API Reference</H2>
           <P>

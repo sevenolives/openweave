@@ -43,6 +43,7 @@ interface StateMachineSettingsProps {
   handleDeleteStatus: (sd: StatusDefinition) => Promise<void>;
   handleSetDefault: (sd: StatusDefinition) => Promise<void>;
   toast: (msg: string, type?: 'success' | 'error' | 'info') => void;
+  workspaceMembers: User[];
 }
 
 function StateMachineSettings({
@@ -50,7 +51,7 @@ function StateMachineSettings({
   newStatusLabel, setNewStatusLabel, newStatusColor, setNewStatusColor,
   newStatusTerminal, setNewStatusTerminal,
   handleAddStatus, handleUpdateStatus, handleDeleteStatus, handleSetDefault,
-  toast,
+  toast, workspaceMembers,
 }: StateMachineSettingsProps) {
   const [isMobile, setIsMobile] = useState(false);
   const [savingId, setSavingId] = useState<number | null>(null);
@@ -84,7 +85,7 @@ function StateMachineSettings({
       return {
         id: String(s.id),
         position: { x: (nd?.x ?? 0) - 70, y: (nd?.y ?? 0) - 20 },
-        data: { label: `${s.is_bot_requires_approval ? '🔒 ' : ''}${s.label}` },
+        data: { label: s.label },
         type: 'default',
         style: {
           background: 'white',
@@ -109,15 +110,16 @@ function StateMachineSettings({
     statuses.forEach((target) => {
       if (target.allowed_from && target.allowed_from.length > 0) {
         target.allowed_from.forEach((srcId) => {
-          const color = target.who_can_enter === 'humans' ? '#3b82f6' : target.who_can_enter === 'bots' ? '#a855f7' : '#6b7280';
+          const hasRestriction = target.allowed_users && target.allowed_users.length > 0;
+          const color = hasRestriction ? '#f59e0b' : '#6b7280';
           edges.push({
             id: `e-${srcId}-${target.id}`,
             source: String(srcId),
             target: String(target.id),
-            animated: target.who_can_enter === 'bots',
-            style: { stroke: color, strokeWidth: 2, strokeDasharray: target.who_can_enter === 'humans' ? '5,5' : 'none' },
+            animated: false,
+            style: { stroke: color, strokeWidth: 2, strokeDasharray: hasRestriction ? '5,5' : 'none' },
             markerEnd: { type: MarkerType.ArrowClosed, color, width: 14, height: 14 },
-            label: target.who_can_enter === 'all' ? '' : target.who_can_enter,
+            label: hasRestriction ? 'restricted' : '',
             labelStyle: { fontSize: 9, fontWeight: 700, fill: color },
             labelBgStyle: { fill: 'white', fillOpacity: 0.9 },
           });
@@ -131,7 +133,7 @@ function StateMachineSettings({
     setSavingId(s.id);
     try {
       await handleUpdateStatus(s.id, {
-        who_can_enter: s.who_can_enter,
+        allowed_users: s.allowed_users,
         allowed_from: s.allowed_from,
       });
     } finally {
@@ -217,9 +219,6 @@ function StateMachineSettings({
             <button onClick={() => handleUpdateStatus(s.id, { is_terminal: !s.is_terminal })} style={badgeStyle(s.is_terminal, '#22c55e')}>
               {s.is_terminal ? '🏁 Terminal' : 'Non-terminal'}
             </button>
-            <button onClick={() => handleUpdateStatus(s.id, { is_bot_requires_approval: !s.is_bot_requires_approval })} style={badgeStyle(s.is_bot_requires_approval, '#eab308')}>
-              {s.is_bot_requires_approval ? '🔒 Approval Gate' : 'No gate'}
-            </button>
           </div>
 
           {/* Gate controls */}
@@ -227,13 +226,54 @@ function StateMachineSettings({
             {/* Who can enter */}
             <div>
               <label style={labelStyle}>Who can enter</label>
-              <select value={s.who_can_enter || 'all'}
-                onChange={(e) => updateLocalStatus(s.id, { who_can_enter: e.target.value as StatusDefinition['who_can_enter'] })}
-                style={selectStyle}>
-                <option value="all">All (bots & humans)</option>
-                <option value="humans">Humans Only</option>
-                <option value="bots">Bots Only</option>
-              </select>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                <button onClick={() => updateLocalStatus(s.id, { allowed_users: [] })}
+                  style={{
+                    ...selectStyle, width: 'auto', padding: '8px 14px', cursor: 'pointer', textAlign: 'center' as const,
+                    background: (!s.allowed_users || s.allowed_users.length === 0) ? 'rgba(79,70,229,0.15)' : 'rgba(24,24,27,0.8)',
+                    borderColor: (!s.allowed_users || s.allowed_users.length === 0) ? '#6366f1' : '#3f3f46',
+                    fontWeight: (!s.allowed_users || s.allowed_users.length === 0) ? 600 : 400,
+                  }}>Everyone</button>
+                <button onClick={() => { if (!s.allowed_users || s.allowed_users.length === 0) updateLocalStatus(s.id, { allowed_users: [] }); }}
+                  style={{
+                    ...selectStyle, width: 'auto', padding: '8px 14px', cursor: 'pointer', textAlign: 'center' as const,
+                    background: (s.allowed_users && s.allowed_users.length > 0) ? 'rgba(79,70,229,0.15)' : 'rgba(24,24,27,0.8)',
+                    borderColor: (s.allowed_users && s.allowed_users.length > 0) ? '#6366f1' : '#3f3f46',
+                    fontWeight: (s.allowed_users && s.allowed_users.length > 0) ? 600 : 400,
+                  }}>Specific users</button>
+              </div>
+              {/* Selected user chips */}
+              {s.allowed_users && s.allowed_users.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                  {s.allowed_users.map(uid => {
+                    const u = workspaceMembers.find(m => m.id === uid) || s.allowed_users_details?.find((d: User) => d.id === uid);
+                    return (
+                      <span key={uid} style={{
+                        fontSize: 12, padding: '4px 10px', borderRadius: 8, display: 'inline-flex', alignItems: 'center', gap: 6,
+                        background: 'rgba(99,102,241,0.15)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.3)',
+                      }}>
+                        {u ? (u as User).username || (u as User).name : `User #${uid}`}
+                        <button onClick={() => updateLocalStatus(s.id, { allowed_users: s.allowed_users.filter((id: number) => id !== uid) })}
+                          style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1 }}>×</button>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+              {/* User picker dropdown — show when in "Specific users" mode */}
+              {(s.allowed_users && s.allowed_users.length > 0 || s.allowed_users?.length === 0) && (
+                <select value="" onChange={(e) => {
+                  const uid = Number(e.target.value);
+                  if (uid && !(s.allowed_users || []).includes(uid)) {
+                    updateLocalStatus(s.id, { allowed_users: [...(s.allowed_users || []), uid] });
+                  }
+                }} style={selectStyle}>
+                  <option value="">+ Add user…</option>
+                  {workspaceMembers.filter(m => !(s.allowed_users || []).includes(m.id)).map(m => (
+                    <option key={m.id} value={m.id}>{m.username} ({m.user_type})</option>
+                  ))}
+                </select>
+              )}
             </div>
 
             {/* Allowed from */}
@@ -318,9 +358,7 @@ function StateMachineSettings({
           <div style={{ padding: '10px 0', display: 'flex', gap: 16, fontSize: 11, color: '#6b7280', flexWrap: 'wrap' }}>
             <span>⭐ Default</span>
             <span>🏁 Terminal</span>
-            <span>🔒 Approval gate</span>
-            <span style={{ color: '#3b82f6' }}>--- Humans only</span>
-            <span style={{ color: '#a855f7' }}>≈≈≈ Bots only</span>
+            <span style={{ color: '#f59e0b' }}>--- Restricted users</span>
           </div>
         </div>
       )}
@@ -329,9 +367,8 @@ function StateMachineSettings({
       <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid #18181b' }}>
         <h3 style={{ fontSize: 15, fontWeight: 600, color: 'white', marginBottom: 12 }}>How It Works</h3>
         <ul style={{ paddingLeft: 20, fontSize: 13, color: '#9ca3af', lineHeight: 1.8 }}>
-          <li><strong style={{ color: '#d1d5db' }}>Who can enter</strong> — controls whether bots, humans, or both can move tickets into this state</li>
+          <li><strong style={{ color: '#d1d5db' }}>Who can enter</strong> — &quot;Everyone&quot; or restrict to specific users</li>
           <li><strong style={{ color: '#d1d5db' }}>Allowed from</strong> — optional path restriction. If empty, tickets can arrive from any state. If set, only from the selected states</li>
-          <li><strong style={{ color: '#d1d5db' }}>Approval gate</strong> — bots need the ticket to be approved before entering this state</li>
         </ul>
       </div>
     </div>
@@ -354,9 +391,9 @@ export default function WorkspaceSettingsPage() {
   const [newStatusLabel, setNewStatusLabel] = useState('');
   const [newStatusColor, setNewStatusColor] = useState('gray');
   const [newStatusTerminal, setNewStatusTerminal] = useState(false);
-  const [newStatusApprovalGate, setNewStatusApprovalGate] = useState(false);
   const [addingStatus, setAddingStatus] = useState(false);
   const [settingsTab, setSettingsTab] = useState<'general' | 'members' | 'state-machine'>('general');
+  const [workspaceUsers, setWorkspaceUsers] = useState<User[]>([]);
   const { toast } = useToast();
 
   const loadData = useCallback(async (ws: Workspace) => {
@@ -369,6 +406,12 @@ export default function WorkspaceSettingsPage() {
       setMembers(m);
       setInvites(i);
       setStatuses(sd);
+      // Extract users from members + owner for the user picker
+      const memberUsers = m.map((wm: WorkspaceMember) => wm.user);
+      if ((ws as any).owner_details) memberUsers.unshift((ws as any).owner_details);
+      // Deduplicate by id
+      const seen = new Set<number>();
+      setWorkspaceUsers(memberUsers.filter((u: User) => { if (seen.has(u.id)) return false; seen.add(u.id); return true; }));
     } catch (e: any) { toast(e?.message || 'Failed to load workspace data', 'error'); }
     finally { setLoading(false); }
   }, [toast]);
@@ -448,11 +491,10 @@ export default function WorkspaceSettingsPage() {
         label: newStatusLabel,
         color: newStatusColor,
         is_terminal: newStatusTerminal,
-        is_bot_requires_approval: newStatusApprovalGate,
         is_default: false,
         position: statuses.length,
       });
-      setNewStatusLabel(''); setNewStatusColor('gray'); setNewStatusTerminal(false); setNewStatusApprovalGate(false);
+      setNewStatusLabel(''); setNewStatusColor('gray'); setNewStatusTerminal(false);
       toast('Status created');
       loadData(workspace);
     } catch (e: any) { toast(e?.data?.key?.[0] || e?.data?.detail || e?.message || 'Failed', 'error'); }
@@ -635,6 +677,7 @@ export default function WorkspaceSettingsPage() {
             handleDeleteStatus={handleDeleteStatus}
             handleSetDefault={handleSetDefault}
             toast={toast}
+            workspaceMembers={workspaceUsers}
           />
         )}
       </div>
