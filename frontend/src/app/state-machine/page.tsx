@@ -19,25 +19,17 @@ import '@xyflow/react/dist/style.css';
 
 type ColorName =
   | 'gray' | 'blue' | 'red' | 'purple' | 'amber'
-  | 'green' | 'yellow' | 'indigo' | 'pink' | 'orange';
-
-type ActorType = 'BOT' | 'HUMAN' | 'ALL';
+  | 'green' | 'yellow' | 'indigo' | 'pink' | 'orange' | 'cyan';
 
 interface WorkflowState {
   id: number;
   key: string;
   label: string;
   color: ColorName;
-
   is_default: boolean;
   pos: number;
-}
-
-interface Transition {
-  id: number;
-  from: number;
-  to: number;
-  actor: ActorType;
+  allowed_from: number[];
+  allowed_users: number[];
 }
 
 interface Toast {
@@ -53,42 +45,48 @@ interface Toast {
 const COLORS: Record<ColorName, string> = {
   gray: '#9ca3af', blue: '#3b82f6', red: '#ef4444', purple: '#a855f7',
   amber: '#f59e0b', green: '#22c55e', yellow: '#eab308', indigo: '#6366f1',
-  pink: '#ec4899', orange: '#f97316',
-};
-
-const ACTOR_COLORS: Record<ActorType, string> = {
-  BOT: '#a855f7', HUMAN: '#3b82f6', ALL: '#6b7280',
+  pink: '#ec4899', orange: '#f97316', cyan: '#06b6d4',
 };
 
 const DEFAULT_STATES: WorkflowState[] = [
-  { id: 1, key: 'OPEN', label: 'Open', color: 'gray', is_default: true, pos: 0 },
-  { id: 2, key: 'IN_PROGRESS', label: 'In Progress', color: 'blue', is_default: false, pos: 1 },
-  { id: 3, key: 'BLOCKED', label: 'Blocked', color: 'red', is_default: false, pos: 2 },
-  { id: 4, key: 'IN_TESTING', label: 'In Testing', color: 'purple', is_default: false, pos: 3 },
-  { id: 5, key: 'REVIEW', label: 'Review', color: 'amber', is_default: false, pos: 4 },
-  { id: 6, key: 'COMPLETED', label: 'Completed', color: 'green', is_default: false, pos: 5 },
-  { id: 7, key: 'CANCELLED', label: 'Cancelled', color: 'gray', is_default: false, pos: 6 },
-];
-
-const DEFAULT_TRANSITIONS: Transition[] = [
-  { id: 1, from: 1, to: 2, actor: 'BOT' }, { id: 2, from: 1, to: 3, actor: 'BOT' },
-  { id: 3, from: 1, to: 7, actor: 'BOT' }, { id: 4, from: 2, to: 4, actor: 'BOT' },
-  { id: 5, from: 2, to: 3, actor: 'BOT' }, { id: 6, from: 2, to: 5, actor: 'BOT' },
-  { id: 7, from: 3, to: 2, actor: 'BOT' }, { id: 8, from: 4, to: 5, actor: 'BOT' },
-  { id: 9, from: 4, to: 3, actor: 'BOT' }, { id: 10, from: 5, to: 6, actor: 'HUMAN' },
-  { id: 11, from: 5, to: 2, actor: 'BOT' },
+  { id: 1, key: 'OPEN', label: 'Open', color: 'gray', is_default: true, pos: 0, allowed_from: [], allowed_users: [] },
+  { id: 2, key: 'IN_SPEC', label: 'In Spec', color: 'blue', is_default: false, pos: 1, allowed_from: [1], allowed_users: [] },
+  { id: 3, key: 'IN_DEV', label: 'In Dev', color: 'cyan', is_default: false, pos: 2, allowed_from: [2], allowed_users: [] },
+  { id: 4, key: 'BLOCKED', label: 'Blocked', color: 'red', is_default: false, pos: 3, allowed_from: [], allowed_users: [] },
+  { id: 5, key: 'IN_TESTING', label: 'In Testing', color: 'purple', is_default: false, pos: 4, allowed_from: [3], allowed_users: [] },
+  { id: 6, key: 'REVIEW', label: 'Review', color: 'amber', is_default: false, pos: 5, allowed_from: [5], allowed_users: [] },
+  { id: 7, key: 'COMPLETED', label: 'Completed', color: 'green', is_default: false, pos: 6, allowed_from: [6], allowed_users: [] },
+  { id: 8, key: 'CANCELLED', label: 'Cancelled', color: 'gray', is_default: false, pos: 7, allowed_from: [], allowed_users: [] },
 ];
 
 /* ------------------------------------------------------------------ */
 /*  Dagre layout                                                       */
 /* ------------------------------------------------------------------ */
 
-function buildNodes(states: WorkflowState[], transitions: Transition[]): Node[] {
+function buildNodes(states: WorkflowState[]): Node[] {
+  // Build edges for layout calculation
+  const edges: { from: number; to: number }[] = [];
+  states.forEach(state => {
+    if (state.allowed_from.length === 0) {
+      // If no restrictions, can come from any state
+      states.forEach(fromState => {
+        if (fromState.id !== state.id) {
+          edges.push({ from: fromState.id, to: state.id });
+        }
+      });
+    } else {
+      // Only from specified states
+      state.allowed_from.forEach(fromId => {
+        edges.push({ from: fromId, to: state.id });
+      });
+    }
+  });
+
   const g = new dagre.graphlib.Graph();
   g.setGraph({ rankdir: 'TB', nodesep: 50, ranksep: 70 });
   g.setDefaultEdgeLabel(() => ({}));
   states.forEach((s) => g.setNode(String(s.id), { width: 140, height: 40 }));
-  transitions.forEach((t) => g.setEdge(String(t.from), String(t.to)));
+  edges.forEach((e) => g.setEdge(String(e.from), String(e.to)));
   dagre.layout(g);
 
   return states.map((s) => {
@@ -117,51 +115,77 @@ function buildNodes(states: WorkflowState[], transitions: Transition[]): Node[] 
   });
 }
 
-function buildEdges(transitions: Transition[], states: WorkflowState[]): Edge[] {
-  return transitions.map((t) => {
-    const edgeColor = ACTOR_COLORS[t.actor];
-    return {
-    id: `e${t.id}`,
-    source: String(t.from),
-    target: String(t.to),
-    animated: t.actor === 'BOT',
-    style: {
-      stroke: edgeColor,
-      strokeWidth: 2,
-      strokeDasharray: t.actor === 'HUMAN' ? '5,5' : 'none',
-    },
-    markerEnd: {
-      type: MarkerType.ArrowClosed,
-      color: edgeColor,
-      width: 14,
-      height: 14,
-    },
-    label: t.actor,
-    labelStyle: { fontSize: 9, fontWeight: 700, fill: edgeColor },
-    labelBgStyle: { fill: 'white', fillOpacity: 0.9 },
-  };});
+function buildEdges(states: WorkflowState[]): Edge[] {
+  const edges: Edge[] = [];
+  let edgeId = 1;
+
+  states.forEach(state => {
+    const hasUserRestrictions = state.allowed_users.length > 0;
+    
+    if (state.allowed_from.length === 0) {
+      // No restrictions - can come from any state
+      states.forEach(fromState => {
+        if (fromState.id !== state.id) {
+          edges.push({
+            id: `e${edgeId++}`,
+            source: String(fromState.id),
+            target: String(state.id),
+            animated: false,
+            style: {
+              stroke: hasUserRestrictions ? '#f59e0b' : '#6b7280',
+              strokeWidth: 2,
+              strokeDasharray: hasUserRestrictions ? '5,5' : 'none',
+            },
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              color: hasUserRestrictions ? '#f59e0b' : '#6b7280',
+              width: 14,
+              height: 14,
+            },
+          });
+        }
+      });
+    } else {
+      // Only from specified states
+      state.allowed_from.forEach(fromId => {
+        edges.push({
+          id: `e${edgeId++}`,
+          source: String(fromId),
+          target: String(state.id),
+          animated: false,
+          style: {
+            stroke: hasUserRestrictions ? '#f59e0b' : '#6b7280',
+            strokeWidth: 2,
+            strokeDasharray: hasUserRestrictions ? '5,5' : 'none',
+          },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            color: hasUserRestrictions ? '#f59e0b' : '#6b7280',
+            width: 14,
+            height: 14,
+          },
+        });
+      });
+    }
+  });
+
+  return edges;
 }
 
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 
-type TabKey = 'diagram' | 'states' | 'transitions';
+type TabKey = 'diagram' | 'states';
 
 export default function StateMachinePage() {
   const [states, setStates] = useState<WorkflowState[]>(DEFAULT_STATES);
-  const [transitions, setTransitions] = useState<Transition[]>(DEFAULT_TRANSITIONS);
   const [tab, setTab] = useState<TabKey>('diagram');
-  const [nextStateId, setNextStateId] = useState(8);
-  const [nextTransitionId, setNextTransitionId] = useState(12);
+  const [nextStateId, setNextStateId] = useState(9);
 
   // Form fields
   const [newLabel, setNewLabel] = useState('');
   const [newColor, setNewColor] = useState<ColorName>('blue');
-  const [newTerminal, setNewTerminal] = useState(false);
-  const [fromId, setFromId] = useState('');
-  const [toId, setToId] = useState('');
-  const [newActor, setNewActor] = useState<ActorType>('BOT');
 
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [isSmall, setIsSmall] = useState(false);
@@ -183,10 +207,10 @@ export default function StateMachinePage() {
   // Force diagram re-render when data changes for better mobile layout
   useEffect(() => {
     setDiagramKey(prev => prev + 1);
-  }, [states, transitions]);
+  }, [states]);
 
-  const nodes = useMemo(() => buildNodes(states, transitions), [states, transitions]);
-  const edges = useMemo(() => buildEdges(transitions, states), [transitions, states]);
+  const nodes = useMemo(() => buildNodes(states), [states]);
+  const edges = useMemo(() => buildEdges(states), [states]);
 
   /* Toast helper */
   const showToast = useCallback((message: string, type: Toast['type'] = 'info') => {
@@ -194,9 +218,6 @@ export default function StateMachinePage() {
     setToasts((p) => [...p, { id, message, type }]);
     setTimeout(() => setToasts((p) => p.filter((t) => t.id !== id)), 4000);
   }, []);
-
-  /* Bot reachability */
-  const humanOnlyTerminals: { label: string }[] = [];
 
   /* Actions */
   const setDefaultState = (id: number) => {
@@ -214,61 +235,64 @@ export default function StateMachinePage() {
     }
     const key = trimmed.toUpperCase().replace(/[^A-Z0-9]/g, '_');
     const isFirst = states.length === 0;
-    setStates((p) => [...p, { id: nextStateId, key, label: trimmed, color: newColor, is_default: isFirst, pos: p.length }]);
+    setStates((p) => [...p, { 
+      id: nextStateId, 
+      key, 
+      label: trimmed, 
+      color: newColor, 
+      is_default: isFirst, 
+      pos: p.length,
+      allowed_from: [],
+      allowed_users: []
+    }]);
     setNextStateId((n) => n + 1);
     setNewLabel('');
-    setNewTerminal(false);
     showToast(`Added state "${trimmed}"${isFirst ? ' as default' : ''}`, 'success');
   };
 
   const removeState = (id: number) => {
     const st = states.find((s) => s.id === id);
-    const affected = transitions.filter((t) => t.from === id || t.to === id);
     setStates((p) => {
-      const next = p.filter((s) => s.id !== id);
+      const next = p.filter((s) => s.id !== id).map(s => ({
+        ...s,
+        // Remove references to deleted state from allowed_from arrays
+        allowed_from: s.allowed_from.filter(fromId => fromId !== id)
+      }));
       if (st?.is_default && next.length > 0 && !next.some((s) => s.is_default)) {
         next[0] = { ...next[0], is_default: true };
       }
       return next;
     });
-    setTransitions((p) => p.filter((t) => t.from !== id && t.to !== id));
-    showToast(`Removed "${st?.label}"${affected.length ? ` and ${affected.length} transition(s)` : ''}`, 'warning');
+    showToast(`Removed "${st?.label}"`, 'warning');
   };
 
-  const addTransition = () => {
-    if (!fromId || !toId || fromId === toId) return;
-    const f = Number(fromId), t = Number(toId);
-    if (transitions.some((tr) => tr.from === f && tr.to === t)) {
-      showToast('This transition already exists', 'error');
-      return;
-    }
-    setTransitions((p) => [...p, { id: nextTransitionId, from: f, to: t, actor: newActor }]);
-    setNextTransitionId((n) => n + 1);
-    setFromId('');
-    setToId('');
-    const fromSt = states.find((s) => s.id === f);
-    const toSt = states.find((s) => s.id === t);
-    showToast(`Added ${newActor.toLowerCase()} transition: ${fromSt?.label} → ${toSt?.label}`, 'success');
-  };
-
-  const removeTransition = (id: number) => {
-    const tr = transitions.find((t) => t.id === id);
-    setTransitions((p) => p.filter((t) => t.id !== id));
-    if (tr) {
-      const f = states.find((s) => s.id === tr.from);
-      const t = states.find((s) => s.id === tr.to);
-      showToast(`Removed transition: ${f?.label} → ${t?.label}`, 'warning');
-    }
+  const toggleAllowedFrom = (stateId: number, fromStateId: number) => {
+    setStates(prev => prev.map(state => {
+      if (state.id === stateId) {
+        const currentAllowed = state.allowed_from;
+        const isCurrentlyAllowed = currentAllowed.includes(fromStateId);
+        
+        return {
+          ...state,
+          allowed_from: isCurrentlyAllowed 
+            ? currentAllowed.filter(id => id !== fromStateId)
+            : [...currentAllowed, fromStateId]
+        };
+      }
+      return state;
+    }));
   };
 
   const exportConfig = useCallback(() => {
     const config = {
-      states: states.map((s) => ({ key: s.key, label: s.label, color: s.color, is_default: s.is_default })),
-      transitions: transitions.map((t) => {
-        const f = states.find((s) => s.id === t.from);
-        const to = states.find((s) => s.id === t.to);
-        return { from: f?.key ?? null, to: to?.key ?? null, actor: t.actor };
-      }),
+      states: states.map((s) => ({ 
+        key: s.key, 
+        label: s.label, 
+        color: s.color, 
+        is_default: s.is_default,
+        allowed_from: s.allowed_from.map(id => states.find(st => st.id === id)?.key).filter(Boolean),
+        allowed_users: s.allowed_users
+      })),
     };
     const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -278,7 +302,7 @@ export default function StateMachinePage() {
     a.click();
     URL.revokeObjectURL(url);
     showToast('Configuration exported', 'success');
-  }, [states, transitions, showToast]);
+  }, [states, showToast]);
 
   const importConfig = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -287,20 +311,35 @@ export default function StateMachinePage() {
     reader.onload = (ev) => {
       try {
         const config = JSON.parse(ev.target?.result as string);
-        if (!config.states || !config.transitions) { showToast('Invalid config format', 'error'); return; }
+        if (!config.states) { showToast('Invalid config format', 'error'); return; }
         const idMap: Record<string, number> = {};
         const newStates: WorkflowState[] = config.states.map((s: any, i: number) => {
           const nid = 100 + i;
           idMap[s.key] = nid;
-          return { id: nid, key: s.key, label: s.label, color: s.color || 'blue', is_default: !!s.is_default, pos: i };
+          return { 
+            id: nid, 
+            key: s.key, 
+            label: s.label, 
+            color: s.color || 'blue', 
+            is_default: !!s.is_default, 
+            pos: i,
+            allowed_from: [],
+            allowed_users: s.allowed_users || []
+          };
         });
-        const newTr: Transition[] = config.transitions
-          .map((t: any, i: number) => ({ id: 200 + i, from: idMap[t.from], to: idMap[t.to], actor: t.actor || 'BOT' }))
-          .filter((t: Transition) => t.from && t.to);
+        
+        // Second pass to resolve allowed_from references
+        newStates.forEach((state, i) => {
+          const configState = config.states[i];
+          if (configState.allowed_from) {
+            state.allowed_from = configState.allowed_from
+              .map((key: string) => idMap[key])
+              .filter((id: number) => id !== undefined);
+          }
+        });
+        
         setStates(newStates);
-        setTransitions(newTr);
         setNextStateId(100 + newStates.length);
-        setNextTransitionId(200 + newTr.length);
         setTab('diagram');
         showToast('Configuration imported', 'success');
       } catch (err: any) {
@@ -319,18 +358,16 @@ export default function StateMachinePage() {
         case 'e': e.preventDefault(); exportConfig(); break;
         case '1': e.preventDefault(); setTab('diagram'); break;
         case '2': e.preventDefault(); setTab('states'); break;
-        case '3': e.preventDefault(); setTab('transitions'); break;
         case 'Enter':
           e.preventDefault();
           if (tab === 'states') addState();
-          else if (tab === 'transitions') addTransition();
           break;
       }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, newLabel, fromId, toId, exportConfig]);
+  }, [tab, newLabel, exportConfig]);
 
   /* ---- Styles ---- */
   const tabStyle = (v: TabKey): React.CSSProperties => ({
@@ -404,6 +441,20 @@ export default function StateMachinePage() {
     userSelect: 'none',
   };
 
+  const toggleBtnStyle = (isActive: boolean): React.CSSProperties => ({
+    padding: isMobile ? '12px 16px' : '8px 12px',
+    fontSize: isMobile ? '14px' : '12px',
+    fontWeight: 600,
+    background: isActive ? 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)' : 'rgba(39,39,42,0.8)',
+    color: isActive ? 'white' : '#9ca3af',
+    border: isActive ? 'none' : '1px solid #3f3f46',
+    borderRadius: isMobile ? '10px' : '8px',
+    cursor: 'pointer',
+    minHeight: isMobile ? '40px' : '32px',
+    transition: 'all 0.2s ease',
+    userSelect: 'none',
+  });
+
   /* ---- Render ---- */
   return (
     <div style={{ background: '#0a0a0a', color: '#e5e7eb', minHeight: '100vh', fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
@@ -425,7 +476,7 @@ export default function StateMachinePage() {
       <div style={{ maxWidth: 900, margin: '0 auto', padding: isSmall ? '24px 16px 16px' : '40px 24px 24px' }}>
         <h1 style={{ fontSize: 'clamp(24px, 5vw, 28px)', fontWeight: 700, color: 'white', marginBottom: 8 }}>Design Your Workflow</h1>
         <p style={{ fontSize: 'clamp(14px, 3vw, 15px)', color: '#9ca3af', lineHeight: 1.6 }}>
-          Every team works differently. Define your states, draw the transitions, and see your workflow take shape.
+          Every team works differently. Define your states, configure the gates, and see your workflow take shape.
         </p>
       </div>
 
@@ -436,7 +487,6 @@ export default function StateMachinePage() {
           <div style={{ display: 'flex', borderBottom: '1px solid #27272a', background: 'linear-gradient(135deg, #111 0%, #0f0f0f 100%)', position: 'sticky', top: 0, zIndex: 10 }}>
             <button onClick={() => setTab('diagram')} style={tabStyle('diagram')}>⬡ Diagram</button>
             <button onClick={() => setTab('states')} style={tabStyle('states')}>● States</button>
-            <button onClick={() => setTab('transitions')} style={tabStyle('transitions')}>→ Transitions</button>
           </div>
 
           {/* Diagram tab */}
@@ -514,26 +564,10 @@ export default function StateMachinePage() {
                 background: '#111',
               }}>
                 <div style={{ display: 'flex', gap: isSmall ? 8 : 16, fontSize: isSmall ? 12 : 11, color: '#6b7280', flexWrap: 'wrap', alignItems: 'center' }}>
-                  <span>🤖 <span style={{ color: '#a855f7' }}>Bot (animated)</span></span>
-                  <span>👤 <span style={{ color: '#3b82f6' }}>Human (dashed)</span></span>
-                  <span>🔄 <span style={{ color: '#6b7280' }}>All</span></span>
-                  <span>⭐ Default state</span>
-                  <span>🏁 Terminal state</span>
+                  <span>⭐ <span style={{ color: '#fbbf24' }}>Default state</span></span>
+                  <span>--- <span style={{ color: '#f59e0b' }}>Restricted access</span></span>
+                  <span>→ <span style={{ color: '#6b7280' }}>Gate transition</span></span>
                 </div>
-                {humanOnlyTerminals.length > 0 && (
-                  <div style={{
-                    fontSize: isSmall ? 12 : 11,
-                    color: '#d97706',
-                    fontWeight: 600,
-                    background: 'rgba(217,119,6,0.1)',
-                    padding: '6px 10px',
-                    borderRadius: 6,
-                    border: '1px solid rgba(217,119,6,0.3)',
-                  }}>
-                    ⚠ Human-only: {humanOnlyTerminals.map((s) => s.label).join(', ')}
-                  </div>
-                )}
-
               </div>
             </div>
           )}
@@ -542,9 +576,9 @@ export default function StateMachinePage() {
           {tab === 'states' && (
             <div style={{ padding: isSmall ? 12 : 16 }}>
               <div style={{ marginBottom: 20 }}>
-                <h3 style={{ fontSize: isSmall ? 16 : 14, fontWeight: 600, color: '#e5e7eb', marginBottom: 8 }}>Workflow States</h3>
+                <h3 style={{ fontSize: isSmall ? 16 : 14, fontWeight: 600, color: '#e5e7eb', marginBottom: 8 }}>Workflow States & Gates</h3>
                 <p style={{ fontSize: isSmall ? 14 : 13, color: '#9ca3af', lineHeight: 1.5 }}>
-                  Define the statuses your tickets can be in. Mark terminal states and set one as default.
+                  Define the statuses your tickets can be in and configure which states can transition to each one.
                 </p>
               </div>
 
@@ -565,17 +599,18 @@ export default function StateMachinePage() {
                 states.map((s) => (
                   <div key={s.id} style={{
                     display: 'flex',
-                    alignItems: isMobile ? 'flex-start' : isSmall ? 'flex-start' : 'center',
+                    alignItems: 'flex-start',
                     gap: isMobile ? 12 : isSmall ? 10 : 12,
                     padding: isMobile ? '20px' : isSmall ? '16px' : '14px',
                     background: 'rgba(255,255,255,0.02)',
                     border: '1px solid rgba(255,255,255,0.05)',
                     borderRadius: '12px',
                     marginBottom: '12px',
-                    flexDirection: isMobile || isSmall ? 'column' : 'row',
+                    flexDirection: 'column',
                     transition: 'all 0.2s ease',
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
+                    {/* State header */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', minWidth: 0 }}>
                       <div style={{ 
                         position: 'relative',
                         width: isMobile ? 24 : 20, 
@@ -629,36 +664,65 @@ export default function StateMachinePage() {
                           e.target.style.boxShadow = 'none';
                         }}
                       />
+                      <div style={{ 
+                        display: 'flex', 
+                        gap: isMobile ? 10 : 8, 
+                        alignItems: 'center', 
+                        flexWrap: 'wrap'
+                      }}>
+                        <button
+                          onClick={() => !s.is_default && setDefaultState(s.id)}
+                          disabled={s.is_default}
+                          style={{
+                            fontSize: isMobile ? 13 : isSmall ? 12 : 11,
+                            background: s.is_default 
+                              ? 'linear-gradient(135deg, #312e81 0%, #4f46e5 100%)' 
+                              : 'rgba(39,39,42,0.8)',
+                            color: s.is_default ? '#a5b4fc' : '#9ca3af',
+                            border: s.is_default ? 'none' : '1px solid #3f3f46',
+                            padding: isMobile ? '10px 16px' : isSmall ? '8px 12px' : '6px 10px',
+                            borderRadius: isMobile ? '10px' : '8px',
+                            fontWeight: 600,
+                            cursor: s.is_default ? 'default' : 'pointer',
+                            minHeight: isMobile ? '40px' : '32px',
+                            transition: 'all 0.2s ease',
+                          }}
+                        >
+                          {s.is_default ? '⭐ Default' : 'Set Default'}
+                        </button>
+                        <button onClick={() => removeState(s.id)} style={removeBtnStyle}>✕</button>
+                      </div>
                     </div>
-                    <div style={{ 
-                      display: 'flex', 
-                      gap: isMobile ? 10 : 8, 
-                      alignItems: 'center', 
-                      flexWrap: 'wrap',
-                      width: isMobile || isSmall ? '100%' : 'auto'
-                    }}>
-                      <button
-                        onClick={() => !s.is_default && setDefaultState(s.id)}
-                        disabled={s.is_default}
-                        style={{
-                          fontSize: isMobile ? 13 : isSmall ? 12 : 11,
-                          background: s.is_default 
-                            ? 'linear-gradient(135deg, #312e81 0%, #4f46e5 100%)' 
-                            : 'rgba(39,39,42,0.8)',
-                          color: s.is_default ? '#a5b4fc' : '#9ca3af',
-                          border: s.is_default ? 'none' : '1px solid #3f3f46',
-                          padding: isMobile ? '10px 16px' : isSmall ? '8px 12px' : '6px 10px',
-                          borderRadius: isMobile ? '10px' : '8px',
-                          fontWeight: 600,
-                          cursor: s.is_default ? 'default' : 'pointer',
-                          minHeight: isMobile ? '40px' : '32px',
-                          transition: 'all 0.2s ease',
-                        }}
-                      >
-                        {s.is_default ? '⭐ Default' : 'Set Default'}
-                      </button>
-                      {/* terminal toggle removed */}
-                      <button onClick={() => removeState(s.id)} style={removeBtnStyle}>✕</button>
+
+                    {/* Allowed from section */}
+                    <div style={{ width: '100%' }}>
+                      <h4 style={{ fontSize: isMobile ? 14 : 12, fontWeight: 600, color: '#d1d5db', marginBottom: 8 }}>
+                        Allowed from states {s.allowed_from.length === 0 && <span style={{ color: '#6b7280', fontWeight: 400 }}>(any state)</span>}
+                      </h4>
+                      <div style={{ 
+                        display: 'flex', 
+                        gap: isMobile ? 8 : 6, 
+                        flexWrap: 'wrap',
+                        alignItems: 'center'
+                      }}>
+                        {states.filter(st => st.id !== s.id).map(fromState => {
+                          const isAllowed = s.allowed_from.includes(fromState.id);
+                          return (
+                            <button
+                              key={fromState.id}
+                              onClick={() => toggleAllowedFrom(s.id, fromState.id)}
+                              style={toggleBtnStyle(isAllowed)}
+                            >
+                              {fromState.label}
+                            </button>
+                          );
+                        })}
+                        {states.length <= 1 && (
+                          <span style={{ fontSize: isMobile ? 14 : 12, color: '#6b7280', fontStyle: 'italic' }}>
+                            Add more states to configure gates
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))
@@ -678,118 +742,8 @@ export default function StateMachinePage() {
                       <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
                     ))}
                   </select>
-                  <label style={{ fontSize: isSmall ? 14 : 12, color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', userSelect: 'none' }}>
-                    <input type="checkbox" checked={newTerminal} onChange={(e) => setNewTerminal(e.target.checked)} style={{ width: isSmall ? 18 : 14, height: isSmall ? 18 : 14, cursor: 'pointer' }} />
-                    Terminal state
-                  </label>
                   <button onClick={addState} disabled={!newLabel.trim()} style={{ ...btnStyle, opacity: !newLabel.trim() ? 0.5 : 1, cursor: !newLabel.trim() ? 'not-allowed' : 'pointer', width: isSmall ? '100%' : 'auto' }}>
-                    + Add Status
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Transitions tab */}
-          {tab === 'transitions' && (
-            <div style={{ padding: isSmall ? 12 : 16 }}>
-              <div style={{ marginBottom: 20 }}>
-                <h3 style={{ fontSize: isSmall ? 16 : 14, fontWeight: 600, color: '#e5e7eb', marginBottom: 8 }}>State Transitions</h3>
-                <p style={{ fontSize: isSmall ? 14 : 13, color: '#9ca3af', lineHeight: 1.5 }}>
-                  Define allowed moves between states and who can make them.
-                </p>
-              </div>
-
-              {transitions.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px 20px', color: '#6b7280', fontStyle: 'italic' }}>
-                  No transitions defined yet. Add your first transition below.
-                </div>
-              ) : (
-                transitions.map((t) => {
-                  const f = states.find((s) => s.id === t.from);
-                  const to = states.find((s) => s.id === t.to);
-                  return (
-                    <div key={t.id} style={{
-                      display: 'flex',
-                      alignItems: isSmall ? 'flex-start' : 'center',
-                      gap: isSmall ? 6 : 10,
-                      padding: isSmall ? '8px 0' : '8px 0',
-                      borderBottom: '1px solid #27272a',
-                      fontSize: isSmall ? 14 : 13,
-                      flexDirection: isSmall ? 'column' : 'row',
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: isSmall ? 8 : 6, flex: 1, minWidth: 0, flexWrap: 'wrap' }}>
-                        <select
-                          value={t.from}
-                          onChange={(e) => {
-                            const v = Number(e.target.value);
-                            if (v === t.to) return;
-                            setTransitions((p) => p.map((tr) => tr.id === t.id ? { ...tr, from: v } : tr));
-                          }}
-                          style={{ ...selectStyle, fontSize: isSmall ? 13 : 12, padding: isSmall ? '0 14px' : '4px 8px', minWidth: isSmall ? 100 : 80, height: isSmall ? 44 : 'auto', minHeight: isSmall ? 44 : 'auto' }}
-                        >
-                          {states.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
-                        </select>
-                        <span style={{ color: '#6b7280', fontWeight: 600, fontSize: isSmall ? 16 : 14 }}>→</span>
-                        <select
-                          value={t.to}
-                          onChange={(e) => {
-                            const v = Number(e.target.value);
-                            if (v === t.from) return;
-                            setTransitions((p) => p.map((tr) => tr.id === t.id ? { ...tr, to: v } : tr));
-                          }}
-                          style={{ ...selectStyle, fontSize: isSmall ? 13 : 12, padding: isSmall ? '0 14px' : '4px 8px', minWidth: isSmall ? 100 : 80, height: isSmall ? 44 : 'auto', minHeight: isSmall ? 44 : 'auto' }}
-                        >
-                          {states.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
-                        </select>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <select
-                          value={t.actor}
-                          onChange={(e) => setTransitions((p) => p.map((tr) => tr.id === t.id ? { ...tr, actor: e.target.value as ActorType } : tr))}
-                          style={{
-                            fontSize: isSmall ? 13 : 10, fontWeight: 700,
-                            padding: isSmall ? '0 14px' : '4px 8px', borderRadius: isSmall ? 10 : 6,
-                            color: 'white', background: ACTOR_COLORS[t.actor],
-                            border: '1px solid ' + ACTOR_COLORS[t.actor],
-                            cursor: 'pointer', height: isSmall ? 44 : 'auto', minHeight: isSmall ? 44 : 'auto',
-                          }}
-                        >
-                          <option value="BOT" style={{ background: '#18181b', color: '#e5e7eb' }}>BOT</option>
-                          <option value="HUMAN" style={{ background: '#18181b', color: '#e5e7eb' }}>HUMAN</option>
-                          <option value="ALL" style={{ background: '#18181b', color: '#e5e7eb' }}>ALL</option>
-                        </select>
-                        <button onClick={() => removeTransition(t.id)} style={removeBtnStyle}>✕</button>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-
-              <div style={{ display: 'flex', gap: isSmall ? 12 : 8, marginTop: 20, alignItems: isSmall ? 'stretch' : 'center', flexDirection: isSmall ? 'column' : 'row', flexWrap: isSmall ? 'nowrap' : 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: isSmall ? 8 : 6, flex: isSmall ? 'none' : '1', minWidth: isSmall ? '100%' : 200 }}>
-                  <select value={fromId} onChange={(e) => setFromId(e.target.value)} style={{ ...selectStyle, flex: 1 }}>
-                    <option value="">From...</option>
-                    {states.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
-                  </select>
-                  <span style={{ color: '#6b7280', fontWeight: 600, fontSize: isSmall ? 16 : 14, flexShrink: 0 }}>→</span>
-                  <select value={toId} onChange={(e) => setToId(e.target.value)} style={{ ...selectStyle, flex: 1 }}>
-                    <option value="">To...</option>
-                    {states.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
-                  </select>
-                </div>
-                <div style={{ display: 'flex', gap: isSmall ? 12 : 8, alignItems: 'center', flexDirection: isSmall ? 'column' : 'row', width: isSmall ? '100%' : 'auto' }}>
-                  <select value={newActor} onChange={(e) => setNewActor(e.target.value as ActorType)} style={{ ...selectStyle, width: isSmall ? '100%' : 'auto' }}>
-                    <option value="BOT">Bot Only</option>
-                    <option value="HUMAN">Human Only</option>
-                    <option value="ALL">Bot or Human</option>
-                  </select>
-                  <button
-                    onClick={addTransition}
-                    disabled={!fromId || !toId || fromId === toId}
-                    style={{ ...btnStyle, opacity: (!fromId || !toId || fromId === toId) ? 0.5 : 1, cursor: (!fromId || !toId || fromId === toId) ? 'not-allowed' : 'pointer', width: isSmall ? '100%' : 'auto' }}
-                  >
-                    + Add Transition
+                    + Add State
                   </button>
                 </div>
               </div>
@@ -805,9 +759,9 @@ export default function StateMachinePage() {
               <button onClick={() => importRef.current?.click()} style={{ ...btnStyle, fontSize: 11, padding: '6px 12px', minHeight: 'auto', background: '#374151' }}>↑ Import</button>
             </div>
             <div style={{ display: 'flex', gap: 16, fontSize: 10, flexWrap: 'wrap', marginTop: 4 }}>
-              <span><kbd style={kbdStyle}>Ctrl/⌘</kbd> + <kbd style={kbdStyle}>1-3</kbd> Switch tabs</span>
+              <span><kbd style={kbdStyle}>Ctrl/⌘</kbd> + <kbd style={kbdStyle}>1-2</kbd> Switch tabs</span>
               <span><kbd style={kbdStyle}>Ctrl/⌘</kbd> + <kbd style={kbdStyle}>E</kbd> Export</span>
-              <span><kbd style={kbdStyle}>Ctrl/⌘</kbd> + <kbd style={kbdStyle}>↵</kbd> Add item</span>
+              <span><kbd style={kbdStyle}>Ctrl/⌘</kbd> + <kbd style={kbdStyle}>↵</kbd> Add state</span>
             </div>
           </div>
         </div>
@@ -817,22 +771,20 @@ export default function StateMachinePage() {
       <div style={{ maxWidth: 900, margin: '0 auto', padding: isSmall ? '24px 16px' : '32px 24px', borderTop: '1px solid #18181b' }}>
         <h2 style={{ fontSize: 'clamp(16px, 4vw, 18px)', fontWeight: 600, color: 'white', marginBottom: 12 }}>How It Works</h2>
         <p style={{ fontSize: 'clamp(13px, 3vw, 14px)', color: '#9ca3af', lineHeight: 1.7, marginBottom: 8 }}>
-          <strong style={{ color: '#d1d5db' }}>States</strong> are the statuses your tickets can be in. Mark them <em style={{ color: '#6ee7b7', fontStyle: 'normal' }}>terminal</em> when they are end states. One state is the <em style={{ color: '#6ee7b7', fontStyle: 'normal' }}>default</em> — where new tickets start.
+          <strong style={{ color: '#d1d5db' }}>States</strong> are the statuses your tickets can be in. One state is the <em style={{ color: '#6ee7b7', fontStyle: 'normal' }}>default</em> — where new tickets start.
         </p>
         <p style={{ fontSize: 'clamp(13px, 3vw, 14px)', color: '#9ca3af', lineHeight: 1.7, marginBottom: 8 }}>
-          <strong style={{ color: '#d1d5db' }}>Transitions</strong> are the allowed moves. Each one has an actor type:
+          <strong style={{ color: '#d1d5db' }}>Gates</strong> control which states can transition to each state. If "Allowed from" is empty, tickets can move from any state. Otherwise, only specified states can transition in.
         </p>
-        <ul style={{ paddingLeft: 20, marginBottom: 12 }}>
-          <li style={{ fontSize: 'clamp(13px, 3vw, 14px)', color: '#9ca3af', lineHeight: 1.7, marginBottom: 4 }}><strong style={{ color: '#d1d5db' }}>Bot</strong> — the agent can make this move autonomously</li>
-          <li style={{ fontSize: 'clamp(13px, 3vw, 14px)', color: '#9ca3af', lineHeight: 1.7, marginBottom: 4 }}><strong style={{ color: '#d1d5db' }}>Human</strong> — only a person can make this move</li>
-          <li style={{ fontSize: 'clamp(13px, 3vw, 14px)', color: '#9ca3af', lineHeight: 1.7, marginBottom: 4 }}><strong style={{ color: '#d1d5db' }}>All</strong> — either can</li>
-        </ul>
         <p style={{ fontSize: 'clamp(13px, 3vw, 14px)', color: '#9ca3af', lineHeight: 1.7, marginBottom: 8 }}>
-          The diagram builds itself as you configure. Purple animated edges are bot paths. Blue edges are human-only. If a terminal state has no bot path leading to it, the ⚠ warning tells you — that is a human checkpoint.
+          <strong style={{ color: '#d1d5db' }}>Access control</strong> can be added later with user restrictions — dashed amber edges indicate states with limited access.
+        </p>
+        <p style={{ fontSize: 'clamp(13px, 3vw, 14px)', color: '#9ca3af', lineHeight: 1.7, marginBottom: 8 }}>
+          The diagram builds itself as you configure. Gray edges show normal transitions. Dashed amber edges show restricted access.
         </p>
         <hr style={{ border: 'none', borderTop: '1px solid #18181b', margin: '20px 0' }} />
         <p style={{ fontSize: 'clamp(13px, 3vw, 14px)', color: '#9ca3af', lineHeight: 1.7 }}>
-          This is how <a href="https://openweave.dev" style={{ color: '#6ee7b7', textDecoration: 'none' }}>OpenWeave</a> handles execution governance. The state machine is workspace-level config — no code, no deploys. Admins draw the lines, bots follow them.
+          This is how <a href="https://openweave.dev" style={{ color: '#6ee7b7', textDecoration: 'none' }}>OpenWeave</a> handles execution governance. The state machine is workspace-level config — no code, no deploys. Admins design the gates, teams follow them.
         </p>
       </div>
 
