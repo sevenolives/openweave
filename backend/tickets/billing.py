@@ -101,8 +101,10 @@ class StripeWebhookView(APIView):
             )
         except ValueError:
             return Response({'detail': 'Invalid payload.'}, status=status.HTTP_400_BAD_REQUEST)
-        except s.error.SignatureVerificationError:
-            return Response({'detail': 'Invalid signature.'}, status=status.HTTP_400_BAD_REQUEST)
+        except (s.error.SignatureVerificationError, s.SignatureVerificationError, Exception) as e:
+            if 'signature' in str(e).lower() or 'webhook' in str(e).lower():
+                return Response({'detail': 'Invalid signature.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'Webhook error.'}, status=status.HTTP_400_BAD_REQUEST)
 
         event_type = event['type']
         data_object = event['data']['object']
