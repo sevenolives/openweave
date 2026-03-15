@@ -16,7 +16,7 @@ from .models import (
     BlogPost, MediaFile,
 )
 from .serializers import (
-    UserSerializer, ProjectSerializer, TicketSerializer,
+    UserSerializer, UserSimpleSerializer, ProjectSerializer, TicketSerializer,
     CommentSerializer, AuditLogSerializer,
     WorkspaceSerializer, WorkspaceMemberSerializer, WorkspaceInviteSerializer,
     JoinRequestSerializer, TicketAttachmentSerializer, ProjectAgentSerializer,
@@ -321,6 +321,24 @@ class UserViewSet(viewsets.ModelViewSet):
     )
     def partial_update(self, request, *args, **kwargs):
         return super().partial_update(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="Autocomplete users",
+        description="Lightweight user search for dropdowns. Returns slim user objects (id, username, email, name, user_type). Max 20 results.",
+        parameters=[
+            OpenApiParameter(name='search', description='Search in username, email, name', type=str, required=True),
+            OpenApiParameter(name='workspace', description='Filter by workspace slug', type=str),
+            OpenApiParameter(name='project', description='Filter by project slug', type=str),
+        ],
+        responses={200: UserSimpleSerializer(many=True)},
+    )
+    @action(detail=False, methods=['get'])
+    def autocomplete(self, request):
+        """Lightweight user search for dropdowns — returns first page of slim results."""
+        qs = self.filter_queryset(self.get_queryset())
+        qs = qs[:20]
+        serializer = UserSimpleSerializer(qs, many=True)
+        return Response(serializer.data)
 
 
 @extend_schema(tags=['projects'])
@@ -1135,7 +1153,10 @@ class ProjectAgentViewSet(viewsets.ModelViewSet):
     serializer_class = ProjectAgentSerializer
     permission_classes = [permissions.IsAuthenticated]
     http_method_names = ['get', 'patch', 'head', 'options']
-    filter_backends = [DjangoFilterBackend]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['agent__username', 'agent__email', 'agent__name']
+    ordering_fields = ['agent__username', 'joined_at']
+    ordering = ['agent__username']
 
     def get_queryset(self):
         qs = ProjectAgent.objects.select_related('agent', 'project')
