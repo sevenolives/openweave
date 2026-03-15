@@ -579,11 +579,7 @@ class TicketViewSet(viewsets.ModelViewSet):
         instance = serializer.instance
         user = self.request.user
 
-        # Bots cannot change status on unapproved tickets
-        if hasattr(user, 'user_type') and user.user_type == 'BOT' and instance.approved_status != 'APPROVED':
-            if 'status' in serializer.validated_data:
-                from rest_framework.exceptions import PermissionDenied
-                raise PermissionDenied("Bots cannot change status on unapproved tickets. A human must approve first.")
+        # APPROVAL GATE REMOVED: Any user can change status if allowed by status transitions
 
         # Single query for project agent permissions
         workspace = instance.project.workspace if instance.project else None
