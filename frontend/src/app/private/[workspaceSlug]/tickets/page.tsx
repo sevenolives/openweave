@@ -257,38 +257,40 @@ function TicketsPage() {
         {/* List View */}
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-3 mb-6">
+        <div className="space-y-3 mb-6">
           <input
             type="text" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
-            className="px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-full sm:w-64"
+            className="px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-full"
             placeholder="Search tickets..."
           />
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="px-4 py-3 h-[44px] border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
-            <option value="">All statuses</option>
-            {statuses.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
-          </select>
-          <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)} className="px-4 py-3 h-[44px] border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
-            <option value="">All priorities</option>
-            <option value="LOW">Low</option>
-            <option value="MEDIUM">Medium</option>
-            <option value="HIGH">High</option>
-            <option value="CRITICAL">Critical</option>
-          </select>
-          <select value={filterProject} onChange={e => { hasUserSelectedProject.current = true; setFilterProject(e.target.value); setPage(1); }} className="px-4 py-3 h-[44px] border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
-            <option value="">All projects</option>
-            {projects.map(p => <option key={p.slug} value={p.slug}>{p.name}</option>)}
-          </select>
-          <select value={filterAssigned} onChange={e => { setFilterAssigned(e.target.value); setPage(1); }} className="px-4 py-3 h-[44px] border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
-            <option value="">All users</option>
-            {wsUsers.map(u => <option key={u.id} value={u.id}>{u.name || u.username}</option>)}
-          </select>
-          <select value={filterApproved} onChange={e => { setFilterApproved(e.target.value); setPage(1); }} className="px-4 py-3 h-[44px] border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
-            <option value="">All approvals</option>
-            <option value="APPROVED">✓ Approved</option>
-            <option value="UNAPPROVED">Unapproved</option>
-          </select>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="px-4 py-3 min-h-[44px] border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
+              <option value="">All statuses</option>
+              {statuses.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+            </select>
+            <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)} className="px-4 py-3 min-h-[44px] border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
+              <option value="">All priorities</option>
+              <option value="LOW">Low</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="HIGH">High</option>
+              <option value="CRITICAL">Critical</option>
+            </select>
+            <select value={filterProject} onChange={e => { hasUserSelectedProject.current = true; setFilterProject(e.target.value); setPage(1); }} className="px-4 py-3 min-h-[44px] border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
+              <option value="">All projects</option>
+              {projects.map(p => <option key={p.slug} value={p.slug}>{p.name}</option>)}
+            </select>
+            <select value={filterAssigned} onChange={e => { setFilterAssigned(e.target.value); setPage(1); }} className="px-4 py-3 min-h-[44px] border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
+              <option value="">All users</option>
+              {wsUsers.map(u => <option key={u.id} value={u.id}>{u.name || u.username}</option>)}
+            </select>
+            <select value={filterApproved} onChange={e => { setFilterApproved(e.target.value); setPage(1); }} className="px-4 py-3 min-h-[44px] border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
+              <option value="">All approvals</option>
+              <option value="APPROVED">✓ Approved</option>
+              <option value="UNAPPROVED">Unapproved</option>
+            </select>
+          </div>
           {hasFilters && (
-            <button onClick={() => { setSearch(''); setFilterStatus(''); setFilterPriority(''); setFilterProject(''); setFilterAssigned(''); setFilterApproved(''); }} className="px-4 py-3 text-sm text-gray-500 hover:text-gray-700">
+            <button onClick={() => { setSearch(''); setFilterStatus(''); setFilterPriority(''); setFilterProject(''); setFilterAssigned(''); setFilterApproved(''); }} className="px-4 py-3 text-sm text-gray-500 hover:text-gray-700 min-h-[44px] rounded-xl hover:bg-gray-50 transition-colors">
               Clear filters
             </button>
           )}
@@ -369,7 +371,7 @@ function TicketsPage() {
                         {/* approval button removed */}
                       </div>
                       {/* Assignee + Status row */}
-                      <div className="flex items-center gap-2 mt-1" onClick={e => e.stopPropagation()}>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-2" onClick={e => e.stopPropagation()}>
                         <select
                           value={ticket.assigned_to?.toString() || ''}
                           onChange={async (e) => {
@@ -380,7 +382,7 @@ function TicketsPage() {
                               toast('Assignment updated');
                             } catch (err: any) { toast(err?.message || 'Failed to assign', 'error'); }
                           }}
-                          className="text-[11px] border border-gray-200 rounded px-1.5 py-0.5 bg-white text-gray-600 focus:ring-1 focus:ring-indigo-500"
+                          className="text-xs sm:text-[11px] border border-gray-200 rounded px-2 py-1 sm:px-1.5 sm:py-0.5 bg-white text-gray-600 focus:ring-1 focus:ring-indigo-500 min-h-[36px] sm:min-h-[24px]"
                         >
                           <option value="">Unassigned</option>
                           {(projectAgentsMap[ticket.project] || wsUsers).map(a => (
@@ -396,7 +398,7 @@ function TicketsPage() {
                               toast('Status updated');
                             } catch (err: any) { toast(err?.message || 'Failed', 'error'); }
                           }}
-                          className="text-[11px] border border-gray-200 rounded px-1.5 py-0.5 bg-white text-gray-600 focus:ring-1 focus:ring-indigo-500"
+                          className="text-xs sm:text-[11px] border border-gray-200 rounded px-2 py-1 sm:px-1.5 sm:py-0.5 bg-white text-gray-600 focus:ring-1 focus:ring-indigo-500 min-h-[36px] sm:min-h-[24px]"
                         >
                           {statuses.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
                         </select>

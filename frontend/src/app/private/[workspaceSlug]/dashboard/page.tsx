@@ -107,7 +107,7 @@ export default function DashboardPage() {
             </div>
           </div>
         ) : loading ? (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             {[1,2,3,4,5,6,7,8].map(i => (
               <div key={i} className="bg-white rounded-xl border border-gray-200 p-5 animate-pulse">
                 <div className="h-4 bg-gray-200 rounded w-20 mb-3"></div>
@@ -118,7 +118,7 @@ export default function DashboardPage() {
         ) : data && (
           <>
             {/* Stats — dynamic from status definitions */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
               {/* Total */}
               <div onClick={() => router.push(`/private/${workspaceSlug}/tickets`)} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer">
                 <div className="flex items-center justify-between mb-3">

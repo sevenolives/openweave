@@ -215,7 +215,7 @@ export default function TicketDetailPage() {
                       <div className="flex flex-wrap gap-2">
                         {statuses.map(s => (
                           <button key={s.key} onClick={() => handleStatusChange(s.key)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                            className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-semibold transition-all min-h-[44px] sm:min-h-auto ${
                               ticket.status === s.key ? statusBadge(statuses, s.key) + ' ring-2 ring-offset-1 ring-current' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
                             }`}>
                             {s.label}

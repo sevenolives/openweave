@@ -323,16 +323,17 @@ function StateMachineSettings({
         <div style={{ display: 'flex', gap: 8, flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center' }}>
           <input value={newStatusLabel} onChange={(e) => setNewStatusLabel(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAddStatus()}
-            placeholder="Status name..." style={{ ...inputStyle, flex: 1 }} />
-          <select value={newStatusColor} onChange={(e) => setNewStatusColor(e.target.value)} style={{ ...selectStyle, width: isMobile ? '100%' : 120 }}>
+            placeholder="Status name..." style={{ ...inputStyle, flex: 1, minHeight: isMobile ? 44 : 'auto' }} />
+          <select value={newStatusColor} onChange={(e) => setNewStatusColor(e.target.value)} 
+            style={{ ...selectStyle, width: isMobile ? '100%' : 120, minHeight: isMobile ? 44 : 'auto' }}>
             {COLORS.map((c) => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
           </select>
-          <label style={{ fontSize: 13, color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          <label style={{ fontSize: 13, color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', whiteSpace: 'nowrap', minHeight: isMobile ? 44 : 'auto', justifyContent: isMobile ? 'center' : 'flex-start' }}>
             <input type="checkbox" checked={newStatusTerminal} onChange={(e) => setNewStatusTerminal(e.target.checked)} style={{ width: 16, height: 16 }} />
             Terminal
           </label>
           <button onClick={handleAddStatus} disabled={!newStatusLabel.trim()}
-            style={{ ...btnStyle, opacity: !newStatusLabel.trim() ? 0.5 : 1, whiteSpace: 'nowrap' }}>
+            style={{ ...btnStyle, opacity: !newStatusLabel.trim() ? 0.5 : 1, whiteSpace: 'nowrap', minHeight: isMobile ? 44 : 'auto' }}>
             + Add
           </button>
         </div>
@@ -343,7 +344,7 @@ function StateMachineSettings({
         <div style={{ marginTop: 24 }}>
           <h3 style={{ fontSize: 15, fontWeight: 600, color: 'white', marginBottom: 12 }}>Workflow Diagram</h3>
           <div style={{
-            height: isMobile ? 300 : 420, width: '100%', borderRadius: 12, overflow: 'hidden',
+            height: isMobile ? 250 : 420, width: '100%', borderRadius: 12, overflow: 'hidden',
             border: '1px solid #27272a',
             background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
           }}>
@@ -541,10 +542,13 @@ export default function WorkspaceSettingsPage() {
       <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold text-gray-900 mb-2">{workspace.name} — Settings</h1>
 
-        <div className="flex gap-1 mb-6 border-b border-gray-200">
+        <div className="flex gap-1 mb-6 border-b border-gray-200 overflow-x-auto">
           <button onClick={() => setSettingsTab('general')} className={tabClass('general', settingsTab === 'general')}>General</button>
           <button onClick={() => setSettingsTab('members')} className={tabClass('members', settingsTab === 'members')}>Members</button>
-          <button onClick={() => setSettingsTab('state-machine')} className={tabClass('state-machine', settingsTab === 'state-machine')}>State Machine</button>
+          <button onClick={() => setSettingsTab('state-machine')} className={tabClass('state-machine', settingsTab === 'state-machine')}>
+            <span className="hidden sm:inline">State Machine</span>
+            <span className="sm:hidden">States</span>
+          </button>
         </div>
 
         {/* === GENERAL TAB === */}
