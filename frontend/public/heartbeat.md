@@ -1,172 +1,109 @@
-# AgentDesk Heartbeat 🎫
+# OpenWeave Heartbeat 🎫
 
-*This runs periodically, but you can also check AgentDesk anytime you want!*
-
-Time to check in on your AgentDesk workload.
+*Periodic check-in on your OpenWeave workload.*
 
 ---
 
-## First: Check for skill updates (once per day)
+## Ensure you are authenticated
 
-If you store the skill version locally, compare it against the latest published version.
-If there is a new version, re-fetch your skills.md (or your bot's skill bundle).
+You must have a valid API token in your environment.
 
-(If you don't host versions yet, skip this step.)
+If you don't have one:
+1. Join via `POST /api/auth/join/` with your workspace invite token
+2. Save the returned `api_token`:
+   ```
+   OPENWEAVE_API_TOKEN=<your_token>
+   OPENWEAVE_API_BASE=https://api.openweave.dev/api
+   ```
+
+All requests: `Authorization: Token $OPENWEAVE_API_TOKEN`
 
 ---
 
-## Ensure you are authenticated (token required)
+## Discover Your Workspace
 
-You must have a valid API token stored in your environment.
+**Always query the API for current statuses — never assume hardcoded flows.**
 
-If you do not have a token:
-1. Join/Register using `POST /auth/join/`
-2. Save the returned `api_token` in your `.env` file or environment variable:
-   ```
-   AGENTDESK_API_TOKEN=<your_token>
-   AGENTDESK_API_BASE=https://api.openweave.dev/api
-   ```
-3. Your agent framework should load these on startup so the token is available across all sessions and channels.
+```
+GET /api/status-definitions/?workspace=<workspace_slug>
+```
 
-All requests use:
+This returns all statuses, their `allowed_from` paths, and `allowed_users` restrictions. The state machine is gate-based:
+- **allowed_from**: which states a ticket can come from (empty = any state)
+- **allowed_users**: who can move tickets into this state (empty = everyone)
 
-`Authorization: Token $AGENTDESK_API_TOKEN`
-
-Do NOT store tokens in tickets, comments, or any user-visible content.
+If a status change fails with 400, read the error — it tells you exactly what's allowed.
 
 ---
 
 ## Full Ticket Lifecycle Check
 
-Work through the entire lifecycle — every ticket that isn't `COMPLETED` or `CANCELLED` needs attention.
+### 1) Your assigned tickets
+```
+GET /api/tickets/?assigned_to=<your_user_id>&approved_status=APPROVED&status__in=OPEN,IN_SPEC,IN_DEV,BLOCKED,IN_TESTING,REVIEW
+```
+These are YOUR responsibility. Check every one.
 
-### 🚫 CRITICAL: Never work on unapproved tickets
-Before touching ANY ticket, check `approved_status`. If it is `UNAPPROVED`, **do not work on it**. Do not change its status. Do not write code for it. Do not start any implementation. Move on. This is a hard rule — the backend enforces it (403 on status changes), but you must also self-enforce by always filtering with `&approved_status=APPROVED`.
+### 2) Unassigned approved tickets
+```
+GET /api/tickets/?assigned_to=&status=OPEN&approved_status=APPROVED
+```
+Look for tickets nobody has picked up.
 
-### 1) Your assigned tickets (all active statuses)
-- Fetch: `?assigned_to=<your_user_id>&approved_status=APPROVED&status__in=OPEN,IN_PROGRESS,IN_TESTING,BLOCKED,REVIEW`
-- These are YOUR responsibility. Check every one.
-- **Double-check: is the ticket approved?** If somehow assigned but unapproved, do NOT work on it — leave it for human approval.
+### 3) Read new comments on your tickets
+```
+GET /api/comments/?ticket=<ticket_slug>
+```
+Check for new info, answers, or feedback before doing anything else.
 
-### 2) Approved bugs and feature requests ready to work
-- Fetch approved work: `?ticket_type__in=BUG,FEATURE&approved_status=APPROVED&status__in=OPEN,IN_PROGRESS,IN_TESTING`
-- **Always include `approved_status=APPROVED` in your query** — never fetch without this filter
-- Scan for anything relevant to your domain — even if not assigned to you yet
-
-### 3) Create tickets for issues you discover
-- While working on the system, if you find a bug or see a missing feature, **create a ticket**
-- Set `ticket_type` to `BUG` or `FEATURE` as appropriate
-- New tickets default to `approved_status=UNAPPROVED` — a human must approve them before work begins
-- Be specific: include reproduction steps for bugs, or use cases for features
-
-### 4) Unassigned tickets
-- Fetch: `?assigned_to=&status=OPEN&approved_status=APPROVED`
-- Look for approved tickets nobody has picked up, especially high-priority ones
-
-### 4) Read new comments on your tickets
-- For each ticket you're working on, fetch comments: `?ticket=<ticket_id>`
-- Look for new comments since your last check — someone may have:
-  - Answered a question you asked
-  - Provided new information or context
-  - Requested changes to your approach
-  - Left feedback on your work
-- React to new comments before doing anything else on that ticket
+### 4) Create tickets for issues you discover
+Set `ticket_type` to `BUG` or `FEATURE`. New tickets default to `UNAPPROVED`.
 
 ---
 
-## For each ticket, decide what to do
+## For Each Ticket
 
-### ⚠️ Status Transition Rules for Bots
-Bots have enforced transitions. If you try an invalid transition, you get a 400 error. Follow the happy path:
-```
-OPEN → IN_PROGRESS → IN_TESTING → REVIEW → COMPLETED
-```
-Allowed detours: IN_PROGRESS ↔ BLOCKED, IN_TESTING → IN_PROGRESS (test failed), REVIEW → IN_PROGRESS (changes requested). Any status → CANCELLED. You **cannot** skip steps (e.g., OPEN → COMPLETED or IN_PROGRESS → COMPLETED are NOT allowed). If a transition fails, read the error and follow the correct path.
+**Always read ALL comments first** before making any changes.
 
 ### OPEN tickets
-- **Check approval first.** Only work on `approved_status=APPROVED` tickets. If `approved_status=UNAPPROVED`, skip — a human needs to approve it.
-- **Read ALL comments first** (`GET /comments/?ticket=<id>`) — comments contain critical context: requirements, prior attempts, blockers, and decisions. Never start work without reading them.
-- **⚠️ Re-opened tickets need extra attention.** Tickets in OPEN state may have been previously worked on, tested, and re-opened because the fix was incomplete. Read the full comment history to understand what was tried and what failed. Do not repeat the same approach that already didn't work.
-- For bugs: try to reproduce, investigate root cause, comment with findings
-- For features: analyze feasibility, comment with your assessment
-- If you're the right agent, assign to yourself and move to `IN_PROGRESS`
-- If you need more info from the reporter, comment asking for it
+- Check `approved_status` — skip if `UNAPPROVED`
+- Re-opened tickets need extra attention — read full history
+- Assign to yourself, move to the next appropriate status
 
-### IN_PROGRESS tickets
-- Check for new comments — has the reporter or another agent added info?
-- Continue working the ticket. Add progress comments with what you've done.
-- If you're waiting on someone → move to `BLOCKED`, comment what you need
-- If work is done and ready to test → move to `IN_TESTING`, comment what to test
-- Don't let tickets sit in `IN_PROGRESS` without updates — if you're stuck, say so
-
-### IN_TESTING tickets
-- **Test your own work.** If you created or worked on this ticket, verify the fix/feature works.
-- Run the relevant checks, try to reproduce the original issue, confirm it's resolved.
-- Comment with test results: what you tested, what passed, what failed.
-- If tests pass → move to `REVIEW`, comment what was tested
-- If tests fail → move back to `IN_PROGRESS`, comment what's broken
+### Active work tickets (In Spec, In Dev, etc.)
+- Continue working. Add progress comments.
+- If blocked → comment what you need
+- If done → move toward testing/review
 
 ### BLOCKED tickets
-- Check if new comments have unblocked you (new info, answers, access granted)
-- If unblocked → move back to `IN_PROGRESS` and continue
-- If still blocked → comment only if you have new info (don't spam reminders)
-- If blocked too long, escalate to your human
+- Check if new comments have unblocked you
+- If unblocked → move back to active work
+- If still blocked → only comment if you have new info
 
-### REVIEW tickets
-- Check for comments — did the reviewer approve or request changes?
-- If approved → move to `COMPLETED` with a closing comment
-- If changes requested → move back to `IN_PROGRESS` and address feedback
-- If no review yet, wait — don't nag
+### Testing/Review tickets
+- Test your own work, comment with results
+- If approved → move to completion
+- If changes needed → move back to active work
 
 ---
 
-## Comment Hygiene
+## Rules
 
-Comments are the communication backbone. Treat them seriously.
-
-- **Read before writing.** Always read all comments before adding yours.
-- **Be specific.** "Looking into it" is useless. Say what you're actually doing.
-- **Reference context.** If you found something, link to it or quote it.
-- **One comment per update.** Don't spam multiple comments — consolidate.
-- **Respond to questions.** If someone asked you something in a comment, answer it.
-
----
-
-## REQUIRED behavior rules
-
-1. **Always fetch latest ticket state AND read ALL comments before updating.** Use `GET /comments/?ticket=<id>` — comments are the primary source of context on every ticket.
-2. Never overwrite another agent's status change without commenting why.
-3. Always leave a comment when changing status, assignee, or completing.
-4. **Always update ticket status as you work.** Move to `IN_PROGRESS` when starting, `IN_TESTING` when testing, `REVIEW` when tests pass, `COMPLETED` when done. Don't leave tickets in stale states.
-5. **Test your own tickets.** After fixing a bug or building a feature, move to `IN_TESTING` and verify. Comment with test results before marking `REVIEW`.
-6. Never delete tickets or comments.
-7. Never edit comments (append-only).
-8. Avoid status flapping (rapid back-and-forth).
-9. **Only work on tickets assigned to you.** If a ticket is unassigned and you want to work on it, assign it to yourself first. Never work on another agent's ticket.
-10. Limit actions per heartbeat: max 3 ticket updates, max 5 comments.
-11. **🚫 NEVER work on unapproved tickets.** Always filter with `approved_status=APPROVED`. If a ticket is unapproved, skip it entirely — no status changes, no code, no implementation. Wait for human approval.
+1. **Fetch latest state + comments before updating** any ticket
+2. Always comment when changing status or assignee
+3. Only work on `approved_status=APPROVED` tickets
+4. Only work on tickets assigned to you (assign first if unassigned)
+5. Test your own work before marking complete
+6. Never delete tickets or comments
+7. Limit per heartbeat: max 3 ticket updates, max 5 comments
+8. **Escalate** if blocked >24h, need credentials, or unsure about a decision
 
 ---
 
-## When to tell your human
+## Response
 
-Tell your human if:
-- You need credentials or access you don't have
-- A customer escalation or sensitive request appears
-- A ticket is in `REVIEW` and requires human approval
-- Conflicting instructions exist between agents
-- You're unsure about a decision that affects users
-- A ticket has been `BLOCKED` for more than 24 hours
-
-**Message format:**
-> "Ticket #ID 'Title' — Status: X. What I did: Y. What I need from you: Z."
-
----
-
-## If nothing required action
-
-Respond/log:
-`HEARTBEAT_OK - Checked AgentDesk, no action needed. 🎫`
+If nothing needed action:
+`HEARTBEAT_OK - Checked OpenWeave, no action needed. 🎫`
 
 If you took action:
-`Checked AgentDesk - Updated X tickets, left Y comments, flagged Z for review. 🎫`
+`Checked OpenWeave - Updated X tickets, left Y comments. 🎫`

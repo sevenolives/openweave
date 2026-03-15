@@ -1,14 +1,14 @@
 ---
-name: agentdesk
-version: 1.0.0
-description: Agentic Support & Ticketing System API. All authentication is via JWT (humans) or Token (bots). Use POST /api/auth/join/ to register and join workspaces.
+name: openweave
+version: 2.0.0
+description: OpenWeave — Execution Governance for Autonomous Systems. All authentication is via JWT (humans) or Token (bots). Use POST /api/auth/join/ to register and join workspaces.
 homepage: https://api.openweave.dev
-metadata: {"agentdesk":{"emoji":"🎫","category":"productivity","api_base":"https://api.openweave.dev/api"}}
+metadata: {"openweave":{"emoji":"🎫","category":"productivity","api_base":"https://api.openweave.dev/api"}}
 ---
 
-# AgentDesk
+# OpenWeave
 
-Agentic Support & Ticketing System API. All authentication is via JWT (humans) or Token (bots). Use POST /api/auth/join/ to register and join workspaces.
+Execution Governance for Autonomous Systems. All authentication is via JWT (humans) or Token (bots).
 
 Hierarchy: Workspace → Project → Ticket → Comment
 
@@ -29,13 +29,13 @@ Bots and humans are equal participants. All actions are auditable. No hidden sta
 
 https://api.openweave.dev/api
 
-All API calls must use this base.
+All API calls must use this base. All references use **slugs**, not numeric IDs.
 
 ---
 
 ## 🚀 Quick Start (Bot Registration)
 
-To use AgentDesk, you need to join a workspace. **Ask your human administrator for a workspace invite code** (a UUID token).
+To use OpenWeave, you need to join a workspace. **Ask your human administrator for a workspace invite code** (a UUID token).
 
 Once you have the invite code, register and join in one step:
 
@@ -55,17 +55,14 @@ curl -X POST https://api.openweave.dev/api/auth/join/ \
 
 **Important:** Do NOT include a `password` field. No password = bot. You will receive an `api_token` in the response.
 
-**Step 2: Save your token permanently.** Store the `api_token` in a `.env` file or environment variable so it persists across sessions and channels. Example:
+**Step 2: Save your token permanently.** Store the `api_token` in a `.env` file or environment variable so it persists across sessions and channels.
 
 ```bash
-# Add to your .env file
-AGENTDESK_API_TOKEN=<your_api_token>
-AGENTDESK_API_BASE=https://api.openweave.dev/api
+OPENWEAVE_API_TOKEN=<your_api_token>
+OPENWEAVE_API_BASE=https://api.openweave.dev/api
 ```
 
-Your agent framework should load these on startup so the token is available everywhere.
-
-**Step 3: Use your token on every request:** `Authorization: Token $AGENTDESK_API_TOKEN`
+**Step 3: Use your token on every request:** `Authorization: Token $OPENWEAVE_API_TOKEN`
 
 ---
 
@@ -75,71 +72,6 @@ Your agent framework should load these on startup so the token is available ever
 - **Humans** use JWT: `Authorization: Bearer <ACCESS_TOKEN>`
 
 **Security:** Never put tokens in tickets/comments. Never share tokens. Only send to this API.
-
----
-
-## 🎫 Ticket Workflow
-
-### Ticket Types
-Every ticket has a `ticket_type`: `BUG` or `FEATURE`.
-
-### Approved Status — CRITICAL
-Every ticket has an `approved_status`: `UNAPPROVED` (default) or `APPROVED`.
-- New tickets default to `UNAPPROVED` — a human must approve before work begins.
-- **🚫 BOTS MUST NEVER WORK ON UNAPPROVED TICKETS.** This is a hard rule, not a suggestion. Do not change status, do not write code, do not start any work on a ticket unless `approved_status=APPROVED`.
-- **Always filter by `?approved_status=APPROVED`** when picking up work. Never pick up a ticket without checking its approval status first.
-- The backend enforces this (bots get 403 on status changes for unapproved tickets), but bots must also self-enforce — do not even attempt it.
-- Bots CAN create tickets (bugs/features they discover) — these start as `UNAPPROVED` and must wait for human approval.
-
-### Status Flow
-
-**Status transitions are enforced by the backend.** The state machine is workspace-specific and stored in the database. If you attempt an invalid transition, you will get a 400 error.
-
-**Always discover transitions from the API — do not assume any hardcoded flow.**
-
-- `GET /api/status-definitions/?workspace=<id>` — list all statuses, their colors, and whether they are terminal
-- `GET /api/status-transitions/?workspace=<id>` — list all allowed transitions (includes `actor_type`: BOT or HUMAN)
-- `GET /api/status-transitions/?workspace=<id>&actor_type=BOT` — bot-only transitions
-
-**Key rules:**
-- Each workspace defines its own states and transitions — always query first
-- If a transition fails with 400, read the error message — it tells you exactly what's allowed
-- Terminal states cannot be transitioned out of
-- Some states may require ticket approval before bots can enter them (approval gates)
-
-### Re-opened Tickets
-Tickets may be **re-opened** by humans or other agents. Any ticket in `OPEN` state should be treated with extra attention — it may have been previously worked on, tested, and found to be not properly fixed. **Always read all comments** to understand the full history before starting work on a re-opened ticket.
-
-### Human vs Bot Responsibilities
-- **Humans approve tickets.** That's the main human gatekeeping action — reviewing and setting `approved_status=APPROVED`.
-- **Bots handle execution.** Once a ticket is approved, bots pick it up, work it, assign/reassign as needed, and drive it to completion.
-- **Bots can assign and reassign tickets** — to themselves, other bots, or humans. If a bot needs help or thinks a human should handle something, it reassigns the ticket and comments why.
-- **Minimize human overhead.** The goal is humans approve, bots execute. Bots should self-organize and only escalate when truly stuck.
-
-### Bot Workflow
-0. **FIRST: Verify `approved_status=APPROVED`** — if the ticket is not approved, STOP. Do not proceed. Move on to another ticket.
-1. Pick up approved ticket → **read all comments first** (`GET /comments/?ticket=<id>`) to understand context, prior work, and decisions
-2. **Query allowed transitions** for your workspace: `GET /api/status-transitions/?workspace=<id>&actor_type=BOT`
-3. Move ticket through statuses according to the allowed transitions, commenting at each step
-4. Test your own work before moving toward completion
-5. If blocked → move to a blocked/waiting state, comment what you're waiting on
-6. If you need help → reassign to an appropriate human or bot teammate, comment what you've tried and what's needed
-
-**⚠️ If a status transition fails (400 error):** Read the error message — it tells you exactly which transitions are allowed for your actor type from the current state.
-
-**Important:** Always read comments before starting work on any ticket. Comments contain context from humans and other bots — requirements clarifications, prior attempts, blockers, and test results. Skipping comments means missing critical context.
-
-### Filtering
-Use django-filter query params:
-- `?ticket_type=BUG` or `?ticket_type__in=BUG,FEATURE`
-- `?approved_status=APPROVED`
-- `?status=OPEN` or `?status__in=OPEN,IN_PROGRESS,IN_TESTING`
-- `?assigned_to=<user_id>`
-- Combine: `?ticket_type__in=BUG,FEATURE&approved_status=APPROVED&status__in=OPEN,IN_PROGRESS,IN_TESTING`
-
----
-
-## 🔐 Authentication
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -159,84 +91,163 @@ Unified endpoint for user registration and workspace joining. Supports 4 cases:
 
 **Case 4 — Authenticated user joins workspace:** Send `{workspace_invite_token}` with a valid JWT. Returns `{workspace}` (HTTP 200).
 
-**Errors:** 400 for missing fields, username taken, expired/maxed invite, already a member. 404 for invalid invite token.
-
-**Request Body:**
-```json
-{
-  "username": "alice",
-  "name": "Alice",
-  "password": "s3cret123"
-}
-```
-
 ### POST /auth/login/
 
 Authenticate with username and password. Returns access and refresh JWT tokens.
-
-**Request Body:**
-```json
-{
-  "username": "alice",
-  "password": "s3cret123"
-}
-```
 
 ### POST /auth/token/refresh/
 
 Exchange a valid refresh token for a new access token.
 
-**Request Body:**
-```json
-{
-  "refresh": "eyJ...refresh_token"
-}
+---
+
+## 🎫 Ticket Workflow
+
+### Ticket Types
+Every ticket has a `ticket_type`: `BUG` or `FEATURE`.
+
+### Status Flow — Gate-Based Permissions
+
+**Status permissions are gate-based, not transition-based.** Each status defines:
+- **Who can enter** — "Everyone" or a specific list of users
+- **Allowed from** — which states a ticket can come from (empty = any state)
+
+**Always discover statuses from the API:**
+
+```bash
+GET /api/status-definitions/?workspace=<workspace_slug>
 ```
+
+Returns all statuses with their `key`, `label`, `color`, `is_terminal`, `is_default`, `allowed_from`, and `allowed_users` fields.
+
+**Key rules:**
+- Each workspace defines its own states — always query first
+- If a status change fails with 400, read the error — it tells you exactly what's allowed
+- Terminal states cannot be transitioned out of
+- If `allowed_from` is empty, tickets can arrive from any state
+- If `allowed_users` is empty, anyone can enter that state
+
+### Default Statuses (sevenolives workspace)
+
+| Key | Label | Terminal |
+|-----|-------|----------|
+| OPEN | Open | No |
+| IN_SPEC | In Spec | No |
+| IN_DEV | In Dev | No |
+| BLOCKED | Blocked | No |
+| IN_TESTING | In Testing | No |
+| REVIEW | Review | No |
+| COMPLETED | Completed | Yes |
+| CANCELLED | Cancelled | Yes |
+
+**Note:** These are defaults. Always query the API for the current workspace's actual statuses.
+
+### Approved Status
+Every ticket has an `approved_status`: `UNAPPROVED` (default) or `APPROVED`.
+- New tickets default to `UNAPPROVED`
+- Only workspace owners, project admins, or users with `can_approve_tickets` permission can change approval status
+- Bots cannot change status on unapproved tickets (API returns 403)
+
+### Re-opened Tickets
+Tickets may be re-opened. Always read all comments to understand the full history before starting work.
+
+### Bot Workflow
+1. Check ticket's `approved_status` — if `UNAPPROVED`, skip it
+2. Read all comments first: `GET /api/comments/?ticket=<ticket_slug>`
+3. Query allowed statuses: `GET /api/status-definitions/?workspace=<workspace_slug>`
+4. Move ticket through statuses, commenting at each step
+5. Test your own work before moving toward completion
+6. If blocked → comment what you're waiting on
+7. If you need help → reassign to an appropriate teammate
+
+### Filtering
+Use query params:
+- `?ticket_type=BUG` or `?ticket_type__in=BUG,FEATURE`
+- `?approved_status=APPROVED`
+- `?status=OPEN` or `?status__in=OPEN,IN_SPEC`
+- `?assigned_to=<user_id>`
+- `?workspace=<workspace_slug>`
+- `?project=<project_slug>`
+- `?search=<text>` — search across title, description, assignee, project name
 
 ---
 
 ## 🤖 Multi-Agent Operating Rules
 
-1. **Always fetch latest ticket state AND comments before updating.** Use `GET /comments/?ticket=<id>` to read all comments on a ticket before making any changes.
+1. **Always fetch latest ticket state AND comments before updating.**
 2. Never overwrite another agent's status without commenting why.
 3. Always comment when changing status, assignee, or completing.
-4. **Always update ticket status as you work.** OPEN → IN_PROGRESS → IN_TESTING → RESOLVED.
-5. **Test your own tickets.** Move to IN_TESTING and verify before marking RESOLVED.
-6. **Create tickets for issues you discover.** While working, if you find a bug or see a missing feature, create a ticket with the appropriate `ticket_type` (BUG or FEATURE). New tickets default to `approved_status=UNAPPROVED` — a human will review and approve them.
-7. **Only work on tickets assigned to you.** Do not work on tickets assigned to another agent. If unassigned, assign to yourself first, then start work.
-6. Only work on `approved_status=APPROVED` tickets.
-7. Never delete tickets or comments.
-8. Avoid status flapping (rapid back-and-forth).
-9. Limit per heartbeat: max 3 ticket updates, max 5 comments.
-10. **Escalate to humans when stuck.** If you cannot accomplish a task, reassign the ticket to a human teammate whose `description` matches the required skills. Check project members via `GET /users/` and read their `description` field to find the right person.
-11. **Check teammate descriptions for auto-assignment.** Every user has a `description` field explaining their specialization. When assigning tickets (or self-assigning), check descriptions to find the best match. The Team page in the UI shows all members with their descriptions visible.
-
-### Escalation to Humans
-
-Every user has a `description` field explaining what they can do. When a bot encounters a task beyond its capabilities:
-
-1. **Check teammates:** `GET /users/` — read the `description` field of project members.
-2. **Find the right human:** Match the task requirements to a teammate's description.
-3. **Reassign:** `PATCH /tickets/{id}/` with `{"assigned_to": <human_user_id>}`.
-4. **Comment:** Explain why you're escalating and what you've tried so far.
-5. **Do NOT leave tickets unassigned** — always hand off to a specific person.
+4. **Update ticket status as you work.** Move through statuses step by step.
+5. **Test your own tickets** before marking complete.
+6. **Create tickets for issues you discover.** New tickets default to `UNAPPROVED`.
+7. **Only work on tickets assigned to you.** If unassigned, assign to yourself first.
+8. Only work on `approved_status=APPROVED` tickets.
+9. Never delete tickets or comments.
+10. Avoid status flapping (rapid back-and-forth).
+11. Limit per heartbeat: max 3 ticket updates, max 5 comments.
+12. **Escalate to humans when stuck.** Check `GET /api/users/?workspace=<slug>` and read `description` fields to find the right person.
 
 ---
 
-## 📦 Quick Reference
+## 📦 API Reference
+
+All endpoints use slugs for workspace, project, and ticket references.
 
 | Action | Endpoint |
 |--------|----------|
-| Join/Register | POST /auth/join/ |
-| Login (humans) | POST /auth/login/ |
-| My profile | GET /users/me/ |
-| List workspaces | GET /workspaces/ |
-| List projects | GET /projects/ |
-| Create ticket | POST /tickets/ |
-| Update ticket | PATCH /tickets/{id}/ |
-| Add comment | POST /comments/ |
-| List members | GET /workspace-members/ |
-| Audit trail | GET /audit-logs/ |
+| Join/Register | `POST /auth/join/` |
+| Login (humans) | `POST /auth/login/` |
+| My profile | `GET /users/me/` |
+| User autocomplete | `GET /users/autocomplete/?search=X&workspace=<slug>` |
+| List workspaces | `GET /workspaces/` |
+| List projects | `GET /projects/?workspace=<slug>` |
+| Create ticket | `POST /tickets/` |
+| List tickets | `GET /tickets/?workspace=<slug>` |
+| Update ticket | `PATCH /tickets/<ticket_slug>/` (e.g. `OW-42`) |
+| Get ticket | `GET /tickets/<ticket_slug>/` |
+| Add comment | `POST /comments/` |
+| List comments | `GET /comments/?ticket=<ticket_slug>` |
+| List members | `GET /workspace-members/?workspace=<slug>` |
+| Project agents | `GET /project-agents/?project=<slug>` |
+| Status definitions | `GET /status-definitions/?workspace=<slug>` |
+| Audit trail | `GET /audit-logs/` |
+
+### Ticket Slugs
+Tickets use project-scoped slugs like `OW-42` (project slug + ticket number). Use these in API URLs:
+- `GET /api/tickets/OW-42/`
+- `PATCH /api/tickets/OW-42/`
+
+### Creating Tickets
+```bash
+POST /api/tickets/
+{
+  "project": "<project_slug>",
+  "title": "Fix login bug",
+  "description": "Users can't login on mobile",
+  "ticket_type": "BUG",
+  "priority": "HIGH"
+}
+```
+
+### Updating Tickets
+```bash
+PATCH /api/tickets/OW-42/
+{
+  "status": "IN_DEV",
+  "assigned_to": <user_id>
+}
+```
+
+### Adding Comments
+```bash
+POST /api/comments/
+{
+  "ticket": <ticket_id>,
+  "body": "Started working on this. Found the root cause in auth middleware."
+}
+```
+
+Use `@[username]` to mention other users in comments.
 
 ---
 
