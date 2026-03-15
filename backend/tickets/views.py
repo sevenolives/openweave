@@ -12,17 +12,17 @@ from drf_spectacular.types import OpenApiTypes
 from rest_framework import serializers as drf_serializers
 from .models import (
     User, Project, Ticket, Comment, AuditLog, ProjectAgent, Workspace,
-    WorkspaceMember, WorkspaceInvite, TicketAttachment, StatusDefinition, StatusTransition,
-    BlogPost, MediaFile, TransitionException,
+    WorkspaceMember, WorkspaceInvite, TicketAttachment, StatusDefinition,
+    BlogPost, MediaFile,
 )
 from .serializers import (
     UserSerializer, ProjectSerializer, TicketSerializer,
     CommentSerializer, AuditLogSerializer,
     WorkspaceSerializer, WorkspaceMemberSerializer, WorkspaceInviteSerializer,
     JoinRequestSerializer, TicketAttachmentSerializer, ProjectAgentSerializer,
-    StatusDefinitionSerializer, StatusTransitionSerializer,
+    StatusDefinitionSerializer,
     BlogPostListSerializer, BlogPostDetailSerializer, BlogPostCreateSerializer,
-    MediaFileSerializer, TransitionExceptionSerializer,
+    MediaFileSerializer,
 )
 from .permissions import (
     IsAdminAgent, IsAdminOrReadOnly, IsAdminOrOwner, is_admin_or_owner,
@@ -565,34 +565,25 @@ class TicketViewSet(viewsets.ModelViewSet):
                 from rest_framework.exceptions import PermissionDenied
                 raise PermissionDenied("Bots cannot change status on unapproved tickets. A human must approve first.")
 
+        # Single query for project agent permissions
+        workspace = instance.project.workspace if instance.project else None
+        pa = ProjectAgent.objects.filter(project=instance.project, agent=user).values('role', 'can_approve_tickets').first()
+        is_project_admin = pa and pa['role'] == 'ADMIN'
+        can_approve = pa and pa['can_approve_tickets']
+
         # Validate approved_status changes — only superusers, workspace owners, project admins, or delegated approvers
         if 'approved_status' in serializer.validated_data:
             new_approval = serializer.validated_data['approved_status']
             if new_approval != instance.approved_status:
-                workspace = instance.project.workspace if instance.project else None
                 has_approval_permission = (
                     user.is_superuser
                     or is_admin_or_owner(user, workspace)
-                    or ProjectAgent.objects.filter(
-                        project=instance.project, agent=user, role='ADMIN'
-                    ).exists()
-                    or ProjectAgent.objects.filter(
-                        project=instance.project, agent=user, can_approve_tickets=True
-                    ).exists()
+                    or is_project_admin
+                    or can_approve
                 )
                 if not has_approval_permission:
                     from rest_framework.exceptions import PermissionDenied
                     raise PermissionDenied("You do not have permission to change ticket approval status.")
-
-        # Non-admin users can only update tickets assigned to them
-        # Project admins and workspace owners can update any ticket in their project
-        is_project_admin = ProjectAgent.objects.filter(
-            project=instance.project, agent=user, role='ADMIN'
-        ).exists()
-        workspace = instance.project.workspace if instance.project else None
-        can_approve = ProjectAgent.objects.filter(
-            project=instance.project, agent=user, can_approve_tickets=True
-        ).exists()
         if not user.is_superuser and not is_admin_or_owner(user, workspace) and not is_project_admin and not can_approve:
             # Allow assignment changes or approval changes even if not currently assigned
             allowed_fields = {'assigned_to', 'approved_status'}
@@ -771,12 +762,10 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
         ws_ids = set(list(member_ws) + list(owned_ws))
         if not ws_ids:
             return qs.none()
-        # Get project and ticket IDs in these workspaces
-        project_ids = Project.objects.filter(workspace_id__in=ws_ids).values_list('id', flat=True)
-        ticket_ids = Ticket.objects.filter(project_id__in=project_ids).values_list('id', flat=True)
+        # Use subqueries instead of materializing IDs into Python lists
         return qs.filter(
-            Q(entity_type='Project', entity_id__in=project_ids) |
-            Q(entity_type='Ticket', entity_id__in=ticket_ids) |
+            Q(entity_type='Project', entity_id__in=Project.objects.filter(workspace_id__in=ws_ids).values('id')) |
+            Q(entity_type='Ticket', entity_id__in=Ticket.objects.filter(project__workspace_id__in=ws_ids).values('id')) |
             Q(entity_type='Workspace', entity_id__in=ws_ids) |
             Q(performed_by=user)
         )
@@ -889,8 +878,11 @@ class WorkspaceMemberViewSet(viewsets.ModelViewSet):
     queryset = WorkspaceMember.objects.all()
     serializer_class = WorkspaceMemberSerializer
     permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [DjangoFilterBackend]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_class = WorkspaceMemberFilter
+    search_fields = ['user__username', 'user__email', 'user__name']
+    ordering_fields = ['user__username', 'joined_at']
+    ordering = ['user__username']
     http_method_names = ['get', 'patch', 'delete', 'head', 'options']
 
     @extend_schema(
@@ -1001,7 +993,6 @@ class StatusDefinitionViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def get_queryset(self):
-        from django.db.models import Exists, OuterRef, Q
         qs = StatusDefinition.objects.all()
         # Filter by workspace slug
         ws_slug = self.request.query_params.get('workspace')
@@ -1012,15 +1003,7 @@ class StatusDefinitionViewSet(viewsets.ModelViewSet):
             member_ws = WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True)
             owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
             qs = qs.filter(workspace_id__in=set(list(member_ws) + list(owned_ws)))
-        # Annotate in_use to avoid N+1 queries in serializer
-        qs = qs.annotate(
-            _in_use=Exists(
-                Ticket.objects.filter(
-                    project__workspace_id=OuterRef('workspace_id'),
-                    status=OuterRef('key'),
-                )
-            )
-        ).prefetch_related('allowed_from', 'allowed_users')
+        qs = qs.prefetch_related('allowed_from', 'allowed_users')
         return qs
 
     def check_object_permissions(self, request, obj):
@@ -1039,7 +1022,6 @@ class StatusDefinitionViewSet(viewsets.ModelViewSet):
         serializer.save()
 
     def perform_destroy(self, instance):
-        from django.db import models as db_models
         # Cannot delete if tickets use this status
         in_use = Ticket.objects.filter(
             project__workspace=instance.workspace, status=instance.key
@@ -1053,83 +1035,6 @@ class StatusDefinitionViewSet(viewsets.ModelViewSet):
         if instance.is_default:
             from rest_framework.exceptions import ValidationError
             raise ValidationError("Cannot delete the default status.")
-        StatusTransition.objects.filter(
-            db_models.Q(from_status=instance) | db_models.Q(to_status=instance)
-        ).delete()
-        instance.delete()
-
-
-@extend_schema(tags=['statuses'])
-class StatusTransitionViewSet(viewsets.ModelViewSet):
-    """Manage status transitions (state machine edges)."""
-    queryset = StatusTransition.objects.select_related('from_status', 'to_status')
-    serializer_class = StatusTransitionSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdminOrReadOnly]
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['actor_type', 'from_status', 'to_status']
-    http_method_names = ['get', 'post', 'delete', 'head', 'options']
-
-    def get_queryset(self):
-        qs = StatusTransition.objects.select_related('from_status', 'to_status')
-        # Filter by workspace slug
-        ws_slug = self.request.query_params.get('workspace')
-        if ws_slug:
-            qs = qs.filter(workspace__slug=ws_slug)
-        user = self.request.user
-        if user.is_superuser:
-            return qs
-        from django.db.models import Q
-        member_ws = WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True)
-        owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
-        return qs.filter(workspace_id__in=set(list(member_ws) + list(owned_ws)))
-
-    def check_object_permissions(self, request, obj):
-        super().check_object_permissions(request, obj)
-        if request.method not in ('GET', 'HEAD', 'OPTIONS'):
-            if obj.workspace.owner == request.user:
-                return
-            if not is_admin_or_owner(request.user, obj.workspace):
-                self.permission_denied(request)
-
-    def perform_create(self, serializer):
-        workspace = serializer.validated_data.get('workspace')
-        if workspace and not is_admin_or_owner(self.request.user, workspace):
-            from rest_framework.exceptions import PermissionDenied
-            raise PermissionDenied("Only workspace owners can manage transitions.")
-        serializer.save()
-
-
-@extend_schema(tags=['statuses'])
-class TransitionExceptionViewSet(viewsets.ModelViewSet):
-    """Manage transition exceptions — allow specific users/types to bypass blocked transitions."""
-    queryset = TransitionException.objects.select_related('from_status', 'to_status', 'user', 'created_by')
-    serializer_class = TransitionExceptionSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = {'workspace__slug': ['exact']}
-    http_method_names = ['get', 'post', 'delete', 'head', 'options']
-
-    def get_queryset(self):
-        qs = TransitionException.objects.select_related('from_status', 'to_status', 'user', 'created_by')
-        user = self.request.user
-        if user.is_superuser:
-            return qs
-        from django.db.models import Q
-        member_ws = WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True)
-        owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
-        return qs.filter(workspace_id__in=set(list(member_ws) + list(owned_ws)))
-
-    def perform_create(self, serializer):
-        workspace = serializer.validated_data.get('workspace')
-        if workspace and not is_admin_or_owner(self.request.user, workspace):
-            from rest_framework.exceptions import PermissionDenied
-            raise PermissionDenied("Only workspace admins can create transition exceptions.")
-        serializer.save(created_by=self.request.user)
-
-    def perform_destroy(self, instance):
-        if not is_admin_or_owner(self.request.user, instance.workspace):
-            from rest_framework.exceptions import PermissionDenied
-            raise PermissionDenied("Only workspace admins can delete transition exceptions.")
         instance.delete()
 
 
@@ -1205,14 +1110,19 @@ class DashboardView(APIView):
 
         recent = tickets.select_related('project', 'assigned_to', 'created_by').order_by('-updated_at')[:8]
 
+        total_tickets = sum(status_counts.values())
+        completed_today = tickets.filter(resolved_at__date=today).count()
+        # my_tickets count comes from the my_assigned query (already filtered)
+        my_tickets_count = tickets.filter(assigned_to=request.user).exclude(status__in=terminal_keys).count()
+
         return Response({
-            'total_tickets': tickets.count(),
+            'total_tickets': total_tickets,
             'status_counts': status_counts,
             'statuses': StatusDefinitionSerializer(status_defs, many=True).data,
-            'completed_today': tickets.filter(resolved_at__date=today).count(),
+            'completed_today': completed_today,
             'total_projects': total_projects,
             'total_members': total_members,
-            'my_tickets': tickets.filter(assigned_to=request.user).exclude(status__in=terminal_keys).count(),
+            'my_tickets': my_tickets_count,
             'recent_tickets': TicketSerializer(recent, many=True).data,
             'my_assigned': TicketSerializer(my_assigned, many=True).data,
         })

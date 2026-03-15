@@ -6,9 +6,9 @@ from .views import (
     UserViewSet, ProjectViewSet, TicketViewSet,
     CommentViewSet, AuditLogViewSet,
     WorkspaceViewSet, WorkspaceMemberViewSet, WorkspaceInviteViewSet,
-    TicketAttachmentViewSet, StatusDefinitionViewSet, StatusTransitionViewSet,
+    TicketAttachmentViewSet, StatusDefinitionViewSet,
     ProjectAgentViewSet, JoinView, DashboardView, BlogPostViewSet,
-    MediaFileViewSet, TransitionExceptionViewSet,
+    MediaFileViewSet,
 )
 from .billing import (
     CreateCheckoutSessionView, StripeWebhookView,
@@ -26,11 +26,9 @@ router.register(r'workspace-members', WorkspaceMemberViewSet)
 router.register(r'invites', WorkspaceInviteViewSet)
 router.register(r'attachments', TicketAttachmentViewSet)
 router.register(r'status-definitions', StatusDefinitionViewSet)
-router.register(r'status-transitions', StatusTransitionViewSet)
 router.register(r'project-agents', ProjectAgentViewSet)
 router.register(r'blog', BlogPostViewSet, basename='blog')
 router.register(r'media', MediaFileViewSet, basename='media')
-router.register(r'transition-exceptions', TransitionExceptionViewSet)
 
 
 # Schema overrides for SimpleJWT views

@@ -2,8 +2,8 @@ from rest_framework import serializers
 from .permissions import is_admin_or_owner
 from .models import (
     User, Project, Ticket, Comment, AuditLog, Workspace, WorkspaceMember,
-    WorkspaceInvite, TicketAttachment, StatusDefinition, StatusTransition, ProjectAgent,
-    BlogPost, MediaFile, TransitionException,
+    WorkspaceInvite, TicketAttachment, StatusDefinition, ProjectAgent,
+    BlogPost, MediaFile,
 )
 
 
@@ -276,25 +276,29 @@ class TicketSerializer(serializers.ModelSerializer):
                     user = request.user
 
                     try:
-                        target_status_def = StatusDefinition.objects.get(workspace_id=ws_id, key=new_status)
+                        target_status_def = StatusDefinition.objects.prefetch_related(
+                            'allowed_from', 'allowed_users'
+                        ).get(workspace_id=ws_id, key=new_status)
                     except StatusDefinition.DoesNotExist:
                         raise serializers.ValidationError({'status': f"Invalid status '{new_status}'."})
 
-                    # 1. Check allowed_from (path enforcement)
-                    if target_status_def.allowed_from.exists():
+                    # 1. Check allowed_from (path enforcement) — uses prefetched cache
+                    allowed_from_list = list(target_status_def.allowed_from.all())
+                    if allowed_from_list:
                         try:
                             current_status_def = StatusDefinition.objects.get(workspace_id=ws_id, key=old_status)
                         except StatusDefinition.DoesNotExist:
                             current_status_def = None
-                        if current_status_def not in target_status_def.allowed_from.all():
-                            allowed_sources = list(target_status_def.allowed_from.values_list('key', flat=True))
+                        if current_status_def not in allowed_from_list:
+                            allowed_sources = [s.key for s in allowed_from_list]
                             raise serializers.ValidationError({
                                 'status': f'Cannot move from {old_status} to {new_status}. '
                                           f'Allowed from: {", ".join(allowed_sources)}.'
                             })
 
-                    # 2. Check allowed_users
-                    if target_status_def.allowed_users.exists() and not target_status_def.allowed_users.filter(id=user.id).exists():
+                    # 2. Check allowed_users — uses prefetched cache
+                    allowed_users_list = list(target_status_def.allowed_users.all())
+                    if allowed_users_list and not any(u.id == user.id for u in allowed_users_list):
                         raise serializers.ValidationError({
                             'status': f'You are not allowed to move tickets to {new_status}.'
                         })
@@ -366,7 +370,6 @@ class AuditLogSerializer(serializers.ModelSerializer):
 class StatusDefinitionSerializer(serializers.ModelSerializer):
     """Serializer for StatusDefinition — workspace-level status config."""
     workspace = serializers.SlugRelatedField(slug_field='slug', queryset=Workspace.objects.all())
-    in_use = serializers.SerializerMethodField(help_text="Whether any tickets use this status")
     allowed_from = serializers.PrimaryKeyRelatedField(
         many=True, queryset=StatusDefinition.objects.all(), required=False,
     )
@@ -377,20 +380,11 @@ class StatusDefinitionSerializer(serializers.ModelSerializer):
     class Meta:
         model = StatusDefinition
         fields = ['id', 'workspace', 'key', 'label', 'color', 'is_terminal', 'is_default',
-                  'position', 'in_use',
+                  'position',
                   'allowed_from', 'allowed_users', 'allowed_users_details']
-        read_only_fields = ['in_use']
         extra_kwargs = {
             'key': {'help_text': 'Unique status key within workspace, e.g. IN_PROGRESS.'},
         }
-
-    def get_in_use(self, obj):
-        # Prefer annotated value from queryset (single query) over per-row lookup
-        if hasattr(obj, '_in_use'):
-            return obj._in_use
-        return Ticket.objects.filter(
-            project__workspace=obj.workspace, status=obj.key
-        ).exists()
 
     def validate_key(self, value):
         # Key must be uppercase alphanumeric with underscores
@@ -413,65 +407,6 @@ class StatusDefinitionSerializer(serializers.ModelSerializer):
         if allowed_users is not None:
             instance.allowed_users.set(allowed_users)
         return instance
-
-
-class StatusTransitionSerializer(serializers.ModelSerializer):
-    """Serializer for StatusTransition — allowed status transitions."""
-    workspace = serializers.SlugRelatedField(slug_field='slug', queryset=Workspace.objects.all())
-    from_status_key = serializers.CharField(source='from_status.key', read_only=True)
-    to_status_key = serializers.CharField(source='to_status.key', read_only=True)
-
-    class Meta:
-        model = StatusTransition
-        fields = ['id', 'workspace', 'from_status', 'to_status', 'from_status_key', 'to_status_key', 'actor_type']
-        extra_kwargs = {
-            'from_status': {'help_text': 'Source StatusDefinition ID.'},
-            'to_status': {'help_text': 'Target StatusDefinition ID.'},
-            'actor_type': {'help_text': 'BOT, HUMAN, or ALL.'},
-        }
-
-    def validate(self, data):
-        # Ensure both statuses belong to the same workspace
-        ws = data.get('workspace') or (self.instance.workspace if self.instance else None)
-        from_s = data.get('from_status') or (self.instance.from_status if self.instance else None)
-        to_s = data.get('to_status') or (self.instance.to_status if self.instance else None)
-        if from_s and to_s:
-            if from_s == to_s:
-                raise serializers.ValidationError("Cannot transition to the same status.")
-            if from_s.workspace_id != ws.id or to_s.workspace_id != ws.id:
-                raise serializers.ValidationError("Both statuses must belong to the specified workspace.")
-        return data
-
-
-class TransitionExceptionSerializer(serializers.ModelSerializer):
-    """Serializer for TransitionException."""
-    workspace = serializers.SlugRelatedField(slug_field='slug', queryset=Workspace.objects.all())
-    from_status_key = serializers.CharField(source='from_status.key', read_only=True)
-    to_status_key = serializers.CharField(source='to_status.key', read_only=True)
-    from_status_label = serializers.CharField(source='from_status.label', read_only=True)
-    to_status_label = serializers.CharField(source='to_status.label', read_only=True)
-    user_details = UserSimpleSerializer(source='user', read_only=True)
-    created_by_details = UserSimpleSerializer(source='created_by', read_only=True)
-
-    class Meta:
-        model = TransitionException
-        fields = [
-            'id', 'workspace', 'from_status', 'to_status', 'from_status_key', 'to_status_key',
-            'from_status_label', 'to_status_label', 'exception_type', 'user', 'user_details',
-            'reason', 'created_by', 'created_by_details', 'created_at',
-        ]
-        read_only_fields = ['id', 'created_by', 'created_at']
-
-    def validate(self, data):
-        ws = data.get('workspace') or (self.instance.workspace if self.instance else None)
-        from_s = data.get('from_status')
-        to_s = data.get('to_status')
-        if from_s and to_s:
-            if from_s == to_s:
-                raise serializers.ValidationError("From and to status must be different.")
-            if from_s.workspace_id != ws.id or to_s.workspace_id != ws.id:
-                raise serializers.ValidationError("Both statuses must belong to the specified workspace.")
-        return data
 
 
 class BlogPostListSerializer(serializers.ModelSerializer):

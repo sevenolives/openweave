@@ -284,6 +284,10 @@ class Ticket(models.Model):
     resolved_at = models.DateTimeField(null=True, blank=True)
     closed_at = models.DateTimeField(null=True, blank=True)
     
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._original_status = self.status
+
     @property
     def ticket_slug(self):
         """Return project-scoped slug like SA-1."""
@@ -296,8 +300,7 @@ class Ticket(models.Model):
         Set timestamp fields on status changes using StatusDefinition.is_terminal.
         """
         if self.pk:
-            old_ticket = Ticket.objects.get(pk=self.pk)
-            old_status = old_ticket.status
+            old_status = self._original_status
             
             if old_status != self.status:
                 # Check if new status is terminal via StatusDefinition
@@ -324,6 +327,13 @@ class Ticket(models.Model):
     class Meta:
         db_table = 'tickets'
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['status'], name='idx_ticket_status'),
+            models.Index(fields=['project', 'status'], name='idx_ticket_project_status'),
+            models.Index(fields=['assigned_to'], name='idx_ticket_assigned_to'),
+            models.Index(fields=['created_at'], name='idx_ticket_created_at'),
+            models.Index(fields=['resolved_at'], name='idx_ticket_resolved_at'),
+        ]
 
 
 class TicketAttachment(models.Model):
@@ -380,6 +390,9 @@ class AuditLog(models.Model):
     class Meta:
         db_table = 'audit_logs'
         ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['entity_type', 'entity_id'], name='idx_audit_entity'),
+        ]
 
 
 # Signal handlers for audit logging
