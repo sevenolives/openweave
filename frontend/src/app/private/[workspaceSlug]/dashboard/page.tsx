@@ -44,7 +44,7 @@ export default function DashboardPage() {
       .then(setData)
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [currentWorkspace?.id]);
+  }, [currentWorkspace?.slug]);
 
   const priorityColors: Record<string, string> = {
     LOW: 'bg-green-100 text-green-700', MEDIUM: 'bg-yellow-100 text-yellow-700',
@@ -181,9 +181,9 @@ export default function DashboardPage() {
                     <div className="px-5 py-8 text-center text-sm text-gray-400">No tickets assigned to you</div>
                   ) : (
                     data.my_assigned.map((ticket: Ticket) => (
-                      <button key={ticket.id} onClick={() => router.push(`/private/${workspaceSlug}/tickets/${ticket.ticket_slug || ticket.id}`)} className="w-full px-5 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left">
+                      <button key={ticket.ticket_slug} onClick={() => router.push(`/private/${workspaceSlug}/tickets/${ticket.ticket_slug}`)} className="w-full px-5 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left">
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{ticket.ticket_slug || `#${ticket.id}`} {ticket.title}</p>
+                          <p className="text-sm font-medium text-gray-900 truncate">{ticket.ticket_slug} {ticket.title}</p>
                           <p className="text-xs text-gray-500">{ticket.project_name}</p>
                         </div>
                         <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${priorityColors[ticket.priority]}`}>{ticket.priority}</span>
@@ -203,9 +203,9 @@ export default function DashboardPage() {
                     <div className="px-5 py-8 text-center text-sm text-gray-400">No recent activity</div>
                   ) : (
                     data.recent_tickets.map((ticket: Ticket) => (
-                      <button key={ticket.id} onClick={() => router.push(`/private/${workspaceSlug}/tickets/${ticket.ticket_slug || ticket.id}`)} className="w-full px-5 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left">
+                      <button key={ticket.ticket_slug} onClick={() => router.push(`/private/${workspaceSlug}/tickets/${ticket.ticket_slug}`)} className="w-full px-5 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left">
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{ticket.ticket_slug || `#${ticket.id}`} {ticket.title}</p>
+                          <p className="text-sm font-medium text-gray-900 truncate">{ticket.ticket_slug} {ticket.title}</p>
                           <p className="text-xs text-gray-400">{new Date(ticket.updated_at).toLocaleString()}</p>
                         </div>
                         <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${statusBadgeClass(data.statuses, ticket.status)}`}>{ticket.status.replace(/_/g, ' ')}</span>

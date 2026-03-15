@@ -579,30 +579,14 @@ class TicketViewSet(viewsets.ModelViewSet):
         instance = serializer.instance
         user = self.request.user
 
-        # APPROVAL GATE REMOVED: Any user can change status if allowed by status transitions
-
         # Single query for project agent permissions
         workspace = instance.project.workspace if instance.project else None
-        pa = ProjectAgent.objects.filter(project=instance.project, agent=user).values('role', 'can_approve_tickets').first()
+        pa = ProjectAgent.objects.filter(project=instance.project, agent=user).values('role').first()
         is_project_admin = pa and pa['role'] == 'ADMIN'
-        can_approve = pa and pa['can_approve_tickets']
 
-        # Validate approved_status changes — only superusers, workspace owners, project admins, or delegated approvers
-        if 'approved_status' in serializer.validated_data:
-            new_approval = serializer.validated_data['approved_status']
-            if new_approval != instance.approved_status:
-                has_approval_permission = (
-                    user.is_superuser
-                    or is_admin_or_owner(user, workspace)
-                    or is_project_admin
-                    or can_approve
-                )
-                if not has_approval_permission:
-                    from rest_framework.exceptions import PermissionDenied
-                    raise PermissionDenied("You do not have permission to change ticket approval status.")
-        if not user.is_superuser and not is_admin_or_owner(user, workspace) and not is_project_admin and not can_approve:
-            # Allow assignment changes or approval changes even if not currently assigned
-            allowed_fields = {'assigned_to', 'approved_status'}
+        if not user.is_superuser and not is_admin_or_owner(user, workspace) and not is_project_admin:
+            # Allow assignment changes even if not currently assigned
+            allowed_fields = {'assigned_to'}
             only_allowed = set(serializer.validated_data.keys()) <= allowed_fields
             if instance.assigned_to_id != user.id and not only_allowed:
                 from rest_framework.exceptions import PermissionDenied
@@ -868,14 +852,14 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
     def _seed_default_statuses(workspace):
         """Seed default status definitions with gate-based permissions for a new workspace."""
         defaults = [
-            {'key': 'OPEN', 'label': 'Open', 'color': 'gray', 'is_terminal': False, 'is_default': True, 'position': 0},
-            {'key': 'IN_SPEC', 'label': 'In Spec', 'color': 'blue', 'is_terminal': False, 'is_default': False, 'position': 1},
-            {'key': 'IN_DEV', 'label': 'In Dev', 'color': 'cyan', 'is_terminal': False, 'is_default': False, 'position': 2},
-            {'key': 'BLOCKED', 'label': 'Blocked', 'color': 'red', 'is_terminal': False, 'is_default': False, 'position': 3},
-            {'key': 'IN_TESTING', 'label': 'In Testing', 'color': 'purple', 'is_terminal': False, 'is_default': False, 'position': 4},
-            {'key': 'REVIEW', 'label': 'Review', 'color': 'amber', 'is_terminal': False, 'is_default': False, 'position': 5},
-            {'key': 'COMPLETED', 'label': 'Completed', 'color': 'green', 'is_terminal': True, 'is_default': False, 'position': 6},
-            {'key': 'CANCELLED', 'label': 'Cancelled', 'color': 'gray', 'is_terminal': True, 'is_default': False, 'position': 7},
+            {'key': 'OPEN', 'label': 'Open', 'color': 'gray', 'is_default': True, 'position': 0},
+            {'key': 'IN_SPEC', 'label': 'In Spec', 'color': 'blue', 'is_default': False, 'position': 1},
+            {'key': 'IN_DEV', 'label': 'In Dev', 'color': 'cyan', 'is_default': False, 'position': 2},
+            {'key': 'BLOCKED', 'label': 'Blocked', 'color': 'red', 'is_default': False, 'position': 3},
+            {'key': 'IN_TESTING', 'label': 'In Testing', 'color': 'purple', 'is_default': False, 'position': 4},
+            {'key': 'REVIEW', 'label': 'Review', 'color': 'amber', 'is_default': False, 'position': 5},
+            {'key': 'COMPLETED', 'label': 'Completed', 'color': 'green', 'is_default': False, 'position': 6},
+            {'key': 'CANCELLED', 'label': 'Cancelled', 'color': 'gray', 'is_default': False, 'position': 7},
         ]
         for d in defaults:
             StatusDefinition.objects.create(workspace=workspace, **d)
@@ -1112,7 +1096,6 @@ class DashboardView(APIView):
 
         # Dynamic status counts from StatusDefinition
         status_defs = StatusDefinition.objects.filter(workspace_id=ws_id).order_by('position')
-        terminal_keys = [sd.key for sd in status_defs if sd.is_terminal]
 
         # Single query for all status counts instead of N queries
         from django.db.models import Count
@@ -1123,16 +1106,14 @@ class DashboardView(APIView):
         total_projects = Project.objects.filter(workspace_id=ws_id).count()
         total_members = WorkspaceMember.objects.filter(workspace_id=ws_id).count() + 1
 
-        my_assigned = tickets.filter(assigned_to=request.user).exclude(
-            status__in=terminal_keys
+        my_assigned = tickets.filter(assigned_to=request.user
         ).select_related('project', 'assigned_to', 'created_by').order_by('-updated_at')[:5]
 
         recent = tickets.select_related('project', 'assigned_to', 'created_by').order_by('-updated_at')[:8]
 
         total_tickets = sum(status_counts.values())
         completed_today = tickets.filter(resolved_at__date=today).count()
-        # my_tickets count comes from the my_assigned query (already filtered)
-        my_tickets_count = tickets.filter(assigned_to=request.user).exclude(status__in=terminal_keys).count()
+        my_tickets_count = tickets.filter(assigned_to=request.user).count()
 
         return Response({
             'total_tickets': total_tickets,

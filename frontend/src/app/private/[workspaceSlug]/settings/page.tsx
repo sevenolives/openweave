@@ -91,7 +91,7 @@ function StateMachineSettings({
         style: {
           background: 'white',
           border: `2px solid ${color}`,
-          borderRadius: s.is_terminal ? '20px' : '8px',
+          borderRadius: '8px',
           padding: '6px 12px',
           fontSize: '12px',
           fontWeight: 600,
@@ -216,9 +216,6 @@ function StateMachineSettings({
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
             <button onClick={() => !s.is_default && handleSetDefault(s)} style={badgeStyle(s.is_default, '#eab308')}>
               {s.is_default ? '⭐ Default' : 'Set Default'}
-            </button>
-            <button onClick={() => handleUpdateStatus(s.id, { is_terminal: !s.is_terminal })} style={badgeStyle(s.is_terminal, '#22c55e')}>
-              {s.is_terminal ? '🏁 Terminal' : 'Non-terminal'}
             </button>
           </div>
 
@@ -498,7 +495,6 @@ export default function WorkspaceSettingsPage() {
         key: autoKey,
         label: newStatusLabel,
         color: newStatusColor,
-        is_terminal: newStatusTerminal,
         is_default: false,
         position: statuses.length,
       });

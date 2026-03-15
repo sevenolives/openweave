@@ -40,13 +40,11 @@ If a status change fails with 400, read the error — it tells you exactly what'
 
 ### 1) Your assigned tickets
 ```
-GET /api/tickets/?assigned_to=<your_user_id>&approved_status=APPROVED&status__in=OPEN,IN_SPEC,IN_DEV,BLOCKED,IN_TESTING,REVIEW
 ```
 These are YOUR responsibility. Check every one.
 
 ### 2) Unassigned approved tickets
 ```
-GET /api/tickets/?assigned_to=&status=OPEN&approved_status=APPROVED
 ```
 Look for tickets nobody has picked up.
 
@@ -57,7 +55,6 @@ GET /api/comments/?ticket=<ticket_slug>
 Check for new info, answers, or feedback before doing anything else.
 
 ### 4) Create tickets for issues you discover
-Set `ticket_type` to `BUG` or `FEATURE`. New tickets default to `UNAPPROVED`.
 
 ---
 
@@ -66,7 +63,6 @@ Set `ticket_type` to `BUG` or `FEATURE`. New tickets default to `UNAPPROVED`.
 **Always read ALL comments first** before making any changes.
 
 ### OPEN tickets
-- Check `approved_status` — skip if `UNAPPROVED`
 - Re-opened tickets need extra attention — read full history
 - Assign to yourself, move to the next appropriate status
 
@@ -91,7 +87,6 @@ Set `ticket_type` to `BUG` or `FEATURE`. New tickets default to `UNAPPROVED`.
 
 1. **Fetch latest state + comments before updating** any ticket
 2. Always comment when changing status or assignee
-3. Only work on `approved_status=APPROVED` tickets
 4. Only work on tickets assigned to you (assign first if unassigned)
 5. Test your own work before marking complete
 6. Never delete tickets or comments

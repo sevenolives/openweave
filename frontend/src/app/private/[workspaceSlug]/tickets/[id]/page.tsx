@@ -63,7 +63,7 @@ export default function TicketDetailPage() {
 
   useEffect(() => {
     if (currentWorkspace) api.getStatusDefinitions(currentWorkspace.slug).then(setStatuses).catch(() => {});
-  }, [currentWorkspace?.id]);
+  }, [currentWorkspace?.slug]);
 
   const fetchData = async () => {
     try {
@@ -76,7 +76,7 @@ export default function TicketDetailPage() {
         setAgents(pAgents); setProjectAgents(pAgents);
       } catch { setAgents([]); setProjectAgents([]); }
       setEditTitle(t.title); setEditDesc(t.description); setEditStatus(t.status);
-      setEditPriority(t.priority); setEditTicketType(t.ticket_type); setEditApproval(t.approved_status); setEditAssigned(t.assigned_to?.toString() || '');
+      setEditPriority(t.priority); setEditTicketType(t.ticket_type); setEditAssigned(t.assigned_to?.toString() || '');
     } catch (e: any) { toast(e?.message || 'Failed to load ticket', 'error'); }
     finally { setLoading(false); }
   };
@@ -86,7 +86,7 @@ export default function TicketDetailPage() {
   const handleStatusChange = async (status: string) => {
     if (!ticket) return;
     try {
-      await api.updateTicket(ticket.id, { status: status as Ticket['status'] });
+      await api.updateTicket(ticket.ticket_slug, { status: status as Ticket['status'] });
       setTicket({ ...ticket, status: status as Ticket['status'] });
       toast('Status updated');
     } catch (e: any) { toast(e?.message || 'Failed to update status', 'error'); }
@@ -97,9 +97,9 @@ export default function TicketDetailPage() {
     setSaving(true);
     setFieldErrors({});
     try {
-      const updated = await api.updateTicket(ticket.id, {
+      const updated = await api.updateTicket(ticket.ticket_slug, {
         title: editTitle, description: editDesc,
-        status: editStatus as Ticket['status'], priority: editPriority as Ticket['priority'], ticket_type: editTicketType as Ticket['ticket_type'], approved_status: editApproval as Ticket['approved_status'],
+        status: editStatus as Ticket['status'], priority: editPriority as Ticket['priority'], ticket_type: editTicketType as Ticket['ticket_type'],
         assigned_to: editAssigned ? parseInt(editAssigned) : null,
       });
       setTicket(updated); setEditing(false);
@@ -128,7 +128,7 @@ export default function TicketDetailPage() {
   const handleDelete = async () => {
     if (!ticket) return;
     try {
-      await api.deleteTicket(ticket.id);
+      await api.deleteTicket(ticket.ticket_slug);
       toast('Ticket deleted');
       router.back();
     } catch (e: any) { toast(e?.message || 'Failed to delete ticket', 'error'); }
@@ -173,11 +173,7 @@ export default function TicketDetailPage() {
                           <option value="BUG">🐛 Bug</option><option value="FEATURE">✨ Feature</option>
                         </select>
                       </FormField>
-                      <FormField label="Approved Status" error={fieldErrors.approved_status}>
-                        <select value={editApproval} onChange={e => setEditApproval(e.target.value)} className={selectClass(fieldErrors.approved_status)}>
-                          <option value="UNAPPROVED">Unapproved</option><option value="APPROVED">✓ Approved</option>
-                        </select>
-                      </FormField>
+                      {/* approval field removed */}
                     </div>
                     <FormField label="Assigned To" error={fieldErrors.assigned_to}>
                       <select value={editAssigned} onChange={e => setEditAssigned(e.target.value)} className={selectClass(fieldErrors.assigned_to)}>
@@ -195,7 +191,7 @@ export default function TicketDetailPage() {
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs text-gray-400">{ticket.ticket_slug || `#${ticket.id}`}</span>
+                          <span className="text-xs text-gray-400">{ticket.ticket_slug}</span>
                           <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${statusBadge(statuses, ticket.status)}`}>{statuses.find(s => s.key === ticket.status)?.label || ticket.status.replace(/_/g, ' ')}</span>
                           <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${PRIORITY_COLORS[ticket.priority]}`}>{ticket.priority}</span>
                         </div>
@@ -228,28 +224,7 @@ export default function TicketDetailPage() {
                       </div>
                     </div>
 
-                    {/* Quick approved status toggle */}
-                    <div className="mt-4">
-                      <label className="block text-xs font-medium text-gray-500 mb-2">Approved Status</label>
-                      <div className="flex gap-2">
-                        {(['UNAPPROVED', 'APPROVED'] as const).map(s => (
-                          <button key={s} onClick={async () => {
-                            try {
-                              const updated = await api.updateTicket(ticket.id, { approved_status: s });
-                              setTicket(updated);
-                              toast(`Marked as ${s.toLowerCase()}`);
-                            } catch (e: any) { toast(e?.message || 'Failed to update', 'error'); }
-                          }}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                              ticket.approved_status === s
-                                ? (s === 'APPROVED' ? 'bg-green-100 text-green-700 ring-2 ring-offset-1 ring-green-400' : 'bg-yellow-100 text-yellow-700 ring-2 ring-offset-1 ring-yellow-400')
-                                : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
-                            }`}>
-                            {s === 'APPROVED' ? '✓ Approved' : 'Unapproved'}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                    {/* approval toggle removed */}
                   </>
                 )}
               </div>
@@ -440,10 +415,7 @@ export default function TicketDetailPage() {
                     <dt className="text-xs font-medium text-gray-500 mb-1">Type</dt>
                     <dd><span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700">{ticket.ticket_type === 'BUG' ? '🐛 Bug' : '✨ Feature'}</span></dd>
                   </div>
-                  <div>
-                    <dt className="text-xs font-medium text-gray-500 mb-1">Approved Status</dt>
-                    <dd><span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${ticket.approved_status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{ticket.approved_status === 'APPROVED' ? '✓ Approved' : 'Unapproved'}</span></dd>
-                  </div>
+                  {/* approved status removed */}
                   <div>
                     <dt className="text-xs font-medium text-gray-500 mb-1">Project</dt>
                     <dd><button onClick={() => router.push(`/private/${workspaceSlug}/projects/${ticket.project}`)} className="text-sm text-indigo-600 hover:text-indigo-800 font-medium">{ticket.project_name}</button></dd>
@@ -485,7 +457,7 @@ export default function TicketDetailPage() {
                   onChange={async (e) => {
                     const val = e.target.value;
                     try {
-                      const updated = await api.updateTicket(ticket.id, { assigned_to: val ? parseInt(val) : null });
+                      const updated = await api.updateTicket(ticket.ticket_slug, { assigned_to: val ? parseInt(val) : null });
                       setTicket(updated);
                       toast('Assignment updated');
                     } catch (e: any) { toast(e?.message || 'Failed to assign', 'error'); }

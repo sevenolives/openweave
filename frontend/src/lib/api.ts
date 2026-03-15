@@ -48,7 +48,6 @@ export interface Ticket {
   status: 'OPEN' | 'IN_PROGRESS' | 'BLOCKED' | 'IN_TESTING' | 'REVIEW' | 'COMPLETED' | 'CANCELLED';
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   ticket_type: 'BUG' | 'FEATURE';
-  approved_status: 'UNAPPROVED' | 'APPROVED';
   assigned_to: number | null;
   assigned_to_details: User | null;
   created_by: number;
@@ -72,10 +71,10 @@ export interface TicketAttachment {
 
 export interface Comment {
   id: number;
-  ticket: number;
+  ticket: number | string;
   author: number;
   author_details: User;
-  ticket_details?: { id: number; ticket_slug: string; title: string };
+  ticket_details?: { ticket_slug: string; title: string };
   body: string;
   created_at: string;
   updated_at: string;
@@ -96,7 +95,6 @@ export interface ProjectAgentMembership {
   project: string;
   user: User;
   role: 'ADMIN' | 'MEMBER';
-  can_approve_tickets: boolean;
   joined_at: string;
 }
 
@@ -138,7 +136,6 @@ export interface StatusDefinition {
   key: string;
   label: string;
   color: string;
-  is_terminal: boolean;
   is_default: boolean;
   position: number;
   in_use?: boolean; // deprecated — removed from API
@@ -376,7 +373,7 @@ class ApiClient {
     });
   }
 
-  async updateProjectAgent(membershipId: number, data: Partial<Pick<ProjectAgentMembership, 'role' | 'can_approve_tickets'>>): Promise<ProjectAgentMembership> {
+  async updateProjectAgent(membershipId: number, data: Partial<Pick<ProjectAgentMembership, 'role'>>): Promise<ProjectAgentMembership> {
     return this.request<ProjectAgentMembership>(`/project-agents/${membershipId}/`, {
       method: 'PATCH',
       body: JSON.stringify(data),

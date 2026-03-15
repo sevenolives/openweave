@@ -119,7 +119,7 @@ class StatusDefinition(models.Model):
     key = models.CharField(max_length=30, help_text="Immutable key, e.g. IN_PROGRESS")
     label = models.CharField(max_length=50, help_text="Display label, e.g. 'In Progress'")
     color = models.CharField(max_length=30, default='gray', help_text="Color token, e.g. 'blue', 'red', '#ff0000'")
-    is_terminal = models.BooleanField(default=False, help_text="Terminal states cannot transition out")
+    is_terminal = models.BooleanField(default=False, help_text="Deprecated — terminal state concept removed")
     is_default = models.BooleanField(default=False, help_text="Default status for new tickets")
     position = models.PositiveIntegerField(default=0, help_text="Display order")
     allowed_users = models.ManyToManyField('User', blank=True, related_name='enterable_statuses',
@@ -226,7 +226,7 @@ class ProjectAgent(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
     agent = models.ForeignKey("User", on_delete=models.CASCADE)
     role = models.CharField(max_length=10, choices=PROJECT_ROLES, default='MEMBER')
-    can_approve_tickets = models.BooleanField(default=False, help_text="Whether this agent can approve tickets in this project")
+    can_approve_tickets = models.BooleanField(default=False, help_text="Deprecated — approval gates removed")
     joined_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
@@ -255,11 +255,6 @@ class Ticket(models.Model):
         ('FEATURE', 'Feature'),
     ]
 
-    APPROVAL_STATUS_CHOICES = [
-        ('UNAPPROVED', 'Unapproved'),
-        ('APPROVED', 'Approved'),
-    ]
-    
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='tickets')
     ticket_number = models.PositiveIntegerField(null=True, blank=True, help_text="Project-scoped ticket number")
     title = models.CharField(max_length=500)
@@ -267,7 +262,7 @@ class Ticket(models.Model):
     status = models.CharField(max_length=30, default='OPEN')
     priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='MEDIUM')
     ticket_type = models.CharField(max_length=20, choices=TICKET_TYPE_CHOICES, default='BUG')
-    approved_status = models.CharField(max_length=20, choices=APPROVAL_STATUS_CHOICES, default='UNAPPROVED')
+    approved_status = models.CharField(max_length=20, default='UNAPPROVED', help_text="Deprecated — approval gates removed")
     
     # Assignment - one agent or null
     assigned_to = models.ForeignKey(
@@ -295,24 +290,6 @@ class Ticket(models.Model):
             return f"{self.project.slug}-{self.ticket_number}"
         return f"#{self.pk}" if self.pk else None
 
-    def clean(self):
-        """
-        Set timestamp fields on status changes using StatusDefinition.is_terminal.
-        """
-        if self.pk:
-            old_status = self._original_status
-            
-            if old_status != self.status:
-                # Check if new status is terminal via StatusDefinition
-                ws_id = self.project.workspace_id if self.project and self.project.workspace_id else None
-                if ws_id:
-                    is_terminal = StatusDefinition.objects.filter(
-                        workspace_id=ws_id, key=self.status, is_terminal=True
-                    ).exists()
-                    if is_terminal:
-                        self.resolved_at = self.resolved_at or timezone.now()
-                        self.closed_at = timezone.now()
-    
     def save(self, *args, **kwargs):
         if not self.ticket_number and self.project_id:
             from django.db.models import Max

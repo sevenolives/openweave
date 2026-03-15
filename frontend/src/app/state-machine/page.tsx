@@ -28,7 +28,7 @@ interface WorkflowState {
   key: string;
   label: string;
   color: ColorName;
-  is_terminal: boolean;
+
   is_default: boolean;
   pos: number;
 }
@@ -61,13 +61,13 @@ const ACTOR_COLORS: Record<ActorType, string> = {
 };
 
 const DEFAULT_STATES: WorkflowState[] = [
-  { id: 1, key: 'OPEN', label: 'Open', color: 'gray', is_terminal: false, is_default: true, pos: 0 },
-  { id: 2, key: 'IN_PROGRESS', label: 'In Progress', color: 'blue', is_terminal: false, is_default: false, pos: 1 },
-  { id: 3, key: 'BLOCKED', label: 'Blocked', color: 'red', is_terminal: false, is_default: false, pos: 2 },
-  { id: 4, key: 'IN_TESTING', label: 'In Testing', color: 'purple', is_terminal: false, is_default: false, pos: 3 },
-  { id: 5, key: 'REVIEW', label: 'Review', color: 'amber', is_terminal: false, is_default: false, pos: 4 },
-  { id: 6, key: 'COMPLETED', label: 'Completed', color: 'green', is_terminal: true, is_default: false, pos: 5 },
-  { id: 7, key: 'CANCELLED', label: 'Cancelled', color: 'gray', is_terminal: true, is_default: false, pos: 6 },
+  { id: 1, key: 'OPEN', label: 'Open', color: 'gray', is_default: true, pos: 0 },
+  { id: 2, key: 'IN_PROGRESS', label: 'In Progress', color: 'blue', is_default: false, pos: 1 },
+  { id: 3, key: 'BLOCKED', label: 'Blocked', color: 'red', is_default: false, pos: 2 },
+  { id: 4, key: 'IN_TESTING', label: 'In Testing', color: 'purple', is_default: false, pos: 3 },
+  { id: 5, key: 'REVIEW', label: 'Review', color: 'amber', is_default: false, pos: 4 },
+  { id: 6, key: 'COMPLETED', label: 'Completed', color: 'green', is_default: false, pos: 5 },
+  { id: 7, key: 'CANCELLED', label: 'Cancelled', color: 'gray', is_default: false, pos: 6 },
 ];
 
 const DEFAULT_TRANSITIONS: Transition[] = [
@@ -102,7 +102,7 @@ function buildNodes(states: WorkflowState[], transitions: Transition[]): Node[] 
       style: {
         background: 'white',
         border: `2px solid ${color}`,
-        borderRadius: s.is_terminal ? '20px' : '8px',
+        borderRadius: '8px',
         padding: '6px 12px',
         fontSize: '12px',
         fontWeight: 600,
@@ -196,20 +196,7 @@ export default function StateMachinePage() {
   }, []);
 
   /* Bot reachability */
-  const humanOnlyTerminals = useMemo(() => {
-    const botTr = transitions.filter((t) => t.actor === 'BOT' || t.actor === 'ALL');
-    const def = states.find((s) => s.is_default);
-    if (!def) return [];
-    const reached = new Set<number>();
-    const q = [def.id];
-    while (q.length) {
-      const c = q.shift()!;
-      botTr.forEach((t) => {
-        if (t.from === c && !reached.has(t.to)) { reached.add(t.to); q.push(t.to); }
-      });
-    }
-    return states.filter((s) => s.is_terminal && !reached.has(s.id));
-  }, [states, transitions]);
+  const humanOnlyTerminals: { label: string }[] = [];
 
   /* Actions */
   const setDefaultState = (id: number) => {
@@ -227,7 +214,7 @@ export default function StateMachinePage() {
     }
     const key = trimmed.toUpperCase().replace(/[^A-Z0-9]/g, '_');
     const isFirst = states.length === 0;
-    setStates((p) => [...p, { id: nextStateId, key, label: trimmed, color: newColor, is_terminal: newTerminal, is_default: isFirst, pos: p.length }]);
+    setStates((p) => [...p, { id: nextStateId, key, label: trimmed, color: newColor, is_default: isFirst, pos: p.length }]);
     setNextStateId((n) => n + 1);
     setNewLabel('');
     setNewTerminal(false);
@@ -276,7 +263,7 @@ export default function StateMachinePage() {
 
   const exportConfig = useCallback(() => {
     const config = {
-      states: states.map((s) => ({ key: s.key, label: s.label, color: s.color, is_terminal: s.is_terminal, is_default: s.is_default })),
+      states: states.map((s) => ({ key: s.key, label: s.label, color: s.color, is_default: s.is_default })),
       transitions: transitions.map((t) => {
         const f = states.find((s) => s.id === t.from);
         const to = states.find((s) => s.id === t.to);
@@ -305,7 +292,7 @@ export default function StateMachinePage() {
         const newStates: WorkflowState[] = config.states.map((s: any, i: number) => {
           const nid = 100 + i;
           idMap[s.key] = nid;
-          return { id: nid, key: s.key, label: s.label, color: s.color || 'blue', is_terminal: !!s.is_terminal, is_default: !!s.is_default, pos: i };
+          return { id: nid, key: s.key, label: s.label, color: s.color || 'blue', is_default: !!s.is_default, pos: i };
         });
         const newTr: Transition[] = config.transitions
           .map((t: any, i: number) => ({ id: 200 + i, from: idMap[t.from], to: idMap[t.to], actor: t.actor || 'BOT' }))
@@ -670,26 +657,7 @@ export default function StateMachinePage() {
                       >
                         {s.is_default ? '⭐ Default' : 'Set Default'}
                       </button>
-                      <button
-                        onClick={() => {
-                          setStates((p) => p.map((st) => st.id === s.id ? { ...st, is_terminal: !st.is_terminal } : st));
-                          showToast(`${s.label} is ${s.is_terminal ? 'no longer' : 'now'} terminal`, 'info');
-                        }}
-                        style={{
-                          fontSize: isMobile ? 13 : isSmall ? 12 : 11,
-                          background: s.is_terminal ? 'rgba(39,39,42,0.8)' : 'transparent',
-                          color: s.is_terminal ? '#9ca3af' : '#6b7280',
-                          border: s.is_terminal ? '1px solid #3f3f46' : '1px dashed #3f3f46',
-                          padding: isMobile ? '10px 16px' : isSmall ? '8px 12px' : '6px 10px',
-                          borderRadius: isMobile ? '10px' : '8px',
-                          fontWeight: 600, 
-                          cursor: 'pointer',
-                          minHeight: isMobile ? '40px' : '32px',
-                          transition: 'all 0.2s ease',
-                        }}
-                      >
-                        {s.is_terminal ? '🏁 Terminal' : 'Non-terminal'}
-                      </button>
+                      {/* terminal toggle removed */}
                       <button onClick={() => removeState(s.id)} style={removeBtnStyle}>✕</button>
                     </div>
                   </div>
@@ -760,7 +728,7 @@ export default function StateMachinePage() {
                           }}
                           style={{ ...selectStyle, fontSize: isSmall ? 13 : 12, padding: isSmall ? '0 14px' : '4px 8px', minWidth: isSmall ? 100 : 80, height: isSmall ? 44 : 'auto', minHeight: isSmall ? 44 : 'auto' }}
                         >
-                          {states.filter((s) => !s.is_terminal).map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+                          {states.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
                         </select>
                         <span style={{ color: '#6b7280', fontWeight: 600, fontSize: isSmall ? 16 : 14 }}>→</span>
                         <select
@@ -802,7 +770,7 @@ export default function StateMachinePage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: isSmall ? 8 : 6, flex: isSmall ? 'none' : '1', minWidth: isSmall ? '100%' : 200 }}>
                   <select value={fromId} onChange={(e) => setFromId(e.target.value)} style={{ ...selectStyle, flex: 1 }}>
                     <option value="">From...</option>
-                    {states.filter((s) => !s.is_terminal).map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+                    {states.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
                   </select>
                   <span style={{ color: '#6b7280', fontWeight: 600, fontSize: isSmall ? 16 : 14, flexShrink: 0 }}>→</span>
                   <select value={toId} onChange={(e) => setToId(e.target.value)} style={{ ...selectStyle, flex: 1 }}>

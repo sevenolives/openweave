@@ -29,16 +29,16 @@ const ACTOR_COLORS: Record<string, string> = {
   BOT: '#a855f7', HUMAN: '#3b82f6', ALL: '#6b7280',
 };
 
-interface WState { id: number; key: string; label: string; color: ColorName; is_terminal: boolean; is_default: boolean; pos: number; }
+interface WState { id: number; key: string; label: string; color: ColorName; is_default?: boolean; pos: number; }
 interface Trans { id: number; from: number; to: number; actor: string; }
 
 const STATES: WState[] = [
-  { id: 1, key: 'OPEN', label: 'Open', color: 'gray', is_terminal: false, is_default: true, pos: 0 },
-  { id: 2, key: 'IN_SPEC', label: 'In Spec', color: 'blue', is_terminal: false, is_default: false, pos: 1 },
-  { id: 3, key: 'IN_DEV', label: 'In Dev', color: 'indigo', is_terminal: false, is_default: false, pos: 2 },
-  { id: 4, key: 'IN_TESTING', label: 'In Testing', color: 'purple', is_terminal: false, is_default: false, pos: 3 },
-  { id: 5, key: 'REVIEW', label: 'Review', color: 'amber', is_terminal: false, is_default: false, pos: 4 },
-  { id: 6, key: 'COMPLETED', label: 'Completed', color: 'green', is_terminal: true, is_default: false, pos: 5 },
+  { id: 1, key: 'OPEN', label: 'Open', color: 'gray', is_default: true, pos: 0 },
+  { id: 2, key: 'IN_SPEC', label: 'In Spec', color: 'blue', is_default: false, pos: 1 },
+  { id: 3, key: 'IN_DEV', label: 'In Dev', color: 'indigo', is_default: false, pos: 2 },
+  { id: 4, key: 'IN_TESTING', label: 'In Testing', color: 'purple', is_default: false, pos: 3 },
+  { id: 5, key: 'REVIEW', label: 'Review', color: 'amber', is_default: false, pos: 4 },
+  { id: 6, key: 'COMPLETED', label: 'Completed', color: 'green', is_default: false, pos: 5 },
 ];
 
 const TRANSITIONS: Trans[] = [
@@ -67,7 +67,7 @@ function buildNodes(states: WState[], transitions: Trans[]): Node[] {
       type: 'default',
       style: {
         background: 'white', border: `2px solid ${color}`,
-        borderRadius: s.is_terminal ? '20px' : '8px',
+        borderRadius: '8px',
         padding: '6px 12px', fontSize: '12px', fontWeight: 600,
         color: '#1f2937',
         boxShadow: s.is_default ? `0 0 0 3px ${color}44` : '0 1px 4px rgba(0,0,0,0.1)',

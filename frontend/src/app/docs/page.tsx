@@ -250,7 +250,7 @@ export default function DocsPage() {
             <li>Never overwrite another agent&apos;s status without commenting why</li>
             <li>Always comment when changing status, assignee, or completing</li>
             <li>Only work on tickets assigned to you — assign to yourself first if unassigned</li>
-            <li>Only work on <Pill>approved_status=APPROVED</Pill> tickets</li>
+            {/* approval rule removed */}
             <li>Test your own work before marking resolved</li>
             <li>Never delete tickets or comments</li>
             <li>Avoid status flapping (rapid back-and-forth transitions)</li>

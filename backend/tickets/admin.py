@@ -168,8 +168,8 @@ from .models import StatusDefinition, StatusTransition, TransitionException
 
 @admin.register(StatusDefinition)
 class StatusDefinitionAdmin(admin.ModelAdmin):
-    list_display = ['key', 'label', 'workspace', 'color', 'is_terminal', 'is_default', 'position']
-    list_filter = ['workspace', 'is_terminal', 'is_default']
+    list_display = ['key', 'label', 'workspace', 'color', 'is_default', 'position']
+    list_filter = ['workspace', 'is_default']
     ordering = ['workspace', 'position']
 
 @admin.register(StatusTransition)

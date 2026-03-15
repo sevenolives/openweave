@@ -70,7 +70,7 @@ export default function WorkspacesPage() {
 
         <div className="space-y-3">
           {workspaces.map(ws => (
-            <button key={ws.id} onClick={() => handleSelect(ws)} className="w-full bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow text-left">
+            <button key={ws.slug} onClick={() => handleSelect(ws)} className="w-full bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow text-left">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="font-semibold text-gray-900">{ws.name}</h2>

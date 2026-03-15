@@ -241,7 +241,7 @@ export default function ProjectChatPage() {
                             </span>
                             {comment.ticket_details && (
                               <button
-                                onClick={() => router.push(`/private/${workspaceSlug}/tickets/${comment.ticket_details!.id}`)}
+                                onClick={() => router.push(`/private/${workspaceSlug}/tickets/${comment.ticket_details!.ticket_slug}`)}
                                 className="text-xs font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
                               >
                                 {comment.ticket_details.ticket_slug}: {comment.ticket_details.title}

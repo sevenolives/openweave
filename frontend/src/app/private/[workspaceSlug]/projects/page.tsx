@@ -60,7 +60,7 @@ export default function ProjectsPage() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchProjects(); }, [currentWorkspace?.id, page]);
+  useEffect(() => { fetchProjects(); }, [currentWorkspace?.slug, page]);
 
   useEffect(() => {
     if (!showCreate) return;

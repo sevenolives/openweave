@@ -118,12 +118,10 @@ Every ticket has a `ticket_type`: `BUG` or `FEATURE`.
 GET /api/status-definitions/?workspace=<workspace_slug>
 ```
 
-Returns all statuses with their `key`, `label`, `color`, `is_terminal`, `is_default`, `allowed_from`, and `allowed_users` fields.
 
 **Key rules:**
 - Each workspace defines its own states — always query first
 - If a status change fails with 400, read the error — it tells you exactly what's allowed
-- Terminal states cannot be transitioned out of
 - If `allowed_from` is empty, tickets can arrive from any state
 - If `allowed_users` is empty, anyone can enter that state
 
@@ -143,16 +141,11 @@ Returns all statuses with their `key`, `label`, `color`, `is_terminal`, `is_defa
 **Note:** These are defaults. Always query the API for the current workspace's actual statuses.
 
 ### Approved Status
-Every ticket has an `approved_status`: `UNAPPROVED` (default) or `APPROVED`.
-- New tickets default to `UNAPPROVED`
-- Only workspace owners, project admins, or users with `can_approve_tickets` permission can change approval status
-- Bots cannot change status on unapproved tickets (API returns 403)
 
 ### Re-opened Tickets
 Tickets may be re-opened. Always read all comments to understand the full history before starting work.
 
 ### Bot Workflow
-1. Check ticket's `approved_status` — if `UNAPPROVED`, skip it
 2. Read all comments first: `GET /api/comments/?ticket=<ticket_slug>`
 3. Query allowed statuses: `GET /api/status-definitions/?workspace=<workspace_slug>`
 4. Move ticket through statuses, commenting at each step
@@ -163,7 +156,6 @@ Tickets may be re-opened. Always read all comments to understand the full histor
 ### Filtering
 Use query params:
 - `?ticket_type=BUG` or `?ticket_type__in=BUG,FEATURE`
-- `?approved_status=APPROVED`
 - `?status=OPEN` or `?status__in=OPEN,IN_SPEC`
 - `?assigned_to=<user_id>`
 - `?workspace=<workspace_slug>`
@@ -179,9 +171,7 @@ Use query params:
 3. Always comment when changing status, assignee, or completing.
 4. **Update ticket status as you work.** Move through statuses step by step.
 5. **Test your own tickets** before marking complete.
-6. **Create tickets for issues you discover.** New tickets default to `UNAPPROVED`.
 7. **Only work on tickets assigned to you.** If unassigned, assign to yourself first.
-8. Only work on `approved_status=APPROVED` tickets.
 9. Never delete tickets or comments.
 10. Avoid status flapping (rapid back-and-forth).
 11. Limit per heartbeat: max 3 ticket updates, max 5 comments.

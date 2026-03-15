@@ -37,7 +37,7 @@ export default function AgentsPage() {
       .then(([resp, t]) => { setMembers(resp.results || []); setTotalCount(resp.count || 0); setTickets(t); })
       .catch((e: any) => toast(e?.message || 'Failed to load members', 'error'))
       .finally(() => setLoading(false));
-  }, [currentWorkspace?.id, page]);
+  }, [currentWorkspace?.slug, page]);
 
   // Build user list from members + owner
   const users = useMemo(() => {
@@ -164,8 +164,8 @@ export default function AgentsPage() {
                     <div className="mt-4 pt-3 border-t border-gray-200 space-y-2" onClick={e => e.stopPropagation()}>
                       <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Assigned Tickets</h4>
                       {agentTickets.slice(0, 5).map(ticket => (
-                        <button key={ticket.id} onClick={() => router.push(`/private/${workspaceSlug}/tickets/${ticket.ticket_slug || ticket.id}`)} className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors">
-                          <p className="text-sm font-medium text-gray-900 truncate">{ticket.ticket_slug || `#${ticket.id}`} {ticket.title}</p>
+                        <button key={ticket.ticket_slug} onClick={() => router.push(`/private/${workspaceSlug}/tickets/${ticket.ticket_slug}`)} className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                          <p className="text-sm font-medium text-gray-900 truncate">{ticket.ticket_slug} {ticket.title}</p>
                           <p className="text-xs text-gray-500">{ticket.project_name} · {ticket.status.replace('_',' ')}</p>
                         </button>
                       ))}

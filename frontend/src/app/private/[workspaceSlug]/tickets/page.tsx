@@ -109,8 +109,7 @@ function TicketsPage() {
     if (priorityParam) setFilterPriority(priorityParam);
     const assignedParam = searchParams.get('assigned_to');
     if (assignedParam) setFilterAssigned(assignedParam);
-    const approvedParam = searchParams.get('approved_status');
-    if (approvedParam) setFilterApproved(approvedParam);
+    // approval gates removed
   }, []);
 
   // Sync filters to URL so navigating back preserves context
@@ -121,7 +120,7 @@ function TicketsPage() {
     if (filterStatus) params.set('status', filterStatus);
     if (filterPriority) params.set('priority', filterPriority);
     if (filterAssigned) params.set('assigned_to', filterAssigned);
-    if (filterApproved) params.set('approved_status', filterApproved);
+    // approval filter removed
     const url = params.toString() ? `${basePath}?${params.toString()}` : basePath;
     window.history.replaceState(null, '', url);
   }, [filterProject, filterStatus, filterPriority, filterAssigned, filterApproved, workspaceSlug]);
@@ -131,7 +130,7 @@ function TicketsPage() {
     if (currentWorkspace) {
       api.getStatusDefinitions(currentWorkspace.slug).then(setStatuses).catch(() => {});
     }
-  }, [currentWorkspace?.id]);
+  }, [currentWorkspace?.slug]);
 
   useEffect(() => {
     if (!currentWorkspace) return;
@@ -142,7 +141,6 @@ function TicketsPage() {
     if (filterStatus) ticketParams.status = filterStatus;
     if (filterPriority) ticketParams.priority = filterPriority;
     if (filterAssigned) ticketParams.assigned_to = filterAssigned;
-    if (filterApproved) ticketParams.approved_status = filterApproved;
     if (debouncedSearch) ticketParams.search = debouncedSearch;
     const membersPromise: Promise<User[]> = api.getUsers({ workspace: currentWorkspace.slug });
     Promise.all([api.getTicketsPaginated(ticketParams), api.getProjects(wsParams), membersPromise])
@@ -151,7 +149,7 @@ function TicketsPage() {
       })
       .catch((e: any) => toast(e?.message || 'Failed to load data', 'error'))
       .finally(() => setLoading(false));
-  }, [currentWorkspace?.id, page, filterProject, filterStatus, filterPriority, filterAssigned, filterApproved, debouncedSearch]);
+  }, [currentWorkspace?.slug, page, filterProject, filterStatus, filterPriority, filterAssigned, filterApproved, debouncedSearch]);
 
   // Fetch project agents for all visible projects (for inline assign dropdown)
   useEffect(() => {
@@ -197,7 +195,6 @@ function TicketsPage() {
     if (filterStatus) ticketParams.status = filterStatus;
     if (filterPriority) ticketParams.priority = filterPriority;
     if (filterAssigned) ticketParams.assigned_to = filterAssigned;
-    if (filterApproved) ticketParams.approved_status = filterApproved;
     if (debouncedSearch) ticketParams.search = debouncedSearch;
     Promise.all([api.getTicketsPaginated(ticketParams), api.getProjects(wsParams)])
       .then(([resp, p]) => { setTickets(resp.results || []); setTotalCount(resp.count || 0); setProjects(p); })
@@ -213,7 +210,6 @@ function TicketsPage() {
       await api.createTicket({
         project: newProject, title: newTitle, description: newDesc,
         priority: newPriority as any, ticket_type: newTicketType as any,
-        approved_status: newApproved ? 'APPROVED' : 'UNAPPROVED' as any,
         ...(newAssigned ? { assigned_to: parseInt(newAssigned) } : {}),
       });
       toast('Ticket created');
@@ -339,12 +335,12 @@ function TicketsPage() {
                 {/* Tickets list */}
                 <div className="divide-y divide-gray-100">
                   {groupTickets.map(ticket => (
-                    <div key={ticket.id} onClick={() => router.push(`/private/${workspaceSlug}/tickets/${ticket.ticket_slug || ticket.id}`)} className="px-4 py-3 hover:bg-gray-50 cursor-pointer">
+                    <div key={ticket.ticket_slug} onClick={() => router.push(`/private/${workspaceSlug}/tickets/${ticket.ticket_slug}`)} className="px-4 py-3 hover:bg-gray-50 cursor-pointer">
                       {/* Title row with delete */}
                       <div className="flex items-start gap-2">
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium text-gray-900 leading-snug">
-                            <span className="text-[11px] text-gray-400 font-mono mr-1">{ticket.ticket_slug || `#${ticket.id}`}</span>
+                            <span className="text-[11px] text-gray-400 font-mono mr-1">{ticket.ticket_slug}</span>
                             {ticket.title}
                           </p>
                           {ticket.description && (
@@ -370,20 +366,7 @@ function TicketsPage() {
                         <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${PRIORITY_COLORS[ticket.priority]}`}>
                           {ticket.priority}
                         </span>
-                        <button
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            const newStatus = ticket.approved_status === 'APPROVED' ? 'UNAPPROVED' : 'APPROVED';
-                            try {
-                              const updated = await api.updateTicket(ticket.id, { approved_status: newStatus } as any);
-                              setTickets(prev => prev.map(t => t.id === ticket.id ? updated : t));
-                              toast(`Ticket ${newStatus.toLowerCase()}`);
-                            } catch (err: any) { toast(err?.message || 'Failed to update', 'error'); }
-                          }}
-                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full cursor-pointer transition-all ${ticket.approved_status === 'APPROVED' ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-amber-500 text-white hover:bg-amber-600'}`}
-                        >
-                          {ticket.approved_status === 'APPROVED' ? '✓ Approved' : 'Approve'}
-                        </button>
+                        {/* approval button removed */}
                       </div>
                       {/* Assignee + Status row */}
                       <div className="flex items-center gap-2 mt-1" onClick={e => e.stopPropagation()}>
@@ -392,8 +375,8 @@ function TicketsPage() {
                           onChange={async (e) => {
                             const val = e.target.value;
                             try {
-                              const updated = await api.updateTicket(ticket.id, { assigned_to: val ? parseInt(val) : null });
-                              setTickets(prev => prev.map(t => t.id === ticket.id ? updated : t));
+                              const updated = await api.updateTicket(ticket.ticket_slug, { assigned_to: val ? parseInt(val) : null });
+                              setTickets(prev => prev.map(t => t.ticket_slug === ticket.ticket_slug ? updated : t));
                               toast('Assignment updated');
                             } catch (err: any) { toast(err?.message || 'Failed to assign', 'error'); }
                           }}
@@ -408,8 +391,8 @@ function TicketsPage() {
                           value={ticket.status}
                           onChange={async (e) => {
                             try {
-                              const updated = await api.updateTicket(ticket.id, { status: e.target.value as Ticket['status'] });
-                              setTickets(prev => prev.map(t => t.id === ticket.id ? updated : t));
+                              const updated = await api.updateTicket(ticket.ticket_slug, { status: e.target.value as Ticket['status'] });
+                              setTickets(prev => prev.map(t => t.ticket_slug === ticket.ticket_slug ? updated : t));
                               toast('Status updated');
                             } catch (err: any) { toast(err?.message || 'Failed', 'error'); }
                           }}

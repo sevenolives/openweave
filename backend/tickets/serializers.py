@@ -61,7 +61,7 @@ class ProjectAgentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProjectAgent
-        fields = ['id', 'project', 'user', 'role', 'can_approve_tickets', 'joined_at']
+        fields = ['id', 'project', 'user', 'role', 'joined_at']
         read_only_fields = ['id', 'project', 'user', 'joined_at']
 
 
@@ -72,8 +72,8 @@ class WorkspaceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Workspace
-        fields = ['id', 'name', 'slug', 'owner', 'owner_details', 'member_count', 'created_at']
-        read_only_fields = ['id', 'owner', 'owner_details', 'created_at']
+        fields = ['name', 'slug', 'owner', 'owner_details', 'member_count', 'created_at']
+        read_only_fields = ['owner', 'owner_details', 'created_at']
         extra_kwargs = {
             'name': {'help_text': 'Workspace display name.'},
             'slug': {'help_text': 'URL-friendly identifier.'},
@@ -137,7 +137,7 @@ class ProjectSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Project
-        fields = ['id', 'name', 'slug', 'description', 'workspace', 'created_at', 'updated_at', 'agent_ids']
+        fields = ['name', 'slug', 'description', 'workspace', 'created_at', 'updated_at', 'agent_ids']
         read_only_fields = ['created_at', 'updated_at']
         extra_kwargs = {
             'name': {'help_text': 'Project name.'},
@@ -202,8 +202,8 @@ class TicketSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ticket
         fields = [
-            'id', 'project', 'project_name', 'ticket_slug', 'title', 'description',
-            'status', 'priority', 'ticket_type', 'approved_status', 'assigned_to', 'assigned_to_details',
+            'project', 'project_name', 'ticket_slug', 'title', 'description',
+            'status', 'priority', 'ticket_type', 'assigned_to', 'assigned_to_details',
             'created_by', 'created_by_details', 'created_at', 'updated_at',
             'resolved_at', 'closed_at', 'attachments'
         ]
@@ -312,7 +312,7 @@ class CommentTicketSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Ticket
-        fields = ['id', 'ticket_slug', 'title']
+        fields = ['ticket_slug', 'title']
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -379,7 +379,7 @@ class StatusDefinitionSerializer(serializers.ModelSerializer):
     allowed_users_details = UserSimpleSerializer(source='allowed_users', many=True, read_only=True)
     class Meta:
         model = StatusDefinition
-        fields = ['id', 'workspace', 'key', 'label', 'color', 'is_terminal', 'is_default',
+        fields = ['id', 'workspace', 'key', 'label', 'color', 'is_default',
                   'position',
                   'allowed_from', 'allowed_users', 'allowed_users_details']
         extra_kwargs = {
