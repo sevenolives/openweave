@@ -141,7 +141,7 @@ export interface StatusDefinition {
   is_terminal: boolean;
   is_default: boolean;
   position: number;
-  in_use: boolean;
+  in_use?: boolean; // deprecated — removed from API
   allowed_from: number[];
   allowed_users: number[];
   allowed_users_details: User[];

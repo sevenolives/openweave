@@ -55,6 +55,7 @@ function StateMachineSettings({
 }: StateMachineSettingsProps) {
   const [isMobile, setIsMobile] = useState(false);
   const [savingId, setSavingId] = useState<number | null>(null);
+  const [specificUserMode, setSpecificUserMode] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth <= 640);
@@ -206,7 +207,7 @@ function StateMachineSettings({
               style={{ fontSize: 16, fontWeight: 700, color: 'white', background: 'transparent', border: 'none', outline: 'none', flex: 1, minWidth: 100 }}
             />
             <span style={{ fontSize: 11, color: '#6b7280', fontFamily: 'monospace' }}>{s.key}</span>
-            {!s.in_use && !s.is_default && (
+            {!s.is_default && (
               <button onClick={() => handleDeleteStatus(s)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 16 }}>✕</button>
             )}
           </div>
@@ -226,54 +227,61 @@ function StateMachineSettings({
             {/* Who can enter */}
             <div>
               <label style={labelStyle}>Who can enter</label>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                <button onClick={() => updateLocalStatus(s.id, { allowed_users: [] })}
-                  style={{
-                    ...selectStyle, width: 'auto', padding: '8px 14px', cursor: 'pointer', textAlign: 'center' as const,
-                    background: (!s.allowed_users || s.allowed_users.length === 0) ? 'rgba(79,70,229,0.15)' : 'rgba(24,24,27,0.8)',
-                    borderColor: (!s.allowed_users || s.allowed_users.length === 0) ? '#6366f1' : '#3f3f46',
-                    fontWeight: (!s.allowed_users || s.allowed_users.length === 0) ? 600 : 400,
-                  }}>Everyone</button>
-                <button onClick={() => { if (!s.allowed_users || s.allowed_users.length === 0) updateLocalStatus(s.id, { allowed_users: [] }); }}
-                  style={{
-                    ...selectStyle, width: 'auto', padding: '8px 14px', cursor: 'pointer', textAlign: 'center' as const,
-                    background: (s.allowed_users && s.allowed_users.length > 0) ? 'rgba(79,70,229,0.15)' : 'rgba(24,24,27,0.8)',
-                    borderColor: (s.allowed_users && s.allowed_users.length > 0) ? '#6366f1' : '#3f3f46',
-                    fontWeight: (s.allowed_users && s.allowed_users.length > 0) ? 600 : 400,
-                  }}>Specific users</button>
-              </div>
-              {/* Selected user chips */}
-              {s.allowed_users && s.allowed_users.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-                  {s.allowed_users.map(uid => {
-                    const u = workspaceMembers.find(m => m.id === uid) || s.allowed_users_details?.find((d: User) => d.id === uid);
-                    return (
-                      <span key={uid} style={{
-                        fontSize: 12, padding: '4px 10px', borderRadius: 8, display: 'inline-flex', alignItems: 'center', gap: 6,
-                        background: 'rgba(99,102,241,0.15)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.3)',
-                      }}>
-                        {u ? (u as User).username || (u as User).name : `User #${uid}`}
-                        <button onClick={() => updateLocalStatus(s.id, { allowed_users: s.allowed_users.filter((id: number) => id !== uid) })}
-                          style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1 }}>×</button>
-                      </span>
-                    );
-                  })}
-                </div>
-              )}
-              {/* User picker dropdown — show when in "Specific users" mode */}
-              {(s.allowed_users && s.allowed_users.length > 0 || s.allowed_users?.length === 0) && (
-                <select value="" onChange={(e) => {
-                  const uid = Number(e.target.value);
-                  if (uid && !(s.allowed_users || []).includes(uid)) {
-                    updateLocalStatus(s.id, { allowed_users: [...(s.allowed_users || []), uid] });
-                  }
-                }} style={selectStyle}>
-                  <option value="">+ Add user…</option>
-                  {workspaceMembers.filter(m => !(s.allowed_users || []).includes(m.id)).map(m => (
-                    <option key={m.id} value={m.id}>{m.username} ({m.user_type})</option>
-                  ))}
-                </select>
-              )}
+              {(() => {
+                const isSpecific = (s.allowed_users && s.allowed_users.length > 0) || specificUserMode.has(s.id);
+                return (<>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                    <button onClick={() => {
+                      updateLocalStatus(s.id, { allowed_users: [] });
+                      setSpecificUserMode(prev => { const next = new Set(prev); next.delete(s.id); return next; });
+                    }}
+                      style={{
+                        ...selectStyle, width: 'auto', padding: '8px 14px', cursor: 'pointer', textAlign: 'center' as const,
+                        background: !isSpecific ? 'rgba(79,70,229,0.15)' : 'rgba(24,24,27,0.8)',
+                        borderColor: !isSpecific ? '#6366f1' : '#3f3f46',
+                        fontWeight: !isSpecific ? 600 : 400,
+                      }}>Everyone</button>
+                    <button onClick={() => setSpecificUserMode(prev => new Set(prev).add(s.id))}
+                      style={{
+                        ...selectStyle, width: 'auto', padding: '8px 14px', cursor: 'pointer', textAlign: 'center' as const,
+                        background: isSpecific ? 'rgba(79,70,229,0.15)' : 'rgba(24,24,27,0.8)',
+                        borderColor: isSpecific ? '#6366f1' : '#3f3f46',
+                        fontWeight: isSpecific ? 600 : 400,
+                      }}>Specific users</button>
+                  </div>
+                  {/* Selected user chips + picker — only in specific mode */}
+                  {isSpecific && (<>
+                    {s.allowed_users && s.allowed_users.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                        {s.allowed_users.map(uid => {
+                          const u = workspaceMembers.find(m => m.id === uid) || s.allowed_users_details?.find((d: User) => d.id === uid);
+                          return (
+                            <span key={uid} style={{
+                              fontSize: 12, padding: '4px 10px', borderRadius: 8, display: 'inline-flex', alignItems: 'center', gap: 6,
+                              background: 'rgba(99,102,241,0.15)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.3)',
+                            }}>
+                              {u ? (u as User).username || (u as User).name : `User #${uid}`}
+                              <button onClick={() => updateLocalStatus(s.id, { allowed_users: s.allowed_users.filter((id: number) => id !== uid) })}
+                                style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1 }}>×</button>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <select value="" onChange={(e) => {
+                      const uid = Number(e.target.value);
+                      if (uid && !(s.allowed_users || []).includes(uid)) {
+                        updateLocalStatus(s.id, { allowed_users: [...(s.allowed_users || []), uid] });
+                      }
+                    }} style={selectStyle}>
+                      <option value="">+ Add user…</option>
+                      {workspaceMembers.filter(m => !(s.allowed_users || []).includes(m.id)).map(m => (
+                        <option key={m.id} value={m.id}>{m.username} ({m.user_type})</option>
+                      ))}
+                    </select>
+                  </>)}
+                </>);
+              })()}
             </div>
 
             {/* Allowed from */}
