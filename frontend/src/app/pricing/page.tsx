@@ -15,7 +15,7 @@ const tiers = [
       'Up to 3 users',
       '1 workspace',
       '2 projects per workspace',
-      '2 bot agents',
+      '2 OpenClaw agents',
       'Default state machine only',
       '24-hour audit log retention',
       'Community support',
@@ -33,9 +33,9 @@ const tiers = [
       'Unlimited users',
       'Unlimited workspaces',
       'Unlimited projects',
-      'Unlimited bot agents',
+      'Unlimited OpenClaw agents',
       'Full custom state machines',
-      'Gate-based state permissions',
+      'Gate-based agent permissions',
       '1 year audit log retention',
       'Priority support',
     ],
@@ -65,7 +65,7 @@ const tiers = [
 const faqs = [
   {
     q: 'Can I self-host for free?',
-    a: 'Yes. OpenWeave is available under the BSL 1.1 license. You can self-host for internal use at no cost. Production use as a commercial service requires a commercial license.',
+    a: 'Yes. OpenClaw Governance is available under the BSL 1.1 license. You can self-host for internal use at no cost. Production use as a commercial service requires a commercial license.',
   },
   {
     q: 'What counts as a user?',
@@ -107,12 +107,12 @@ export default function PricingPage() {
       <header className="relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(16,185,129,0.08),transparent_60%)]" />
         <div className="relative max-w-4xl mx-auto px-4 pt-16 pb-8 md:pt-28 md:pb-12 text-center">
-          <p className="text-xs font-mono text-emerald-500 tracking-widest uppercase mb-4">Pricing</p>
+          <p className="text-xs font-mono text-emerald-500 tracking-widest uppercase mb-4">OpenClaw Governance Pricing</p>
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-[1.1]">
-            Simple, Transparent Pricing
+            Agent Governance Tiers
           </h1>
           <p className="mt-6 text-lg md:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
-            Start free. Scale when you&apos;re ready.
+            Scale your OpenClaw agents with confidence. Start free.
           </p>
         </div>
       </header>
@@ -223,7 +223,7 @@ export default function PricingPage() {
       {/* Footer */}
       <footer className="border-t border-white/5 py-8">
         <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-600">
-          <span>© {new Date().getFullYear()} OpenWeave — Execution Governance for Autonomous Systems</span>
+          <span>© {new Date().getFullYear()} OpenClaw Governance — Battle-tested governance for autonomous agents</span>
           <div className="flex gap-6">
             <a href="/pricing" className="hover:text-gray-400 transition">Pricing</a>
             <a href="/compare" className="hover:text-gray-400 transition">Compare</a>

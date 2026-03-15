@@ -40,7 +40,7 @@ const rows: { feature: string; values: [CellValue, CellValue, CellValue, CellVal
   { feature: 'Pricing', values: ['$12/user/mo', '$39/seat/mo', '$0.25/msg', 'Contact us'] },
 ];
 
-const competitors = ['OpenWeave', 'LangSmith', 'Guardrails AI', 'AgentOps'];
+const competitors = ['OpenClaw', 'LangSmith', 'Guardrails AI', 'AgentOps'];
 
 const sections = [
   {
@@ -50,7 +50,7 @@ const sections = [
       </svg>
     ),
     title: 'Enforcement, not observation',
-    desc: "OpenWeave doesn't just tell you what happened. It prevents what shouldn't happen. Your state machine rules are enforced at the API level — bots physically cannot enter states they're not allowed to.",
+    desc: "OpenClaw Governance doesn't just tell you what happened. It prevents what shouldn't happen. Your state machine rules are enforced at the API level — OpenClaw agents physically cannot enter states they're not allowed to.",
   },
   {
     icon: (
@@ -68,7 +68,7 @@ const sections = [
       </svg>
     ),
     title: 'Open source, self-hosted',
-    desc: 'Run OpenWeave in your own infrastructure. No data leaves your network. BSL 1.1 license, converts to Apache 2.0 in 2029.',
+    desc: 'Run OpenClaw Governance in your own infrastructure. No data leaves your network. BSL 1.1 license, converts to Apache 2.0 in 2029.',
   },
 ];
 
@@ -102,7 +102,7 @@ export default function ComparePage() {
             Others observe.<br />We enforce.
           </h1>
           <p className="mt-6 text-lg md:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
-            See how OpenWeave compares to monitoring and observability tools.
+            See how OpenClaw Governance compares to monitoring and observability tools.
           </p>
         </div>
       </header>
@@ -179,7 +179,7 @@ export default function ComparePage() {
       {/* Footer */}
       <footer className="border-t border-white/5 py-8">
         <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-600">
-          <span>© {new Date().getFullYear()} OpenWeave — Execution Governance for Autonomous Systems</span>
+          <span>© {new Date().getFullYear()} OpenClaw Governance — Battle-tested governance for autonomous agents</span>
           <div className="flex gap-6">
             <a href="/pricing" className="hover:text-gray-400 transition">Pricing</a>
             <a href="/compare" className="hover:text-gray-400 transition">Compare</a>

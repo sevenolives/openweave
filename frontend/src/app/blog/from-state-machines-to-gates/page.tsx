@@ -8,8 +8,8 @@ export default function FromStateMachinesToGates() {
     headline: 'From State Machines to Gates: How We Simplified Execution Governance',
     description: 'We built a full state machine transition system with three models and an N×N matrix. Then we replaced it with two fields per state. Here\'s why.',
     datePublished: '2026-03-15T00:00:00Z',
-    author: { '@type': 'Organization', name: 'OpenWeave Team' },
-    publisher: { '@type': 'Organization', name: 'OpenWeave' },
+    author: { '@type': 'Organization', name: 'OpenClaw Governance Team' },
+    publisher: { '@type': 'Organization', name: 'OpenClaw Governance' },
     url: 'https://openweave.dev/blog/from-state-machines-to-gates',
   };
 
@@ -31,7 +31,7 @@ export default function FromStateMachinesToGates() {
             </div>
             <h1 className="text-3xl md:text-4xl font-bold leading-tight">From State Machines to Gates: How We Simplified Execution Governance</h1>
             <div className="mt-4 flex items-center gap-4 text-sm text-gray-500">
-              <span>By OpenWeave Team</span>
+              <span>By OpenClaw Governance Team</span>
               <time dateTime="2026-03-15">March 15, 2026</time>
             </div>
           </header>
@@ -253,7 +253,7 @@ export default function FromStateMachinesToGates() {
             <h2>What This Means for You</h2>
 
             <p>
-              <strong>If you&apos;re already using OpenWeave:</strong> your state machine configuration just got dramatically simpler. The old transition-based system still works — nothing breaks. But we&apos;d encourage you to try the new gate-based approach. Most teams find they can replicate their existing governance rules in a few minutes, and the result is much easier to maintain.
+              <strong>If you&apos;re already using OpenClaw Governance:</strong> your state machine configuration just got dramatically simpler. The old transition-based system still works — nothing breaks. But we&apos;d encourage you to try the new gate-based approach. Most teams find they can replicate their existing governance rules in a few minutes, and the result is much easier to maintain.
             </p>
 
             <p>
@@ -266,7 +266,7 @@ export default function FromStateMachinesToGates() {
 
             <div className="not-prose mt-12 p-6 rounded-xl border border-white/10 bg-white/[0.02]">
               <p className="text-sm text-gray-400">
-                OpenWeave is execution governance for autonomous systems — bots, agents, and AI doing real work inside your workflows.{' '}
+                OpenClaw Governance is execution governance for autonomous systems — bots, agents, and AI doing real work inside your workflows.{' '}
                 <Link href="/" className="text-emerald-400 hover:underline">Learn more →</Link>
               </p>
             </div>
@@ -276,7 +276,7 @@ export default function FromStateMachinesToGates() {
 
       <footer className="border-t border-white/5 py-8 mt-16">
         <div className="max-w-6xl mx-auto px-4 text-center text-xs text-gray-600">
-          © {new Date().getFullYear()} OpenWeave — Execution Governance for Autonomous Systems
+          © {new Date().getFullYear()} OpenClaw Governance — Execution Governance for Autonomous Systems
         </div>
       </footer>
     </div>

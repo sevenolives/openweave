@@ -13,15 +13,15 @@ const policies = [
     sections: [
       {
         heading: 'Purpose',
-        content: 'This policy establishes the framework for protecting OpenWeave information assets, including customer data, system configurations, and audit records.',
+        content: 'This policy establishes the framework for protecting OpenClaw Governance information assets, including customer data, system configurations, and audit records.',
       },
       {
         heading: 'Access Controls',
-        content: 'All access to OpenWeave is authenticated via JWT tokens or API tokens. Every request is scoped to a specific workspace — users and agents can only access data within workspaces they belong to. Workspace-level isolation is enforced at the API layer, not the client.',
+        content: 'All access to OpenClaw Governance is authenticated via JWT tokens or API tokens. Every request is scoped to a specific workspace — users and agents can only access data within workspaces they belong to. Workspace-level isolation is enforced at the API layer, not the client.',
       },
       {
         heading: 'Authentication & Authorization',
-        content: 'OpenWeave supports JWT-based session authentication for human users and token-based authentication for bot agents. All tokens are workspace-scoped. CSRF protection is enabled on all state-changing endpoints. CORS policies restrict cross-origin access to approved domains.',
+        content: 'OpenClaw Governance supports JWT-based session authentication for human users and token-based authentication for bot agents. All tokens are workspace-scoped. CSRF protection is enabled on all state-changing endpoints. CORS policies restrict cross-origin access to approved domains.',
       },
       {
         heading: 'Workspace Isolation',
@@ -39,7 +39,7 @@ const policies = [
     sections: [
       {
         heading: 'Purpose',
-        content: 'This policy governs how changes to OpenWeave systems are proposed, reviewed, approved, and deployed.',
+        content: 'This policy governs how changes to OpenClaw Governance systems are proposed, reviewed, approved, and deployed.',
       },
       {
         heading: 'Version Control',
@@ -65,11 +65,11 @@ const policies = [
     sections: [
       {
         heading: 'Purpose',
-        content: 'This policy defines how access to OpenWeave resources is granted, managed, and revoked.',
+        content: 'This policy defines how access to OpenClaw Governance resources is granted, managed, and revoked.',
       },
       {
         heading: 'User Model',
-        content: 'OpenWeave uses a workspace → project → user hierarchy. Users are members of workspaces and can be assigned to projects within those workspaces. Roles include workspace owner, project admin, and project member.',
+        content: 'OpenClaw Governance uses a workspace → project → user hierarchy. Users are members of workspaces and can be assigned to projects within those workspaces. Roles include workspace owner, project admin, and project member.',
       },
       {
         heading: 'Role-Based Access',
@@ -99,7 +99,7 @@ const policies = [
       },
       {
         heading: 'Detection',
-        content: 'OpenWeave monitors application logs, error rates, and API response times. The immutable audit trail provides forensic evidence of all state changes. Anomalous patterns (e.g., unauthorized transition attempts) are logged and flagged.',
+        content: 'OpenClaw Governance monitors application logs, error rates, and API response times. The immutable audit trail provides forensic evidence of all state changes. Anomalous patterns (e.g., unauthorized transition attempts) are logged and flagged.',
       },
       {
         heading: 'Classification',
@@ -125,7 +125,7 @@ const policies = [
     sections: [
       {
         heading: 'Purpose',
-        content: 'This policy defines how long OpenWeave retains data and how data is securely disposed of.',
+        content: 'This policy defines how long OpenClaw Governance retains data and how data is securely disposed of.',
       },
       {
         heading: 'Audit Logs',
@@ -155,7 +155,7 @@ const policies = [
       },
       {
         heading: 'Data in Transit',
-        content: 'All communication between clients and OpenWeave services is encrypted via TLS 1.2+. HTTPS is enforced on all endpoints — HTTP requests are redirected to HTTPS. API-to-database connections within Railway\'s internal network use encrypted channels.',
+        content: 'All communication between clients and OpenClaw Governance services is encrypted via TLS 1.2+. HTTPS is enforced on all endpoints — HTTP requests are redirected to HTTPS. API-to-database connections within Railway\'s internal network use encrypted channels.',
       },
       {
         heading: 'Data at Rest',
@@ -177,11 +177,11 @@ const policies = [
       },
       {
         heading: 'Infrastructure',
-        content: 'OpenWeave is hosted on Railway, which provides managed infrastructure with automatic scaling, health checks, and zero-downtime deployments. Frontend and backend services run as separate Railway services.',
+        content: 'OpenClaw Governance is hosted on Railway, which provides managed infrastructure with automatic scaling, health checks, and zero-downtime deployments. Frontend and backend services run as separate Railway services.',
       },
       {
         heading: 'Uptime Target',
-        content: 'OpenWeave targets 99.9% monthly uptime for the API and frontend services. Scheduled maintenance windows are communicated in advance when possible.',
+        content: 'OpenClaw Governance targets 99.9% monthly uptime for the API and frontend services. Scheduled maintenance windows are communicated in advance when possible.',
       },
       {
         heading: 'Monitoring',
@@ -241,7 +241,7 @@ export default function PoliciesPage() {
           <p className="text-xs font-mono text-emerald-500 tracking-widest uppercase mb-4">Compliance</p>
           <h1 className="text-3xl md:text-5xl font-bold tracking-tight">Security Policies</h1>
           <p className="mt-4 text-lg text-gray-400 max-w-2xl">
-            OpenWeave is SOC 2 compliant. These policies govern how we protect your data and systems.
+            OpenClaw Governance is SOC 2 compliant. These policies govern how we protect your data and systems.
           </p>
           <p className="mt-3 text-sm text-gray-600">Last updated: {LAST_UPDATED}</p>
         </div>
@@ -317,7 +317,7 @@ export default function PoliciesPage() {
       {/* Footer */}
       <footer className="border-t border-white/5 py-8">
         <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-600">
-          <span>© {new Date().getFullYear()} OpenWeave — Execution Governance for Autonomous Systems</span>
+          <span>© {new Date().getFullYear()} OpenClaw Governance — Execution Governance for Autonomous Systems</span>
           <div className="flex gap-6">
             <a href="/policies" className="hover:text-gray-400 transition">Policies</a>
             <a href="https://api.openweave.dev/api/docs/" className="hover:text-gray-400 transition">API</a>

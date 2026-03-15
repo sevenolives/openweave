@@ -198,12 +198,12 @@ export default function HomePage() {
       <header className="relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(16,185,129,0.08),transparent_60%)]" />
         <div className="relative max-w-4xl mx-auto px-4 pt-16 pb-8 md:pt-28 md:pb-12 text-center">
-          <p className="text-xs font-mono text-emerald-500 tracking-widest uppercase mb-4 landing-fade-in">Execution Governance</p>
+          <p className="text-xs font-mono text-emerald-500 tracking-widest uppercase mb-4 landing-fade-in">OpenClaw Governance</p>
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-[1.1] landing-fade-in" style={{ animationDelay: '.05s' }}>
-            AI Agent Governance<br />for Autonomous Execution.
+            Execution Governance<br />for OpenClaw Agents.
           </h1>
           <p className="mt-6 text-lg md:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed landing-fade-in" style={{ animationDelay: '.1s' }}>
-            OpenWeave enforces deterministic agent execution across humans and AI agents. Every state transition is validated, every action is authorized, every change is auditable — autonomous agent control you can trust.
+            Battle-tested governance for autonomous agents. Others observe. We enforce. Every state transition is validated, every action is authorized, every change is auditable — from the team behind OpenClaw.
           </p>
         </div>
         <div className="relative max-w-4xl mx-auto px-4 pb-10 landing-fade-in" style={{ animationDelay: '.15s' }}>
@@ -255,7 +255,7 @@ export default function HomePage() {
               </ul>
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-emerald-500 uppercase tracking-wider mb-4">OpenWeave</h3>
+              <h3 className="text-sm font-semibold text-emerald-500 uppercase tracking-wider mb-4">OpenClaw Governance</h3>
               <ul className="space-y-3">
                 {[
                   'Enforces allowed state transitions',
@@ -335,7 +335,7 @@ export default function HomePage() {
             <p className="text-red-400">{`{ "status": "BOT cannot transition from IN_PROGRESS to COMPLETED. Allowed: BLOCKED, IN_TESTING, REVIEW, CANCELLED." }`}</p>
           </div>
           <p className="mt-6 text-gray-400 text-sm leading-relaxed">
-            The backend is the sole authority. Clients cannot mutate state directly. Bots must follow transition rules defined in the state machine. Terminal states cannot be corrupted. OpenWeave is a control plane for execution integrity.
+            The backend is the sole authority. Clients cannot mutate state directly. OpenClaw agents must follow transition rules defined in the state machine. Terminal states cannot be corrupted. OpenClaw Governance is a control plane for execution integrity.
           </p>
         </div>
       </Section>
@@ -344,14 +344,15 @@ export default function HomePage() {
       <Section className="py-20 md:py-28 border-t border-white/5 bg-white/[0.01]">
         <div className="max-w-4xl mx-auto px-4">
           <p className="text-xs font-mono text-emerald-500 tracking-widest uppercase mb-4">Built For</p>
-          <h2 className="text-3xl md:text-4xl font-bold">Built for Multi-Agent Coordination</h2>
+          <h2 className="text-3xl md:text-4xl font-bold">Built for OpenClaw Agents</h2>
+          <p className="mt-6 text-lg text-emerald-400 font-medium">Trusted by teams running multi-agent systems in production</p>
           <div className="mt-10 grid gap-3 md:grid-cols-2">
             {[
-              'Organizations deploying internal AI agents',
-              'Engineering teams automating with LLMs',
-              'Regulated environments requiring audit trails',
-              'Companies needing deterministic agent coordination',
-              'Teams running multiple autonomous systems',
+              'Teams running multi-agent OpenClaw systems',
+              'Organizations deploying autonomous OpenClaw bots',
+              'Production environments requiring audit trails',
+              'Companies needing deterministic agent governance',
+              'Teams coordinating multiple OpenClaw agents',
               'Anyone who needs execution control, not just monitoring',
             ].map((t, i) => (
               <div key={i} className="flex items-start gap-3 py-2">
@@ -396,7 +397,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t border-white/5 py-8">
         <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-600">
-          <span>© {new Date().getFullYear()} OpenWeave — Execution Governance for Autonomous Systems</span>
+          <span>© {new Date().getFullYear()} OpenClaw Governance — Battle-tested governance for autonomous agents</span>
           <div className="flex gap-6">
             <a href="/pricing" className="hover:text-gray-400 transition">Pricing</a>
             <a href="/compare" className="hover:text-gray-400 transition">Compare</a>

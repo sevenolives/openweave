@@ -27,7 +27,7 @@ export default function PublicNav() {
   return (
     <nav className="sticky top-0 z-50 bg-gray-950/90 backdrop-blur border-b border-white/5">
       <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-        <Link href="/" className="text-lg font-semibold tracking-tight text-white">OpenWeave</Link>
+        <Link href="/" className="text-lg font-semibold tracking-tight text-white">OpenClaw</Link>
         <div className="hidden sm:flex items-center gap-4">
           {links.map(l => (
             <Link key={l.href} href={l.href} className="text-sm text-gray-500 hover:text-gray-300 transition">{l.label}</Link>

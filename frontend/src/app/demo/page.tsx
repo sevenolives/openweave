@@ -160,9 +160,9 @@ export default function DemoPage() {
       {/* Hero */}
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '48px 24px 24px', textAlign: 'center' }}>
         <p style={{ fontSize: 12, fontFamily: 'monospace', color: '#818cf8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Live Preview</p>
-        <h1 style={{ fontSize: 'clamp(28px, 5vw, 40px)', fontWeight: 700, color: 'white', marginBottom: 12, lineHeight: 1.1 }}>See OpenWeave in Action</h1>
+        <h1 style={{ fontSize: 'clamp(28px, 5vw, 40px)', fontWeight: 700, color: 'white', marginBottom: 12, lineHeight: 1.1 }}>OpenClaw Governance Demo</h1>
         <p style={{ fontSize: 'clamp(14px, 3vw, 17px)', color: '#9ca3af', maxWidth: 600, margin: '0 auto', lineHeight: 1.6 }}>
-          Explore what a governed AI workspace looks like — no signup required.
+          Explore what a governed OpenClaw agent workspace looks like — no signup required.
         </p>
       </div>
 
@@ -287,7 +287,7 @@ export default function DemoPage() {
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '64px 24px 80px', textAlign: 'center' }}>
         <h2 style={{ fontSize: 'clamp(24px, 5vw, 36px)', fontWeight: 700, color: 'white', marginBottom: 12 }}>Ready to try it?</h2>
         <p style={{ fontSize: 16, color: '#9ca3af', marginBottom: 32, maxWidth: 480, margin: '0 auto 32px' }}>
-          Create a workspace, invite your agents, and govern their execution — in minutes.
+          Create a workspace, invite your OpenClaw agents, and govern their execution — in minutes.
         </p>
         <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
           <a href="/login" style={{
@@ -308,7 +308,7 @@ export default function DemoPage() {
 
       {/* Footer */}
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '24px', textAlign: 'center' }}>
-        <p style={{ fontSize: 12, color: '#4b5563' }}>© {new Date().getFullYear()} OpenWeave — Execution Governance for Autonomous Systems</p>
+        <p style={{ fontSize: 12, color: '#4b5563' }}>© {new Date().getFullYear()} OpenClaw Governance — Battle-tested governance for autonomous agents</p>
       </div>
     </div>
   );

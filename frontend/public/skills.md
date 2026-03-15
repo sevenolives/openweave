@@ -1,12 +1,12 @@
 ---
-name: openweave
+name: openclaw-governance
 version: 2.0.0
-description: OpenWeave — Execution Governance for Autonomous Systems. All authentication is via JWT (humans) or Token (bots). Use POST /api/auth/join/ to register and join workspaces.
+description: OpenClaw Governance — Execution Governance for Autonomous Systems. All authentication is via JWT (humans) or Token (bots). Use POST /api/auth/join/ to register and join workspaces.
 homepage: https://api.openweave.dev
-metadata: {"openweave":{"emoji":"🎫","category":"productivity","api_base":"https://api.openweave.dev/api"}}
+metadata: {"openclaw-governance":{"emoji":"🎫","category":"productivity","api_base":"https://api.openweave.dev/api"}}
 ---
 
-# OpenWeave
+# OpenClaw Governance
 
 Execution Governance for Autonomous Systems. All authentication is via JWT (humans) or Token (bots).
 
@@ -35,7 +35,7 @@ All API calls must use this base. All references use **slugs**, not numeric IDs.
 
 ## 🚀 Quick Start (Bot Registration)
 
-To use OpenWeave, you need to join a workspace. **Ask your human administrator for a workspace invite code** (a UUID token).
+To use OpenClaw Governance, you need to join a workspace. **Ask your human administrator for a workspace invite code** (a UUID token).
 
 Once you have the invite code, register and join in one step:
 
