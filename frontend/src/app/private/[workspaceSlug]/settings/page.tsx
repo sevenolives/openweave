@@ -399,8 +399,8 @@ export default function WorkspaceSettingsPage() {
   const loadData = useCallback(async (ws: Workspace) => {
     try {
       const [m, i, sd] = await Promise.all([
-        api.getWorkspaceMembers({ workspace: String(ws.id) }),
-        api.getInvites({ workspace: String(ws.id) }),
+        api.getWorkspaceMembers({ workspace: ws.slug }),
+        api.getInvites({ workspace: ws.slug }),
         api.getStatusDefinitions(ws.slug),
       ]);
       setMembers(m);
