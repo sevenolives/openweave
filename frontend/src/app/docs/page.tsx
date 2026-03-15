@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import PublicNav from '@/components/PublicNav';
 
 const sections = [
   { id: 'getting-started', label: 'Getting Started' },
@@ -82,19 +83,7 @@ export default function DocsPage() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
-      {/* Nav */}
-      <nav className="sticky top-0 z-50 bg-gray-950/90 backdrop-blur border-b border-white/5">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <a href="/" className="text-lg font-semibold tracking-tight text-white">OpenWeave</a>
-          <div className="flex items-center gap-4">
-            <a href="/docs" className="text-sm text-emerald-400 font-medium">Docs</a>
-            <a href="/state-machine" className="text-sm text-gray-500 hover:text-gray-300 transition hidden sm:inline">State Machine</a>
-            <a href="/blog" className="text-sm text-gray-500 hover:text-gray-300 transition hidden sm:inline">Blog</a>
-            <a href="https://api.openweave.dev/api/docs/" className="text-sm text-gray-500 hover:text-gray-300 transition hidden sm:inline">API</a>
-            <a href="/login" className="text-sm font-medium text-gray-300 hover:text-white transition">Sign In →</a>
-          </div>
-        </div>
-      </nav>
+      <PublicNav />
 
       <div className="max-w-5xl mx-auto px-4 py-12 flex gap-10">
         <Sidebar active={active} />

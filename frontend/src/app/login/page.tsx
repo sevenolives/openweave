@@ -3,6 +3,7 @@
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import PublicNav from '@/components/PublicNav';
 
 function LoginForm() {
   const [mode, setMode] = useState<'login' | 'register'>('login');
@@ -47,7 +48,9 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-blue-50 px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50">
+      <PublicNav />
+      <div className="flex items-center justify-center px-4 py-8" style={{ minHeight: 'calc(100vh - 80px)' }}>
       <div className="w-full max-w-md">
         {/* Logo / Brand */}
         <div className="text-center mb-8">
@@ -168,6 +171,7 @@ function LoginForm() {
         </div>
 
         {/* Footer */}
+      </div>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import PublicNav from '@/components/PublicNav';
 
 export default function FromStateMachinesToGates() {
   const jsonLd = {
@@ -16,16 +17,7 @@ export default function FromStateMachinesToGates() {
     <div className="min-h-screen bg-gray-950 text-gray-100">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-      {/* Nav */}
-      <nav className="sticky top-0 z-50 bg-gray-950/90 backdrop-blur border-b border-white/5">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="text-lg font-semibold tracking-tight text-white">OpenWeave</Link>
-          <div className="flex items-center gap-4">
-            <Link href="/blog" className="text-sm text-emerald-400 font-medium">Blog</Link>
-            <Link href="/login" className="text-sm font-medium text-gray-300 hover:text-white transition">Sign In →</Link>
-          </div>
-        </div>
-      </nav>
+      <PublicNav />
 
       <main className="max-w-3xl mx-auto px-4 py-16">
         <Link href="/blog" className="text-sm text-gray-500 hover:text-emerald-400 transition mb-8 inline-block">← Back to Blog</Link>

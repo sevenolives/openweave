@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import PublicNav from '@/components/PublicNav';
 
 const LAST_UPDATED = 'March 11, 2026';
 
@@ -226,44 +227,13 @@ const policies = [
 
 export default function PoliciesPage() {
   const [activePolicy, setActivePolicy] = useState(policies[0].id);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const currentPolicy = policies.find((p) => p.id === activePolicy) || policies[0];
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
-      {/* Nav */}
-      <nav className="sticky top-0 z-50 bg-gray-950/90 backdrop-blur border-b border-white/5">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="text-lg font-semibold tracking-tight text-white">OpenWeave</Link>
-          <div className="hidden sm:flex items-center gap-4">
-            <a href="/docs" className="text-sm text-gray-500 hover:text-gray-300 transition">Docs</a>
-            <a href="/state-machine" className="text-sm text-gray-500 hover:text-gray-300 transition">State Machine</a>
-            <a href="/blog" className="text-sm text-gray-500 hover:text-gray-300 transition">Blog</a>
-            <a href="/policies" className="text-sm text-emerald-400 hover:text-emerald-300 transition">Policies</a>
-            <a href="https://api.openweave.dev/api/docs/" className="text-sm text-gray-500 hover:text-gray-300 transition">API Docs</a>
-            <a href="/login" className="text-sm font-medium text-gray-300 hover:text-white transition">Sign In →</a>
-          </div>
-          <button onClick={() => setMenuOpen(!menuOpen)} className="sm:hidden p-2 text-gray-400 hover:text-white transition" aria-label="Menu">
-            {menuOpen ? (
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-            ) : (
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
-            )}
-          </button>
-        </div>
-        {menuOpen && (
-          <div className="sm:hidden border-t border-white/5 px-4 py-3 space-y-3">
-            <a href="/docs" className="block text-sm text-gray-400 hover:text-white transition">Docs</a>
-            <a href="/state-machine" className="block text-sm text-gray-400 hover:text-white transition">State Machine</a>
-            <a href="/blog" className="block text-sm text-gray-400 hover:text-white transition">Blog</a>
-            <a href="/policies" className="block text-sm text-emerald-400 hover:text-emerald-300 transition">Policies</a>
-            <a href="https://api.openweave.dev/api/docs/" className="block text-sm text-gray-400 hover:text-white transition">API Docs</a>
-            <a href="/login" className="block text-sm font-medium text-gray-300 hover:text-white transition">Sign In →</a>
-          </div>
-        )}
-      </nav>
+      <PublicNav />
 
       {/* Header */}
       <header className="border-b border-white/5">

@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import PublicNav from '@/components/PublicNav';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.openweave.dev/api';
 
@@ -41,16 +42,7 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
-      {/* Nav */}
-      <nav className="sticky top-0 z-50 bg-gray-950/90 backdrop-blur border-b border-white/5">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="text-lg font-semibold tracking-tight text-white">OpenWeave</Link>
-          <div className="flex items-center gap-4">
-            <Link href="/blog" className="text-sm text-emerald-400 font-medium">Blog</Link>
-            <Link href="/login" className="text-sm font-medium text-gray-300 hover:text-white transition">Sign In →</Link>
-          </div>
-        </div>
-      </nav>
+      <PublicNav />
 
       <main className="max-w-4xl mx-auto px-4 py-16">
         <header className="mb-12">

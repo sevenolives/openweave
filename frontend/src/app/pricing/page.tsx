@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import PublicNav from '@/components/PublicNav';
 
 const tiers = [
   {
@@ -80,7 +81,6 @@ export default function PricingPage() {
   const { isLoggedIn, isLoading } = useAuth();
   const router = useRouter();
   const [annual, setAnnual] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
 
   const handleProClick = () => {
     if (isLoggedIn) {
@@ -101,39 +101,7 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
-      {/* Nav */}
-      <nav className="sticky top-0 z-50 bg-gray-950/90 backdrop-blur border-b border-white/5">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <a href="/" className="text-lg font-semibold tracking-tight text-white">OpenWeave</a>
-          <div className="hidden sm:flex items-center gap-4">
-            <a href="/docs" className="text-sm text-gray-500 hover:text-gray-300 transition">Docs</a>
-            <a href="/demo" className="text-sm text-gray-500 hover:text-gray-300 transition">Try Demo</a>
-            <a href="/compare" className="text-sm text-gray-500 hover:text-gray-300 transition">Compare</a>
-            <a href="/pricing" className="text-sm text-gray-500 hover:text-gray-300 transition">Pricing</a>
-            <a href="/blog" className="text-sm text-gray-500 hover:text-gray-300 transition">Blog</a>
-            <a href="https://github.com/sevenolives/openweave" className="text-sm text-gray-500 hover:text-gray-300 transition">⭐ GitHub</a>
-            <a href={isLoggedIn ? '/private/workspaces' : '/login'} className="text-sm font-medium text-gray-300 hover:text-white transition">{isLoggedIn ? 'Dashboard →' : 'Sign In →'}</a>
-          </div>
-          <button onClick={() => setMenuOpen(!menuOpen)} className="sm:hidden p-2 text-gray-400 hover:text-white transition" aria-label="Menu">
-            {menuOpen ? (
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-            ) : (
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
-            )}
-          </button>
-        </div>
-        {menuOpen && (
-          <div className="sm:hidden border-t border-white/5 px-4 py-3 space-y-3">
-            <a href="/docs" className="block text-sm text-gray-400 hover:text-white transition">Docs</a>
-            <a href="/demo" className="block text-sm text-gray-400 hover:text-white transition">Try Demo</a>
-            <a href="/compare" className="block text-sm text-gray-400 hover:text-white transition">Compare</a>
-            <a href="/pricing" className="block text-sm text-gray-400 hover:text-white transition">Pricing</a>
-            <a href="/blog" className="block text-sm text-gray-400 hover:text-white transition">Blog</a>
-            <a href="https://github.com/sevenolives/openweave" className="block text-sm text-gray-400 hover:text-white transition">⭐ GitHub</a>
-            <a href={isLoggedIn ? '/private/workspaces' : '/login'} className="block text-sm font-medium text-gray-300 hover:text-white transition">{isLoggedIn ? 'Dashboard →' : 'Sign In →'}</a>
-          </div>
-        )}
-      </nav>
+      <PublicNav />
 
       {/* Hero */}
       <header className="relative overflow-hidden">
