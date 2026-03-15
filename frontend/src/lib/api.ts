@@ -140,7 +140,6 @@ export interface StatusDefinition {
   color: string;
   is_terminal: boolean;
   is_default: boolean;
-  is_bot_requires_approval: boolean;
   position: number;
   in_use: boolean;
   allowed_from: number[];
