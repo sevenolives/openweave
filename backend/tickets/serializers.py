@@ -265,7 +265,7 @@ class TicketSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, data):
-        """Validate status transitions using StatusTransition table."""
+        """Validate status transitions using gate-based permissions on StatusDefinition."""
         request = self.context.get('request')
         if request and self.instance and 'status' in data:
             new_status = data['status']
@@ -274,48 +274,48 @@ class TicketSerializer(serializers.ModelSerializer):
                 ws_id = self.instance.project.workspace_id if self.instance.project else None
                 if ws_id:
                     user = request.user
-                    actor = 'BOT' if getattr(user, 'user_type', None) == 'BOT' else 'HUMAN'
+                    user_type = 'bot' if getattr(user, 'user_type', None) == 'BOT' else 'human'
 
-                    # Check if transition is allowed for this actor type
-                    allowed = StatusTransition.objects.filter(
-                        workspace_id=ws_id,
-                        from_status__key=old_status,
-                        to_status__key=new_status,
-                        actor_type__in=[actor, 'ALL'],
-                    ).exists()
-                    if not allowed:
-                        # Check for transition exceptions
-                        exception_type = 'bot' if actor == 'BOT' else 'human'
-                        from django.db.models import Q
-                        has_exception = TransitionException.objects.filter(
-                            workspace_id=ws_id,
-                            from_status__key=old_status,
-                            to_status__key=new_status,
-                            exception_type=exception_type,
-                        ).filter(
-                            Q(user=user) | Q(user__isnull=True)
-                        ).exists()
-                        if not has_exception:
-                            valid_targets = list(StatusTransition.objects.filter(
-                                workspace_id=ws_id,
-                                from_status__key=old_status,
-                                actor_type__in=[actor, 'ALL'],
-                            ).values_list('to_status__key', flat=True))
+                    try:
+                        target_status_def = StatusDefinition.objects.get(workspace_id=ws_id, key=new_status)
+                    except StatusDefinition.DoesNotExist:
+                        raise serializers.ValidationError({'status': f"Invalid status '{new_status}'."})
+
+                    # 1. Check allowed_from (path enforcement)
+                    if target_status_def.allowed_from.exists():
+                        try:
+                            current_status_def = StatusDefinition.objects.get(workspace_id=ws_id, key=old_status)
+                        except StatusDefinition.DoesNotExist:
+                            current_status_def = None
+                        if current_status_def not in target_status_def.allowed_from.all():
+                            allowed_sources = list(target_status_def.allowed_from.values_list('key', flat=True))
                             raise serializers.ValidationError({
-                                'status': f'{actor} cannot transition from {old_status} to {new_status}. '
-                                          f'Allowed: {", ".join(valid_targets) if valid_targets else "none (terminal state)"}.'
+                                'status': f'Cannot move from {old_status} to {new_status}. '
+                                          f'Allowed from: {", ".join(allowed_sources)}.'
                             })
 
-                    # Check approval gate for bot transitions
-                    if actor == 'BOT':
-                        try:
-                            target_status = StatusDefinition.objects.get(workspace_id=ws_id, key=new_status)
-                            if target_status.is_bot_requires_approval and self.instance.approved_status != 'APPROVED':
-                                raise serializers.ValidationError({
-                                    'status': 'Bot requires ticket approval before moving to this state.'
-                                })
-                        except StatusDefinition.DoesNotExist:
-                            pass  # This would be caught by status validation earlier
+                    # 2. Check allowed_users (specific user override) or who_can_enter
+                    if target_status_def.allowed_users.exists():
+                        if user not in target_status_def.allowed_users.all():
+                            raise serializers.ValidationError({
+                                'status': f"You don't have permission to move tickets to {new_status}."
+                            })
+                    else:
+                        if target_status_def.who_can_enter == 'humans' and user_type == 'bot':
+                            raise serializers.ValidationError({
+                                'status': f'Only humans can move tickets to {new_status}.'
+                            })
+                        elif target_status_def.who_can_enter == 'bots' and user_type == 'human':
+                            raise serializers.ValidationError({
+                                'status': f'Only bots can move tickets to {new_status}.'
+                            })
+
+                    # 3. Check approval gate for bot transitions
+                    if target_status_def.is_bot_requires_approval and user_type == 'bot':
+                        if self.instance.approved_status != 'APPROVED':
+                            raise serializers.ValidationError({
+                                'status': 'Bot requires ticket approval before moving to this state.'
+                            })
         return data
 
 
@@ -384,11 +384,20 @@ class StatusDefinitionSerializer(serializers.ModelSerializer):
     """Serializer for StatusDefinition — workspace-level status config."""
     workspace = serializers.SlugRelatedField(slug_field='slug', queryset=Workspace.objects.all())
     in_use = serializers.SerializerMethodField(help_text="Whether any tickets use this status")
+    allowed_from = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=StatusDefinition.objects.all(), required=False,
+    )
+    allowed_users = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=User.objects.all(), required=False,
+    )
+    allowed_users_details = serializers.SerializerMethodField()
 
     class Meta:
         model = StatusDefinition
-        fields = ['id', 'workspace', 'key', 'label', 'color', 'is_terminal', 'is_default', 'is_bot_requires_approval', 'position', 'in_use']
-        read_only_fields = ['in_use']
+        fields = ['id', 'workspace', 'key', 'label', 'color', 'is_terminal', 'is_default',
+                  'is_bot_requires_approval', 'position', 'in_use', 'who_can_enter',
+                  'allowed_from', 'allowed_users', 'allowed_users_details']
+        read_only_fields = ['in_use', 'allowed_users_details']
         extra_kwargs = {
             'key': {'help_text': 'Unique status key within workspace, e.g. IN_PROGRESS.'},
         }
@@ -397,6 +406,9 @@ class StatusDefinitionSerializer(serializers.ModelSerializer):
         return Ticket.objects.filter(
             project__workspace=obj.workspace, status=obj.key
         ).exists()
+
+    def get_allowed_users_details(self, obj):
+        return UserSimpleSerializer(obj.allowed_users.all(), many=True).data
 
     def validate_key(self, value):
         # Key must be uppercase alphanumeric with underscores
@@ -407,6 +419,18 @@ class StatusDefinitionSerializer(serializers.ModelSerializer):
         if self.instance and self.instance.key != value:
             raise serializers.ValidationError("Status key cannot be changed after creation.")
         return value
+
+    def update(self, instance, validated_data):
+        allowed_from = validated_data.pop('allowed_from', None)
+        allowed_users = validated_data.pop('allowed_users', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        if allowed_from is not None:
+            instance.allowed_from.set(allowed_from)
+        if allowed_users is not None:
+            instance.allowed_users.set(allowed_users)
+        return instance
 
 
 class StatusTransitionSerializer(serializers.ModelSerializer):

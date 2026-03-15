@@ -16,27 +16,21 @@ import '@xyflow/react/dist/style.css';
 import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import FormField, { parseFieldErrors, inputClass } from '@/components/FormField';
-import { api, Workspace, WorkspaceMember, WorkspaceInvite, StatusDefinition, StatusTransition, TransitionException, User } from '@/lib/api';
+import { api, Workspace, WorkspaceMember, WorkspaceInvite, StatusDefinition, User } from '@/lib/api';
 import { useWorkspace } from '@/hooks/useWorkspace';
 
 const COLORS = ['gray', 'blue', 'red', 'purple', 'amber', 'green', 'yellow', 'indigo', 'pink', 'orange'];
-const COLOR_CLASSES: Record<string, string> = {
-  gray: 'bg-gray-400', blue: 'bg-blue-500', red: 'bg-red-500', purple: 'bg-purple-500',
-  amber: 'bg-amber-500', green: 'bg-green-500', yellow: 'bg-yellow-500', indigo: 'bg-indigo-500',
-  pink: 'bg-pink-500', orange: 'bg-orange-500',
-};
 
 const COLOR_HEX: Record<string, string> = {
   gray: '#9ca3af', red: '#ef4444', blue: '#3b82f6', green: '#22c55e',
   amber: '#f59e0b', purple: '#a855f7', pink: '#ec4899', indigo: '#6366f1',
-  yellow: '#eab308', orange: '#f97316',
+  yellow: '#eab308', orange: '#f97316', cyan: '#06b6d4',
 };
 
-/* ── State Machine Tab (extracted component) ── */
+/* ── State Machine Tab ── */
 
 interface StateMachineSettingsProps {
   statuses: StatusDefinition[];
-  transitions: StatusTransition[];
   setStatuses: React.Dispatch<React.SetStateAction<StatusDefinition[]>>;
   newStatusLabel: string;
   setNewStatusLabel: (v: string) => void;
@@ -48,56 +42,42 @@ interface StateMachineSettingsProps {
   handleUpdateStatus: (id: number, data: Partial<StatusDefinition>) => Promise<void>;
   handleDeleteStatus: (sd: StatusDefinition) => Promise<void>;
   handleSetDefault: (sd: StatusDefinition) => Promise<void>;
-  handleAddTransition: (fromId: number, toId: number, actorType: string) => Promise<void>;
-  handleDeleteTransition: (id: number) => Promise<void>;
   toast: (msg: string, type?: 'success' | 'error' | 'info') => void;
-  exceptions: TransitionException[];
-  workspaceSlug: string;
   workspaceMembers: WorkspaceMember[];
-  handleAddException: (data: { workspace: string; from_status: number; to_status: number; exception_type: string; user?: number | null; reason: string }) => Promise<void>;
-  handleDeleteException: (id: number) => Promise<void>;
 }
 
 function StateMachineSettings({
-  statuses, transitions, setStatuses,
+  statuses, setStatuses,
   newStatusLabel, setNewStatusLabel, newStatusColor, setNewStatusColor,
   newStatusTerminal, setNewStatusTerminal,
   handleAddStatus, handleUpdateStatus, handleDeleteStatus, handleSetDefault,
-  handleAddTransition, handleDeleteTransition, toast,
-  exceptions, workspaceSlug, workspaceMembers, handleAddException, handleDeleteException,
+  toast, workspaceMembers,
 }: StateMachineSettingsProps) {
-  const [statusTab, setStatusTab] = useState<'diagram' | 'statuses' | 'transitions'>('diagram');
-  const [isSmall, setIsSmall] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [fromId, setFromId] = useState('');
-  const [toId, setToId] = useState('');
-  const [newActor, setNewActor] = useState<'BOT' | 'HUMAN' | 'ALL'>('BOT');
-
-  // Inline exception form state per transition
-  const [expandedExceptions, setExpandedExceptions] = useState<Set<number>>(new Set());
-  const [addingExcForTransition, setAddingExcForTransition] = useState<number | null>(null);
-  const [excUserId, setExcUserId] = useState<string>('');
-  const [excReason, setExcReason] = useState('');
-  const [savingException, setSavingException] = useState(false);
+  const [savingId, setSavingId] = useState<number | null>(null);
 
   useEffect(() => {
-    const check = () => {
-      const width = window.innerWidth;
-      setIsSmall(width <= 768);
-      setIsMobile(width <= 640);
-    };
+    const check = () => setIsMobile(window.innerWidth <= 640);
     check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
 
+  // Build diagram nodes/edges from statuses + allowed_from relationships
   const buildNodes = useMemo(() => {
     if (statuses.length === 0) return [];
     const g = new dagre.graphlib.Graph();
     g.setGraph({ rankdir: 'TB', nodesep: 50, ranksep: 70 });
     g.setDefaultEdgeLabel(() => ({}));
     statuses.forEach((s) => g.setNode(String(s.id), { width: 140, height: 40 }));
-    transitions.forEach((t) => g.setEdge(String(t.from_status), String(t.to_status)));
+    // Build edges from allowed_from relationships
+    statuses.forEach((target) => {
+      if (target.allowed_from && target.allowed_from.length > 0) {
+        target.allowed_from.forEach((srcId) => {
+          g.setEdge(String(srcId), String(target.id));
+        });
+      }
+    });
     dagre.layout(g);
     return statuses.map((s) => {
       const nd = g.node(String(s.id));
@@ -105,7 +85,7 @@ function StateMachineSettings({
       return {
         id: String(s.id),
         position: { x: (nd?.x ?? 0) - 70, y: (nd?.y ?? 0) - 20 },
-        data: { label: s.is_bot_requires_approval ? `🔒 ${s.label}` : s.label },
+        data: { label: `${s.is_bot_requires_approval ? '🔒 ' : ''}${s.label}` },
         type: 'default',
         style: {
           background: 'white',
@@ -123,637 +103,267 @@ function StateMachineSettings({
         targetPosition: Position.Top,
       };
     });
-  }, [statuses, transitions]);
+  }, [statuses]);
 
   const buildEdges = useMemo(() => {
-    const ACTOR_COLORS_MAP = { BOT: '#a855f7', HUMAN: '#3b82f6', ALL: '#6b7280' };
-    return transitions.map((t) => {
-      const targetStatus = statuses.find((s) => s.id === t.to_status);
-      const isGatedBot = (t.actor_type === 'BOT' || t.actor_type === 'ALL') && targetStatus?.is_bot_requires_approval;
-      const edgeColor = isGatedBot ? '#eab308' : ACTOR_COLORS_MAP[t.actor_type];
-      return {
-        id: `e${t.id}`,
-        source: String(t.from_status),
-        target: String(t.to_status),
-        animated: t.actor_type === 'BOT' && !isGatedBot,
-        style: { stroke: edgeColor, strokeWidth: 2, strokeDasharray: t.actor_type === 'HUMAN' ? '5,5' : isGatedBot ? '8,4' : 'none' },
-        markerEnd: { type: MarkerType.ArrowClosed, color: edgeColor, width: 14, height: 14 },
-        label: isGatedBot ? `${t.actor_type} 🔒` : t.actor_type,
-        labelStyle: { fontSize: 9, fontWeight: 700, fill: edgeColor },
-        labelBgStyle: { fill: 'white', fillOpacity: 0.9 },
-      };
+    const edges: Edge[] = [];
+    statuses.forEach((target) => {
+      if (target.allowed_from && target.allowed_from.length > 0) {
+        target.allowed_from.forEach((srcId) => {
+          const color = target.who_can_enter === 'humans' ? '#3b82f6' : target.who_can_enter === 'bots' ? '#a855f7' : '#6b7280';
+          edges.push({
+            id: `e-${srcId}-${target.id}`,
+            source: String(srcId),
+            target: String(target.id),
+            animated: target.who_can_enter === 'bots',
+            style: { stroke: color, strokeWidth: 2, strokeDasharray: target.who_can_enter === 'humans' ? '5,5' : 'none' },
+            markerEnd: { type: MarkerType.ArrowClosed, color, width: 14, height: 14 },
+            label: target.who_can_enter === 'all' ? '' : target.who_can_enter,
+            labelStyle: { fontSize: 9, fontWeight: 700, fill: color },
+            labelBgStyle: { fill: 'white', fillOpacity: 0.9 },
+          });
+        });
+      }
     });
-  }, [transitions, statuses]);
+    return edges;
+  }, [statuses]);
 
-  const humanOnlyTerminals = useMemo(() => {
-    const botTransitions = transitions.filter((t) => t.actor_type === 'BOT' || t.actor_type === 'ALL');
-    const defaultStatus = statuses.find((s) => s.is_default);
-    if (!defaultStatus) return [];
-    const reached = new Set<number>();
-    const queue = [defaultStatus.id];
-    while (queue.length) {
-      const current = queue.shift()!;
-      botTransitions.forEach((t) => {
-        if (t.from_status === current && !reached.has(t.to_status)) {
-          reached.add(t.to_status);
-          queue.push(t.to_status);
-        }
+  const handleSaveGate = async (s: StatusDefinition) => {
+    setSavingId(s.id);
+    try {
+      await handleUpdateStatus(s.id, {
+        who_can_enter: s.who_can_enter,
+        allowed_from: s.allowed_from,
+        allowed_users: s.allowed_users,
       });
+    } finally {
+      setSavingId(null);
     }
-    return statuses.filter((s) => s.is_terminal && !reached.has(s.id));
-  }, [statuses, transitions]);
-
-  const COLORS_HEX: Record<string, string> = {
-    gray: '#9ca3af', blue: '#3b82f6', red: '#ef4444', purple: '#a855f7',
-    amber: '#f59e0b', green: '#22c55e', yellow: '#eab308', indigo: '#6366f1',
-    pink: '#ec4899', orange: '#f97316',
   };
 
-  const ACTOR_COLORS: Record<string, string> = {
-    BOT: '#a855f7', HUMAN: '#3b82f6', ALL: '#6b7280',
+  const updateLocalStatus = (id: number, updates: Partial<StatusDefinition>) => {
+    setStatuses(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
   };
 
-  const toggleExceptions = (transitionId: number) => {
-    setExpandedExceptions(prev => {
-      const next = new Set(prev);
-      if (next.has(transitionId)) next.delete(transitionId);
-      else next.add(transitionId);
-      return next;
-    });
+  const cardStyle: React.CSSProperties = {
+    background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: 12, padding: isMobile ? 16 : 20, marginBottom: 16,
+    transition: 'all 0.2s ease',
   };
 
-  const getExceptionsForTransition = (t: StatusTransition) => {
-    return exceptions.filter(e => e.from_status === t.from_status && e.to_status === t.to_status);
-  };
-
-  const getExceptionTypeForTransition = (t: StatusTransition): 'human' | 'bot' | null => {
-    if (t.actor_type === 'BOT') return 'human';
-    if (t.actor_type === 'HUMAN') return 'bot';
-    return null; // ALL - no exceptions needed
-  };
-
-  const getIncomingTransitions = (stateId: number) => {
-    return transitions.filter(t => t.to_status === stateId);
-  };
-
-  const getExceptionsForState = (stateId: number) => {
-    return exceptions.filter(e => e.to_status === stateId);
-  };
-
-  const tabStyle = (v: 'diagram' | 'statuses' | 'transitions'): React.CSSProperties => ({
-    padding: isMobile ? '16px 12px' : isSmall ? '14px 16px' : '12px 20px',
-    fontSize: isMobile ? '15px' : isSmall ? '14px' : '13px',
-    fontWeight: 600, cursor: 'pointer', background: 'none', border: 'none',
-    borderBottom: statusTab === v ? '3px solid #818cf8' : '3px solid transparent',
-    color: statusTab === v ? '#a5b4fc' : '#6b7280',
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    minHeight: isMobile ? '56px' : isSmall ? '48px' : 'auto',
-    flex: isMobile || isSmall ? '1' : 'none', textAlign: 'center', position: 'relative',
-  });
-
-  const btnStyle: React.CSSProperties = {
-    padding: isMobile ? '16px 24px' : isSmall ? '14px 20px' : '10px 18px',
-    fontSize: isMobile ? '15px' : isSmall ? '14px' : '13px',
-    fontWeight: 600, background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
-    color: 'white', border: 'none', borderRadius: isMobile ? '12px' : '10px', cursor: 'pointer',
-    minHeight: isMobile ? '52px' : isSmall ? '48px' : '38px',
-    boxShadow: '0 4px 14px rgba(79,70,229,0.25), 0 1px 3px rgba(0,0,0,0.1)',
-    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)', userSelect: 'none',
-  };
-
-  const inputStyle: React.CSSProperties = {
-    padding: '12px 16px', fontSize: '14px', border: '1px solid #3f3f46', borderRadius: '12px',
-    outline: 'none', background: 'rgba(24, 24, 27, 0.8)', backdropFilter: 'blur(8px)',
-    color: '#e5e7eb', minHeight: '44px', transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+  const labelStyle: React.CSSProperties = {
+    fontSize: 12, fontWeight: 600, color: '#9ca3af', marginBottom: 6, display: 'block',
   };
 
   const selectStyle: React.CSSProperties = {
-    ...inputStyle, paddingRight: isMobile ? '48px' : '36px', cursor: 'pointer',
-    appearance: 'none', WebkitAppearance: 'none', height: '44px', boxSizing: 'border-box',
+    padding: '10px 14px', fontSize: 14, border: '1px solid #3f3f46', borderRadius: 10,
+    background: 'rgba(24, 24, 27, 0.8)', color: '#e5e7eb', width: '100%',
+    minHeight: 44, cursor: 'pointer', outline: 'none',
   };
 
-  const removeBtnStyle: React.CSSProperties = {
-    background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444',
-    cursor: 'pointer', fontSize: isMobile ? '18px' : isSmall ? '16px' : '14px',
-    padding: isMobile ? '12px' : isSmall ? '10px' : '8px', borderRadius: isMobile ? '10px' : '8px',
-    minWidth: isMobile ? '44px' : isSmall ? '40px' : '32px', minHeight: isMobile ? '44px' : isSmall ? '40px' : '32px',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)', userSelect: 'none',
+  const inputStyle: React.CSSProperties = {
+    padding: '10px 14px', fontSize: 14, border: '1px solid #3f3f46', borderRadius: 10,
+    background: 'rgba(24, 24, 27, 0.8)', color: '#e5e7eb', width: '100%',
+    minHeight: 44, outline: 'none',
   };
 
-  const addTransition = () => {
-    if (!fromId || !toId || fromId === toId) return;
-    const f = Number(fromId), t = Number(toId);
-    if (transitions.some((tr: any) => tr.from_status === f && tr.to_status === t)) {
-      toast('This transition already exists', 'error');
-      return;
-    }
-    handleAddTransition(f, t, newActor);
-    setFromId('');
-    setToId('');
+  const btnStyle: React.CSSProperties = {
+    padding: '10px 18px', fontSize: 13, fontWeight: 600,
+    background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
+    color: 'white', border: 'none', borderRadius: 10, cursor: 'pointer',
+    minHeight: 44, boxShadow: '0 4px 14px rgba(79,70,229,0.25)',
   };
+
+  const badgeStyle = (active: boolean, color: string): React.CSSProperties => ({
+    fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 8,
+    background: active ? `${color}20` : 'transparent',
+    color: active ? color : '#6b7280',
+    border: active ? `1px solid ${color}40` : '1px dashed #3f3f46',
+    cursor: 'pointer', minHeight: 32, display: 'inline-flex', alignItems: 'center',
+  });
 
   return (
-    <div style={{ background: '#0a0a0a', borderRadius: 16, padding: isSmall ? '24px 16px' : '32px 24px', color: '#e5e7eb' }}>
-      <h2 style={{ fontSize: 'clamp(20px, 4vw, 24px)', fontWeight: 700, color: 'white', marginBottom: 8 }}>Design Your Workflow</h2>
-      <p style={{ fontSize: 'clamp(13px, 3vw, 14px)', color: '#9ca3af', lineHeight: 1.6, marginBottom: 20 }}>
-        Every team works differently. Define your states, draw the transitions, and see your workflow take shape.
+    <div style={{ background: '#0a0a0a', borderRadius: 16, padding: isMobile ? '20px 12px' : '32px 24px', color: '#e5e7eb' }}>
+      <h2 style={{ fontSize: 'clamp(20px, 4vw, 24px)', fontWeight: 700, color: 'white', marginBottom: 8 }}>State Machine</h2>
+      <p style={{ fontSize: 'clamp(13px, 3vw, 14px)', color: '#9ca3af', lineHeight: 1.6, marginBottom: 24 }}>
+        Configure who can enter each state and optional path restrictions. Simple gate-based permissions.
       </p>
 
-      <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #27272a', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', background: '#18181b' }}>
-        <div style={{ display: 'flex', borderBottom: '1px solid #27272a', background: 'linear-gradient(135deg, #111 0%, #0f0f0f 100%)', position: 'sticky', top: 0, zIndex: 10 }}>
-          <button onClick={() => setStatusTab('diagram')} style={tabStyle('diagram')}>⬡ Diagram</button>
-          <button onClick={() => setStatusTab('statuses')} style={tabStyle('statuses')}>● States</button>
-          <button onClick={() => setStatusTab('transitions')} style={tabStyle('transitions')}>→ Transitions</button>
-        </div>
-
-        {/* Diagram tab */}
-        {statusTab === 'diagram' && (
-          <div>
-            <div style={{
-              height: isMobile ? 320 : isSmall ? 380 : 480,
-              width: '100%',
-              background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
-              position: 'relative', overflow: 'hidden',
-            }}>
-              {statuses.length === 0 ? (
-                <div style={{
-                  textAlign: 'center', padding: '60px 20px', color: '#6b7280',
-                  background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed #374151',
-                  margin: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  justifyContent: 'center', height: 'calc(100% - 80px)'
-                }}>
-                  <div style={{ fontSize: '48px', marginBottom: '16px' }}>⬡</div>
-                  <p style={{ fontSize: '16px', marginBottom: '8px', color: '#374151' }}>No states defined yet</p>
-                  <p style={{ fontSize: '14px', opacity: 0.7, color: '#374151' }}>Add your first state in the States tab to get started</p>
-                </div>
-              ) : (
-                <ReactFlow
-                  nodes={buildNodes} edges={buildEdges} fitView
-                  fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
-                  nodesDraggable={false} nodesConnectable={false} elementsSelectable={false}
-                  proOptions={{ hideAttribution: true }}
-                  minZoom={0.1} maxZoom={2}
-                  panOnScroll={!isMobile} zoomOnScroll={!isMobile} zoomOnPinch={isMobile}
-                  panOnDrag={true} preventScrolling={isMobile}
-                >
-                  <Background gap={isMobile ? 15 : 20} size={1} color="#cbd5e1" />
-                  <Controls showInteractive={false} position={isMobile ? 'bottom-left' : 'bottom-right'} />
-                </ReactFlow>
-              )}
-              {isMobile && statuses.length > 0 && (
-                <div style={{
-                  position: 'absolute', top: '12px', left: '50%', transform: 'translateX(-50%)',
-                  background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', color: 'white',
-                  padding: '8px 16px', borderRadius: '20px', fontSize: '13px', fontWeight: 500,
-                  textAlign: 'center', opacity: 0.9, pointerEvents: 'none', zIndex: 10,
-                  border: '1px solid rgba(255,255,255,0.1)'
-                }}>
-                  👆 Pinch to zoom • Drag to pan
-                </div>
-              )}
+      {/* State cards */}
+      {statuses.map((s) => (
+        <div key={s.id} style={cardStyle}>
+          {/* Header row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', width: 20, height: 20, borderRadius: '50%', background: COLOR_HEX[s.color] || '#9ca3af', flexShrink: 0 }}>
+              <select value={s.color} onChange={(e) => handleUpdateStatus(s.id, { color: e.target.value })}
+                style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }}>
+                {COLORS.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
-            <div style={{
-              padding: isSmall ? '16px 12px' : '12px 16px', display: 'flex',
-              justifyContent: 'space-between', alignItems: isSmall ? 'flex-start' : 'center',
-              flexDirection: isSmall ? 'column' : 'row', gap: isSmall ? '12px' : '8px',
-              borderTop: '1px solid #27272a', background: '#111',
-            }}>
-              <div style={{ display: 'flex', gap: isSmall ? 8 : 16, fontSize: isSmall ? 12 : 11, color: '#6b7280', flexWrap: 'wrap', alignItems: 'center' }}>
-                <span>🤖 <span style={{ color: '#a855f7' }}>Bot (animated)</span></span>
-                <span>👤 <span style={{ color: '#3b82f6' }}>Human (dashed)</span></span>
-                <span>🔄 <span style={{ color: '#6b7280' }}>All</span></span>
-                <span>⭐ Default state</span>
-                <span>🏁 Terminal state</span>
-              </div>
-              {humanOnlyTerminals.length > 0 && (
-                <div style={{ fontSize: isSmall ? 12 : 11, color: '#d97706', fontWeight: 600, background: 'rgba(217,119,6,0.1)', padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(217,119,6,0.3)' }}>
-                  ⚠ Human-only: {humanOnlyTerminals.map((s) => s.label).join(', ')}
-                </div>
-              )}
-              {statuses.filter((s) => s.is_bot_requires_approval).length > 0 && (
-                <div style={{ fontSize: isSmall ? 13 : 12, color: '#eab308', fontWeight: 600, background: 'rgba(234,179,8,0.1)', padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(234,179,8,0.2)' }}>
-                  🔒 Approval gate: {statuses.filter((s) => s.is_bot_requires_approval).map((s) => s.label).join(', ')}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* States tab */}
-        {statusTab === 'statuses' && (
-          <div style={{ padding: isSmall ? 12 : 16 }}>
-            <div style={{ marginBottom: 20 }}>
-              <h3 style={{ fontSize: isSmall ? 16 : 14, fontWeight: 600, color: '#e5e7eb', marginBottom: 8 }}>Workflow States</h3>
-              <p style={{ fontSize: isSmall ? 14 : 13, color: '#9ca3af', lineHeight: 1.5 }}>
-                Define the statuses your tickets can be in. Mark terminal states and set one as default.
-              </p>
-            </div>
-            {statuses.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '60px 20px', color: '#6b7280', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed #374151' }}>
-                <div style={{ fontSize: '48px', marginBottom: '16px' }}>⬡</div>
-                <p style={{ fontSize: '16px', marginBottom: '8px' }}>No states defined yet</p>
-                <p style={{ fontSize: '14px', opacity: 0.7 }}>Add your first state below to get started</p>
-              </div>
-            ) : (
-              statuses.map((s) => (
-                <div key={s.id} style={{
-                  display: 'flex', alignItems: isMobile ? 'flex-start' : isSmall ? 'flex-start' : 'center',
-                  gap: isMobile ? 12 : isSmall ? 10 : 12, padding: isMobile ? '20px' : isSmall ? '16px' : '14px',
-                  background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
-                  borderRadius: '12px', marginBottom: '12px',
-                  flexDirection: isMobile || isSmall ? 'column' : 'row', transition: 'all 0.2s ease',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
-                    <div style={{
-                      position: 'relative', width: isMobile ? 24 : 20, height: isMobile ? 24 : 20,
-                      borderRadius: '50%', background: COLORS_HEX[s.color] || '#9ca3af', flexShrink: 0,
-                      boxShadow: `0 0 0 3px ${(COLORS_HEX[s.color] || '#9ca3af')}20`, cursor: 'pointer'
-                    }}>
-                      <select value={s.color} onChange={(e) => handleUpdateStatus(s.id, { color: e.target.value })}
-                        style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }} title="Change color">
-                        {COLORS.map((c) => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                    </div>
-                    <input value={s.label}
-                      onChange={(e) => { const newLabel = e.target.value; setStatuses(prev => prev.map(st => st.id === s.id ? { ...st, label: newLabel } : st)); }}
-                      style={{ fontSize: isMobile ? 16 : isSmall ? 15 : 14, fontWeight: 600, color: '#e5e7eb', background: 'transparent', border: '1px solid transparent', borderRadius: '8px', padding: '8px 12px', outline: 'none', flex: 1, minWidth: 0, transition: 'all 0.2s ease' }}
-                      onFocus={(e) => { e.target.style.borderColor = '#4f46e5'; e.target.style.background = 'rgba(24,24,27,0.8)'; e.target.style.boxShadow = '0 0 0 3px rgba(79,70,229,0.1)'; }}
-                      onBlur={(e) => { e.target.style.borderColor = 'transparent'; e.target.style.background = 'transparent'; e.target.style.boxShadow = 'none'; if (e.target.value !== s.label) { handleUpdateStatus(s.id, { label: e.target.value }); } }}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', gap: isMobile ? 10 : 8, alignItems: 'center', flexWrap: 'wrap', width: isMobile || isSmall ? '100%' : 'auto' }}>
-                    <button onClick={() => !s.is_default && handleSetDefault(s)} disabled={s.is_default}
-                      style={{ fontSize: isMobile ? 13 : isSmall ? 12 : 11, background: s.is_default ? 'linear-gradient(135deg, #312e81 0%, #4f46e5 100%)' : 'rgba(39,39,42,0.8)', color: s.is_default ? '#a5b4fc' : '#9ca3af', border: s.is_default ? 'none' : '1px solid #3f3f46', padding: isMobile ? '10px 16px' : isSmall ? '8px 12px' : '6px 10px', borderRadius: isMobile ? '10px' : '8px', fontWeight: 600, cursor: s.is_default ? 'default' : 'pointer', minHeight: isMobile ? '40px' : '32px', transition: 'all 0.2s ease' }}>
-                      {s.is_default ? '⭐ Default' : 'Set Default'}
-                    </button>
-                    <button onClick={() => handleUpdateStatus(s.id, { is_terminal: !s.is_terminal })}
-                      style={{ fontSize: isMobile ? 13 : isSmall ? 12 : 11, background: s.is_terminal ? 'rgba(39,39,42,0.8)' : 'transparent', color: s.is_terminal ? '#9ca3af' : '#6b7280', border: s.is_terminal ? '1px solid #3f3f46' : '1px dashed #3f3f46', padding: isMobile ? '10px 16px' : isSmall ? '8px 12px' : '6px 10px', borderRadius: isMobile ? '10px' : '8px', fontWeight: 600, cursor: 'pointer', minHeight: isMobile ? '40px' : '32px', transition: 'all 0.2s ease' }}>
-                      {s.is_terminal ? '🏁 Terminal' : 'Non-terminal'}
-                    </button>
-                    <button onClick={() => handleUpdateStatus(s.id, { is_bot_requires_approval: !s.is_bot_requires_approval })}
-                      style={{ fontSize: isMobile ? 13 : isSmall ? 12 : 11, background: s.is_bot_requires_approval ? 'rgba(234,179,8,0.15)' : 'transparent', color: s.is_bot_requires_approval ? '#eab308' : '#6b7280', border: s.is_bot_requires_approval ? '1px solid rgba(234,179,8,0.3)' : '1px dashed #3f3f46', padding: isMobile ? '10px 16px' : isSmall ? '8px 12px' : '6px 10px', borderRadius: isMobile ? '10px' : '8px', fontWeight: 600, cursor: 'pointer', minHeight: isMobile ? '40px' : '32px', transition: 'all 0.2s ease' }}>
-                      {s.is_bot_requires_approval ? '🔒 Approval Gate' : 'No gate'}
-                    </button>
-                    {!s.in_use && !s.is_default && (
-                      <button onClick={() => handleDeleteStatus(s)} style={removeBtnStyle}>✕</button>
-                    )}
-                  </div>
-                  {/* Incoming transitions with exception management */}
-                  {(() => {
-                    const incoming = getIncomingTransitions(s.id);
-                    return (
-                      <div style={{ width: '100%', marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                        {s.is_bot_requires_approval && (
-                          <div style={{ marginBottom: 8 }}>
-                            <span style={{ fontSize: isSmall ? 12 : 11, color: '#eab308', background: 'rgba(234,179,8,0.1)', padding: '4px 8px', borderRadius: 6, fontWeight: 600 }}>
-                              🔒 Approval gate
-                            </span>
-                          </div>
-                        )}
-                        <div style={{ fontSize: isSmall ? 13 : 12, color: '#9ca3af', marginBottom: 8, fontWeight: 600 }}>
-                          Who can move tickets here?
-                        </div>
-                        {incoming.length === 0 ? (
-                          <div style={{ fontSize: isSmall ? 13 : 12, color: '#6b7280', fontStyle: 'italic', padding: '8px 0' }}>
-                            No incoming transitions
-                          </div>
-                        ) : (
-                          incoming.map((t) => {
-                            const fromState = statuses.find(st => st.id === t.from_status);
-                            const excType = getExceptionTypeForTransition(t);
-                            const transExceptions = getExceptionsForTransition(t);
-                            const isExpanded = expandedExceptions.has(t.id);
-                            const isAddingHere = addingExcForTransition === t.id;
-                            return (
-                              <div key={t.id} style={{
-                                padding: isSmall ? '10px' : '8px 12px', marginBottom: 6,
-                                background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
-                                borderRadius: 8,
-                              }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                                  <span style={{ fontSize: isSmall ? 13 : 12, color: '#e5e7eb' }}>
-                                    {fromState?.label || '?'} → {s.label}
-                                  </span>
-                                  <span style={{
-                                    fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 6,
-                                    color: 'white', background: ACTOR_COLORS[t.actor_type],
-                                  }}>
-                                    {t.actor_type}
-                                  </span>
-                                  {excType && (
-                                    <button onClick={() => toggleExceptions(t.id)} style={{
-                                      fontSize: isSmall ? 12 : 11, fontWeight: 600, padding: isSmall ? '6px 10px' : '3px 8px',
-                                      borderRadius: 6, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)',
-                                      background: transExceptions.length > 0 ? 'rgba(234,179,8,0.1)' : 'rgba(255,255,255,0.04)',
-                                      color: transExceptions.length > 0 ? '#eab308' : '#6b7280',
-                                      minHeight: isSmall ? 36 : 28, display: 'flex', alignItems: 'center', gap: 4,
-                                      transition: 'all 0.2s ease', marginLeft: 'auto',
-                                    }}>
-                                      ⚡ {transExceptions.length > 0 ? `${transExceptions.length}` : `${excType === 'human' ? 'Human' : 'Bot'}`}
-                                      <span style={{ fontSize: 9, transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▼</span>
-                                    </button>
-                                  )}
-                                </div>
-
-                                {/* Expanded exceptions */}
-                                {excType && isExpanded && (
-                                  <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                                    <div style={{ fontSize: isSmall ? 12 : 11, color: '#9ca3af', marginBottom: 6 }}>
-                                      {excType === 'human' ? '👤 Human' : '🤖 Bot'} exceptions
-                                    </div>
-                                    {transExceptions.length > 0 && (
-                                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-                                        {transExceptions.map(exc => (
-                                          <span key={exc.id} style={{
-                                            display: 'inline-flex', alignItems: 'center', gap: 6,
-                                            fontSize: isSmall ? 13 : 12, padding: '5px 10px', borderRadius: 8,
-                                            background: excType === 'human' ? 'rgba(59,130,246,0.1)' : 'rgba(168,85,247,0.1)',
-                                            color: excType === 'human' ? '#93c5fd' : '#c4b5fd',
-                                            border: `1px solid ${excType === 'human' ? 'rgba(59,130,246,0.2)' : 'rgba(168,85,247,0.2)'}`,
-                                          }}>
-                                            {exc.user_details ? exc.user_details.username : `All ${exc.exception_type}s`}
-                                            {exc.reason && <span style={{ fontSize: 11, color: '#6b7280' }} title={exc.reason}>💬</span>}
-                                            <button onClick={() => { if (confirm('Delete this exception?')) handleDeleteException(exc.id); }}
-                                              style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 14, padding: '0 2px', lineHeight: 1 }}>×</button>
-                                          </span>
-                                        ))}
-                                      </div>
-                                    )}
-                                    {isAddingHere ? (
-                                      <div style={{ display: 'flex', flexDirection: isSmall ? 'column' : 'row', gap: 6, alignItems: isSmall ? 'stretch' : 'center' }}>
-                                        <select value={excUserId} onChange={(e) => setExcUserId(e.target.value)}
-                                          style={{ ...selectStyle, flex: 1, fontSize: isSmall ? 14 : 12 }}>
-                                          <option value="">All {excType}s</option>
-                                          {workspaceMembers
-                                            .filter((m) => excType === 'bot' ? m.user.user_type === 'BOT' : m.user.user_type === 'HUMAN')
-                                            .map((m) => <option key={m.user.id} value={m.user.id}>{m.user.username}</option>)
-                                          }
-                                        </select>
-                                        <input value={excReason} onChange={(e) => setExcReason(e.target.value)}
-                                          placeholder="Reason (optional)..."
-                                          style={{ ...inputStyle, flex: 1, fontSize: isSmall ? 14 : 12 }} />
-                                        <div style={{ display: 'flex', gap: 6 }}>
-                                          <button
-                                            disabled={savingException}
-                                            onClick={async () => {
-                                              setSavingException(true);
-                                              try {
-                                                await handleAddException({
-                                                  workspace: workspaceSlug,
-                                                  from_status: t.from_status,
-                                                  to_status: t.to_status,
-                                                  exception_type: excType,
-                                                  user: excUserId ? Number(excUserId) : null,
-                                                  reason: excReason,
-                                                });
-                                                setExcUserId(''); setExcReason(''); setAddingExcForTransition(null);
-                                              } finally { setSavingException(false); }
-                                            }}
-                                            style={{ ...btnStyle, fontSize: 12, padding: isSmall ? '10px 14px' : '5px 12px', minHeight: isSmall ? 40 : 28, whiteSpace: 'nowrap' }}>
-                                            {savingException ? '...' : 'Save'}
-                                          </button>
-                                          <button onClick={() => { setAddingExcForTransition(null); setExcUserId(''); setExcReason(''); }}
-                                            style={{ ...removeBtnStyle, fontSize: 12 }}>✕</button>
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <button onClick={() => { setAddingExcForTransition(t.id); setExcUserId(''); setExcReason(''); }}
-                                        style={{
-                                          fontSize: isSmall ? 12 : 11, color: '#818cf8', background: 'none', border: '1px dashed rgba(129,140,248,0.3)',
-                                          padding: isSmall ? '8px 12px' : '4px 10px', borderRadius: 6, cursor: 'pointer',
-                                          minHeight: isSmall ? 40 : 28, transition: 'all 0.2s ease',
-                                        }}>
-                                        + Add {excType} exception
-                                      </button>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
-              ))
+            <input value={s.label}
+              onChange={(e) => updateLocalStatus(s.id, { label: e.target.value })}
+              onBlur={(e) => { if (e.target.value !== s.label) handleUpdateStatus(s.id, { label: e.target.value }); }}
+              style={{ fontSize: 16, fontWeight: 700, color: 'white', background: 'transparent', border: 'none', outline: 'none', flex: 1, minWidth: 100 }}
+            />
+            <span style={{ fontSize: 11, color: '#6b7280', fontFamily: 'monospace' }}>{s.key}</span>
+            {!s.in_use && !s.is_default && (
+              <button onClick={() => handleDeleteStatus(s)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 16 }}>✕</button>
             )}
-            <div style={{ display: 'flex', gap: isSmall ? 12 : 8, marginTop: 20, alignItems: isSmall ? 'stretch' : 'center', flexDirection: isSmall ? 'column' : 'row', flexWrap: isSmall ? 'nowrap' : 'wrap' }}>
-              <input value={newStatusLabel} onChange={(e) => setNewStatusLabel(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAddStatus()} placeholder="Status name..."
-                style={{ ...inputStyle, flex: isSmall ? 'none' : '1', minWidth: isSmall ? '100%' : 120 }} />
-              <div style={{ display: 'flex', gap: isSmall ? 12 : 8, alignItems: 'center', flexDirection: isSmall ? 'column' : 'row', width: isSmall ? '100%' : 'auto' }}>
-                <select value={newStatusColor} onChange={(e) => setNewStatusColor(e.target.value)} style={{ ...selectStyle, width: isSmall ? '100%' : 'auto' }}>
-                  {COLORS.map((c) => (<option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>))}
-                </select>
-                <label style={{ fontSize: isSmall ? 14 : 12, color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', userSelect: 'none' }}>
-                  <input type="checkbox" checked={newStatusTerminal} onChange={(e) => setNewStatusTerminal(e.target.checked)} style={{ width: isSmall ? 18 : 14, height: isSmall ? 18 : 14, cursor: 'pointer' }} />
-                  Terminal state
-                </label>
-                <button onClick={handleAddStatus} disabled={!newStatusLabel.trim()}
-                  style={{ ...btnStyle, opacity: !newStatusLabel.trim() ? 0.5 : 1, cursor: !newStatusLabel.trim() ? 'not-allowed' : 'pointer', width: isSmall ? '100%' : 'auto' }}>
-                  + Add Status
-                </button>
+          </div>
+
+          {/* Badges */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+            <button onClick={() => !s.is_default && handleSetDefault(s)} style={badgeStyle(s.is_default, '#eab308')}>
+              {s.is_default ? '⭐ Default' : 'Set Default'}
+            </button>
+            <button onClick={() => handleUpdateStatus(s.id, { is_terminal: !s.is_terminal })} style={badgeStyle(s.is_terminal, '#22c55e')}>
+              {s.is_terminal ? '🏁 Terminal' : 'Non-terminal'}
+            </button>
+            <button onClick={() => handleUpdateStatus(s.id, { is_bot_requires_approval: !s.is_bot_requires_approval })} style={badgeStyle(s.is_bot_requires_approval, '#eab308')}>
+              {s.is_bot_requires_approval ? '🔒 Approval Gate' : 'No gate'}
+            </button>
+          </div>
+
+          {/* Gate controls */}
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
+            {/* Who can enter */}
+            <div>
+              <label style={labelStyle}>Who can enter</label>
+              <select value={s.who_can_enter || 'all'}
+                onChange={(e) => updateLocalStatus(s.id, { who_can_enter: e.target.value as StatusDefinition['who_can_enter'] })}
+                style={selectStyle}>
+                <option value="all">All (bots & humans)</option>
+                <option value="humans">Humans Only</option>
+                <option value="bots">Bots Only</option>
+              </select>
+            </div>
+
+            {/* Allowed from */}
+            <div>
+              <label style={labelStyle}>Allowed from {!s.allowed_from?.length && <span style={{ color: '#6b7280', fontWeight: 400 }}>(any state)</span>}</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {statuses.filter(other => other.id !== s.id).map(other => {
+                  const isSelected = (s.allowed_from || []).includes(other.id);
+                  return (
+                    <button key={other.id} onClick={() => {
+                      const current = s.allowed_from || [];
+                      const next = isSelected ? current.filter(id => id !== other.id) : [...current, other.id];
+                      updateLocalStatus(s.id, { allowed_from: next });
+                    }} style={{
+                      fontSize: 12, padding: '6px 10px', borderRadius: 8, cursor: 'pointer',
+                      background: isSelected ? `${COLOR_HEX[other.color] || '#9ca3af'}20` : 'rgba(39,39,42,0.5)',
+                      color: isSelected ? COLOR_HEX[other.color] || '#e5e7eb' : '#6b7280',
+                      border: isSelected ? `1px solid ${COLOR_HEX[other.color] || '#9ca3af'}60` : '1px solid #3f3f46',
+                      fontWeight: isSelected ? 600 : 400, minHeight: 32,
+                    }}>
+                      {other.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
-        )}
 
-        {/* Transitions tab */}
-        {statusTab === 'transitions' && (
-          <div style={{ padding: isSmall ? 12 : 16 }}>
-            <div style={{ marginBottom: 20 }}>
-              <h3 style={{ fontSize: isSmall ? 16 : 14, fontWeight: 600, color: '#e5e7eb', marginBottom: 8 }}>State Transitions</h3>
-              <p style={{ fontSize: isSmall ? 14 : 13, color: '#9ca3af', lineHeight: 1.5 }}>
-                Define allowed moves between states and who can make them.
-              </p>
-            </div>
-            {transitions.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 20px', color: '#6b7280', fontStyle: 'italic' }}>
-                No transitions defined yet. Add your first transition below.
-              </div>
-            ) : (
-              transitions.map((t) => {
-                const f = statuses.find((s) => s.id === t.from_status);
-                const to = statuses.find((s) => s.id === t.to_status);
-                const excType = getExceptionTypeForTransition(t);
-                const transExceptions = getExceptionsForTransition(t);
-                const isExpanded = expandedExceptions.has(t.id);
-                const isAddingHere = addingExcForTransition === t.id;
+          {/* Specific users */}
+          <div style={{ marginTop: 16 }}>
+            <label style={labelStyle}>
+              Specific users <span style={{ color: '#6b7280', fontWeight: 400 }}>(overrides &quot;who can enter&quot; when set)</span>
+            </label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {workspaceMembers.map(m => {
+                const isSelected = (s.allowed_users || []).includes(m.user.id);
                 return (
-                  <div key={t.id} style={{
-                    borderBottom: '1px solid #27272a', padding: isSmall ? '12px 0' : '10px 0',
+                  <button key={m.user.id} onClick={() => {
+                    const current = s.allowed_users || [];
+                    const next = isSelected ? current.filter(id => id !== m.user.id) : [...current, m.user.id];
+                    updateLocalStatus(s.id, { allowed_users: next });
+                  }} style={{
+                    fontSize: 12, padding: '6px 10px', borderRadius: 8, cursor: 'pointer',
+                    background: isSelected ? 'rgba(99,102,241,0.15)' : 'rgba(39,39,42,0.5)',
+                    color: isSelected ? '#a5b4fc' : '#6b7280',
+                    border: isSelected ? '1px solid rgba(99,102,241,0.4)' : '1px solid #3f3f46',
+                    fontWeight: isSelected ? 600 : 400, minHeight: 32,
                   }}>
-                    <div style={{
-                      display: 'flex', alignItems: isSmall ? 'flex-start' : 'center', gap: isSmall ? 6 : 10,
-                      fontSize: isSmall ? 14 : 13, flexDirection: isSmall ? 'column' : 'row',
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: isSmall ? 8 : 6, flex: 1, minWidth: 0, flexWrap: 'wrap' }}>
-                        <select value={t.from_status} onChange={(e) => { const v = Number(e.target.value); if (v === t.to_status) return; handleDeleteTransition(t.id); handleAddTransition(v, t.to_status, t.actor_type); }}
-                          style={{ ...selectStyle, fontSize: isSmall ? 13 : 12, padding: isSmall ? '0 14px' : '4px 8px', minWidth: isSmall ? 100 : 80, height: isSmall ? 44 : 'auto', minHeight: isSmall ? 44 : 'auto' }}>
-                          {statuses.filter((s) => !s.is_terminal).map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
-                        </select>
-                        <span style={{ color: '#6b7280', fontWeight: 600, fontSize: isSmall ? 16 : 14 }}>→</span>
-                        <select value={t.to_status} onChange={(e) => { const v = Number(e.target.value); if (v === t.from_status) return; handleDeleteTransition(t.id); handleAddTransition(t.from_status, v, t.actor_type); }}
-                          style={{ ...selectStyle, fontSize: isSmall ? 13 : 12, padding: isSmall ? '0 14px' : '4px 8px', minWidth: isSmall ? 100 : 80, height: isSmall ? 44 : 'auto', minHeight: isSmall ? 44 : 'auto' }}>
-                          {statuses.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
-                        </select>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                        <select value={t.actor_type} onChange={(e) => { handleDeleteTransition(t.id); handleAddTransition(t.from_status, t.to_status, e.target.value); }}
-                          style={{ fontSize: isSmall ? 13 : 10, fontWeight: 700, padding: isSmall ? '0 14px' : '4px 8px', borderRadius: isSmall ? 10 : 6, color: 'white', background: ACTOR_COLORS[t.actor_type], border: '1px solid ' + ACTOR_COLORS[t.actor_type], cursor: 'pointer', height: isSmall ? 44 : 'auto', minHeight: isSmall ? 44 : 'auto' }}>
-                          <option value="BOT" style={{ background: '#18181b', color: '#e5e7eb' }}>BOT</option>
-                          <option value="HUMAN" style={{ background: '#18181b', color: '#e5e7eb' }}>HUMAN</option>
-                          <option value="ALL" style={{ background: '#18181b', color: '#e5e7eb' }}>ALL</option>
-                        </select>
-                        {excType && (
-                          <button onClick={() => toggleExceptions(t.id)} style={{
-                            fontSize: isSmall ? 12 : 11, fontWeight: 600, padding: isSmall ? '8px 12px' : '4px 10px',
-                            borderRadius: 8, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)',
-                            background: transExceptions.length > 0 ? 'rgba(234,179,8,0.1)' : 'rgba(255,255,255,0.04)',
-                            color: transExceptions.length > 0 ? '#eab308' : '#6b7280',
-                            minHeight: isSmall ? 44 : 32, display: 'flex', alignItems: 'center', gap: 4,
-                            transition: 'all 0.2s ease',
-                          }}>
-                            ⚡ {transExceptions.length > 0 ? `${transExceptions.length} exception${transExceptions.length !== 1 ? 's' : ''}` : `${excType === 'human' ? 'Human' : 'Bot'} exceptions`}
-                            <span style={{ fontSize: 10, transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▼</span>
-                          </button>
-                        )}
-                        <button onClick={() => handleDeleteTransition(t.id)} style={removeBtnStyle}>✕</button>
-                      </div>
-                    </div>
-
-                    {/* Expanded exceptions section */}
-                    {excType && isExpanded && (
-                      <div style={{
-                        marginTop: 10, marginLeft: isSmall ? 0 : 16, padding: isSmall ? '12px' : '10px 14px',
-                        background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
-                        borderRadius: 10,
-                      }}>
-                        <div style={{ fontSize: isSmall ? 13 : 12, color: '#9ca3af', marginBottom: 8, fontWeight: 600 }}>
-                          {excType === 'human' ? '👤 Human' : '🤖 Bot'} exceptions
-                        </div>
-
-                        {/* Exception chips */}
-                        {transExceptions.length > 0 && (
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-                            {transExceptions.map(exc => (
-                              <span key={exc.id} style={{
-                                display: 'inline-flex', alignItems: 'center', gap: 6,
-                                fontSize: isSmall ? 13 : 12, padding: '5px 10px', borderRadius: 8,
-                                background: excType === 'human' ? 'rgba(59,130,246,0.1)' : 'rgba(168,85,247,0.1)',
-                                color: excType === 'human' ? '#93c5fd' : '#c4b5fd',
-                                border: `1px solid ${excType === 'human' ? 'rgba(59,130,246,0.2)' : 'rgba(168,85,247,0.2)'}`,
-                              }}>
-                                {exc.user_details ? exc.user_details.username : `All ${exc.exception_type}s`}
-                                {exc.reason && <span style={{ fontSize: 11, color: '#6b7280' }} title={exc.reason}>💬</span>}
-                                <button onClick={() => { if (confirm('Delete this exception?')) handleDeleteException(exc.id); }}
-                                  style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 14, padding: '0 2px', lineHeight: 1 }}>×</button>
-                              </span>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Add exception inline form */}
-                        {isAddingHere ? (
-                          <div style={{ display: 'flex', flexDirection: isSmall ? 'column' : 'row', gap: 8, alignItems: isSmall ? 'stretch' : 'center' }}>
-                            <select value={excUserId} onChange={(e) => setExcUserId(e.target.value)}
-                              style={{ ...selectStyle, flex: 1, fontSize: isSmall ? 14 : 12 }}>
-                              <option value="">All {excType}s</option>
-                              {workspaceMembers
-                                .filter((m) => excType === 'bot' ? m.user.user_type === 'BOT' : m.user.user_type === 'HUMAN')
-                                .map((m) => <option key={m.user.id} value={m.user.id}>{m.user.username}</option>)
-                              }
-                            </select>
-                            <input value={excReason} onChange={(e) => setExcReason(e.target.value)}
-                              placeholder="Reason (optional)..."
-                              style={{ ...inputStyle, flex: 1, fontSize: isSmall ? 14 : 12 }} />
-                            <div style={{ display: 'flex', gap: 6 }}>
-                              <button
-                                disabled={savingException}
-                                onClick={async () => {
-                                  setSavingException(true);
-                                  try {
-                                    await handleAddException({
-                                      workspace: workspaceSlug,
-                                      from_status: t.from_status,
-                                      to_status: t.to_status,
-                                      exception_type: excType,
-                                      user: excUserId ? Number(excUserId) : null,
-                                      reason: excReason,
-                                    });
-                                    setExcUserId(''); setExcReason(''); setAddingExcForTransition(null);
-                                  } finally { setSavingException(false); }
-                                }}
-                                style={{ ...btnStyle, fontSize: 12, padding: isSmall ? '12px 16px' : '6px 14px', minHeight: isSmall ? 44 : 32, whiteSpace: 'nowrap' }}>
-                                {savingException ? '...' : 'Save'}
-                              </button>
-                              <button onClick={() => { setAddingExcForTransition(null); setExcUserId(''); setExcReason(''); }}
-                                style={{ ...removeBtnStyle, fontSize: 12 }}>✕</button>
-                            </div>
-                          </div>
-                        ) : (
-                          <button onClick={() => { setAddingExcForTransition(t.id); setExcUserId(''); setExcReason(''); }}
-                            style={{
-                              fontSize: isSmall ? 13 : 12, color: '#818cf8', background: 'none', border: '1px dashed rgba(129,140,248,0.3)',
-                              padding: isSmall ? '10px 14px' : '6px 12px', borderRadius: 8, cursor: 'pointer',
-                              minHeight: isSmall ? 44 : 32, transition: 'all 0.2s ease',
-                            }}>
-                            + Add {excType} exception
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                    {m.user.user_type === 'BOT' ? '🤖 ' : '👤 '}{m.user.username}
+                  </button>
                 );
-              })
-            )}
-            <div style={{ display: 'flex', gap: isSmall ? 12 : 8, marginTop: 20, alignItems: isSmall ? 'stretch' : 'center', flexDirection: isSmall ? 'column' : 'row', flexWrap: isSmall ? 'nowrap' : 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: isSmall ? 8 : 6, flex: isSmall ? 'none' : '1', minWidth: isSmall ? '100%' : 200 }}>
-                <select value={fromId} onChange={(e) => setFromId(e.target.value)} style={{ ...selectStyle, flex: 1 }}>
-                  <option value="">From...</option>
-                  {statuses.filter((s) => !s.is_terminal).map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
-                </select>
-                <span style={{ color: '#6b7280', fontWeight: 600, fontSize: isSmall ? 16 : 14, flexShrink: 0 }}>→</span>
-                <select value={toId} onChange={(e) => setToId(e.target.value)} style={{ ...selectStyle, flex: 1 }}>
-                  <option value="">To...</option>
-                  {statuses.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
-                </select>
-              </div>
-              <div style={{ display: 'flex', gap: isSmall ? 12 : 8, alignItems: 'center', flexDirection: isSmall ? 'column' : 'row', width: isSmall ? '100%' : 'auto' }}>
-                <select value={newActor} onChange={(e) => setNewActor(e.target.value as 'BOT' | 'HUMAN' | 'ALL')} style={{ ...selectStyle, width: isSmall ? '100%' : 'auto' }}>
-                  <option value="BOT">Bot Only</option>
-                  <option value="HUMAN">Human Only</option>
-                  <option value="ALL">Bot or Human</option>
-                </select>
-                <button onClick={addTransition} disabled={!fromId || !toId || fromId === toId}
-                  style={{ ...btnStyle, opacity: (!fromId || !toId || fromId === toId) ? 0.5 : 1, cursor: (!fromId || !toId || fromId === toId) ? 'not-allowed' : 'pointer', width: isSmall ? '100%' : 'auto' }}>
-                  + Add Transition
-                </button>
-              </div>
+              })}
+              {workspaceMembers.length === 0 && <span style={{ fontSize: 12, color: '#6b7280' }}>No members</span>}
             </div>
           </div>
-        )}
+
+          {/* Save button */}
+          <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
+            <button onClick={() => handleSaveGate(s)} disabled={savingId === s.id}
+              style={{ ...btnStyle, fontSize: 12, padding: '8px 16px', minHeight: 36, opacity: savingId === s.id ? 0.6 : 1 }}>
+              {savingId === s.id ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        </div>
+      ))}
+
+      {/* Add new status */}
+      <div style={{ ...cardStyle, borderStyle: 'dashed' }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#9ca3af', marginBottom: 12 }}>Add New State</div>
+        <div style={{ display: 'flex', gap: 8, flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center' }}>
+          <input value={newStatusLabel} onChange={(e) => setNewStatusLabel(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddStatus()}
+            placeholder="Status name..." style={{ ...inputStyle, flex: 1 }} />
+          <select value={newStatusColor} onChange={(e) => setNewStatusColor(e.target.value)} style={{ ...selectStyle, width: isMobile ? '100%' : 120 }}>
+            {COLORS.map((c) => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
+          </select>
+          <label style={{ fontSize: 13, color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            <input type="checkbox" checked={newStatusTerminal} onChange={(e) => setNewStatusTerminal(e.target.checked)} style={{ width: 16, height: 16 }} />
+            Terminal
+          </label>
+          <button onClick={handleAddStatus} disabled={!newStatusLabel.trim()}
+            style={{ ...btnStyle, opacity: !newStatusLabel.trim() ? 0.5 : 1, whiteSpace: 'nowrap' }}>
+            + Add
+          </button>
+        </div>
       </div>
+
+      {/* Diagram (read-only reference) */}
+      {statuses.length > 0 && (
+        <div style={{ marginTop: 24 }}>
+          <h3 style={{ fontSize: 15, fontWeight: 600, color: 'white', marginBottom: 12 }}>Workflow Diagram</h3>
+          <div style={{
+            height: isMobile ? 300 : 420, width: '100%', borderRadius: 12, overflow: 'hidden',
+            border: '1px solid #27272a',
+            background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+          }}>
+            <ReactFlow
+              nodes={buildNodes} edges={buildEdges} fitView
+              fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
+              nodesDraggable={false} nodesConnectable={false} elementsSelectable={false}
+              proOptions={{ hideAttribution: true }}
+              minZoom={0.1} maxZoom={2}
+              panOnScroll={!isMobile} zoomOnScroll={!isMobile} zoomOnPinch={isMobile}
+              panOnDrag={true} preventScrolling={isMobile}
+            >
+              <Background gap={20} size={1} color="#cbd5e1" />
+              <Controls showInteractive={false} />
+            </ReactFlow>
+          </div>
+          <div style={{ padding: '10px 0', display: 'flex', gap: 16, fontSize: 11, color: '#6b7280', flexWrap: 'wrap' }}>
+            <span>⭐ Default</span>
+            <span>🏁 Terminal</span>
+            <span>🔒 Approval gate</span>
+            <span style={{ color: '#3b82f6' }}>--- Humans only</span>
+            <span style={{ color: '#a855f7' }}>≈≈≈ Bots only</span>
+          </div>
+        </div>
+      )}
 
       {/* How It Works */}
       <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid #18181b' }}>
-        <h3 style={{ fontSize: 'clamp(15px, 3vw, 16px)', fontWeight: 600, color: 'white', marginBottom: 12 }}>How It Works</h3>
-        <p style={{ fontSize: 'clamp(12px, 2.5vw, 13px)', color: '#9ca3af', lineHeight: 1.7, marginBottom: 8 }}>
-          <strong style={{ color: '#d1d5db' }}>States</strong> are the statuses your tickets can be in. Mark them <em style={{ color: '#6ee7b7', fontStyle: 'normal' }}>terminal</em> when they are end states. One state is the <em style={{ color: '#6ee7b7', fontStyle: 'normal' }}>default</em> — where new tickets start.
-        </p>
-        <p style={{ fontSize: 'clamp(12px, 2.5vw, 13px)', color: '#9ca3af', lineHeight: 1.7, marginBottom: 8 }}>
-          <strong style={{ color: '#d1d5db' }}>Transitions</strong> are the allowed moves. Each one has an actor type:
-        </p>
-        <ul style={{ paddingLeft: 20, marginBottom: 12 }}>
-          <li style={{ fontSize: 'clamp(12px, 2.5vw, 13px)', color: '#9ca3af', lineHeight: 1.7, marginBottom: 4 }}><strong style={{ color: '#d1d5db' }}>Bot</strong> — the agent can make this move autonomously</li>
-          <li style={{ fontSize: 'clamp(12px, 2.5vw, 13px)', color: '#9ca3af', lineHeight: 1.7, marginBottom: 4 }}><strong style={{ color: '#d1d5db' }}>Human</strong> — only a person can make this move</li>
-          <li style={{ fontSize: 'clamp(12px, 2.5vw, 13px)', color: '#9ca3af', lineHeight: 1.7, marginBottom: 4 }}><strong style={{ color: '#d1d5db' }}>All</strong> — either can</li>
+        <h3 style={{ fontSize: 15, fontWeight: 600, color: 'white', marginBottom: 12 }}>How It Works</h3>
+        <ul style={{ paddingLeft: 20, fontSize: 13, color: '#9ca3af', lineHeight: 1.8 }}>
+          <li><strong style={{ color: '#d1d5db' }}>Who can enter</strong> — controls whether bots, humans, or both can move tickets into this state</li>
+          <li><strong style={{ color: '#d1d5db' }}>Allowed from</strong> — optional path restriction. If empty, tickets can arrive from any state. If set, only from the selected states</li>
+          <li><strong style={{ color: '#d1d5db' }}>Specific users</strong> — when set, only these users can move tickets here (overrides the &quot;who can enter&quot; rule)</li>
+          <li><strong style={{ color: '#d1d5db' }}>Approval gate</strong> — bots need the ticket to be approved before entering this state</li>
         </ul>
-        <p style={{ fontSize: 'clamp(12px, 2.5vw, 13px)', color: '#9ca3af', lineHeight: 1.7 }}>
-          The diagram builds itself as you configure. Purple animated edges are bot paths. Blue edges are human-only. States marked with 🔒 are <em style={{ color: '#eab308', fontStyle: 'normal' }}>approval gates</em> — bots cannot move tickets into them unless the ticket is approved.
-        </p>
       </div>
     </div>
   );
@@ -772,31 +382,24 @@ export default function WorkspaceSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [statuses, setStatuses] = useState<StatusDefinition[]>([]);
-  const [transitions, setTransitions] = useState<StatusTransition[]>([]);
-  const [newStatusKey, setNewStatusKey] = useState('');
   const [newStatusLabel, setNewStatusLabel] = useState('');
   const [newStatusColor, setNewStatusColor] = useState('gray');
   const [newStatusTerminal, setNewStatusTerminal] = useState(false);
   const [newStatusApprovalGate, setNewStatusApprovalGate] = useState(false);
   const [addingStatus, setAddingStatus] = useState(false);
   const [settingsTab, setSettingsTab] = useState<'general' | 'members' | 'state-machine'>('general');
-  const [exceptions, setExceptions] = useState<TransitionException[]>([]);
   const { toast } = useToast();
 
   const loadData = useCallback(async (ws: Workspace) => {
     try {
-      const [m, i, sd, st, exc] = await Promise.all([
+      const [m, i, sd] = await Promise.all([
         api.getWorkspaceMembers({ workspace: String(ws.id) }),
         api.getInvites({ workspace: String(ws.id) }),
         api.getStatusDefinitions(ws.slug),
-        api.getStatusTransitions(ws.slug),
-        api.getTransitionExceptions(ws.slug),
       ]);
       setMembers(m);
       setInvites(i);
       setStatuses(sd);
-      setTransitions(st);
-      setExceptions(exc);
     } catch (e: any) { toast(e?.message || 'Failed to load workspace data', 'error'); }
     finally { setLoading(false); }
   }, [toast]);
@@ -826,8 +429,6 @@ export default function WorkspaceSettingsPage() {
     }
     finally { setSaving(false); }
   };
-
-  // Roles are managed at project level, not workspace level
 
   const handleRemoveMember = async (memberId: number) => {
     if (!confirm('Remove this member?')) return;
@@ -882,7 +483,7 @@ export default function WorkspaceSettingsPage() {
         is_default: false,
         position: statuses.length,
       });
-      setNewStatusKey(''); setNewStatusLabel(''); setNewStatusColor('gray'); setNewStatusTerminal(false); setNewStatusApprovalGate(false);
+      setNewStatusLabel(''); setNewStatusColor('gray'); setNewStatusTerminal(false); setNewStatusApprovalGate(false);
       toast('Status created');
       loadData(workspace);
     } catch (e: any) { toast(e?.data?.key?.[0] || e?.data?.detail || e?.message || 'Failed', 'error'); }
@@ -898,7 +499,7 @@ export default function WorkspaceSettingsPage() {
   };
 
   const handleDeleteStatus = async (sd: StatusDefinition) => {
-    if (!confirm(`Delete status "${sd.label}"? This will also remove its transitions.`)) return;
+    if (!confirm(`Delete status "${sd.label}"?`)) return;
     try {
       await api.deleteStatusDefinition(sd.id);
       toast('Status deleted');
@@ -907,7 +508,6 @@ export default function WorkspaceSettingsPage() {
   };
 
   const handleSetDefault = async (sd: StatusDefinition) => {
-    // Unset old default, set new
     const oldDefault = statuses.find(s => s.is_default);
     try {
       if (oldDefault) await api.updateStatusDefinition(oldDefault.id, { is_default: false });
@@ -915,39 +515,6 @@ export default function WorkspaceSettingsPage() {
       toast(`"${sd.label}" is now the default status`);
       if (workspace) loadData(workspace);
     } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
-  };
-
-  const handleAddTransition = async (fromId: number, toId: number, actorType: string) => {
-    if (!workspace) return;
-    try {
-      await api.createStatusTransition({ workspace: workspace.slug, from_status: fromId, to_status: toId, actor_type: actorType as StatusTransition['actor_type'] });
-      toast('Transition added');
-      loadData(workspace);
-    } catch (e: any) { toast(e?.data?.non_field_errors?.[0] || e?.message || 'Failed', 'error'); }
-  };
-
-  const handleDeleteTransition = async (id: number) => {
-    try {
-      await api.deleteStatusTransition(id);
-      toast('Transition removed');
-      if (workspace) loadData(workspace);
-    } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
-  };
-
-  const handleAddException = async (data: { workspace: string; from_status: number; to_status: number; exception_type: string; user?: number | null; reason: string }) => {
-    try {
-      await api.createTransitionException(data as any);
-      toast('Exception added');
-      if (workspace) loadData(workspace);
-    } catch (e: any) { toast(e?.message || 'Failed to add exception', 'error'); }
-  };
-
-  const handleDeleteException = async (id: number) => {
-    try {
-      await api.deleteTransitionException(id);
-      toast('Exception removed');
-      if (workspace) loadData(workspace);
-    } catch (e: any) { toast(e?.message || 'Failed to remove exception', 'error'); }
   };
 
   if (!workspace) return <Layout><div className="p-8 text-center text-gray-500">Workspace not found</div></Layout>;
@@ -959,7 +526,6 @@ export default function WorkspaceSettingsPage() {
       <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold text-gray-900 mb-2">{workspace.name} — Settings</h1>
 
-        {/* Top-level tabs */}
         <div className="flex gap-1 mb-6 border-b border-gray-200">
           <button onClick={() => setSettingsTab('general')} className={tabClass('general', settingsTab === 'general')}>General</button>
           <button onClick={() => setSettingsTab('members')} className={tabClass('members', settingsTab === 'members')}>Members</button>
@@ -1047,7 +613,6 @@ export default function WorkspaceSettingsPage() {
             <h2 className="font-semibold text-gray-900">Members ({members.filter(m => m.user.id !== workspace?.owner).length + 1})</h2>
           </div>
           <div className="divide-y divide-gray-50">
-            {/* Owner — always first, not removable */}
             {(workspace as any).owner_details && (
               <div className="px-5 py-3 flex items-center justify-between bg-amber-50/50">
                 <div className="flex items-center gap-3">
@@ -1062,7 +627,6 @@ export default function WorkspaceSettingsPage() {
                 <span className="px-3 py-1.5 text-sm font-semibold text-amber-700 bg-amber-100 rounded-lg">Owner</span>
               </div>
             )}
-            {/* Regular members */}
             {members.filter(m => m.user.id !== workspace.owner).map(m => (
               <div key={m.id} className="px-5 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -1084,14 +648,12 @@ export default function WorkspaceSettingsPage() {
             ))}
           </div>
         </div>
-
         </>)}
 
         {/* === STATE MACHINE TAB === */}
         {settingsTab === 'state-machine' && (
           <StateMachineSettings
             statuses={statuses}
-            transitions={transitions}
             setStatuses={setStatuses}
             newStatusLabel={newStatusLabel}
             setNewStatusLabel={setNewStatusLabel}
@@ -1103,14 +665,8 @@ export default function WorkspaceSettingsPage() {
             handleUpdateStatus={handleUpdateStatus}
             handleDeleteStatus={handleDeleteStatus}
             handleSetDefault={handleSetDefault}
-            handleAddTransition={handleAddTransition}
-            handleDeleteTransition={handleDeleteTransition}
             toast={toast}
-            exceptions={exceptions}
-            workspaceSlug={workspaceSlug}
             workspaceMembers={members}
-            handleAddException={handleAddException}
-            handleDeleteException={handleDeleteException}
           />
         )}
       </div>
