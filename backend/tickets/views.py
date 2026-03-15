@@ -1001,18 +1001,27 @@ class StatusDefinitionViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def get_queryset(self):
+        from django.db.models import Exists, OuterRef, Q
         qs = StatusDefinition.objects.all()
         # Filter by workspace slug
         ws_slug = self.request.query_params.get('workspace')
         if ws_slug:
             qs = qs.filter(workspace__slug=ws_slug)
         user = self.request.user
-        if user.is_superuser:
-            return qs
-        from django.db.models import Q
-        member_ws = WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True)
-        owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
-        return qs.filter(workspace_id__in=set(list(member_ws) + list(owned_ws)))
+        if not user.is_superuser:
+            member_ws = WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True)
+            owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
+            qs = qs.filter(workspace_id__in=set(list(member_ws) + list(owned_ws)))
+        # Annotate in_use to avoid N+1 queries in serializer
+        qs = qs.annotate(
+            _in_use=Exists(
+                Ticket.objects.filter(
+                    project__workspace_id=OuterRef('workspace_id'),
+                    status=OuterRef('key'),
+                )
+            )
+        ).prefetch_related('allowed_from', 'allowed_users')
+        return qs
 
     def check_object_permissions(self, request, obj):
         super().check_object_permissions(request, obj)
@@ -1181,9 +1190,11 @@ class DashboardView(APIView):
         status_defs = StatusDefinition.objects.filter(workspace_id=ws_id).order_by('position')
         terminal_keys = [sd.key for sd in status_defs if sd.is_terminal]
 
-        status_counts = {}
-        for sd in status_defs:
-            status_counts[sd.key] = tickets.filter(status=sd.key).count()
+        # Single query for all status counts instead of N queries
+        from django.db.models import Count
+        raw_counts = tickets.values('status').annotate(cnt=Count('id'))
+        count_map = {r['status']: r['cnt'] for r in raw_counts}
+        status_counts = {sd.key: count_map.get(sd.key, 0) for sd in status_defs}
 
         total_projects = Project.objects.filter(workspace_id=ws_id).count()
         total_members = WorkspaceMember.objects.filter(workspace_id=ws_id).count() + 1

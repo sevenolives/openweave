@@ -385,6 +385,9 @@ class StatusDefinitionSerializer(serializers.ModelSerializer):
         }
 
     def get_in_use(self, obj):
+        # Prefer annotated value from queryset (single query) over per-row lookup
+        if hasattr(obj, '_in_use'):
+            return obj._in_use
         return Ticket.objects.filter(
             project__workspace=obj.workspace, status=obj.key
         ).exists()
