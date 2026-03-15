@@ -3,7 +3,16 @@ Filters for API endpoints to enable search and filtering capabilities.
 """
 import django_filters
 from django.db.models import Q
-from .models import Ticket, User, Project, Comment, AuditLog, WorkspaceMember, WorkspaceInvite
+from .models import Ticket, User, Project, Comment, AuditLog, WorkspaceMember, WorkspaceInvite, Workspace
+
+
+def _workspace_q(value, prefix=''):
+    """Build a Q that matches workspace by slug or numeric ID (backwards compat)."""
+    slug_field = f'{prefix}workspace__slug' if prefix else 'workspace__slug'
+    id_field = f'{prefix}workspace__id' if prefix else 'workspace__id'
+    if value.isdigit():
+        return Q(**{id_field: int(value)}) | Q(**{slug_field: value})
+    return Q(**{slug_field: value})
 
 
 class TicketFilter(django_filters.FilterSet):
@@ -65,7 +74,7 @@ class TicketFilter(django_filters.FilterSet):
 
     def filter_by_workspace_slug(self, queryset, name, value):
         if value:
-            return queryset.filter(project__workspace__slug=value)
+            return queryset.filter(_workspace_q(value, prefix='project__'))
         return queryset
 
     def search_tickets(self, queryset, name, value):
@@ -133,15 +142,14 @@ class UserFilter(django_filters.FilterSet):
 
     def filter_by_workspace(self, queryset, name, value):
         if value:
-            from .models import Workspace
-            try:
-                ws = Workspace.objects.get(slug=value)
-                return queryset.filter(
-                    Q(workspace_memberships__workspace=ws) |
-                    Q(owned_workspaces=ws)
-                ).distinct()
-            except Workspace.DoesNotExist:
+            q = Q(slug=value) if not value.isdigit() else Q(id=int(value)) | Q(slug=value)
+            ws = Workspace.objects.filter(q).first()
+            if not ws:
                 return queryset.none()
+            return queryset.filter(
+                Q(workspace_memberships__workspace=ws) |
+                Q(owned_workspaces=ws)
+            ).distinct()
         return queryset
 
     def filter_by_project(self, queryset, name, value):
@@ -187,7 +195,7 @@ class ProjectFilter(django_filters.FilterSet):
 
     def filter_by_workspace(self, queryset, name, value):
         if value:
-            return queryset.filter(workspace__slug=value)
+            return queryset.filter(_workspace_q(value))
         return queryset
 
     def filter_by_agent(self, queryset, name, value):
@@ -301,7 +309,7 @@ class WorkspaceMemberFilter(django_filters.FilterSet):
 
     def filter_by_workspace(self, queryset, name, value):
         if value:
-            return queryset.filter(workspace__slug=value)
+            return queryset.filter(_workspace_q(value))
         return queryset
 
 
@@ -315,5 +323,5 @@ class WorkspaceInviteFilter(django_filters.FilterSet):
 
     def filter_by_workspace(self, queryset, name, value):
         if value:
-            return queryset.filter(workspace__slug=value)
+            return queryset.filter(_workspace_q(value))
         return queryset

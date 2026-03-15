@@ -6,6 +6,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.authtoken.models import Token
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.db import transaction
+from django.db.models import Q
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiParameter, inline_serializer
 from drf_spectacular.types import OpenApiTypes
@@ -277,8 +278,10 @@ class UserViewSet(viewsets.ModelViewSet):
         if workspace_slug:
             user = request.user
             if not user.is_superuser:
-                is_member = WorkspaceMember.objects.filter(workspace__slug=workspace_slug, user=user).exists()
-                is_owner = Workspace.objects.filter(slug=workspace_slug, owner=user).exists()
+                ws_q = Q(slug=workspace_slug) | Q(id=int(workspace_slug)) if workspace_slug.isdigit() else Q(slug=workspace_slug)
+                ws_ids = Workspace.objects.filter(ws_q).values_list('id', flat=True)
+                is_member = WorkspaceMember.objects.filter(workspace_id__in=ws_ids, user=user).exists()
+                is_owner = Workspace.objects.filter(ws_q, owner=user).exists()
                 if not is_member and not is_owner:
                     return Response({'detail': 'You do not have access to this workspace.'}, status=status.HTTP_403_FORBIDDEN)
         return super().list(request, *args, **kwargs)
@@ -363,19 +366,20 @@ class ProjectViewSet(viewsets.ModelViewSet):
             if not workspace_slug:
                 from rest_framework.exceptions import ValidationError
                 raise ValidationError({'workspace': 'This query parameter is required.'})
-            qs = qs.filter(workspace__slug=workspace_slug)
+            if workspace_slug.isdigit():
+                qs = qs.filter(Q(workspace__slug=workspace_slug) | Q(workspace_id=int(workspace_slug)))
+            else:
+                qs = qs.filter(workspace__slug=workspace_slug)
 
         user = self.request.user
         if user.is_superuser:
             return qs
         # Check admin/owner scoped to specific workspace if available
         if workspace_slug:
-            try:
-                workspace = Workspace.objects.get(slug=workspace_slug)
-                if is_admin_or_owner(user, workspace):
-                    return qs
-            except Workspace.DoesNotExist:
-                pass
+            ws_q = Q(slug=workspace_slug) | Q(id=int(workspace_slug)) if workspace_slug.isdigit() else Q(slug=workspace_slug)
+            workspace = Workspace.objects.filter(ws_q).first()
+            if workspace and is_admin_or_owner(user, workspace):
+                return qs
         # Non-admins only see projects they are assigned to
         return qs.filter(agents=user).distinct()
 
@@ -481,10 +485,8 @@ class TicketViewSet(viewsets.ModelViewSet):
         """Get workspace from query params if available (by slug)."""
         workspace_slug = self.request.query_params.get('workspace')
         if workspace_slug:
-            try:
-                return Workspace.objects.get(slug=workspace_slug)
-            except Workspace.DoesNotExist:
-                pass
+            ws_q = Q(slug=workspace_slug) | Q(id=int(workspace_slug)) if workspace_slug.isdigit() else Q(slug=workspace_slug)
+            return Workspace.objects.filter(ws_q).first()
         return None
 
     def get_queryset(self):
@@ -1015,7 +1017,10 @@ class StatusDefinitionViewSet(viewsets.ModelViewSet):
         # Filter by workspace slug
         ws_slug = self.request.query_params.get('workspace')
         if ws_slug:
-            qs = qs.filter(workspace__slug=ws_slug)
+            if ws_slug.isdigit():
+                qs = qs.filter(Q(workspace__slug=ws_slug) | Q(workspace_id=int(ws_slug)))
+            else:
+                qs = qs.filter(workspace__slug=ws_slug)
         user = self.request.user
         if not user.is_superuser:
             member_ws = WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True)
@@ -1090,9 +1095,9 @@ class DashboardView(APIView):
         if not workspace_slug:
             return Response({'detail': 'workspace parameter required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            workspace = Workspace.objects.get(slug=workspace_slug)
-        except Workspace.DoesNotExist:
+        ws_q = Q(slug=workspace_slug) | Q(id=int(workspace_slug)) if workspace_slug.isdigit() else Q(slug=workspace_slug)
+        workspace = Workspace.objects.filter(ws_q).first()
+        if not workspace:
             return Response({'detail': 'Workspace not found'}, status=status.HTTP_404_NOT_FOUND)
 
         ws_id = workspace.id
@@ -1233,7 +1238,10 @@ class MediaFileViewSet(viewsets.ModelViewSet):
         qs = MediaFile.objects.select_related('uploaded_by', 'workspace', 'ticket')
         workspace_slug = self.request.query_params.get('workspace')
         if workspace_slug:
-            qs = qs.filter(workspace__slug=workspace_slug)
+            if workspace_slug.isdigit():
+                qs = qs.filter(Q(workspace__slug=workspace_slug) | Q(workspace_id=int(workspace_slug)))
+            else:
+                qs = qs.filter(workspace__slug=workspace_slug)
         ticket = self.request.query_params.get('ticket')
         if ticket:
             qs = qs.filter(ticket_id=ticket)
