@@ -463,9 +463,9 @@ export default function StateMachinePage() {
 
       {/* Header */}
       <div style={{ maxWidth: 900, margin: '0 auto', padding: isSmall ? '24px 16px 16px' : '40px 24px 24px' }}>
-        <h1 style={{ fontSize: 'clamp(24px, 5vw, 28px)', fontWeight: 700, color: 'white', marginBottom: 8 }}>OpenClaw Governance State Machine</h1>
+        <h1 style={{ fontSize: 'clamp(24px, 5vw, 28px)', fontWeight: 700, color: 'white', marginBottom: 8 }}>Design Your Workflow</h1>
         <p style={{ fontSize: 'clamp(14px, 3vw, 15px)', color: '#9ca3af', lineHeight: 1.6 }}>
-          Design governance workflows for your OpenClaw agents. Define your states, configure the gates, and see your workflow take shape.
+          Every team works differently. Define your states, configure the gates, and see your workflow take shape.
         </p>
       </div>
 
@@ -773,7 +773,7 @@ export default function StateMachinePage() {
         </p>
         <hr style={{ border: 'none', borderTop: '1px solid #18181b', margin: '20px 0' }} />
         <p style={{ fontSize: 'clamp(13px, 3vw, 14px)', color: '#9ca3af', lineHeight: 1.7 }}>
-          This is how <a href="https://openweave.dev" style={{ color: '#6ee7b7', textDecoration: 'none' }}>OpenClaw Governance</a> handles execution governance. The state machine is workspace-level config — no code, no deploys. Admins design the gates, OpenClaw agents follow them.
+          This is how <a href="https://openweave.dev" style={{ color: '#6ee7b7', textDecoration: 'none' }}>OpenWeave</a> handles execution governance. The state machine is workspace-level config — no code, no deploys. Admins design the gates, teams follow them.
         </p>
       </div>
 

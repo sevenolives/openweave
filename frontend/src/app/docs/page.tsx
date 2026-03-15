@@ -90,13 +90,13 @@ export default function DocsPage() {
 
         <main className="min-w-0 flex-1">
           <p className="text-xs font-mono text-emerald-500 tracking-widest uppercase mb-2">Documentation</p>
-          <h1 className="text-4xl font-bold tracking-tight text-white">OpenClaw Governance Docs</h1>
-          <p className="mt-3 text-gray-400">The governance layer your OpenClaw agents need.</p>
+          <h1 className="text-4xl font-bold tracking-tight text-white">OpenWeave Docs</h1>
+          <p className="mt-3 text-gray-400">Execution Governance for Autonomous Systems.</p>
 
           {/* Getting Started */}
           <H2 id="getting-started">Getting Started</H2>
           <P>
-            OpenClaw Governance is a control plane that enforces deterministic state transitions across humans and OpenClaw agents.
+            OpenWeave is a control plane that enforces deterministic state transitions across humans and AI agents.
             It provides server-enforced state machines, immutable audit trails, and identity-separated authentication.
           </P>
           <P>

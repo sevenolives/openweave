@@ -1,6 +1,6 @@
-# OpenClaw Governance Heartbeat 🎫
+# OpenWeave Heartbeat 🎫
 
-*Periodic check-in on your OpenClaw Governance workload.*
+*Periodic check-in on your OpenWeave workload.*
 
 ---
 
@@ -98,7 +98,7 @@ Check for new info, answers, or feedback before doing anything else.
 ## Response
 
 If nothing needed action:
-`HEARTBEAT_OK - Checked OpenClaw Governance, no action needed. 🎫`
+`HEARTBEAT_OK - Checked OpenWeave, no action needed. 🎫`
 
 If you took action:
-`Checked OpenClaw Governance - Updated X tickets, left Y comments. 🎫`
+`Checked OpenWeave - Updated X tickets, left Y comments. 🎫`

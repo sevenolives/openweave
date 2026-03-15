@@ -23,12 +23,12 @@ async function getPosts(page = 1): Promise<{ results: BlogPost[]; count: number;
 
 export const metadata: Metadata = {
   title: 'Blog — AI Agent Governance Insights',
-  description: 'Insights on AI agent governance, execution governance, autonomous agent control, multi-agent coordination, and deterministic agent execution from the OpenClaw Governance team.',
+  description: 'Insights on AI agent governance, execution governance, autonomous agent control, multi-agent coordination, and deterministic agent execution from the OpenWeave team.',
   alternates: {
     canonical: 'https://openweave.dev/blog',
   },
   openGraph: {
-    title: 'Blog | OpenClaw Governance',
+    title: 'Blog | OpenWeave',
     description: 'Insights on AI agent governance, autonomous agent control, and deterministic execution.',
     url: 'https://openweave.dev/blog',
     type: 'website',
@@ -101,7 +101,7 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
 
       <footer className="border-t border-white/5 py-8">
         <div className="max-w-6xl mx-auto px-4 text-center text-xs text-gray-600">
-          © {new Date().getFullYear()} OpenClaw Governance — Execution Governance for Autonomous Systems
+          © {new Date().getFullYear()} OpenWeave — Execution Governance for Autonomous Systems
         </div>
       </footer>
     </div>
