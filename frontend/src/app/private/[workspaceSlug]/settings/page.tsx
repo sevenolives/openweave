@@ -66,20 +66,19 @@ function StateMachineSettings({
   handleAddTransition, handleDeleteTransition, toast,
   exceptions, workspaceSlug, workspaceMembers, handleAddException, handleDeleteException,
 }: StateMachineSettingsProps) {
-  const [statusTab, setStatusTab] = useState<'diagram' | 'statuses' | 'transitions' | 'exceptions'>('diagram');
+  const [statusTab, setStatusTab] = useState<'diagram' | 'statuses' | 'transitions'>('diagram');
   const [isSmall, setIsSmall] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [fromId, setFromId] = useState('');
   const [toId, setToId] = useState('');
   const [newActor, setNewActor] = useState<'BOT' | 'HUMAN' | 'ALL'>('BOT');
 
-  // Exception form state
-  const [excFromId, setExcFromId] = useState('');
-  const [excToId, setExcToId] = useState('');
-  const [excType, setExcType] = useState<'human' | 'bot'>('human');
+  // Inline exception form state per transition
+  const [expandedExceptions, setExpandedExceptions] = useState<Set<number>>(new Set());
+  const [addingExcForTransition, setAddingExcForTransition] = useState<number | null>(null);
   const [excUserId, setExcUserId] = useState<string>('');
   const [excReason, setExcReason] = useState('');
-  const [addingException, setAddingException] = useState(false);
+  const [savingException, setSavingException] = useState(false);
 
   useEffect(() => {
     const check = () => {
@@ -174,7 +173,34 @@ function StateMachineSettings({
     BOT: '#a855f7', HUMAN: '#3b82f6', ALL: '#6b7280',
   };
 
-  const tabStyle = (v: 'diagram' | 'statuses' | 'transitions' | 'exceptions'): React.CSSProperties => ({
+  const toggleExceptions = (transitionId: number) => {
+    setExpandedExceptions(prev => {
+      const next = new Set(prev);
+      if (next.has(transitionId)) next.delete(transitionId);
+      else next.add(transitionId);
+      return next;
+    });
+  };
+
+  const getExceptionsForTransition = (t: StatusTransition) => {
+    return exceptions.filter(e => e.from_status === t.from_status && e.to_status === t.to_status);
+  };
+
+  const getExceptionTypeForTransition = (t: StatusTransition): 'human' | 'bot' | null => {
+    if (t.actor_type === 'BOT') return 'human';
+    if (t.actor_type === 'HUMAN') return 'bot';
+    return null; // ALL - no exceptions needed
+  };
+
+  const getIncomingTransitions = (stateId: number) => {
+    return transitions.filter(t => t.to_status === stateId);
+  };
+
+  const getExceptionsForState = (stateId: number) => {
+    return exceptions.filter(e => e.to_status === stateId);
+  };
+
+  const tabStyle = (v: 'diagram' | 'statuses' | 'transitions'): React.CSSProperties => ({
     padding: isMobile ? '16px 12px' : isSmall ? '14px 16px' : '12px 20px',
     fontSize: isMobile ? '15px' : isSmall ? '14px' : '13px',
     fontWeight: 600, cursor: 'pointer', background: 'none', border: 'none',
@@ -239,7 +265,6 @@ function StateMachineSettings({
           <button onClick={() => setStatusTab('diagram')} style={tabStyle('diagram')}>⬡ Diagram</button>
           <button onClick={() => setStatusTab('statuses')} style={tabStyle('statuses')}>● States</button>
           <button onClick={() => setStatusTab('transitions')} style={tabStyle('transitions')}>→ Transitions</button>
-          <button onClick={() => setStatusTab('exceptions')} style={tabStyle('exceptions')}>⚡ Exceptions</button>
         </div>
 
         {/* Diagram tab */}
@@ -374,6 +399,34 @@ function StateMachineSettings({
                       <button onClick={() => handleDeleteStatus(s)} style={removeBtnStyle}>✕</button>
                     )}
                   </div>
+                  {/* Incoming transitions summary */}
+                  {(() => {
+                    const incoming = getIncomingTransitions(s.id);
+                    const stateExceptions = getExceptionsForState(s.id);
+                    if (incoming.length === 0 && !s.is_bot_requires_approval) return null;
+                    return (
+                      <div style={{
+                        width: '100%', marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.05)',
+                        display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center',
+                      }}>
+                        {incoming.length > 0 && (
+                          <span style={{ fontSize: isSmall ? 12 : 11, color: '#6b7280', background: 'rgba(255,255,255,0.04)', padding: '4px 8px', borderRadius: 6 }}>
+                            {incoming.length} incoming transition{incoming.length !== 1 ? 's' : ''}
+                          </span>
+                        )}
+                        {stateExceptions.length > 0 && (
+                          <span style={{ fontSize: isSmall ? 12 : 11, color: '#eab308', background: 'rgba(234,179,8,0.1)', padding: '4px 8px', borderRadius: 6 }}>
+                            ⚡ {stateExceptions.length} exception{stateExceptions.length !== 1 ? 's' : ''}
+                          </span>
+                        )}
+                        {s.is_bot_requires_approval && (
+                          <span style={{ fontSize: isSmall ? 12 : 11, color: '#eab308', background: 'rgba(234,179,8,0.1)', padding: '4px 8px', borderRadius: 6, fontWeight: 600 }}>
+                            🔒 Approval gate
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               ))
             )}
@@ -415,32 +468,134 @@ function StateMachineSettings({
               transitions.map((t) => {
                 const f = statuses.find((s) => s.id === t.from_status);
                 const to = statuses.find((s) => s.id === t.to_status);
+                const excType = getExceptionTypeForTransition(t);
+                const transExceptions = getExceptionsForTransition(t);
+                const isExpanded = expandedExceptions.has(t.id);
+                const isAddingHere = addingExcForTransition === t.id;
                 return (
                   <div key={t.id} style={{
-                    display: 'flex', alignItems: isSmall ? 'flex-start' : 'center', gap: isSmall ? 6 : 10,
-                    padding: isSmall ? '8px 0' : '8px 0', borderBottom: '1px solid #27272a',
-                    fontSize: isSmall ? 14 : 13, flexDirection: isSmall ? 'column' : 'row',
+                    borderBottom: '1px solid #27272a', padding: isSmall ? '12px 0' : '10px 0',
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: isSmall ? 8 : 6, flex: 1, minWidth: 0, flexWrap: 'wrap' }}>
-                      <select value={t.from_status} onChange={(e) => { const v = Number(e.target.value); if (v === t.to_status) return; handleDeleteTransition(t.id); handleAddTransition(v, t.to_status, t.actor_type); }}
-                        style={{ ...selectStyle, fontSize: isSmall ? 13 : 12, padding: isSmall ? '0 14px' : '4px 8px', minWidth: isSmall ? 100 : 80, height: isSmall ? 44 : 'auto', minHeight: isSmall ? 44 : 'auto' }}>
-                        {statuses.filter((s) => !s.is_terminal).map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
-                      </select>
-                      <span style={{ color: '#6b7280', fontWeight: 600, fontSize: isSmall ? 16 : 14 }}>→</span>
-                      <select value={t.to_status} onChange={(e) => { const v = Number(e.target.value); if (v === t.from_status) return; handleDeleteTransition(t.id); handleAddTransition(t.from_status, v, t.actor_type); }}
-                        style={{ ...selectStyle, fontSize: isSmall ? 13 : 12, padding: isSmall ? '0 14px' : '4px 8px', minWidth: isSmall ? 100 : 80, height: isSmall ? 44 : 'auto', minHeight: isSmall ? 44 : 'auto' }}>
-                        {statuses.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
-                      </select>
+                    <div style={{
+                      display: 'flex', alignItems: isSmall ? 'flex-start' : 'center', gap: isSmall ? 6 : 10,
+                      fontSize: isSmall ? 14 : 13, flexDirection: isSmall ? 'column' : 'row',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: isSmall ? 8 : 6, flex: 1, minWidth: 0, flexWrap: 'wrap' }}>
+                        <select value={t.from_status} onChange={(e) => { const v = Number(e.target.value); if (v === t.to_status) return; handleDeleteTransition(t.id); handleAddTransition(v, t.to_status, t.actor_type); }}
+                          style={{ ...selectStyle, fontSize: isSmall ? 13 : 12, padding: isSmall ? '0 14px' : '4px 8px', minWidth: isSmall ? 100 : 80, height: isSmall ? 44 : 'auto', minHeight: isSmall ? 44 : 'auto' }}>
+                          {statuses.filter((s) => !s.is_terminal).map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+                        </select>
+                        <span style={{ color: '#6b7280', fontWeight: 600, fontSize: isSmall ? 16 : 14 }}>→</span>
+                        <select value={t.to_status} onChange={(e) => { const v = Number(e.target.value); if (v === t.from_status) return; handleDeleteTransition(t.id); handleAddTransition(t.from_status, v, t.actor_type); }}
+                          style={{ ...selectStyle, fontSize: isSmall ? 13 : 12, padding: isSmall ? '0 14px' : '4px 8px', minWidth: isSmall ? 100 : 80, height: isSmall ? 44 : 'auto', minHeight: isSmall ? 44 : 'auto' }}>
+                          {statuses.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+                        </select>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <select value={t.actor_type} onChange={(e) => { handleDeleteTransition(t.id); handleAddTransition(t.from_status, t.to_status, e.target.value); }}
+                          style={{ fontSize: isSmall ? 13 : 10, fontWeight: 700, padding: isSmall ? '0 14px' : '4px 8px', borderRadius: isSmall ? 10 : 6, color: 'white', background: ACTOR_COLORS[t.actor_type], border: '1px solid ' + ACTOR_COLORS[t.actor_type], cursor: 'pointer', height: isSmall ? 44 : 'auto', minHeight: isSmall ? 44 : 'auto' }}>
+                          <option value="BOT" style={{ background: '#18181b', color: '#e5e7eb' }}>BOT</option>
+                          <option value="HUMAN" style={{ background: '#18181b', color: '#e5e7eb' }}>HUMAN</option>
+                          <option value="ALL" style={{ background: '#18181b', color: '#e5e7eb' }}>ALL</option>
+                        </select>
+                        {excType && (
+                          <button onClick={() => toggleExceptions(t.id)} style={{
+                            fontSize: isSmall ? 12 : 11, fontWeight: 600, padding: isSmall ? '8px 12px' : '4px 10px',
+                            borderRadius: 8, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)',
+                            background: transExceptions.length > 0 ? 'rgba(234,179,8,0.1)' : 'rgba(255,255,255,0.04)',
+                            color: transExceptions.length > 0 ? '#eab308' : '#6b7280',
+                            minHeight: isSmall ? 44 : 32, display: 'flex', alignItems: 'center', gap: 4,
+                            transition: 'all 0.2s ease',
+                          }}>
+                            ⚡ {transExceptions.length > 0 ? `${transExceptions.length} exception${transExceptions.length !== 1 ? 's' : ''}` : `${excType === 'human' ? 'Human' : 'Bot'} exceptions`}
+                            <span style={{ fontSize: 10, transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▼</span>
+                          </button>
+                        )}
+                        <button onClick={() => handleDeleteTransition(t.id)} style={removeBtnStyle}>✕</button>
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <select value={t.actor_type} onChange={(e) => { handleDeleteTransition(t.id); handleAddTransition(t.from_status, t.to_status, e.target.value); }}
-                        style={{ fontSize: isSmall ? 13 : 10, fontWeight: 700, padding: isSmall ? '0 14px' : '4px 8px', borderRadius: isSmall ? 10 : 6, color: 'white', background: ACTOR_COLORS[t.actor_type], border: '1px solid ' + ACTOR_COLORS[t.actor_type], cursor: 'pointer', height: isSmall ? 44 : 'auto', minHeight: isSmall ? 44 : 'auto' }}>
-                        <option value="BOT" style={{ background: '#18181b', color: '#e5e7eb' }}>BOT</option>
-                        <option value="HUMAN" style={{ background: '#18181b', color: '#e5e7eb' }}>HUMAN</option>
-                        <option value="ALL" style={{ background: '#18181b', color: '#e5e7eb' }}>ALL</option>
-                      </select>
-                      <button onClick={() => handleDeleteTransition(t.id)} style={removeBtnStyle}>✕</button>
-                    </div>
+
+                    {/* Expanded exceptions section */}
+                    {excType && isExpanded && (
+                      <div style={{
+                        marginTop: 10, marginLeft: isSmall ? 0 : 16, padding: isSmall ? '12px' : '10px 14px',
+                        background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
+                        borderRadius: 10,
+                      }}>
+                        <div style={{ fontSize: isSmall ? 13 : 12, color: '#9ca3af', marginBottom: 8, fontWeight: 600 }}>
+                          {excType === 'human' ? '👤 Human' : '🤖 Bot'} exceptions
+                        </div>
+
+                        {/* Exception chips */}
+                        {transExceptions.length > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                            {transExceptions.map(exc => (
+                              <span key={exc.id} style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 6,
+                                fontSize: isSmall ? 13 : 12, padding: '5px 10px', borderRadius: 8,
+                                background: excType === 'human' ? 'rgba(59,130,246,0.1)' : 'rgba(168,85,247,0.1)',
+                                color: excType === 'human' ? '#93c5fd' : '#c4b5fd',
+                                border: `1px solid ${excType === 'human' ? 'rgba(59,130,246,0.2)' : 'rgba(168,85,247,0.2)'}`,
+                              }}>
+                                {exc.user_details ? exc.user_details.username : `All ${exc.exception_type}s`}
+                                {exc.reason && <span style={{ fontSize: 11, color: '#6b7280' }} title={exc.reason}>💬</span>}
+                                <button onClick={() => { if (confirm('Delete this exception?')) handleDeleteException(exc.id); }}
+                                  style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 14, padding: '0 2px', lineHeight: 1 }}>×</button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Add exception inline form */}
+                        {isAddingHere ? (
+                          <div style={{ display: 'flex', flexDirection: isSmall ? 'column' : 'row', gap: 8, alignItems: isSmall ? 'stretch' : 'center' }}>
+                            <select value={excUserId} onChange={(e) => setExcUserId(e.target.value)}
+                              style={{ ...selectStyle, flex: 1, fontSize: isSmall ? 14 : 12 }}>
+                              <option value="">All {excType}s</option>
+                              {workspaceMembers
+                                .filter((m) => excType === 'bot' ? m.user.user_type === 'BOT' : m.user.user_type === 'HUMAN')
+                                .map((m) => <option key={m.user.id} value={m.user.id}>{m.user.username}</option>)
+                              }
+                            </select>
+                            <input value={excReason} onChange={(e) => setExcReason(e.target.value)}
+                              placeholder="Reason (optional)..."
+                              style={{ ...inputStyle, flex: 1, fontSize: isSmall ? 14 : 12 }} />
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              <button
+                                disabled={savingException}
+                                onClick={async () => {
+                                  setSavingException(true);
+                                  try {
+                                    await handleAddException({
+                                      workspace: workspaceSlug,
+                                      from_status: t.from_status,
+                                      to_status: t.to_status,
+                                      exception_type: excType,
+                                      user: excUserId ? Number(excUserId) : null,
+                                      reason: excReason,
+                                    });
+                                    setExcUserId(''); setExcReason(''); setAddingExcForTransition(null);
+                                  } finally { setSavingException(false); }
+                                }}
+                                style={{ ...btnStyle, fontSize: 12, padding: isSmall ? '12px 16px' : '6px 14px', minHeight: isSmall ? 44 : 32, whiteSpace: 'nowrap' }}>
+                                {savingException ? '...' : 'Save'}
+                              </button>
+                              <button onClick={() => { setAddingExcForTransition(null); setExcUserId(''); setExcReason(''); }}
+                                style={{ ...removeBtnStyle, fontSize: 12 }}>✕</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button onClick={() => { setAddingExcForTransition(t.id); setExcUserId(''); setExcReason(''); }}
+                            style={{
+                              fontSize: isSmall ? 13 : 12, color: '#818cf8', background: 'none', border: '1px dashed rgba(129,140,248,0.3)',
+                              padding: isSmall ? '10px 14px' : '6px 12px', borderRadius: 8, cursor: 'pointer',
+                              minHeight: isSmall ? 44 : 32, transition: 'all 0.2s ease',
+                            }}>
+                            + Add {excType} exception
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })
@@ -472,131 +627,6 @@ function StateMachineSettings({
           </div>
         )}
       </div>
-
-        {/* Exceptions tab */}
-        {statusTab === 'exceptions' && (
-          <div style={{ padding: isSmall ? 12 : 16 }}>
-            <div style={{ marginBottom: 20 }}>
-              <h3 style={{ fontSize: isSmall ? 16 : 14, fontWeight: 600, color: '#e5e7eb', marginBottom: 8 }}>Transition Exceptions</h3>
-              <p style={{ fontSize: isSmall ? 14 : 13, color: '#9ca3af', lineHeight: 1.5 }}>
-                Allow specific users or user types to bypass blocked transitions.
-              </p>
-            </div>
-
-            {exceptions.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 20px', color: '#6b7280', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed #374151' }}>
-                <div style={{ fontSize: '36px', marginBottom: '12px' }}>⚡</div>
-                <p style={{ fontSize: '15px', marginBottom: '8px' }}>No exceptions defined</p>
-                <p style={{ fontSize: '13px', opacity: 0.7 }}>Add an exception below to allow specific bypasses</p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {exceptions.map((exc) => (
-                  <div key={exc.id} style={{
-                    display: 'flex', flexDirection: isMobile ? 'column' : 'row',
-                    alignItems: isMobile ? 'flex-start' : 'center', gap: 12,
-                    padding: isMobile ? '16px' : '14px',
-                    background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
-                    borderRadius: '12px', transition: 'all 0.2s ease',
-                  }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
-                        <span style={{ fontSize: isSmall ? 14 : 13, fontWeight: 600, color: '#e5e7eb' }}>
-                          {exc.from_status_label} → {exc.to_status_label}
-                        </span>
-                        <span style={{
-                          fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6,
-                          color: 'white',
-                          background: exc.exception_type === 'bot' ? '#a855f7' : '#3b82f6',
-                        }}>
-                          {exc.exception_type.toUpperCase()}
-                        </span>
-                        <span style={{ fontSize: isSmall ? 13 : 12, color: '#9ca3af' }}>
-                          {exc.user_details ? exc.user_details.username : 'All ' + exc.exception_type + 's'}
-                        </span>
-                      </div>
-                      {exc.reason && (
-                        <p style={{ fontSize: isSmall ? 13 : 12, color: '#6b7280', margin: '4px 0 0' }}>
-                          {exc.reason}
-                        </p>
-                      )}
-                      <p style={{ fontSize: 11, color: '#4b5563', margin: '4px 0 0' }}>
-                        by {exc.created_by_details?.username || 'unknown'} · {new Date(exc.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => { if (confirm('Delete this exception?')) handleDeleteException(exc.id); }}
-                      style={removeBtnStyle}
-                    >✕</button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Add Exception Form */}
-            <div style={{ marginTop: 20, padding: isMobile ? '16px' : '16px 20px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px' }}>
-              <h4 style={{ fontSize: isSmall ? 15 : 13, fontWeight: 600, color: '#d1d5db', marginBottom: 12 }}>Add Exception</h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ display: 'flex', gap: isSmall ? 12 : 8, flexDirection: isSmall ? 'column' : 'row', alignItems: isSmall ? 'stretch' : 'center' }}>
-                  <select value={excFromId} onChange={(e) => setExcFromId(e.target.value)} style={{ ...selectStyle, flex: 1 }}>
-                    <option value="">From state...</option>
-                    {statuses.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
-                  </select>
-                  <span style={{ color: '#6b7280', fontWeight: 600, fontSize: 14, textAlign: 'center' }}>→</span>
-                  <select value={excToId} onChange={(e) => setExcToId(e.target.value)} style={{ ...selectStyle, flex: 1 }}>
-                    <option value="">To state...</option>
-                    {statuses.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
-                  </select>
-                </div>
-                <div style={{ display: 'flex', gap: isSmall ? 12 : 8, flexDirection: isSmall ? 'column' : 'row', alignItems: isSmall ? 'stretch' : 'center' }}>
-                  <select value={excType} onChange={(e) => setExcType(e.target.value as 'human' | 'bot')} style={{ ...selectStyle, flex: isSmall ? 'none' : '0 0 auto', width: isSmall ? '100%' : 'auto' }}>
-                    <option value="human">Human Exception</option>
-                    <option value="bot">Bot Exception</option>
-                  </select>
-                  <select value={excUserId} onChange={(e) => setExcUserId(e.target.value)} style={{ ...selectStyle, flex: 1 }}>
-                    <option value="">All {excType}s</option>
-                    {workspaceMembers
-                      .filter((m) => excType === 'bot' ? m.user.user_type === 'BOT' : m.user.user_type === 'HUMAN')
-                      .map((m) => <option key={m.user.id} value={m.user.id}>{m.user.username}</option>)
-                    }
-                  </select>
-                </div>
-                <input
-                  value={excReason}
-                  onChange={(e) => setExcReason(e.target.value)}
-                  placeholder="Reason (optional)..."
-                  style={{ ...inputStyle, width: '100%' }}
-                />
-                <button
-                  onClick={async () => {
-                    if (!excFromId || !excToId || excFromId === excToId) return;
-                    setAddingException(true);
-                    try {
-                      await handleAddException({
-                        workspace: workspaceSlug,
-                        from_status: Number(excFromId),
-                        to_status: Number(excToId),
-                        exception_type: excType,
-                        user: excUserId ? Number(excUserId) : null,
-                        reason: excReason,
-                      });
-                      setExcFromId(''); setExcToId(''); setExcReason(''); setExcUserId('');
-                    } finally { setAddingException(false); }
-                  }}
-                  disabled={!excFromId || !excToId || excFromId === excToId || addingException}
-                  style={{
-                    ...btnStyle,
-                    opacity: (!excFromId || !excToId || excFromId === excToId || addingException) ? 0.5 : 1,
-                    cursor: (!excFromId || !excToId || excFromId === excToId || addingException) ? 'not-allowed' : 'pointer',
-                    width: isSmall ? '100%' : 'auto', alignSelf: isSmall ? 'stretch' : 'flex-start',
-                  }}
-                >
-                  {addingException ? 'Adding...' : '+ Add Exception'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
       {/* How It Works */}
       <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid #18181b' }}>
