@@ -28,7 +28,7 @@ const policies = [
       },
       {
         heading: 'Bot vs Human Separation',
-        content: 'Bot and human identities are tracked separately. The state machine enforces different transition rules for bots and humans — bots cannot enter certain states without prior approval gates. This separation is enforced at the API layer.',
+        content: 'Bot and human identities are tracked separately. The state machine uses gate-based permissions to control who can enter each state and from which source states. This separation is enforced at the API layer.',
       },
     ],
   },
@@ -76,7 +76,7 @@ const policies = [
       },
       {
         heading: 'Bot Agent Access',
-        content: 'Bot agents authenticate with API tokens scoped to a specific workspace. Bots are subject to stricter state transition rules than humans. Approval gates prevent bots from entering certain workflow states without human authorization.',
+        content: 'Bot agents authenticate with API tokens scoped to a specific workspace. Gate-based permissions on each state control which users can enter and from which source states.',
       },
       {
         heading: 'Token Management',

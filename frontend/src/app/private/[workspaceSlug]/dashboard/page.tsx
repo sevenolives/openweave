@@ -66,7 +66,7 @@ export default function DashboardPage() {
             <div className="bg-white rounded-2xl border border-gray-200 p-8 sm:p-10 text-center mb-8">
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">Welcome to OpenWeave! 🎉</h2>
               <p className="text-gray-500 max-w-lg mx-auto">
-                OpenWeave enforces what your AI agents can do using state machines and approval gates.
+                OpenWeave enforces what your AI agents can do using state machines with gate-based permissions.
                 Get started by setting up your first project.
               </p>
             </div>
@@ -102,7 +102,7 @@ export default function DashboardPage() {
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                 </div>
                 <h3 className="font-semibold text-gray-900 mb-1">Explore the Demo</h3>
-                <p className="text-sm text-gray-500">See how state machines and approval gates work.</p>
+                <p className="text-sm text-gray-500">See how state machines and gate-based permissions work.</p>
               </button>
             </div>
           </div>

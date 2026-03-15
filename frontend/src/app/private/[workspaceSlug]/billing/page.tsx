@@ -97,7 +97,7 @@ export default function BillingPage() {
               <div className="rounded-xl border border-white/10 bg-white/[0.02] p-6">
                 <h2 className="text-lg font-semibold text-white mb-2">Upgrade to Pro</h2>
                 <p className="text-sm text-gray-400 mb-6">
-                  Unlimited users, projects, bot agents, approval gates, and more.
+                  Unlimited users, projects, bot agents, gate-based state permissions, and more.
                 </p>
                 <div className="flex gap-3">
                   <button

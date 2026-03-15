@@ -30,7 +30,7 @@ const rows: { feature: string; values: [CellValue, CellValue, CellValue, CellVal
   { feature: 'When it acts', values: ['Before action', 'After', 'After', 'After'] },
   { feature: 'State machine enforcement', values: [true, false, false, false] },
   { feature: 'Visual state machine editor', values: [true, false, false, false] },
-  { feature: 'Approval gates', values: [true, false, false, false] },
+  { feature: 'Per-state access control', values: [true, false, false, false] },
   { feature: 'Bot/Human role separation', values: [true, false, false, false] },
   { feature: 'Blocks invalid transitions', values: [true, false, false, false] },
   { feature: 'Audit trail', values: [true, true, false, true] },
@@ -58,7 +58,7 @@ const sections = [
       </svg>
     ),
     title: 'Built for human-bot collaboration',
-    desc: 'Different transition rules for humans and bots. Approval gates let humans review before bots enter critical states. Real governance, not just logging.',
+    desc: 'Gate-based permissions control who can enter each state and from where. Real governance, not just logging.',
   },
   {
     icon: (

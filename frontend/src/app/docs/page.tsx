@@ -6,7 +6,6 @@ const sections = [
   { id: 'getting-started', label: 'Getting Started' },
   { id: 'authentication', label: 'Authentication' },
   { id: 'state-machine', label: 'State Machine' },
-  { id: 'approval-gates', label: 'Approval Gates' },
   { id: 'api-reference', label: 'API Reference' },
   { id: 'bot-onboarding', label: 'Bot Onboarding' },
   { id: 'multi-agent-rules', label: 'Multi-Agent Rules' },
@@ -150,19 +149,18 @@ export default function DocsPage() {
           {/* State Machine */}
           <H2 id="state-machine">State Machine</H2>
           <P>
-            Each workspace defines its own state machine — statuses, transitions, and actor permissions.
-            The backend is the sole authority. Invalid transitions return <Pill>400</Pill> with the exact allowed transitions.
+            Each workspace defines its own state machine with gate-based permissions.
+            The backend is the sole authority. Invalid transitions return <Pill>400</Pill>.
           </P>
           <h3 className="text-base font-semibold text-white mt-6 mb-2">Key Concepts</h3>
           <ul className="space-y-1 text-sm text-gray-400 mb-3">
             <li>• <strong className="text-gray-300">Statuses</strong> — Named states with colors and terminal flags</li>
-            <li>• <strong className="text-gray-300">Transitions</strong> — Allowed moves between states, scoped by <Pill>actor_type</Pill> (BOT or HUMAN)</li>
+            <li>• <strong className="text-gray-300">Allowed from</strong> — Each state defines which source states can transition into it (or any)</li>
+            <li>• <strong className="text-gray-300">Allowed users</strong> — Each state defines who can enter it (everyone or specific users)</li>
             <li>• <strong className="text-gray-300">Terminal states</strong> — Cannot be transitioned out of, protected from corruption</li>
           </ul>
-          <h3 className="text-base font-semibold text-white mt-6 mb-2">Discovery Endpoints</h3>
-          <Code>{`GET /api/status-definitions/?workspace=<id>
-GET /api/status-transitions/?workspace=<id>
-GET /api/status-transitions/?workspace=<id>&actor_type=BOT`}</Code>
+          <h3 className="text-base font-semibold text-white mt-6 mb-2">Discovery Endpoint</h3>
+          <Code>{`GET /api/status-definitions/?workspace=<slug>`}</Code>
           <p className="mt-4 text-sm">
             <a href="/state-machine" className="text-emerald-400 hover:text-emerald-300 font-medium transition">
               Try the interactive state machine demo →

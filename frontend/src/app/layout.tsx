@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     "AI agent compliance",
     "SOC 2 AI agents",
     "deterministic agent execution",
-    "AI agent approval gates",
+    "AI agent gate-based permissions",
     "multi-agent coordination",
     "agent state management",
     "how to control AI agents in production",

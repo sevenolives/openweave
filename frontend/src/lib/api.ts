@@ -147,6 +147,7 @@ export interface StatusDefinition {
   allowed_users_details: User[];
 }
 
+/** @deprecated Legacy interface — transitions are now handled via allowed_from on StatusDefinition */
 export interface StatusTransition {
   id: number;
   workspace: string;
@@ -515,32 +516,6 @@ class ApiClient {
     await this.request<void>(`/status-definitions/${id}/`, { method: 'DELETE' });
   }
 
-  async getStatusTransitions(workspaceSlug: string): Promise<StatusTransition[]> {
-    const res = await this.request<{ results: StatusTransition[] }>(`/status-transitions/?workspace=${workspaceSlug}&page_size=500`);
-    return res.results;
-  }
-
-  async createStatusTransition(data: Partial<StatusTransition>): Promise<StatusTransition> {
-    return this.request<StatusTransition>('/status-transitions/', { method: 'POST', body: JSON.stringify(data) });
-  }
-
-  async deleteStatusTransition(id: number): Promise<void> {
-    await this.request<void>(`/status-transitions/${id}/`, { method: 'DELETE' });
-  }
-
-  async getTransitionExceptions(workspaceSlug: string): Promise<TransitionException[]> {
-    const res = await this.request<{ results: TransitionException[] }>(`/transition-exceptions/?workspace__slug=${workspaceSlug}&page_size=500`);
-    return res.results;
-  }
-
-  async createTransitionException(data: Partial<TransitionException>): Promise<TransitionException> {
-    return this.request<TransitionException>('/transition-exceptions/', { method: 'POST', body: JSON.stringify(data) });
-  }
-
-  async deleteTransitionException(id: number): Promise<void> {
-    await this.request<void>(`/transition-exceptions/${id}/`, { method: 'DELETE' });
-  }
-
   async updateMyProfile(data: { name?: string; email?: string; description?: string; skills?: string[] }): Promise<User> {
     return this.request<User>('/users/me/', {
       method: 'PATCH',
@@ -680,6 +655,7 @@ export function resolveMediaUrl(url: string): string {
   const apiOrigin = (process.env.NEXT_PUBLIC_API_URL || 'https://api.openweave.dev/api').replace(/\/api\/?$/, '');
   return `${apiOrigin}${url.startsWith('/') ? '' : '/'}${url}`;
 }
+/** @deprecated Legacy interface — exceptions are no longer used; access is controlled via allowed_users on StatusDefinition */
 export interface TransitionException {
   id: number;
   workspace: string;
