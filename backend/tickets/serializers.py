@@ -294,21 +294,15 @@ class TicketSerializer(serializers.ModelSerializer):
                                           f'Allowed from: {", ".join(allowed_sources)}.'
                             })
 
-                    # 2. Check allowed_users (specific user override) or who_can_enter
-                    if target_status_def.allowed_users.exists():
-                        if user not in target_status_def.allowed_users.all():
-                            raise serializers.ValidationError({
-                                'status': f"You don't have permission to move tickets to {new_status}."
-                            })
-                    else:
-                        if target_status_def.who_can_enter == 'humans' and user_type == 'bot':
-                            raise serializers.ValidationError({
-                                'status': f'Only humans can move tickets to {new_status}.'
-                            })
-                        elif target_status_def.who_can_enter == 'bots' and user_type == 'human':
-                            raise serializers.ValidationError({
-                                'status': f'Only bots can move tickets to {new_status}.'
-                            })
+                    # 2. Check who_can_enter
+                    if target_status_def.who_can_enter == 'humans' and user_type == 'bot':
+                        raise serializers.ValidationError({
+                            'status': f'Only humans can move tickets to {new_status}.'
+                        })
+                    elif target_status_def.who_can_enter == 'bots' and user_type == 'human':
+                        raise serializers.ValidationError({
+                            'status': f'Only bots can move tickets to {new_status}.'
+                        })
 
                     # 3. Check approval gate for bot transitions
                     if target_status_def.is_bot_requires_approval and user_type == 'bot':
@@ -387,17 +381,12 @@ class StatusDefinitionSerializer(serializers.ModelSerializer):
     allowed_from = serializers.PrimaryKeyRelatedField(
         many=True, queryset=StatusDefinition.objects.all(), required=False,
     )
-    allowed_users = serializers.PrimaryKeyRelatedField(
-        many=True, queryset=User.objects.all(), required=False,
-    )
-    allowed_users_details = serializers.SerializerMethodField()
-
     class Meta:
         model = StatusDefinition
         fields = ['id', 'workspace', 'key', 'label', 'color', 'is_terminal', 'is_default',
                   'is_bot_requires_approval', 'position', 'in_use', 'who_can_enter',
-                  'allowed_from', 'allowed_users', 'allowed_users_details']
-        read_only_fields = ['in_use', 'allowed_users_details']
+                  'allowed_from']
+        read_only_fields = ['in_use']
         extra_kwargs = {
             'key': {'help_text': 'Unique status key within workspace, e.g. IN_PROGRESS.'},
         }
@@ -406,9 +395,6 @@ class StatusDefinitionSerializer(serializers.ModelSerializer):
         return Ticket.objects.filter(
             project__workspace=obj.workspace, status=obj.key
         ).exists()
-
-    def get_allowed_users_details(self, obj):
-        return UserSimpleSerializer(obj.allowed_users.all(), many=True).data
 
     def validate_key(self, value):
         # Key must be uppercase alphanumeric with underscores
@@ -422,14 +408,11 @@ class StatusDefinitionSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         allowed_from = validated_data.pop('allowed_from', None)
-        allowed_users = validated_data.pop('allowed_users', None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
         if allowed_from is not None:
             instance.allowed_from.set(allowed_from)
-        if allowed_users is not None:
-            instance.allowed_users.set(allowed_users)
         return instance
 
 

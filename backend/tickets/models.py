@@ -130,9 +130,6 @@ class StatusDefinition(models.Model):
     )
     allowed_from = models.ManyToManyField('self', symmetrical=False, blank=True, related_name='can_lead_to',
         help_text='If empty, can transition from any state. If set, only these source states are allowed.')
-    allowed_users = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name='allowed_states',
-        help_text='If set, only these specific users can move tickets into this state (overrides who_can_enter)')
-
     class Meta:
         db_table = 'status_definitions'
         unique_together = ('workspace', 'key')

@@ -43,7 +43,6 @@ interface StateMachineSettingsProps {
   handleDeleteStatus: (sd: StatusDefinition) => Promise<void>;
   handleSetDefault: (sd: StatusDefinition) => Promise<void>;
   toast: (msg: string, type?: 'success' | 'error' | 'info') => void;
-  workspaceMembers: WorkspaceMember[];
 }
 
 function StateMachineSettings({
@@ -51,7 +50,7 @@ function StateMachineSettings({
   newStatusLabel, setNewStatusLabel, newStatusColor, setNewStatusColor,
   newStatusTerminal, setNewStatusTerminal,
   handleAddStatus, handleUpdateStatus, handleDeleteStatus, handleSetDefault,
-  toast, workspaceMembers,
+  toast,
 }: StateMachineSettingsProps) {
   const [isMobile, setIsMobile] = useState(false);
   const [savingId, setSavingId] = useState<number | null>(null);
@@ -134,7 +133,6 @@ function StateMachineSettings({
       await handleUpdateStatus(s.id, {
         who_can_enter: s.who_can_enter,
         allowed_from: s.allowed_from,
-        allowed_users: s.allowed_users,
       });
     } finally {
       setSavingId(null);
@@ -264,34 +262,6 @@ function StateMachineSettings({
             </div>
           </div>
 
-          {/* Specific users */}
-          <div style={{ marginTop: 16 }}>
-            <label style={labelStyle}>
-              Specific users <span style={{ color: '#6b7280', fontWeight: 400 }}>(overrides &quot;who can enter&quot; when set)</span>
-            </label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {workspaceMembers.map(m => {
-                const isSelected = (s.allowed_users || []).includes(m.user.id);
-                return (
-                  <button key={m.user.id} onClick={() => {
-                    const current = s.allowed_users || [];
-                    const next = isSelected ? current.filter(id => id !== m.user.id) : [...current, m.user.id];
-                    updateLocalStatus(s.id, { allowed_users: next });
-                  }} style={{
-                    fontSize: 12, padding: '6px 10px', borderRadius: 8, cursor: 'pointer',
-                    background: isSelected ? 'rgba(99,102,241,0.15)' : 'rgba(39,39,42,0.5)',
-                    color: isSelected ? '#a5b4fc' : '#6b7280',
-                    border: isSelected ? '1px solid rgba(99,102,241,0.4)' : '1px solid #3f3f46',
-                    fontWeight: isSelected ? 600 : 400, minHeight: 32,
-                  }}>
-                    {m.user.user_type === 'BOT' ? '🤖 ' : '👤 '}{m.user.username}
-                  </button>
-                );
-              })}
-              {workspaceMembers.length === 0 && <span style={{ fontSize: 12, color: '#6b7280' }}>No members</span>}
-            </div>
-          </div>
-
           {/* Save button */}
           <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
             <button onClick={() => handleSaveGate(s)} disabled={savingId === s.id}
@@ -361,7 +331,6 @@ function StateMachineSettings({
         <ul style={{ paddingLeft: 20, fontSize: 13, color: '#9ca3af', lineHeight: 1.8 }}>
           <li><strong style={{ color: '#d1d5db' }}>Who can enter</strong> — controls whether bots, humans, or both can move tickets into this state</li>
           <li><strong style={{ color: '#d1d5db' }}>Allowed from</strong> — optional path restriction. If empty, tickets can arrive from any state. If set, only from the selected states</li>
-          <li><strong style={{ color: '#d1d5db' }}>Specific users</strong> — when set, only these users can move tickets here (overrides the &quot;who can enter&quot; rule)</li>
           <li><strong style={{ color: '#d1d5db' }}>Approval gate</strong> — bots need the ticket to be approved before entering this state</li>
         </ul>
       </div>
@@ -666,7 +635,6 @@ export default function WorkspaceSettingsPage() {
             handleDeleteStatus={handleDeleteStatus}
             handleSetDefault={handleSetDefault}
             toast={toast}
-            workspaceMembers={members}
           />
         )}
       </div>

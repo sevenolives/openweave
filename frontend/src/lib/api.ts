@@ -145,8 +145,6 @@ export interface StatusDefinition {
   in_use: boolean;
   who_can_enter: 'all' | 'humans' | 'bots';
   allowed_from: number[];
-  allowed_users: number[];
-  allowed_users_details: User[];
 }
 
 export interface StatusTransition {
