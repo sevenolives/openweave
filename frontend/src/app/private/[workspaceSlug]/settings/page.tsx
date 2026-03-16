@@ -229,6 +229,16 @@ function StateMachineSettings({
             )}
           </div>
 
+          {/* Description */}
+          <input value={s.description || ''}
+            onChange={(e) => updateLocalStatus(s.id, { description: e.target.value })}
+            onFocus={(e) => { focusRef.current[`desc-${s.id}`] = e.target.value; }}
+            onBlur={(e) => { if (e.target.value !== focusRef.current[`desc-${s.id}`]) { handleUpdateStatus(s.id, { description: e.target.value }); focusRef.current[`desc-${s.id}`] = e.target.value; } }}
+            onKeyDown={(e) => { if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); } }}
+            placeholder="Description (optional)…"
+            style={{ fontSize: 13, color: '#9ca3af', background: 'transparent', border: 'none', outline: 'none', width: '100%', marginBottom: 12, padding: '2px 0' }}
+          />
+
           {/* Badges */}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
             <button onClick={() => !s.is_default && handleSetDefault(s)} style={badgeStyle(s.is_default, '#eab308')}>

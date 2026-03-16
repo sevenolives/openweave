@@ -399,7 +399,7 @@ class StatusDefinitionSerializer(serializers.ModelSerializer):
     allowed_users_details = UserSimpleSerializer(source='allowed_users', many=True, read_only=True)
     class Meta:
         model = StatusDefinition
-        fields = ['id', 'workspace', 'key', 'label', 'color', 'is_default',
+        fields = ['id', 'workspace', 'key', 'label', 'description', 'color', 'is_default',
                   'is_archived', 'position',
                   'allowed_from', 'allowed_users', 'allowed_users_details']
         extra_kwargs = {

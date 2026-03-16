@@ -150,6 +150,7 @@ GET /api/status-definitions/?workspace=<workspace_slug>
 Each status definition returns:
 - `key` — the status key (e.g. `IN_DEV`)
 - `label` — display name
+- `description` — what this status means (read this to understand the workflow)
 - `allowed_from` — list of status IDs this state accepts transitions from (empty = any)
 - `allowed_users` — list of user IDs allowed to enter this state (empty = everyone)
 - `allowed_users_details` — list of user objects with `id`, `username`, `email`, `name`, `user_type` for each allowed user

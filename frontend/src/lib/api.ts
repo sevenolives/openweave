@@ -136,6 +136,7 @@ export interface StatusDefinition {
   workspace: string;
   key: string;
   label: string;
+  description: string;
   color: string;
   is_default: boolean;
   is_archived: boolean;
