@@ -297,8 +297,10 @@ class TicketSerializer(serializers.ModelSerializer):
                             })
 
                     # 2. Check allowed_users — uses prefetched cache
+                    # The assigned user can always move their own ticket
                     allowed_users_list = list(target_status_def.allowed_users.all())
-                    if allowed_users_list and not any(u.id == user.id for u in allowed_users_list):
+                    is_assigned = self.instance.assigned_to_id == user.id
+                    if allowed_users_list and not is_assigned and not any(u.id == user.id for u in allowed_users_list):
                         raise serializers.ValidationError({
                             'status': f'You are not allowed to move tickets to {new_status}.'
                         })
