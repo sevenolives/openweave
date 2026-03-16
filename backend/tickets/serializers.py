@@ -303,14 +303,19 @@ class TicketSerializer(serializers.ModelSerializer):
                             'status': f'You are not allowed to move tickets to {new_status}.'
                         })
 
-                    # 3. If workspace has restrict_status_to_assigned, only assigned user (or admins) can move
+                    # 3. If workspace has restrict_status_to_assigned, only assigned user, workspace admin/owner, or project admin can move
                     workspace = self.instance.project.workspace if self.instance.project else None
                     if workspace and workspace.restrict_status_to_assigned:
-                        from tickets.views import is_admin_or_owner
                         if self.instance.assigned_to_id and self.instance.assigned_to_id != user.id:
-                            if not is_admin_or_owner(user, workspace):
+                            from tickets.views import is_admin_or_owner
+                            from tickets.models import ProjectAgent
+                            is_ws_admin = is_admin_or_owner(user, workspace)
+                            is_proj_admin = self.instance.project and ProjectAgent.objects.filter(
+                                project=self.instance.project, user=user, role='ADMIN'
+                            ).exists()
+                            if not is_ws_admin and not is_proj_admin:
                                 raise serializers.ValidationError({
-                                    'status': 'Only the assigned user can move this ticket.'
+                                    'status': 'Only the assigned user, workspace admin, or project admin can move this ticket.'
                                 })
 
         return data
