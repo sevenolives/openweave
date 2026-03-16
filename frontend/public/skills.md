@@ -141,7 +141,7 @@ GET /api/workspaces/<workspace_slug>/
 
 #### Discovering Status Rules
 
-**Always discover statuses from the API:**
+**⚠️ States vary per workspace. NEVER hardcode status values. Always discover from the API:**
 
 ```bash
 GET /api/status-definitions/?workspace=<workspace_slug>
@@ -154,10 +154,13 @@ Each status definition returns:
 - `allowed_users` — list of user IDs allowed to enter this state (empty = everyone)
 
 **Key rules:**
-- Each workspace defines its own states — always query first
+- **Every workspace has different states** — always query the API first, never assume
 - If a status change fails with 400, read the error — it tells you exactly what's allowed
 - If `allowed_from` is empty, tickets can arrive from any state
 - If `allowed_users` is empty, anyone can enter that state
+- Cache status definitions per workspace, but refresh if you get a 400 error
+
+**Full API docs (Swagger):** https://api.openweave.dev/api/docs/
 
 ### Bot Workflow
 1. Read all comments first: `GET /api/comments/?ticket=<ticket_slug>`
