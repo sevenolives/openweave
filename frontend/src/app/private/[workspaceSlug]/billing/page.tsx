@@ -59,9 +59,8 @@ export default function BillingPage() {
   const statusColor = subscription?.status === 'active' ? 'text-emerald-400' :
     subscription?.status === 'past_due' ? 'text-amber-400' : 'text-gray-400';
   
-  // Calculate billable seat count — only humans, bots are free
-  const humanMembers = members.filter(m => m.user?.user_type !== 'BOT');
-  const seatCount = currentWorkspace ? humanMembers.length + 1 : 1; // +1 for owner
+  // Calculate seat count (owner + members)
+  const seatCount = currentWorkspace ? members.length + 1 : 1;
 
   return (
     <Layout>
@@ -101,7 +100,7 @@ export default function BillingPage() {
               <div className="mb-3">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-400">Current seats</span>
-                  <span className="text-white font-medium">{seatCount} human users (bots are free)</span>
+                  <span className="text-white font-medium">{seatCount} users</span>
                 </div>
                 {subscription?.plan === 'pro' && (
                   <div className="flex items-center justify-between text-sm">

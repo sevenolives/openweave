@@ -42,16 +42,14 @@ def get_plan_limits(workspace):
 
 
 def check_member_limit(workspace):
-    """Check if workspace can add more members. Bots are free — only humans count."""
+    """Check if workspace can add more members."""
     limits = get_plan_limits(workspace)
     max_users = limits['max_users']
     if max_users is None:
         return
-    # Count only human members (owner + human WorkspaceMembers). Bots don't count toward limits.
-    human_count = WorkspaceMember.objects.filter(workspace=workspace, user__user_type='HUMAN').count()
-    if workspace.owner.user_type == 'HUMAN':
-        human_count += 1  # +1 for owner
-    if human_count >= max_users:
+    # Count owner + members
+    member_count = WorkspaceMember.objects.filter(workspace=workspace).count() + 1  # +1 for owner
+    if member_count >= max_users:
         raise PermissionDenied(f"Upgrade to Pro to add more than {max_users} users.")
 
 
@@ -102,11 +100,8 @@ def sync_seat_count(workspace):
     if not subscription.stripe_subscription_id:
         return  # No Stripe subscription to sync
     
-    # Count only human members for billing — bots are free
-    human_count = WorkspaceMember.objects.filter(workspace=workspace, user__user_type='HUMAN').count()
-    if workspace.owner.user_type == 'HUMAN':
-        human_count += 1
-    member_count = human_count
+    # Count members (owner + WorkspaceMember count)
+    member_count = WorkspaceMember.objects.filter(workspace=workspace).count() + 1  # +1 for owner
     
     try:
         stripe.api_key = getattr(settings, 'STRIPE_SECRET_KEY', '')
