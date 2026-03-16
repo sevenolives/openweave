@@ -133,20 +133,15 @@ function StateMachineSettings({
   // Track original values for blur-save comparison
   const focusRef = React.useRef<Record<string, string>>({});
 
-  // Auto-save when gate settings change
+  // Auto-save when gate settings change — send only the changed fields
   const updateAndSave = async (id: number, updates: Partial<StatusDefinition>) => {
+    const prev = statuses.find(s => s.id === id);
     updateLocalStatus(id, updates);
-    const current = statuses.find(s => s.id === id);
-    if (!current) return;
-    const merged = { ...current, ...updates };
     try {
-      await handleUpdateStatus(id, {
-        allowed_users: merged.allowed_users,
-        allowed_from: merged.allowed_from,
-      });
+      await handleUpdateStatus(id, updates);
     } catch {
       // revert on failure
-      if (current) updateLocalStatus(id, current);
+      if (prev) updateLocalStatus(id, prev);
     }
   };
 
