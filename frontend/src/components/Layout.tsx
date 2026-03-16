@@ -198,11 +198,11 @@ export default function Layout({ children }: { children: ReactNode }) {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
-        <header className="bg-white border-b border-gray-200 sticky top-0 z-30 h-16 flex items-center px-4 sm:px-6 gap-4">
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-30 h-16 flex items-center gap-4" style={{ paddingLeft: '20px', paddingRight: '20px' }}>
           {/* Hamburger */}
           <button
             onClick={() => setSidebarOpen(true)}
-            className="lg:hidden p-2 -ml-2 rounded-lg hover:bg-gray-100 text-gray-500"
+            className="lg:hidden p-2 rounded-lg hover:bg-gray-100 text-gray-500"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />

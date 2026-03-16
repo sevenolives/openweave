@@ -115,7 +115,7 @@ export default function ProjectsPage() {
         {/* Create modal */}
         {showCreate && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setShowCreate(false)}>
-            <div className="bg-white w-full sm:w-[28rem] sm:rounded-2xl rounded-t-2xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] px-[max(1.5rem,env(safe-area-inset-left))]" onClick={e => e.stopPropagation()}>
+            <div className="bg-white w-full sm:w-[28rem] sm:rounded-2xl rounded-t-2xl p-6" onClick={e => e.stopPropagation()}>
               <h2 className="text-lg font-bold text-gray-900 mb-4">New Project</h2>
               <form onSubmit={handleCreate} className="space-y-4">
                 <FormField label="Name" error={fieldErrors.name} required>

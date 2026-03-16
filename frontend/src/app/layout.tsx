@@ -6,7 +6,6 @@ import Analytics from "@/components/Analytics";
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  viewportFit: 'cover',
 };
 
 export const metadata: Metadata = {
