@@ -296,12 +296,13 @@ class TicketSerializer(serializers.ModelSerializer):
                                           f'Allowed from: {", ".join(allowed_sources)}.'
                             })
 
-                    # 2. Check allowed_users — uses prefetched cache
-                    allowed_users_list = list(target_status_def.allowed_users.all())
-                    if allowed_users_list and not any(u.id == user.id for u in allowed_users_list):
-                        raise serializers.ValidationError({
-                            'status': f'You are not allowed to move tickets to {new_status}.'
-                        })
+                    # 2. Only the assigned user (or admins) can move status
+                    from tickets.views import is_admin_or_owner
+                    if self.instance.assigned_to_id and self.instance.assigned_to_id != user.id:
+                        if not is_admin_or_owner(user, self.instance.project.workspace if self.instance.project else None):
+                            raise serializers.ValidationError({
+                                'status': 'Only the assigned user can move this ticket.'
+                            })
 
         return data
 
