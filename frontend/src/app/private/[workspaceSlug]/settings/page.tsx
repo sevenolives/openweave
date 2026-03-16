@@ -205,9 +205,21 @@ function StateMachineSettings({
             <input value={s.label}
               onChange={(e) => updateLocalStatus(s.id, { label: e.target.value })}
               onBlur={(e) => { if (e.target.value !== s.label) handleUpdateStatus(s.id, { label: e.target.value }); }}
-              style={{ fontSize: 16, fontWeight: 700, color: 'white', background: 'transparent', border: 'none', outline: 'none', flex: 1, minWidth: 100 }}
+              style={{ fontSize: 16, fontWeight: 700, color: s.is_archived ? '#6b7280' : 'white', background: 'transparent', border: 'none', outline: 'none', flex: 1, minWidth: 100, textDecoration: s.is_archived ? 'line-through' : 'none' }}
             />
-            <span style={{ fontSize: 11, color: '#6b7280', fontFamily: 'monospace' }}>{s.key}</span>
+            <input value={s.key}
+              onChange={(e) => updateLocalStatus(s.id, { key: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, '') })}
+              onBlur={(e) => { if (e.target.value !== s.key) handleUpdateStatus(s.id, { key: e.target.value }); }}
+              style={{ fontSize: 11, color: '#6b7280', fontFamily: 'monospace', background: 'transparent', border: '1px solid transparent', borderRadius: 4, outline: 'none', padding: '2px 4px', width: 100 }}
+              onFocus={(e) => { e.target.style.borderColor = '#3f3f46'; }}
+            />
+            {!s.is_default && (
+              <button
+                onClick={() => handleUpdateStatus(s.id, { is_archived: !s.is_archived })}
+                title={s.is_archived ? 'Unarchive' : 'Archive'}
+                style={{ background: 'none', border: 'none', color: s.is_archived ? '#22c55e' : '#f59e0b', cursor: 'pointer', fontSize: 14 }}
+              >{s.is_archived ? '📤' : '📥'}</button>
+            )}
             {!s.is_default && (
               <button onClick={() => handleDeleteStatus(s)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 16 }}>✕</button>
             )}
@@ -396,7 +408,7 @@ export default function WorkspaceSettingsPage() {
       const [m, i, sd] = await Promise.all([
         api.getWorkspaceMembers({ workspace: ws.slug }),
         api.getInvites({ workspace: ws.slug }),
-        api.getStatusDefinitions(ws.slug),
+        api.getStatusDefinitions(ws.slug, true),
       ]);
       setMembers(m);
       setInvites(i);

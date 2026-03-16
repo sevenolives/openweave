@@ -1020,6 +1020,9 @@ class StatusDefinitionViewSet(viewsets.ModelViewSet):
             member_ws = WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True)
             owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
             qs = qs.filter(workspace_id__in=set(list(member_ws) + list(owned_ws)))
+        # Hide archived by default; pass ?include_archived=true to show all
+        if self.request.query_params.get('include_archived', '').lower() != 'true':
+            qs = qs.filter(is_archived=False)
         qs = qs.prefetch_related('allowed_from', 'allowed_users')
         return qs
 

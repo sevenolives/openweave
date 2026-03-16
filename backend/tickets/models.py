@@ -123,6 +123,7 @@ class StatusDefinition(models.Model):
     color = models.CharField(max_length=30, default='gray', help_text="Color token, e.g. 'blue', 'red', '#ff0000'")
     is_terminal = models.BooleanField(default=False, help_text="Deprecated — terminal state concept removed")
     is_default = models.BooleanField(default=False, help_text="Default status for new tickets")
+    is_archived = models.BooleanField(default=False, help_text="Archived statuses cannot be used for new transitions")
     position = models.PositiveIntegerField(default=0, help_text="Display order")
     allowed_users = models.ManyToManyField('User', blank=True, related_name='enterable_statuses',
         help_text='If empty, anyone can enter. If set, only these users can enter.')

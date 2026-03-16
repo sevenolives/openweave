@@ -249,15 +249,20 @@ class TicketSerializer(serializers.ModelSerializer):
         return value
 
     def validate_status(self, value):
-        """Validate status key exists in workspace's StatusDefinitions."""
+        """Validate status key exists in workspace's StatusDefinitions and is not archived."""
         project = self._resolve_project()
         if project and project.workspace_id:
-            exists = StatusDefinition.objects.filter(
-                workspace_id=project.workspace_id, key=value
-            ).exists()
-            if not exists:
+            try:
+                sd = StatusDefinition.objects.get(
+                    workspace_id=project.workspace_id, key=value
+                )
+                if sd.is_archived:
+                    raise serializers.ValidationError(
+                        f"Status '{value}' is archived and cannot be used."
+                    )
+            except StatusDefinition.DoesNotExist:
                 valid = list(StatusDefinition.objects.filter(
-                    workspace_id=project.workspace_id
+                    workspace_id=project.workspace_id, is_archived=False
                 ).values_list('key', flat=True))
                 raise serializers.ValidationError(
                     f"Invalid status '{value}'. Valid: {', '.join(valid)}."
@@ -395,7 +400,7 @@ class StatusDefinitionSerializer(serializers.ModelSerializer):
     class Meta:
         model = StatusDefinition
         fields = ['id', 'workspace', 'key', 'label', 'color', 'is_default',
-                  'position',
+                  'is_archived', 'position',
                   'allowed_from', 'allowed_users', 'allowed_users_details']
         extra_kwargs = {
             'key': {'help_text': 'Unique status key within workspace, e.g. IN_PROGRESS.'},
@@ -406,17 +411,21 @@ class StatusDefinitionSerializer(serializers.ModelSerializer):
         import re
         if not re.match(r'^[A-Z][A-Z0-9_]*$', value):
             raise serializers.ValidationError("Key must be uppercase letters, digits, and underscores.")
-        # On update, key is immutable
-        if self.instance and self.instance.key != value:
-            raise serializers.ValidationError("Status key cannot be changed after creation.")
         return value
 
     def update(self, instance, validated_data):
         allowed_from = validated_data.pop('allowed_from', None)
         allowed_users = validated_data.pop('allowed_users', None)
+        old_key = instance.key
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
+        # If key changed, migrate all tickets using the old key
+        if 'key' in validated_data and validated_data['key'] != old_key:
+            from tickets.models import Ticket
+            Ticket.objects.filter(
+                project__workspace=instance.workspace, status=old_key
+            ).update(status=instance.key)
         if allowed_from is not None:
             instance.allowed_from.set(allowed_from)
         if allowed_users is not None:

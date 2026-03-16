@@ -138,6 +138,7 @@ export interface StatusDefinition {
   label: string;
   color: string;
   is_default: boolean;
+  is_archived: boolean;
   position: number;
   in_use?: boolean; // deprecated — removed from API
   allowed_from: number[];
@@ -500,8 +501,9 @@ class ApiClient {
     return this.request<DashboardStats>(`/dashboard/${query}`);
   }
 
-  async getStatusDefinitions(workspaceSlug: string): Promise<StatusDefinition[]> {
-    const res = await this.request<{ results: StatusDefinition[] }>(`/status-definitions/?workspace=${workspaceSlug}&page_size=100`);
+  async getStatusDefinitions(workspaceSlug: string, includeArchived = false): Promise<StatusDefinition[]> {
+    const params = `workspace=${workspaceSlug}&page_size=100${includeArchived ? '&include_archived=true' : ''}`;
+    const res = await this.request<{ results: StatusDefinition[] }>(`/status-definitions/?${params}`);
     return res.results;
   }
 
