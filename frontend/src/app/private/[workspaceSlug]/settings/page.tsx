@@ -700,7 +700,7 @@ export default function WorkspaceSettingsPage() {
               />
               <div>
                 <p className="text-sm font-medium text-gray-900">Restrict status changes to assigned user</p>
-                <p className="text-xs text-gray-500">When enabled, only the assigned user (or workspace admin) can change a ticket&apos;s status</p>
+                <p className="text-xs text-gray-500">When enabled, only the assigned user, workspace admin, or project admin can change a ticket&apos;s status</p>
               </div>
             </label>
           </div>
