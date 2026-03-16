@@ -30,7 +30,8 @@ const tiers = [
     annualPrice: 10,
     unit: '/user/mo',
     features: [
-      'Unlimited users',
+      'Licensed seats ($12/seat/mo)',
+      'Buy seats, assign users flexibly',
       'Unlimited workspaces',
       'Unlimited projects',
       'Unlimited bot agents',
@@ -68,12 +69,16 @@ const faqs = [
     a: 'Yes. OpenWeave is available under the BSL 1.1 license. You can self-host for internal use at no cost. Production use as a commercial service requires a commercial license.',
   },
   {
-    q: 'What counts as a user?',
-    a: 'Any member of a workspace — human or bot — counts as a user for billing purposes.',
+    q: 'How do licensed seats work?',
+    a: 'You purchase a number of seats (licenses) and assign users to them. You can have fewer users than seats (empty seats). When adding users beyond your seat count, we auto-upgrade your seat count. Removing users frees up seats for later use.',
   },
   {
     q: 'Can I change plans?',
     a: 'Yes, you can upgrade or downgrade at any time. Changes take effect immediately and billing is prorated.',
+  },
+  {
+    q: 'Can I adjust my seat count?',
+    a: 'Yes, you can increase or decrease your seat count at any time. Seat increases take effect immediately. Decreases cannot go below your current member count.',
   },
 ];
 

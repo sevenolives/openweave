@@ -178,7 +178,7 @@ class JoinView(APIView):
                 return Response({'detail': 'Already a member of this workspace.'}, status=status.HTTP_400_BAD_REQUEST)
             check_member_limit(invite.workspace)
             WorkspaceMember.objects.create(workspace=invite.workspace, user=request.user)
-            sync_seat_count(invite.workspace)
+            sync_seat_count(invite.workspace, operation='add')
             invite.use_count += 1
             invite.save()
             return Response({'workspace': WorkspaceSerializer(invite.workspace).data}, status=status.HTTP_200_OK)
@@ -210,7 +210,7 @@ class JoinView(APIView):
                 return Response({'detail': 'Already a member of this workspace.'}, status=status.HTTP_400_BAD_REQUEST)
             check_member_limit(invite.workspace)
             WorkspaceMember.objects.create(workspace=invite.workspace, user=user)
-            sync_seat_count(invite.workspace)
+            sync_seat_count(invite.workspace, operation='add')
             invite.use_count += 1
             invite.save()
             workspace_data = WorkspaceSerializer(invite.workspace).data
@@ -922,7 +922,7 @@ class WorkspaceMemberViewSet(viewsets.ModelViewSet):
         from .plan_limits import sync_seat_count
         workspace = instance.workspace
         super().perform_destroy(instance)
-        sync_seat_count(workspace)
+        sync_seat_count(workspace, operation='remove')
 
     def get_queryset(self):
         from django.db.models import Q

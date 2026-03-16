@@ -491,6 +491,7 @@ class Subscription(models.Model):
     workspace = models.OneToOneField('Workspace', on_delete=models.CASCADE, related_name='subscription')
     plan = models.CharField(max_length=20, choices=PLAN_CHOICES, default='free')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    licensed_seats = models.PositiveIntegerField(default=3, help_text="Number of seats purchased for this workspace")
     stripe_customer_id = models.CharField(max_length=255, blank=True, null=True)
     stripe_subscription_id = models.CharField(max_length=255, blank=True, null=True)
     current_period_end = models.DateTimeField(blank=True, null=True)

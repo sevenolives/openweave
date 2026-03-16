@@ -162,6 +162,9 @@ export interface SubscriptionStatus {
   current_period_end: string | null;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
+  licensed_seats: number;
+  occupied_seats: number;
+  available_seats: number;
 }
 
 export interface DashboardStats {
@@ -607,6 +610,21 @@ class ApiClient {
       body: JSON.stringify({
         workspace: workspaceSlug,
         frontend_url: typeof window !== 'undefined' ? window.location.origin : 'https://openweave.dev',
+      }),
+    });
+  }
+
+  async manageSeats(workspaceSlug: string, licensed_seats: number): Promise<{
+    message: string;
+    licensed_seats: number;
+    occupied_seats: number;
+    available_seats: number;
+  }> {
+    return this.request('/billing/seats/', {
+      method: 'PATCH',
+      body: JSON.stringify({
+        workspace: workspaceSlug,
+        licensed_seats,
       }),
     });
   }

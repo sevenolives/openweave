@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
 from .models import Workspace, WorkspaceMember, Subscription
+from .plan_limits import get_seat_info
 from datetime import datetime
 
 
@@ -71,10 +72,14 @@ class CreateCheckoutSessionView(APIView):
         success_url = f"{frontend_url}/private/{workspace.slug}/billing?success=true"
         cancel_url = f"{frontend_url}/private/{workspace.slug}/billing?cancelled=true"
 
+        # Set initial quantity to current member count (minimum 1)
+        member_count = WorkspaceMember.objects.filter(workspace=workspace).count() + 1  # +1 for owner
+        initial_quantity = max(1, member_count)
+
         session = s.checkout.Session.create(
             customer=customer_id,
             payment_method_types=['card'],
-            line_items=[{'price': price_id, 'quantity': 1}],
+            line_items=[{'price': price_id, 'quantity': initial_quantity}],
             mode='subscription',
             success_url=success_url,
             cancel_url=cancel_url,
@@ -125,13 +130,22 @@ class StripeWebhookView(APIView):
         if not workspace_id:
             return
         try:
-            sub, _ = Subscription.objects.get_or_create(
+            sub, created = Subscription.objects.get_or_create(
                 workspace_id=int(workspace_id)
             )
             sub.plan = 'pro'
             sub.status = 'active'
             sub.stripe_customer_id = session.get('customer')
             sub.stripe_subscription_id = session.get('subscription')
+            
+            # Set initial licensed seats based on subscription quantity
+            if sub.stripe_subscription_id:
+                s = _get_stripe()
+                stripe_sub = s.Subscription.retrieve(sub.stripe_subscription_id)
+                if stripe_sub and stripe_sub.items and stripe_sub.items.data:
+                    quantity = stripe_sub.items.data[0].quantity
+                    sub.licensed_seats = quantity
+            
             sub.save()
         except (Workspace.DoesNotExist, ValueError):
             pass
@@ -243,10 +257,86 @@ class SubscriptionStatusView(APIView):
         except Subscription.DoesNotExist:
             sub = Subscription.objects.create(workspace=workspace)
 
+        # Get seat information
+        seat_info = get_seat_info(workspace)
+
         return Response({
             'plan': sub.plan,
             'status': sub.status,
             'current_period_end': sub.current_period_end,
             'stripe_customer_id': sub.stripe_customer_id,
             'stripe_subscription_id': sub.stripe_subscription_id,
+            'licensed_seats': seat_info['licensed_seats'],
+            'occupied_seats': seat_info['occupied_seats'],
+            'available_seats': seat_info['available_seats'],
         })
+
+
+class ManageSeatsView(APIView):
+    """PATCH /api/billing/seats/ — manually adjust seat count."""
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request):
+        workspace_slug = request.data.get('workspace')
+        new_seat_count = request.data.get('licensed_seats')
+
+        if not workspace_slug:
+            return Response({'detail': 'workspace is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not new_seat_count or not isinstance(new_seat_count, int) or new_seat_count < 1:
+            return Response({'detail': 'licensed_seats must be a positive integer.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            workspace = Workspace.objects.get(slug=workspace_slug)
+        except Workspace.DoesNotExist:
+            return Response({'detail': 'Workspace not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Verify membership and admin access
+        is_owner = workspace.owner_id == request.user.id
+        if not is_owner:
+            return Response({'detail': 'Only workspace owners can manage seats.'}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            sub = workspace.subscription
+        except Subscription.DoesNotExist:
+            return Response({'detail': 'No subscription found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if sub.plan == 'free':
+            return Response({'detail': 'Seat management is only available for Pro and Enterprise plans.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not sub.stripe_subscription_id:
+            return Response({'detail': 'No Stripe subscription found.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if decreasing seats would violate current usage
+        member_count = WorkspaceMember.objects.filter(workspace=workspace).count() + 1  # +1 for owner
+        if new_seat_count < member_count:
+            return Response({
+                'detail': f'Cannot reduce to {new_seat_count} seats. You currently have {member_count} members. '
+                         'Remove members first before reducing seat count.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Update Stripe subscription
+        try:
+            s = _get_stripe()
+            s.Subscription.modify(
+                sub.stripe_subscription_id,
+                quantity=new_seat_count
+            )
+            
+            # Update local record
+            sub.licensed_seats = new_seat_count
+            sub.save(update_fields=['licensed_seats'])
+
+            # Return updated seat info
+            seat_info = get_seat_info(workspace)
+            return Response({
+                'message': f'Seat count updated to {new_seat_count}.',
+                'licensed_seats': seat_info['licensed_seats'],
+                'occupied_seats': seat_info['occupied_seats'],
+                'available_seats': seat_info['available_seats'],
+            })
+
+        except Exception as e:
+            return Response({
+                'detail': f'Failed to update Stripe subscription: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

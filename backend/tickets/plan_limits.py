@@ -43,14 +43,23 @@ def get_plan_limits(workspace):
 
 def check_member_limit(workspace):
     """Check if workspace can add more members."""
-    limits = get_plan_limits(workspace)
-    max_users = limits['max_users']
-    if max_users is None:
-        return
-    # Count owner + members
-    member_count = WorkspaceMember.objects.filter(workspace=workspace).count() + 1  # +1 for owner
-    if member_count >= max_users:
-        raise PermissionDenied(f"Upgrade to Pro to add more than {max_users} users.")
+    subscription = get_subscription(workspace)
+    
+    if subscription.plan == 'free':
+        # Free tier: hard limit of 3 users
+        limits = get_plan_limits(workspace)
+        max_users = limits['max_users']  # 3 for free
+        member_count = WorkspaceMember.objects.filter(workspace=workspace).count() + 1  # +1 for owner
+        if member_count >= max_users:
+            raise PermissionDenied(f"Upgrade to Pro to add more than {max_users} users.")
+    else:
+        # Pro/Enterprise: check against licensed seats
+        member_count = WorkspaceMember.objects.filter(workspace=workspace).count() + 1  # +1 for owner
+        if member_count >= subscription.licensed_seats:
+            raise PermissionDenied(
+                f"Cannot add more users. You have {subscription.licensed_seats} licensed seats and {member_count} would exceed the limit. "
+                "Purchase more seats to add additional users."
+            )
 
 
 def check_project_limit(workspace):
@@ -94,8 +103,28 @@ def check_workspace_limit(owner):
         raise PermissionDenied(f"Upgrade to Pro to create more than {max_ws} workspace(s).")
 
 
-def sync_seat_count(workspace):
-    """Sync seat count with Stripe subscription."""
+def get_seat_info(workspace):
+    """Get seat information for a workspace."""
+    subscription = get_subscription(workspace)
+    member_count = WorkspaceMember.objects.filter(workspace=workspace).count() + 1  # +1 for owner
+    
+    return {
+        'licensed_seats': subscription.licensed_seats,
+        'occupied_seats': member_count,
+        'available_seats': max(0, subscription.licensed_seats - member_count),
+        'plan': subscription.plan,
+    }
+
+
+def sync_seat_count(workspace, operation='add'):
+    """
+    Sync seat count with Stripe subscription.
+    
+    Args:
+        workspace: The workspace to sync
+        operation: 'add' or 'remove' - on add, auto-upgrade seats if needed.
+                   On remove, do NOT auto-downgrade (GitHub style).
+    """
     subscription = get_subscription(workspace)
     if not subscription.stripe_subscription_id:
         return  # No Stripe subscription to sync
@@ -105,11 +134,20 @@ def sync_seat_count(workspace):
     
     try:
         stripe.api_key = getattr(settings, 'STRIPE_SECRET_KEY', '')
-        if stripe.api_key:
+        if not stripe.api_key:
+            return
+        
+        # If adding members and they exceed licensed seats, auto-upgrade
+        if operation == 'add' and member_count > subscription.licensed_seats:
+            new_seat_count = member_count
             stripe.Subscription.modify(
                 subscription.stripe_subscription_id,
-                quantity=member_count
+                quantity=new_seat_count
             )
+            subscription.licensed_seats = new_seat_count
+            subscription.save(update_fields=['licensed_seats'])
+        # On remove, do NOT auto-downgrade seats (GitHub style)
+        # Users keep their paid seats until the end of the billing period
     except Exception:
         # Fail silently for now - could log this error in production
         pass
