@@ -140,10 +140,10 @@ def sync_seat_count(workspace, operation='add'):
         # If adding members and they exceed licensed seats, auto-upgrade
         if operation == 'add' and member_count > subscription.licensed_seats:
             new_seat_count = member_count
-            stripe.Subscription.modify(
-                subscription.stripe_subscription_id,
-                quantity=new_seat_count
-            )
+            stripe_sub = stripe.Subscription.retrieve(subscription.stripe_subscription_id)
+            if stripe_sub.get('items') and stripe_sub['items']['data']:
+                item_id = stripe_sub['items']['data'][0]['id']
+                stripe.SubscriptionItem.modify(item_id, quantity=new_seat_count)
             subscription.licensed_seats = new_seat_count
             subscription.save(update_fields=['licensed_seats'])
         # On remove, do NOT auto-downgrade seats (GitHub style)

@@ -318,10 +318,12 @@ class ManageSeatsView(APIView):
         # Update Stripe subscription
         try:
             s = _get_stripe()
-            s.Subscription.modify(
-                sub.stripe_subscription_id,
-                quantity=new_seat_count
-            )
+            stripe_sub = s.Subscription.retrieve(sub.stripe_subscription_id)
+            if stripe_sub.get('items') and stripe_sub['items']['data']:
+                item_id = stripe_sub['items']['data'][0]['id']
+                s.SubscriptionItem.modify(item_id, quantity=new_seat_count)
+            else:
+                raise Exception('No subscription items found')
             
             # Update local record
             sub.licensed_seats = new_seat_count
