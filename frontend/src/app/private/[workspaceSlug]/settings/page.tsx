@@ -61,22 +61,24 @@ function StateMachineSettings({
   }, []);
 
   // Build diagram nodes/edges from statuses + allowed_from relationships
+  const activeStatuses = useMemo(() => statuses.filter(s => !s.is_archived), [statuses]);
   const buildNodes = useMemo(() => {
-    if (statuses.length === 0) return [];
+    if (activeStatuses.length === 0) return [];
     const g = new dagre.graphlib.Graph();
     g.setGraph({ rankdir: 'TB', nodesep: 50, ranksep: 70 });
     g.setDefaultEdgeLabel(() => ({}));
-    statuses.forEach((s) => g.setNode(String(s.id), { width: 140, height: 40 }));
+    activeStatuses.forEach((s) => g.setNode(String(s.id), { width: 140, height: 40 }));
     // Build edges from allowed_from relationships
-    statuses.forEach((target) => {
+    const activeIds = new Set(activeStatuses.map(s => s.id));
+    activeStatuses.forEach((target) => {
       if (target.allowed_from && target.allowed_from.length > 0) {
-        target.allowed_from.forEach((srcId) => {
+        target.allowed_from.filter(id => activeIds.has(id)).forEach((srcId) => {
           g.setEdge(String(srcId), String(target.id));
         });
       }
     });
     dagre.layout(g);
-    return statuses.map((s) => {
+    return activeStatuses.map((s) => {
       const nd = g.node(String(s.id));
       const color = COLOR_HEX[s.color] || '#9ca3af';
       return {
@@ -100,13 +102,14 @@ function StateMachineSettings({
         targetPosition: Position.Top,
       };
     });
-  }, [statuses]);
+  }, [activeStatuses]);
 
   const buildEdges = useMemo(() => {
     const edges: Edge[] = [];
-    statuses.forEach((target) => {
+    const activeIds = new Set(activeStatuses.map(s => s.id));
+    activeStatuses.forEach((target) => {
       if (target.allowed_from && target.allowed_from.length > 0) {
-        target.allowed_from.forEach((srcId) => {
+        target.allowed_from.filter(id => activeIds.has(id)).forEach((srcId) => {
           const hasRestriction = target.allowed_users && target.allowed_users.length > 0;
           const color = hasRestriction ? '#f59e0b' : '#6b7280';
           edges.push({
@@ -124,7 +127,7 @@ function StateMachineSettings({
       }
     });
     return edges;
-  }, [statuses]);
+  }, [activeStatuses]);
 
   const updateLocalStatus = (id: number, updates: Partial<StatusDefinition>) => {
     setStatuses(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
@@ -299,7 +302,7 @@ function StateMachineSettings({
             <div>
               <label style={labelStyle}>Allowed from {!s.allowed_from?.length && <span style={{ color: '#6b7280', fontWeight: 400 }}>(any state)</span>}</label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {statuses.filter(other => other.id !== s.id).map(other => {
+                {statuses.filter(other => other.id !== s.id && !other.is_archived).map(other => {
                   const isSelected = (s.allowed_from || []).includes(other.id);
                   return (
                     <button key={other.id} onClick={() => {
