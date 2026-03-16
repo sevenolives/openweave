@@ -36,8 +36,6 @@ interface StateMachineSettingsProps {
   setNewStatusLabel: (v: string) => void;
   newStatusColor: string;
   setNewStatusColor: (v: string) => void;
-  newStatusTerminal: boolean;
-  setNewStatusTerminal: (v: boolean) => void;
   handleAddStatus: () => void;
   handleUpdateStatus: (id: number, data: Partial<StatusDefinition>) => Promise<void>;
   handleDeleteStatus: (sd: StatusDefinition) => Promise<void>;
@@ -49,12 +47,10 @@ interface StateMachineSettingsProps {
 function StateMachineSettings({
   statuses, setStatuses,
   newStatusLabel, setNewStatusLabel, newStatusColor, setNewStatusColor,
-  newStatusTerminal, setNewStatusTerminal,
   handleAddStatus, handleUpdateStatus, handleDeleteStatus, handleSetDefault,
   toast, workspaceMembers,
 }: StateMachineSettingsProps) {
   const [isMobile, setIsMobile] = useState(false);
-  const [savingId, setSavingId] = useState<number | null>(null);
   const [specificUserMode, setSpecificUserMode] = useState<Set<number>>(new Set());
 
   useEffect(() => {
@@ -130,20 +126,25 @@ function StateMachineSettings({
     return edges;
   }, [statuses]);
 
-  const handleSaveGate = async (s: StatusDefinition) => {
-    setSavingId(s.id);
-    try {
-      await handleUpdateStatus(s.id, {
-        allowed_users: s.allowed_users,
-        allowed_from: s.allowed_from,
-      });
-    } finally {
-      setSavingId(null);
-    }
-  };
-
   const updateLocalStatus = (id: number, updates: Partial<StatusDefinition>) => {
     setStatuses(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+  };
+
+  // Auto-save when gate settings change
+  const updateAndSave = async (id: number, updates: Partial<StatusDefinition>) => {
+    updateLocalStatus(id, updates);
+    const current = statuses.find(s => s.id === id);
+    if (!current) return;
+    const merged = { ...current, ...updates };
+    try {
+      await handleUpdateStatus(id, {
+        allowed_users: merged.allowed_users,
+        allowed_from: merged.allowed_from,
+      });
+    } catch {
+      // revert on failure
+      if (current) updateLocalStatus(id, current);
+    }
   };
 
   const cardStyle: React.CSSProperties = {
@@ -229,7 +230,7 @@ function StateMachineSettings({
                 return (<>
                   <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
                     <button onClick={() => {
-                      updateLocalStatus(s.id, { allowed_users: [] });
+                      updateAndSave(s.id, { allowed_users: [] });
                       setSpecificUserMode(prev => { const next = new Set(prev); next.delete(s.id); return next; });
                     }}
                       style={{
@@ -258,7 +259,7 @@ function StateMachineSettings({
                               background: 'rgba(99,102,241,0.15)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.3)',
                             }}>
                               {u ? (u as User).username || (u as User).name : `User #${uid}`}
-                              <button onClick={() => updateLocalStatus(s.id, { allowed_users: s.allowed_users.filter((id: number) => id !== uid) })}
+                              <button onClick={() => updateAndSave(s.id, { allowed_users: s.allowed_users.filter((id: number) => id !== uid) })}
                                 style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1 }}>×</button>
                             </span>
                           );
@@ -268,7 +269,7 @@ function StateMachineSettings({
                     <select value="" onChange={(e) => {
                       const uid = Number(e.target.value);
                       if (uid && !(s.allowed_users || []).includes(uid)) {
-                        updateLocalStatus(s.id, { allowed_users: [...(s.allowed_users || []), uid] });
+                        updateAndSave(s.id, { allowed_users: [...(s.allowed_users || []), uid] });
                       }
                     }} style={selectStyle}>
                       <option value="">+ Add user…</option>
@@ -291,7 +292,7 @@ function StateMachineSettings({
                     <button key={other.id} onClick={() => {
                       const current = s.allowed_from || [];
                       const next = isSelected ? current.filter(id => id !== other.id) : [...current, other.id];
-                      updateLocalStatus(s.id, { allowed_from: next });
+                      updateAndSave(s.id, { allowed_from: next });
                     }} style={{
                       fontSize: 12, padding: '6px 10px', borderRadius: 8, cursor: 'pointer',
                       background: isSelected ? `${COLOR_HEX[other.color] || '#9ca3af'}20` : 'rgba(39,39,42,0.5)',
@@ -307,13 +308,7 @@ function StateMachineSettings({
             </div>
           </div>
 
-          {/* Save button */}
-          <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
-            <button onClick={() => handleSaveGate(s)} disabled={savingId === s.id}
-              style={{ ...btnStyle, fontSize: 12, padding: '8px 16px', minHeight: 36, opacity: savingId === s.id ? 0.6 : 1 }}>
-              {savingId === s.id ? 'Saving…' : 'Save'}
-            </button>
-          </div>
+          {/* Auto-saves on interaction */}
         </div>
       ))}
 
@@ -328,10 +323,6 @@ function StateMachineSettings({
             style={{ ...selectStyle, width: isMobile ? '100%' : 120, minHeight: isMobile ? 44 : 'auto' }}>
             {COLORS.map((c) => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
           </select>
-          <label style={{ fontSize: 13, color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', whiteSpace: 'nowrap', minHeight: isMobile ? 44 : 'auto', justifyContent: isMobile ? 'center' : 'flex-start' }}>
-            <input type="checkbox" checked={newStatusTerminal} onChange={(e) => setNewStatusTerminal(e.target.checked)} style={{ width: 16, height: 16 }} />
-            Terminal
-          </label>
           <button onClick={handleAddStatus} disabled={!newStatusLabel.trim()}
             style={{ ...btnStyle, opacity: !newStatusLabel.trim() ? 0.5 : 1, whiteSpace: 'nowrap', minHeight: isMobile ? 44 : 'auto' }}>
             + Add
@@ -363,7 +354,6 @@ function StateMachineSettings({
           </div>
           <div style={{ padding: '10px 0', display: 'flex', gap: 16, fontSize: 11, color: '#6b7280', flexWrap: 'wrap' }}>
             <span>⭐ Default</span>
-            <span>🏁 Terminal</span>
             <span style={{ color: '#f59e0b' }}>--- Restricted users</span>
           </div>
         </div>
@@ -396,7 +386,6 @@ export default function WorkspaceSettingsPage() {
   const [statuses, setStatuses] = useState<StatusDefinition[]>([]);
   const [newStatusLabel, setNewStatusLabel] = useState('');
   const [newStatusColor, setNewStatusColor] = useState('gray');
-  const [newStatusTerminal, setNewStatusTerminal] = useState(false);
   const [addingStatus, setAddingStatus] = useState(false);
   const [settingsTab, setSettingsTab] = useState<'general' | 'members' | 'state-machine'>('general');
   const [workspaceUsers, setWorkspaceUsers] = useState<User[]>([]);
@@ -499,7 +488,7 @@ export default function WorkspaceSettingsPage() {
         is_default: false,
         position: statuses.length,
       });
-      setNewStatusLabel(''); setNewStatusColor('gray'); setNewStatusTerminal(false);
+      setNewStatusLabel(''); setNewStatusColor('gray');
       toast('Status created');
       loadData(workspace);
     } catch (e: any) { toast(e?.data?.key?.[0] || e?.data?.detail || e?.message || 'Failed', 'error'); }
@@ -724,8 +713,6 @@ export default function WorkspaceSettingsPage() {
             setNewStatusLabel={setNewStatusLabel}
             newStatusColor={newStatusColor}
             setNewStatusColor={setNewStatusColor}
-            newStatusTerminal={newStatusTerminal}
-            setNewStatusTerminal={setNewStatusTerminal}
             handleAddStatus={handleAddStatus}
             handleUpdateStatus={handleUpdateStatus}
             handleDeleteStatus={handleDeleteStatus}
