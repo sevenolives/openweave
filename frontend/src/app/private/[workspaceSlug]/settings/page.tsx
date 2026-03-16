@@ -692,6 +692,30 @@ export default function WorkspaceSettingsPage() {
         </>)}
 
         {/* === STATE MACHINE TAB === */}
+        {settingsTab === 'state-machine' && workspace && (
+          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={workspace.restrict_status_to_assigned}
+                onChange={async (e) => {
+                  try {
+                    const updated = await api.updateWorkspace(workspace.slug, { restrict_status_to_assigned: e.target.checked });
+                    setWorkspace(updated);
+                    toast(e.target.checked ? 'Only assigned users can now move ticket status' : 'Anyone can move ticket status', 'success');
+                  } catch (err: any) {
+                    toast(err?.message || 'Failed to update setting', 'error');
+                  }
+                }}
+                className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              <div>
+                <p className="text-sm font-medium text-gray-900">Restrict status changes to assigned user</p>
+                <p className="text-xs text-gray-500">When enabled, only the assigned user (or workspace admin) can change a ticket&apos;s status</p>
+              </div>
+            </label>
+          </div>
+        )}
         {settingsTab === 'state-machine' && (
           <StateMachineSettings
             statuses={statuses}

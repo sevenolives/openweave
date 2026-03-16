@@ -72,7 +72,7 @@ class WorkspaceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Workspace
-        fields = ['name', 'slug', 'owner', 'owner_details', 'member_count', 'created_at']
+        fields = ['name', 'slug', 'owner', 'owner_details', 'member_count', 'restrict_status_to_assigned', 'created_at']
         read_only_fields = ['owner', 'owner_details', 'created_at']
         extra_kwargs = {
             'name': {'help_text': 'Workspace display name.'},
@@ -303,13 +303,15 @@ class TicketSerializer(serializers.ModelSerializer):
                             'status': f'You are not allowed to move tickets to {new_status}.'
                         })
 
-                    # 3. Only the assigned user (or admins) can move status
-                    from tickets.views import is_admin_or_owner
-                    if self.instance.assigned_to_id and self.instance.assigned_to_id != user.id:
-                        if not is_admin_or_owner(user, self.instance.project.workspace if self.instance.project else None):
-                            raise serializers.ValidationError({
-                                'status': 'Only the assigned user can move this ticket.'
-                            })
+                    # 3. If workspace has restrict_status_to_assigned, only assigned user (or admins) can move
+                    workspace = self.instance.project.workspace if self.instance.project else None
+                    if workspace and workspace.restrict_status_to_assigned:
+                        from tickets.views import is_admin_or_owner
+                        if self.instance.assigned_to_id and self.instance.assigned_to_id != user.id:
+                            if not is_admin_or_owner(user, workspace):
+                                raise serializers.ValidationError({
+                                    'status': 'Only the assigned user can move this ticket.'
+                                })
 
         return data
 

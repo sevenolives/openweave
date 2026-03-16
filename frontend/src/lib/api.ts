@@ -87,6 +87,7 @@ export interface Workspace {
   owner: number;
   owner_details?: User;
   member_count: number;
+  restrict_status_to_assigned: boolean;
   created_at: string;
 }
 

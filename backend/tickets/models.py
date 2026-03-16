@@ -58,6 +58,8 @@ class Workspace(models.Model):
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, unique=True)
     owner = models.ForeignKey("User", on_delete=models.CASCADE, related_name='owned_workspaces')
+    restrict_status_to_assigned = models.BooleanField(default=False,
+        help_text='If enabled, only the assigned user (or admin/owner) can change ticket status.')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
