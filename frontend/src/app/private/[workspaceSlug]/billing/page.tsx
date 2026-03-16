@@ -4,12 +4,13 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useWorkspace } from '@/hooks/useWorkspace';
-import { api, SubscriptionStatus } from '@/lib/api';
+import { api, SubscriptionStatus, WorkspaceMember } from '@/lib/api';
 
 export default function BillingPage() {
   const { currentWorkspace } = useWorkspace();
   const searchParams = useSearchParams();
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
+  const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -18,8 +19,14 @@ export default function BillingPage() {
 
   useEffect(() => {
     if (!currentWorkspace) return;
-    api.getSubscriptionStatus(currentWorkspace.slug)
-      .then(setSubscription)
+    Promise.all([
+      api.getSubscriptionStatus(currentWorkspace.slug),
+      api.getWorkspaceMembers({ workspace: currentWorkspace.id.toString() })
+    ])
+      .then(([sub, members]) => {
+        setSubscription(sub);
+        setMembers(members);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [currentWorkspace]);
@@ -51,6 +58,9 @@ export default function BillingPage() {
   const planLabel = subscription?.plan === 'pro' ? 'Pro' : subscription?.plan === 'enterprise' ? 'Enterprise' : 'Free';
   const statusColor = subscription?.status === 'active' ? 'text-emerald-400' :
     subscription?.status === 'past_due' ? 'text-amber-400' : 'text-gray-400';
+  
+  // Calculate seat count (owner + members)
+  const seatCount = currentWorkspace ? members.length + 1 : 1;
 
   return (
     <Layout>
@@ -85,9 +95,24 @@ export default function BillingPage() {
                   {subscription?.status || 'active'}
                 </span>
               </div>
+              
+              {/* Seat count and pricing */}
+              <div className="mb-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-400">Current seats</span>
+                  <span className="text-white font-medium">{seatCount} users</span>
+                </div>
+                {subscription?.plan === 'pro' && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-400">Per-seat price</span>
+                    <span className="text-white font-medium">$12/user/month</span>
+                  </div>
+                )}
+              </div>
+              
               {subscription?.current_period_end && (
                 <p className="text-sm text-gray-500">
-                  Current period ends: {new Date(subscription.current_period_end).toLocaleDateString()}
+                  Next billing: {new Date(subscription.current_period_end).toLocaleDateString()}
                 </p>
               )}
             </div>
@@ -133,6 +158,36 @@ export default function BillingPage() {
                 </button>
               </div>
             )}
+            
+            {/* Plan Comparison */}
+            <div className="rounded-xl border border-white/10 bg-white/[0.02] p-6">
+              <h2 className="text-lg font-semibold text-white mb-4">Plan Comparison</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="font-medium text-gray-300 mb-2">Free Plan</h3>
+                  <ul className="space-y-1 text-sm text-gray-400">
+                    <li>• Up to 3 users</li>
+                    <li>• 1 workspace</li>
+                    <li>• 2 projects per workspace</li>
+                    <li>• 2 bot agents</li>
+                    <li>• Default state machine only</li>
+                    <li>• 24-hour audit log retention</li>
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="font-medium text-emerald-400 mb-2">Pro Plan</h3>
+                  <ul className="space-y-1 text-sm text-gray-300">
+                    <li>• Unlimited users ($12/user/mo)</li>
+                    <li>• Unlimited workspaces</li>
+                    <li>• Unlimited projects</li>
+                    <li>• Unlimited bot agents</li>
+                    <li>• Full custom state machines</li>
+                    <li>• 1 year audit log retention</li>
+                    <li>• Priority support</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

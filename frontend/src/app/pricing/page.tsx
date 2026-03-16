@@ -82,12 +82,27 @@ export default function PricingPage() {
   const router = useRouter();
   const [annual, setAnnual] = useState(false);
 
-  const handleProClick = () => {
-    if (isLoggedIn) {
-      // Redirect to workspaces — user picks workspace then goes to billing
+  const handlePlanClick = async (planName: string) => {
+    if (planName === 'Free') {
+      // Free tier - redirect to signup
+      router.push('/signup');
+      return;
+    }
+    
+    if (planName === 'Enterprise') {
+      // Enterprise - email contact
+      window.location.href = 'mailto:sales@openweave.dev';
+      return;
+    }
+    
+    if (planName === 'Pro') {
+      if (!isLoggedIn) {
+        router.push('/login');
+        return;
+      }
+      
+      // For logged in users, redirect to workspaces to pick which one to upgrade
       router.push('/private/workspaces');
-    } else {
-      router.push('/login');
     }
   };
 
@@ -181,25 +196,16 @@ export default function PricingPage() {
                   </li>
                 ))}
               </ul>
-              {tier.name === 'Pro' ? (
-                <button
-                  onClick={handleProClick}
-                  className="mt-8 block w-full text-center rounded-lg px-6 py-3 text-sm font-medium transition bg-emerald-500 text-white hover:bg-emerald-400"
-                >
-                  {isLoggedIn ? 'Upgrade to Pro' : 'Start Free Trial'}
-                </button>
-              ) : (
-                <a
-                  href={tier.href}
-                  className={`mt-8 block text-center rounded-lg px-6 py-3 text-sm font-medium transition ${
-                    tier.highlighted
-                      ? 'bg-emerald-500 text-white hover:bg-emerald-400'
-                      : 'border border-white/10 text-gray-300 hover:bg-white/5'
-                  }`}
-                >
-                  {tier.cta}
-                </a>
-              )}
+              <button
+                onClick={() => handlePlanClick(tier.name)}
+                className={`mt-8 block w-full text-center rounded-lg px-6 py-3 text-sm font-medium transition ${
+                  tier.highlighted
+                    ? 'bg-emerald-500 text-white hover:bg-emerald-400'
+                    : 'border border-white/10 text-gray-300 hover:bg-white/5'
+                }`}
+              >
+                {tier.name === 'Pro' && isLoggedIn ? 'Upgrade to Pro' : tier.cta}
+              </button>
             </div>
           );
         })}

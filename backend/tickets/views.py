@@ -169,13 +169,16 @@ class JoinView(APIView):
 
         # Case 4: Authenticated user joining a workspace
         if request.user and request.user.is_authenticated:
+            from .plan_limits import check_member_limit, sync_seat_count
             if not invite:
                 return Response({'detail': 'workspace_invite_token is required.'}, status=status.HTTP_400_BAD_REQUEST)
             if invite.workspace.owner_id == request.user.id:
                 return Response({'detail': 'You are the owner of this workspace.'}, status=status.HTTP_400_BAD_REQUEST)
             if WorkspaceMember.objects.filter(workspace=invite.workspace, user=request.user).exists():
                 return Response({'detail': 'Already a member of this workspace.'}, status=status.HTTP_400_BAD_REQUEST)
+            check_member_limit(invite.workspace)
             WorkspaceMember.objects.create(workspace=invite.workspace, user=request.user)
+            sync_seat_count(invite.workspace)
             invite.use_count += 1
             invite.save()
             return Response({'workspace': WorkspaceSerializer(invite.workspace).data}, status=status.HTTP_200_OK)
@@ -202,9 +205,12 @@ class JoinView(APIView):
 
         workspace_data = None
         if invite:
+            from .plan_limits import check_member_limit, sync_seat_count
             if WorkspaceMember.objects.filter(workspace=invite.workspace, user=user).exists():
                 return Response({'detail': 'Already a member of this workspace.'}, status=status.HTTP_400_BAD_REQUEST)
+            check_member_limit(invite.workspace)
             WorkspaceMember.objects.create(workspace=invite.workspace, user=user)
+            sync_seat_count(invite.workspace)
             invite.use_count += 1
             invite.save()
             workspace_data = WorkspaceSerializer(invite.workspace).data
@@ -432,10 +438,12 @@ class ProjectViewSet(viewsets.ModelViewSet):
         return super().destroy(request, *args, **kwargs)
 
     def perform_create(self, serializer):
+        from .plan_limits import check_project_limit
         workspace = serializer.validated_data.get('workspace')
         if workspace and not is_admin_or_owner(self.request.user, workspace):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("Only workspace owners can create projects.")
+        check_project_limit(workspace)
         with transaction.atomic():
             project = serializer.save()
             AuditLog.objects.create(
@@ -909,6 +917,12 @@ class WorkspaceMemberViewSet(viewsets.ModelViewSet):
         if obj.user_id == obj.workspace.owner_id:
             return Response({'detail': 'Cannot remove the workspace owner.'}, status=status.HTTP_400_BAD_REQUEST)
         return super().destroy(request, *args, **kwargs)
+
+    def perform_destroy(self, instance):
+        from .plan_limits import sync_seat_count
+        workspace = instance.workspace
+        super().perform_destroy(instance)
+        sync_seat_count(workspace)
 
     def get_queryset(self):
         from django.db.models import Q

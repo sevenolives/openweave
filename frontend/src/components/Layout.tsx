@@ -4,6 +4,7 @@ import { useState, useEffect, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useWorkspace } from '@/hooks/useWorkspace';
+import { api, SubscriptionStatus } from '@/lib/api';
 
 function wsPath(slug: string, path: string) {
   return `/private/${slug}${path}`;
@@ -38,6 +39,7 @@ function getBreadcrumbs(pathname: string, wsSlug: string): { label: string; href
 export default function Layout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const { user, isLoggedIn, isLoading, logout } = useAuth();
   const { workspaces, currentWorkspace, setCurrentWorkspace } = useWorkspace();
   const router = useRouter();
@@ -60,6 +62,17 @@ export default function Layout({ children }: { children: ReactNode }) {
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, []);
+
+  // Fetch subscription status when workspace changes
+  useEffect(() => {
+    if (currentWorkspace) {
+      api.getSubscriptionStatus(currentWorkspace.slug)
+        .then(setSubscription)
+        .catch(() => setSubscription(null));
+    } else {
+      setSubscription(null);
+    }
+  }, [currentWorkspace]);
 
   if (isLoading) {
     return (
@@ -96,23 +109,36 @@ export default function Layout({ children }: { children: ReactNode }) {
           {/* Workspace switcher */}
           {currentWorkspace && (
             <div className="px-3 py-2 border-b border-gray-100">
-              <select
-                value={currentWorkspace.slug}
-                onChange={e => {
-                  const ws = workspaces.find(w => w.slug === e.target.value);
-                  if (ws) {
-                    setCurrentWorkspace(ws);
-                    // Extract current page and navigate to same page in new workspace
-                    const pagePart = pathname.replace(/^\/private\/[^/]+/, '') || '/dashboard';
-                    router.push(wsPath(ws.slug, pagePart));
-                  }
-                }}
-                className="w-full text-sm font-medium text-gray-900 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2"
-              >
-                {workspaces.map(ws => (
-                  <option key={ws.slug} value={ws.slug}>{ws.name}</option>
-                ))}
-              </select>
+              <div className="flex items-center gap-2 mb-2">
+                <select
+                  value={currentWorkspace.slug}
+                  onChange={e => {
+                    const ws = workspaces.find(w => w.slug === e.target.value);
+                    if (ws) {
+                      setCurrentWorkspace(ws);
+                      // Extract current page and navigate to same page in new workspace
+                      const pagePart = pathname.replace(/^\/private\/[^/]+/, '') || '/dashboard';
+                      router.push(wsPath(ws.slug, pagePart));
+                    }
+                  }}
+                  className="flex-1 text-sm font-medium text-gray-900 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2"
+                >
+                  {workspaces.map(ws => (
+                    <option key={ws.slug} value={ws.slug}>{ws.name}</option>
+                  ))}
+                </select>
+                {subscription && (
+                  <span className={`text-xs font-bold px-2 py-1 rounded ${
+                    subscription.plan === 'pro' 
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : subscription.plan === 'enterprise'
+                      ? 'bg-purple-100 text-purple-700'
+                      : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {subscription.plan.toUpperCase()}
+                  </span>
+                )}
+              </div>
               <div className="flex gap-2 mt-2">
                 <button
                   onClick={() => router.push(wsPath(wsSlug, '/settings'))}

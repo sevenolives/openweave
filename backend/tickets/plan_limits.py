@@ -1,6 +1,8 @@
 """Plan enforcement utilities for workspace billing limits."""
 from rest_framework.exceptions import PermissionDenied
 from .models import Subscription, WorkspaceMember, Workspace
+import stripe
+from django.conf import settings
 
 
 PLAN_LIMITS = {
@@ -9,21 +11,18 @@ PLAN_LIMITS = {
         'max_workspaces_per_owner': 1,
         'max_projects': 2,
         'max_bot_agents': 2,
-        'approval_gates': False,
     },
     'pro': {
         'max_users': None,  # unlimited
         'max_workspaces_per_owner': None,
         'max_projects': None,
         'max_bot_agents': None,
-        'approval_gates': True,
     },
     'enterprise': {
         'max_users': None,
         'max_workspaces_per_owner': None,
         'max_projects': None,
         'max_bot_agents': None,
-        'approval_gates': True,
     },
 }
 
@@ -95,8 +94,22 @@ def check_workspace_limit(owner):
         raise PermissionDenied(f"Upgrade to Pro to create more than {max_ws} workspace(s).")
 
 
-def check_approval_gates(workspace):
-    """Check if workspace plan supports approval gates."""
-    limits = get_plan_limits(workspace)
-    if not limits['approval_gates']:
-        raise PermissionDenied("Upgrade to Pro to use approval gates.")
+def sync_seat_count(workspace):
+    """Sync seat count with Stripe subscription."""
+    subscription = get_subscription(workspace)
+    if not subscription.stripe_subscription_id:
+        return  # No Stripe subscription to sync
+    
+    # Count members (owner + WorkspaceMember count)
+    member_count = WorkspaceMember.objects.filter(workspace=workspace).count() + 1  # +1 for owner
+    
+    try:
+        stripe.api_key = getattr(settings, 'STRIPE_SECRET_KEY', '')
+        if stripe.api_key:
+            stripe.Subscription.modify(
+                subscription.stripe_subscription_id,
+                quantity=member_count
+            )
+    except Exception:
+        # Fail silently for now - could log this error in production
+        pass
