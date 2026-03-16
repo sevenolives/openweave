@@ -130,6 +130,9 @@ function StateMachineSettings({
     setStatuses(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
   };
 
+  // Track original values for blur-save comparison
+  const focusRef = React.useRef<Record<string, string>>({});
+
   // Auto-save when gate settings change
   const updateAndSave = async (id: number, updates: Partial<StatusDefinition>) => {
     updateLocalStatus(id, updates);
@@ -204,14 +207,15 @@ function StateMachineSettings({
             </div>
             <input value={s.label}
               onChange={(e) => updateLocalStatus(s.id, { label: e.target.value })}
-              onBlur={(e) => { if (e.target.value !== s.label) handleUpdateStatus(s.id, { label: e.target.value }); }}
+              onFocus={(e) => { focusRef.current[`label-${s.id}`] = e.target.value; }}
+              onBlur={(e) => { if (e.target.value !== focusRef.current[`label-${s.id}`]) handleUpdateStatus(s.id, { label: e.target.value }); }}
               style={{ fontSize: 16, fontWeight: 700, color: s.is_archived ? '#6b7280' : 'white', background: 'transparent', border: 'none', outline: 'none', flex: 1, minWidth: 100, textDecoration: s.is_archived ? 'line-through' : 'none' }}
             />
             <input value={s.key}
               onChange={(e) => updateLocalStatus(s.id, { key: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, '') })}
-              onBlur={(e) => { if (e.target.value !== s.key) handleUpdateStatus(s.id, { key: e.target.value }); }}
+              onFocus={(e) => { focusRef.current[`key-${s.id}`] = e.target.value; e.target.style.borderColor = '#3f3f46'; }}
+              onBlur={(e) => { if (e.target.value !== focusRef.current[`key-${s.id}`]) handleUpdateStatus(s.id, { key: e.target.value }); }}
               style={{ fontSize: 11, color: '#6b7280', fontFamily: 'monospace', background: 'transparent', border: '1px solid transparent', borderRadius: 4, outline: 'none', padding: '2px 4px', width: 100 }}
-              onFocus={(e) => { e.target.style.borderColor = '#3f3f46'; }}
             />
             {!s.is_default && (
               <button
