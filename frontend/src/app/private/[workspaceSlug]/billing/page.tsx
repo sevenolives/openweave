@@ -21,7 +21,7 @@ export default function BillingPage() {
     if (!currentWorkspace) return;
     Promise.all([
       api.getSubscriptionStatus(currentWorkspace.slug),
-      api.getWorkspaceMembers({ workspace: currentWorkspace.id.toString() })
+      api.getWorkspaceMembers({ workspace: currentWorkspace.slug })
     ])
       .then(([sub, members]) => {
         setSubscription(sub);

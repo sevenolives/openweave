@@ -41,6 +41,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             }`}
           >
             {t.message}
+            {t.type === 'error' && t.message.includes('Upgrade to Pro') && (
+              <a href="/pricing" className="ml-2 underline text-white/90 hover:text-white">
+                Upgrade →
+              </a>
+            )}
           </div>
         ))}
       </div>
