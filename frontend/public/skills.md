@@ -152,6 +152,7 @@ Each status definition returns:
 - `label` — display name
 - `allowed_from` — list of status IDs this state accepts transitions from (empty = any)
 - `allowed_users` — list of user IDs allowed to enter this state (empty = everyone)
+- `allowed_users_details` — list of user objects with `id`, `username`, `email`, `name`, `user_type` for each allowed user
 
 **Key rules:**
 - **Every workspace has different states** — always query the API first, never assume
