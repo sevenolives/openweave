@@ -274,7 +274,7 @@ function StateMachineSettings({
                               fontSize: 12, padding: '4px 10px', borderRadius: 8, display: 'inline-flex', alignItems: 'center', gap: 6,
                               background: 'rgba(99,102,241,0.15)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.3)',
                             }}>
-                              {u ? (u as User).username || (u as User).name : `User #${uid}`}
+                              {u ? `${(u as User).username || (u as User).name} (${(u as User).user_type === 'BOT' ? '🤖' : '👤'})` : `User #${uid}`}
                               <button onClick={() => updateAndSave(s.id, { allowed_users: s.allowed_users.filter((id: number) => id !== uid) })}
                                 style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1 }}>×</button>
                             </span>
