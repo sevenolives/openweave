@@ -302,11 +302,14 @@ class TicketSerializer(serializers.ModelSerializer):
                             })
 
                     # 2. Check allowed_users — uses prefetched cache
+                    # Workspace admins/owners bypass this check
                     allowed_users_list = list(target_status_def.allowed_users.all())
                     if allowed_users_list and not any(u.id == user.id for u in allowed_users_list):
-                        raise serializers.ValidationError({
-                            'status': f'You are not allowed to move tickets to {new_status}.'
-                        })
+                        ws = self.instance.project.workspace if self.instance.project else None
+                        if not (user.is_superuser or (ws and is_admin_or_owner(user, ws))):
+                            raise serializers.ValidationError({
+                                'status': f'You are not allowed to move tickets to {new_status}.'
+                            })
 
                     # 3. If workspace has restrict_status_to_assigned, only assigned user, workspace admin/owner, or project admin can move
                     workspace = self.instance.project.workspace if self.instance.project else None
