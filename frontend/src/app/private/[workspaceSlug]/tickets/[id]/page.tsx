@@ -68,7 +68,7 @@ export default function TicketDetailPage() {
   const fetchData = async () => {
     try {
       const t = await api.getTicket(ticketId);
-      const [c, att] = await Promise.all([api.getComments({ ticket: String(t.id) }), api.getAttachments({ ticket: String(t.id) })]);
+      const [c, att] = await Promise.all([api.getComments({ ticket: t.ticket_slug }), api.getAttachments({ ticket: t.ticket_slug })]);
       setTicket(t); setComments(c); setAttachments(att);
       // Fetch project agents for assignment dropdowns (t.project is now the slug)
       try {
