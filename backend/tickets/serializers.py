@@ -169,6 +169,32 @@ class ProjectSerializer(serializers.ModelSerializer):
         return instance
 
 
+class TicketSlugOrPKField(serializers.Field):
+    """Accept ticket slug (e.g. OW-22) or numeric PK."""
+    def to_representation(self, value):
+        if hasattr(value, 'ticket_slug'):
+            return value.ticket_slug
+        return value
+
+    def to_internal_value(self, data):
+        if isinstance(data, int) or (isinstance(data, str) and data.isdigit()):
+            try:
+                return Ticket.objects.get(pk=int(data))
+            except Ticket.DoesNotExist:
+                raise serializers.ValidationError(f'Ticket with ID {data} not found.')
+        if isinstance(data, str):
+            parts = data.rsplit('-', 1)
+            if len(parts) == 2 and parts[1].isdigit():
+                try:
+                    return Ticket.objects.get(
+                        project__slug__iexact=parts[0],
+                        ticket_number=int(parts[1])
+                    )
+                except Ticket.DoesNotExist:
+                    raise serializers.ValidationError(f'Ticket "{data}" not found.')
+        raise serializers.ValidationError('Provide a ticket slug (e.g. OW-22) or numeric ID.')
+
+
 class TicketAttachmentSerializer(serializers.ModelSerializer):
     """Serializer for TicketAttachment model."""
     ticket = TicketSlugOrPKField()
@@ -337,33 +363,6 @@ class CommentTicketSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ticket
         fields = ['ticket_slug', 'title']
-
-
-class TicketSlugOrPKField(serializers.Field):
-    """Accept ticket slug (e.g. OW-22) or numeric PK for comment creation."""
-    def to_representation(self, value):
-        if hasattr(value, 'ticket_slug'):
-            return value.ticket_slug
-        return value
-
-    def to_internal_value(self, data):
-        if isinstance(data, int) or (isinstance(data, str) and data.isdigit()):
-            try:
-                return Ticket.objects.get(pk=int(data))
-            except Ticket.DoesNotExist:
-                raise serializers.ValidationError(f'Ticket with ID {data} not found.')
-        # Try ticket slug like OW-22
-        if isinstance(data, str):
-            parts = data.rsplit('-', 1)
-            if len(parts) == 2 and parts[1].isdigit():
-                try:
-                    return Ticket.objects.get(
-                        project__slug__iexact=parts[0],
-                        ticket_number=int(parts[1])
-                    )
-                except Ticket.DoesNotExist:
-                    raise serializers.ValidationError(f'Ticket "{data}" not found.')
-        raise serializers.ValidationError('Provide a ticket slug (e.g. OW-22) or numeric ID.')
 
 
 class CommentSerializer(serializers.ModelSerializer):
