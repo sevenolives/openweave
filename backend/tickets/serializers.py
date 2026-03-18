@@ -171,6 +171,7 @@ class ProjectSerializer(serializers.ModelSerializer):
 
 class TicketAttachmentSerializer(serializers.ModelSerializer):
     """Serializer for TicketAttachment model."""
+    ticket = TicketSlugOrPKField()
     uploaded_by_details = UserSimpleSerializer(source='uploaded_by', read_only=True)
     url = serializers.SerializerMethodField()
 
@@ -338,9 +339,36 @@ class CommentTicketSerializer(serializers.ModelSerializer):
         fields = ['ticket_slug', 'title']
 
 
+class TicketSlugOrPKField(serializers.Field):
+    """Accept ticket slug (e.g. OW-22) or numeric PK for comment creation."""
+    def to_representation(self, value):
+        if hasattr(value, 'ticket_slug'):
+            return value.ticket_slug
+        return value
+
+    def to_internal_value(self, data):
+        if isinstance(data, int) or (isinstance(data, str) and data.isdigit()):
+            try:
+                return Ticket.objects.get(pk=int(data))
+            except Ticket.DoesNotExist:
+                raise serializers.ValidationError(f'Ticket with ID {data} not found.')
+        # Try ticket slug like OW-22
+        if isinstance(data, str):
+            parts = data.rsplit('-', 1)
+            if len(parts) == 2 and parts[1].isdigit():
+                try:
+                    return Ticket.objects.get(
+                        project__slug__iexact=parts[0],
+                        ticket_number=int(parts[1])
+                    )
+                except Ticket.DoesNotExist:
+                    raise serializers.ValidationError(f'Ticket "{data}" not found.')
+        raise serializers.ValidationError('Provide a ticket slug (e.g. OW-22) or numeric ID.')
+
+
 class CommentSerializer(serializers.ModelSerializer):
     """Serializer for Comment model."""
-    ticket = serializers.PrimaryKeyRelatedField(queryset=Ticket.objects.all())
+    ticket = TicketSlugOrPKField()
     author_details = UserSimpleSerializer(source='author', read_only=True)
     ticket_details = CommentTicketSerializer(source='ticket', read_only=True)
     mentions = serializers.SerializerMethodField(

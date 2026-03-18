@@ -463,7 +463,7 @@ class ApiClient {
     return response.results || [];
   }
 
-  async uploadAttachment(ticketId: number, file: File): Promise<TicketAttachment> {
+  async uploadAttachment(ticketId: number | string, file: File): Promise<TicketAttachment> {
     const url = `${this.baseUrl}/attachments/`;
     const token = tokenStorage.getAccessToken();
     const formData = new FormData();

@@ -117,7 +117,7 @@ export default function TicketDetailPage() {
     if (!newComment.trim() || !ticket) return;
     setSubmitting(true);
     try {
-      const comment = await api.createComment({ ticket: ticket.id, body: newComment.trim() });
+      const comment = await api.createComment({ ticket: ticket.ticket_slug as any, body: newComment.trim() });
       setComments([...comments, comment]);
       setNewComment('');
       toast('Comment added');
@@ -318,7 +318,7 @@ export default function TicketDetailPage() {
                       if (!file || !ticket) return;
                       setUploading(true);
                       try {
-                        const att = await api.uploadAttachment(ticket.id, file);
+                        const att = await api.uploadAttachment(ticket.ticket_slug, file);
                         setAttachments(prev => [att, ...prev]);
                         toast('File uploaded');
                       } catch (err: any) { toast(err?.message || 'Upload failed', 'error'); }

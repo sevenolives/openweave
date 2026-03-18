@@ -209,6 +209,9 @@ class CommentFilter(django_filters.FilterSet):
     """
     search = django_filters.CharFilter(method='search_comments', label='Search')
     
+    # Filter by workspace slug
+    workspace = django_filters.CharFilter(method='filter_by_workspace', label='Workspace slug')
+    
     # Filter by ticket slug (e.g., OW-22)
     ticket = django_filters.CharFilter(method='filter_by_ticket', label='Ticket slug or ID')
     
@@ -234,6 +237,15 @@ class CommentFilter(django_filters.FilterSet):
     class Meta:
         model = Comment
         fields = ['ticket', 'ticket__project', 'author']
+
+    def filter_by_workspace(self, queryset, name, value):
+        if not value:
+            return queryset
+        if value.isdigit():
+            return queryset.filter(
+                Q(ticket__project__workspace__slug=value) | Q(ticket__project__workspace_id=int(value))
+            )
+        return queryset.filter(ticket__project__workspace__slug=value)
 
     def filter_by_ticket(self, queryset, name, value):
         if not value:
