@@ -132,9 +132,9 @@ export default function ProjectSettingsPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-6 overflow-x-auto">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 bg-gray-100 rounded-xl p-1 mb-6">
           {(['general', 'members', 'phases', 'permissions'] as const).map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${activeTab === tab ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-2 py-2.5 rounded-lg text-sm font-medium transition-colors text-center ${activeTab === tab ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
               {tab === 'general' ? '⚙️ General' : tab === 'members' ? '👥 Members' : tab === 'phases' ? '📋 Phases' : '🔒 Permissions'}
             </button>
           ))}
