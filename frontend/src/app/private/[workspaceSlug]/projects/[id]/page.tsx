@@ -246,37 +246,49 @@ export default function ProjectSettingsPage() {
 
             {/* Project Invite Link */}
             <div className="mt-6 pt-6 border-t border-gray-200">
-              <h4 className="text-sm font-semibold text-gray-900 mb-2">🔗 Invite Link</h4>
-              <p className="text-xs text-gray-500 mb-3">Share this link to invite bots or users directly into this project (and workspace).</p>
-              {projectInvites.length > 0 ? (
-                <div className="space-y-2">
-                  {projectInvites.map(inv => (
-                    <div key={inv.id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
-                      <code className="text-xs text-gray-700 truncate flex-1">{`${window.location.origin}/invite/${inv.token}`}</code>
-                      <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/invite/${inv.token}`); toast('Link copied!'); }}
-                        className="px-3 py-1.5 text-xs font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg flex-shrink-0">Copy</button>
-                      <button onClick={async () => {
-                        try { await api.updateInvite(inv.id, { is_active: false }); setProjectInvites(prev => prev.filter(i => i.id !== inv.id)); toast('Invite revoked'); }
-                        catch (e: any) { toast(e?.message || 'Failed', 'error'); }
-                      }} className="px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 rounded-lg flex-shrink-0">Revoke</button>
-                    </div>
-                  ))}
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-900">🔗 Invite Link</h4>
+                  <p className="text-xs text-gray-500 mt-0.5">Invite bots or humans directly into this project</p>
                 </div>
-              ) : (
                 <button onClick={async () => {
                   if (!project || !currentWorkspace) return;
                   setGeneratingInvite(true);
                   try {
                     const inv = await api.createInvite({ workspace: currentWorkspace.slug, project: project.slug });
                     setProjectInvites(prev => [...prev, inv]);
-                    navigator.clipboard.writeText(`${window.location.origin}/invite/${inv.token}`);
-                    toast('Invite link created and copied!');
+                    toast('Invite created');
                   } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
                   finally { setGeneratingInvite(false); }
                 }} disabled={generatingInvite}
-                  className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 transition-colors">
-                  {generatingInvite ? 'Generating…' : 'Generate Invite Link'}
+                  className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700 disabled:bg-gray-300">
+                  {generatingInvite ? '…' : '+ New Invite'}
                 </button>
+              </div>
+              {projectInvites.length > 0 ? (
+                <div className="space-y-2">
+                  {projectInvites.map(inv => (
+                    <div key={inv.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
+                      <div>
+                        <p className="text-sm font-mono text-gray-700">{String(inv.token).slice(0, 8)}...</p>
+                        <p className="text-xs text-gray-500">Uses: {inv.use_count}{inv.max_uses ? `/${inv.max_uses}` : ''}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/invite/${inv.token}`); toast('Human invite link copied!'); }}
+                          className="px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50 rounded" title="For humans — copies invite page link">👤 Human</button>
+                        <button onClick={() => { navigator.clipboard.writeText(`Read ${window.location.origin}/skills.md and join workspace using invite token ${inv.token}`); toast('Bot invite copied!'); }}
+                          className="px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-50 rounded" title="For bots — copies skills.md + invite token">🤖 Bot</button>
+                        <button onClick={async () => {
+                          if (!confirm('Revoke this invite?')) return;
+                          try { await api.updateInvite(inv.id, { is_active: false }); setProjectInvites(prev => prev.filter(i => i.id !== inv.id)); toast('Invite revoked'); }
+                          catch (e: any) { toast(e?.message || 'Failed', 'error'); }
+                        }} className="px-2 py-1 text-xs text-red-500 hover:bg-red-50 rounded">🗑️</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400">No invite links yet. Create one above.</p>
               )}
             </div>
           </div>}
