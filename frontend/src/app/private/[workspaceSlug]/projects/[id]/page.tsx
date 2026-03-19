@@ -250,10 +250,10 @@ export default function ProjectSettingsPage() {
                 <div key={phase.id} className={`rounded-xl border p-4 transition-all ${phase.is_active ? 'border-indigo-300 bg-indigo-50/50' : phase.completed_at ? 'border-green-200 bg-green-50/30' : 'border-gray-200'}`}>
                   {editingPhase === phase.id ? (
                     <div className="space-y-3">
-                      <input value={editPhaseName} onChange={e => setEditPhaseName(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" placeholder="Phase name" />
+                      <input value={editPhaseName} onChange={e => setEditPhaseName(e.target.value)} autoFocus
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500" placeholder="Phase name" />
                       <textarea value={editPhaseDesc} onChange={e => setEditPhaseDesc(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 resize-none" rows={3} placeholder="Goals and scope of this phase..." />
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 resize-none" rows={4} placeholder="Goals and scope of this phase..." />
                       <div className="flex gap-2">
                         <button onClick={async () => {
                           try {
@@ -295,7 +295,7 @@ export default function ProjectSettingsPage() {
                               } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
                             }} className="px-3 py-1.5 text-xs font-medium text-green-600 hover:bg-green-50 rounded-lg">Complete</button>
                           )}
-                          <button onClick={() => { setEditingPhase(phase.id); setEditPhaseName(phase.name); setEditPhaseDesc(phase.description); }}
+                          <button onClick={() => { setEditingPhase(phase.id); setEditPhaseName(phase.name || ''); setEditPhaseDesc(phase.description || ''); }}
                             className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                           </button>
