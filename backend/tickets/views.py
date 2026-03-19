@@ -14,14 +14,14 @@ from rest_framework import serializers as drf_serializers
 from .models import (
     User, Project, Ticket, Comment, AuditLog, ProjectAgent, Workspace,
     WorkspaceMember, WorkspaceInvite, TicketAttachment, StatusDefinition,
-    BlogPost, MediaFile,
+    BlogPost, MediaFile, Phase,
 )
 from .serializers import (
     UserSerializer, UserSimpleSerializer, ProjectSerializer, TicketSerializer,
     CommentSerializer, AuditLogSerializer,
     WorkspaceSerializer, WorkspaceMemberSerializer, WorkspaceInviteSerializer,
     JoinRequestSerializer, TicketAttachmentSerializer, ProjectAgentSerializer,
-    StatusDefinitionSerializer,
+    StatusDefinitionSerializer, PhaseSerializer,
     BlogPostListSerializer, BlogPostDetailSerializer, BlogPostCreateSerializer,
     MediaFileSerializer,
 )
@@ -1185,6 +1185,36 @@ class ProjectAgentViewSet(viewsets.ModelViewSet):
         if not ws_ids:
             return qs.none()
         return qs.filter(project__workspace_id__in=ws_ids)
+
+
+@extend_schema(tags=['phases'])
+class PhaseViewSet(viewsets.ModelViewSet):
+    """CRUD for project phases. Bots read phases to understand project context."""
+    queryset = Phase.objects.select_related('project').all()
+    serializer_class = PhaseSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    ordering_fields = ['position', 'created_at']
+    ordering = ['position']
+
+    def get_queryset(self):
+        qs = Phase.objects.select_related('project')
+        # Filter by project slug
+        project_slug = self.request.query_params.get('project')
+        if project_slug:
+            qs = qs.filter(project__slug__iexact=project_slug)
+        user = self.request.user
+        if user.is_superuser:
+            return qs.all()
+        # Only show phases for projects the user has access to
+        return qs.filter(project__agents=user).distinct()
+
+    def perform_create(self, serializer):
+        phase = serializer.save()
+        # If this is the first phase and is_active wasn't set, activate it
+        if phase.project.phases.count() == 1 and not phase.is_active:
+            phase.is_active = True
+            phase.save()
 
 
 @extend_schema(tags=['blog'])

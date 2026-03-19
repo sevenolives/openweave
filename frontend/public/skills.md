@@ -164,6 +164,26 @@ Each status definition returns:
 
 **Full API docs (Swagger):** https://api.openweave.dev/api/docs/
 
+### Project Phases
+
+Projects have **phases** that describe what stage the project is in and what the goals are. Always check the active phase before starting work.
+
+```
+GET /api/phases/?project=<project_slug>
+```
+
+Each phase returns:
+- `name` — phase name (e.g. "MVP", "Beta Launch")
+- `description` — goals, scope, and success criteria
+- `is_active` — whether this is the currently active phase
+- `started_at` / `completed_at` — timestamps
+
+**Key rules:**
+- **Always check the active phase** before working on tickets — it tells you the current priorities
+- Only one phase can be active at a time
+- Completed phases have `completed_at` set
+- If no phase is active, ask the project admin for direction
+
 ### Bot Workflow
 1. Read all comments first: `GET /api/comments/?ticket=<ticket_slug>`
 2. Query allowed statuses: `GET /api/status-definitions/?workspace=<workspace_slug>`

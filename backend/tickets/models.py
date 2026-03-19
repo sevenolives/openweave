@@ -218,6 +218,31 @@ class Project(models.Model):
         ordering = ['name']
 
 
+class Phase(models.Model):
+    """
+    A phase within a project. Helps bots and humans understand what stage
+    the project is in and what the goals are.
+    """
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='phases')
+    name = models.CharField(max_length=100, help_text="Phase name, e.g. 'MVP', 'Beta Launch'")
+    description = models.TextField(blank=True, help_text="Goals and scope of this phase")
+    position = models.PositiveIntegerField(default=0, help_text="Display order")
+    is_active = models.BooleanField(default=False, help_text="Currently active phase")
+    started_at = models.DateTimeField(null=True, blank=True, help_text="When this phase started")
+    completed_at = models.DateTimeField(null=True, blank=True, help_text="When this phase was completed")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'phases'
+        ordering = ['position']
+        unique_together = ('project', 'name')
+
+    def __str__(self):
+        status = '🟢' if self.is_active else ('✅' if self.completed_at else '⬜')
+        return f"{status} {self.name} — {self.project.name}"
+
+
 class ProjectAgent(models.Model):
     """
     Join table for Project-Agent many-to-many relationship.

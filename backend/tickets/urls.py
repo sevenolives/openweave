@@ -7,7 +7,7 @@ from .views import (
     CommentViewSet, AuditLogViewSet,
     WorkspaceViewSet, WorkspaceMemberViewSet, WorkspaceInviteViewSet,
     TicketAttachmentViewSet, StatusDefinitionViewSet,
-    ProjectAgentViewSet, JoinView, DashboardView, BlogPostViewSet,
+    ProjectAgentViewSet, PhaseViewSet, JoinView, DashboardView, BlogPostViewSet,
     MediaFileViewSet,
 )
 from .billing import (
@@ -27,6 +27,7 @@ router.register(r'invites', WorkspaceInviteViewSet)
 router.register(r'attachments', TicketAttachmentViewSet)
 router.register(r'status-definitions', StatusDefinitionViewSet)
 router.register(r'project-agents', ProjectAgentViewSet)
+router.register(r'phases', PhaseViewSet)
 router.register(r'blog', BlogPostViewSet, basename='blog')
 router.register(r'media', MediaFileViewSet, basename='media')
 

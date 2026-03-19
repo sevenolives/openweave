@@ -6,7 +6,7 @@ import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useWorkspace } from '@/hooks/useWorkspace';
-import { api, Project, User, ProjectAgentMembership } from '@/lib/api';
+import { api, Project, User, ProjectAgentMembership, Phase } from '@/lib/api';
 
 export default function ProjectSettingsPage() {
   const [project, setProject] = useState<Project | null>(null);
@@ -21,6 +21,14 @@ export default function ProjectSettingsPage() {
   const [agentMemberships, setAgentMemberships] = useState<ProjectAgentMembership[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [memberSaving, setMemberSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<'general' | 'members' | 'phases'>('general');
+  const [phases, setPhases] = useState<Phase[]>([]);
+  const [newPhaseName, setNewPhaseName] = useState('');
+  const [newPhaseDesc, setNewPhaseDesc] = useState('');
+  const [addingPhase, setAddingPhase] = useState(false);
+  const [editingPhase, setEditingPhase] = useState<number | null>(null);
+  const [editPhaseName, setEditPhaseName] = useState('');
+  const [editPhaseDesc, setEditPhaseDesc] = useState('');
 
   const router = useRouter();
   const params = useParams<{ workspaceSlug: string; id: string }>();
@@ -33,13 +41,14 @@ export default function ProjectSettingsPage() {
 
   const fetchData = async () => {
     try {
-      const [p, agents, ticketResp, memberships] = await Promise.all([
+      const [p, agents, ticketResp, memberships, ph] = await Promise.all([
         api.getProject(projectSlug), api.getProjectAgents(projectSlug),
         api.getTicketsPaginated({ project: projectSlug }),
         api.getProjectAgentMemberships(projectSlug),
+        api.getPhases(projectSlug),
       ]);
       setHasTickets((ticketResp.count || 0) > 0);
-      setProject(p); setProjectAgents(agents); setAgentMemberships(memberships);
+      setProject(p); setProjectAgents(agents); setAgentMemberships(memberships); setPhases(ph);
       setEditName(p.name); setEditSlug(p.slug || ''); setEditDesc(p.description);
       if (p.workspace) {
         api.getUsers({ workspace: String(p.workspace) }).then(setAllUsers).catch(() => {});
@@ -114,9 +123,18 @@ export default function ProjectSettingsPage() {
           </div>
         </div>
 
+        {/* Tabs */}
+        <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-6">
+          {(['general', 'members', 'phases'] as const).map(tab => (
+            <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === tab ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+              {tab === 'general' ? '⚙️ General' : tab === 'members' ? '👥 Members' : '📋 Phases'}
+            </button>
+          ))}
+        </div>
+
         <div className="space-y-6">
           {/* General Settings */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
+          {activeTab === 'general' && <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">General</h3>
             <div className="space-y-4">
               <div>
@@ -136,10 +154,10 @@ export default function ProjectSettingsPage() {
                 {saving ? 'Saving…' : 'Save Changes'}
               </button>
             </div>
-          </div>
+          </div>}
 
           {/* Members */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
+          {activeTab === 'members' && <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Members</h3>
             <div className="space-y-2 mb-4">
               {projectAgents.length === 0 ? (
@@ -207,7 +225,118 @@ export default function ProjectSettingsPage() {
                 </button>
               </div>
             )}
-          </div>
+          </div>}
+
+          {/* Phases */}
+          {activeTab === 'phases' && <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Phases</h3>
+                <p className="text-sm text-gray-500 mt-0.5">Define project phases so bots and team members know what stage the project is in</p>
+              </div>
+            </div>
+
+            {/* Phase list */}
+            <div className="space-y-3 mb-6">
+              {phases.length === 0 ? (
+                <p className="text-sm text-gray-400 py-4 text-center">No phases yet. Add your first phase below.</p>
+              ) : phases.map((phase, idx) => (
+                <div key={phase.id} className={`rounded-xl border p-4 transition-all ${phase.is_active ? 'border-indigo-300 bg-indigo-50/50' : phase.completed_at ? 'border-green-200 bg-green-50/30' : 'border-gray-200'}`}>
+                  {editingPhase === phase.id ? (
+                    <div className="space-y-3">
+                      <input value={editPhaseName} onChange={e => setEditPhaseName(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" placeholder="Phase name" />
+                      <textarea value={editPhaseDesc} onChange={e => setEditPhaseDesc(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 resize-none" rows={3} placeholder="Goals and scope of this phase..." />
+                      <div className="flex gap-2">
+                        <button onClick={async () => {
+                          try {
+                            await api.updatePhase(phase.id, { name: editPhaseName, description: editPhaseDesc });
+                            setEditingPhase(null);
+                            const ph = await api.getPhases(projectSlug); setPhases(ph);
+                            toast('Phase updated');
+                          } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
+                        }} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700">Save</button>
+                        <button onClick={() => setEditingPhase(null)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-gray-400">#{idx + 1}</span>
+                          <h4 className="font-semibold text-gray-900">{phase.name}</h4>
+                          {phase.is_active && <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-full">ACTIVE</span>}
+                          {phase.completed_at && <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded-full">DONE</span>}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {!phase.is_active && !phase.completed_at && (
+                            <button onClick={async () => {
+                              try {
+                                await api.updatePhase(phase.id, { is_active: true, started_at: new Date().toISOString() });
+                                const ph = await api.getPhases(projectSlug); setPhases(ph);
+                                toast('Phase activated');
+                              } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
+                            }} className="px-3 py-1.5 text-xs font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg">Activate</button>
+                          )}
+                          {phase.is_active && (
+                            <button onClick={async () => {
+                              try {
+                                await api.updatePhase(phase.id, { is_active: false, completed_at: new Date().toISOString() });
+                                const ph = await api.getPhases(projectSlug); setPhases(ph);
+                                toast('Phase completed');
+                              } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
+                            }} className="px-3 py-1.5 text-xs font-medium text-green-600 hover:bg-green-50 rounded-lg">Complete</button>
+                          )}
+                          <button onClick={() => { setEditingPhase(phase.id); setEditPhaseName(phase.name); setEditPhaseDesc(phase.description); }}
+                            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                          </button>
+                          <button onClick={async () => {
+                            if (!confirm(`Delete phase "${phase.name}"?`)) return;
+                            try {
+                              await api.deletePhase(phase.id);
+                              const ph = await api.getPhases(projectSlug); setPhases(ph);
+                              toast('Phase deleted');
+                            } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
+                          }} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          </button>
+                        </div>
+                      </div>
+                      {phase.description && <p className="text-sm text-gray-600 mt-1">{phase.description}</p>}
+                      {phase.started_at && <p className="text-xs text-gray-400 mt-2">Started {new Date(phase.started_at).toLocaleDateString()}{phase.completed_at ? ` · Completed ${new Date(phase.completed_at).toLocaleDateString()}` : ''}</p>}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Add new phase */}
+            <div className="border border-dashed border-gray-300 rounded-xl p-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-3">Add Phase</h4>
+              <div className="space-y-3">
+                <input value={newPhaseName} onChange={e => setNewPhaseName(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" placeholder="Phase name (e.g. MVP, Beta Launch, V2)" />
+                <textarea value={newPhaseDesc} onChange={e => setNewPhaseDesc(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 resize-none" rows={3} placeholder="Goals, scope, and success criteria for this phase..." />
+                <button onClick={async () => {
+                  if (!newPhaseName.trim()) return;
+                  setAddingPhase(true);
+                  try {
+                    await api.createPhase({ project: projectSlug, name: newPhaseName.trim(), description: newPhaseDesc.trim(), position: phases.length });
+                    setNewPhaseName(''); setNewPhaseDesc('');
+                    const ph = await api.getPhases(projectSlug); setPhases(ph);
+                    toast('Phase added');
+                  } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
+                  finally { setAddingPhase(false); }
+                }} disabled={!newPhaseName.trim() || addingPhase}
+                  className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors">
+                  {addingPhase ? 'Adding…' : 'Add Phase'}
+                </button>
+              </div>
+            </div>
+          </div>}
         </div>
       </div>
     </Layout>

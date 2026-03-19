@@ -3,7 +3,7 @@ from .permissions import is_admin_or_owner
 from .models import (
     User, Project, Ticket, Comment, AuditLog, Workspace, WorkspaceMember,
     WorkspaceInvite, TicketAttachment, StatusDefinition, ProjectAgent,
-    BlogPost, MediaFile,
+    BlogPost, MediaFile, Phase,
 )
 
 
@@ -63,6 +63,25 @@ class ProjectAgentSerializer(serializers.ModelSerializer):
         model = ProjectAgent
         fields = ['id', 'project', 'user', 'role', 'joined_at']
         read_only_fields = ['id', 'project', 'user', 'joined_at']
+
+
+class PhaseSerializer(serializers.ModelSerializer):
+    """Serializer for project phases."""
+    project = serializers.SlugRelatedField(slug_field='slug', queryset=Project.objects.all())
+
+    class Meta:
+        model = Phase
+        fields = ['id', 'project', 'name', 'description', 'position', 'is_active',
+                  'started_at', 'completed_at', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
+
+    def validate(self, data):
+        # If setting is_active=True, deactivate other phases in the same project
+        if data.get('is_active') and not (self.instance and self.instance.is_active):
+            project = data.get('project') or (self.instance.project if self.instance else None)
+            if project:
+                Phase.objects.filter(project=project, is_active=True).update(is_active=False)
+        return data
 
 
 class WorkspaceSerializer(serializers.ModelSerializer):
@@ -134,10 +153,11 @@ class ProjectSerializer(serializers.ModelSerializer):
         required=False,
         help_text="List of user IDs to assign as project agents.",
     )
+    active_phase = serializers.SerializerMethodField(help_text="Currently active phase, if any.")
 
     class Meta:
         model = Project
-        fields = ['name', 'slug', 'description', 'workspace', 'created_at', 'updated_at', 'agent_ids']
+        fields = ['name', 'slug', 'description', 'workspace', 'created_at', 'updated_at', 'agent_ids', 'active_phase']
         read_only_fields = ['created_at', 'updated_at']
         extra_kwargs = {
             'name': {'help_text': 'Project name.'},
@@ -167,6 +187,12 @@ class ProjectSerializer(serializers.ModelSerializer):
             agents = User.objects.filter(id__in=agent_ids)
             instance.agents.set(agents)
         return instance
+
+    def get_active_phase(self, obj):
+        phase = obj.phases.filter(is_active=True).first()
+        if phase:
+            return {'id': phase.id, 'name': phase.name, 'description': phase.description}
+        return None
 
 
 class TicketSlugOrPKField(serializers.Field):

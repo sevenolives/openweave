@@ -36,6 +36,7 @@ export interface Project {
   updated_at: string;
   slug: string;
   workspace?: string;
+  active_phase?: { id: number; name: string; description: string } | null;
 }
 
 export interface Ticket {
@@ -116,6 +117,19 @@ export interface WorkspaceInvite {
   use_count: number;
   is_active: boolean;
   created_at: string;
+}
+
+export interface Phase {
+  id: number;
+  project: string;
+  name: string;
+  description: string;
+  position: number;
+  is_active: boolean;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface AuthTokens {
@@ -360,6 +374,24 @@ class ApiClient {
 
   async getProject(slug: string): Promise<Project> {
     return this.request<Project>(`/projects/${slug}/`);
+  }
+
+  // Phases
+  async getPhases(projectSlug: string): Promise<Phase[]> {
+    const response = await this.request<PaginatedResponse<Phase>>(`/phases/?project=${projectSlug}`);
+    return response.results || [];
+  }
+
+  async createPhase(data: Partial<Phase>): Promise<Phase> {
+    return this.request<Phase>('/phases/', { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  async updatePhase(id: number, data: Partial<Phase>): Promise<Phase> {
+    return this.request<Phase>(`/phases/${id}/`, { method: 'PATCH', body: JSON.stringify(data) });
+  }
+
+  async deletePhase(id: number): Promise<void> {
+    await this.request<void>(`/phases/${id}/`, { method: 'DELETE' });
   }
 
   async getProjectAgents(projectSlug: string): Promise<User[]> {
