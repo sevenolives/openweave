@@ -108,18 +108,7 @@ export interface WorkspaceMember {
   joined_at: string;
 }
 
-/** @deprecated Use ProjectInvite instead */
-export interface WorkspaceInvite {
-  id: number;
-  workspace: string;
-  token: string;
-  created_by: number;
-  expires_at: string | null;
-  max_uses: number | null;
-  use_count: number;
-  is_active: boolean;
-  created_at: string;
-}
+
 
 export interface ProjectInvite {
   id: number;
@@ -654,31 +643,6 @@ class ApiClient {
 
   async removeWorkspaceMember(id: number): Promise<void> {
     await this.request(`/workspace-members/${id}/`, { method: 'DELETE' });
-  }
-
-  // Invites
-  async getInvites(params?: Record<string, string>): Promise<WorkspaceInvite[]> {
-    const query = params ? '?' + new URLSearchParams(params).toString() : '';
-    const response = await this.request<PaginatedResponse<WorkspaceInvite>>(`/invites/${query}`);
-    return response.results || [];
-  }
-
-  async createInvite(data: { workspace: string; project?: string; expires_at?: string; max_uses?: number }): Promise<WorkspaceInvite> {
-    return this.request<WorkspaceInvite>('/invites/', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async updateInvite(id: number, data: Partial<WorkspaceInvite>): Promise<WorkspaceInvite> {
-    return this.request<WorkspaceInvite>(`/invites/${id}/`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async deleteInvite(id: number): Promise<void> {
-    await this.request(`/invites/${id}/`, { method: 'DELETE' });
   }
 
   // Billing

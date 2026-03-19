@@ -5,7 +5,7 @@ from drf_spectacular.utils import extend_schema, OpenApiExample
 from .views import (
     UserViewSet, ProjectViewSet, TicketViewSet,
     CommentViewSet, AuditLogViewSet,
-    WorkspaceViewSet, WorkspaceMemberViewSet, WorkspaceInviteViewSet,
+    WorkspaceViewSet, WorkspaceMemberViewSet,
     ProjectInviteViewSet,
     TicketAttachmentViewSet, StatusDefinitionViewSet,
     ProjectAgentViewSet, PhaseViewSet, ProjectStatusPermissionViewSet,
@@ -25,7 +25,7 @@ router.register(r'comments', CommentViewSet)
 router.register(r'audit-logs', AuditLogViewSet)
 router.register(r'workspaces', WorkspaceViewSet)
 router.register(r'workspace-members', WorkspaceMemberViewSet)
-# router.register(r'invites', WorkspaceInviteViewSet)  # deprecated — use project-invites
+
 router.register(r'attachments', TicketAttachmentViewSet)
 router.register(r'status-definitions', StatusDefinitionViewSet)
 router.register(r'project-agents', ProjectAgentViewSet)

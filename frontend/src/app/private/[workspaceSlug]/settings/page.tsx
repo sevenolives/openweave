@@ -17,7 +17,7 @@ import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import FormField, { parseFieldErrors, inputClass } from '@/components/FormField';
 import { api, Workspace, WorkspaceMember, StatusDefinition, User } from '@/lib/api';
-type WorkspaceInvite = any; // deprecated — kept for type compat
+
 import { useWorkspace } from '@/hooks/useWorkspace';
 
 const COLORS = ['gray', 'blue', 'red', 'purple', 'amber', 'green', 'yellow', 'indigo', 'pink', 'orange'];
@@ -349,7 +349,7 @@ export default function WorkspaceSettingsPage() {
   const { workspaces, refreshWorkspaces } = useWorkspace();
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
-  const [invites] = useState<WorkspaceInvite[]>([]); // deprecated — invites now at project level
+
   const [loading, setLoading] = useState(true);
   const [editName, setEditName] = useState('');
   const [editSlug, setEditSlug] = useState('');

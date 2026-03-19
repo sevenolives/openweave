@@ -19,7 +19,7 @@ from .models import (
 from .serializers import (
     UserSerializer, UserSimpleSerializer, ProjectSerializer, TicketSerializer,
     CommentSerializer, AuditLogSerializer,
-    WorkspaceSerializer, WorkspaceMemberSerializer, WorkspaceInviteSerializer,
+    WorkspaceSerializer, WorkspaceMemberSerializer,
     ProjectInviteSerializer,
     JoinRequestSerializer, TicketAttachmentSerializer, ProjectAgentSerializer,
     StatusDefinitionSerializer, PhaseSerializer, ProjectStatusPermissionSerializer,
@@ -31,7 +31,7 @@ from .permissions import (
 )
 from .filters import (
     TicketFilter, UserFilter, ProjectFilter, CommentFilter, AuditLogFilter,
-    WorkspaceMemberFilter, WorkspaceInviteFilter,
+    WorkspaceMemberFilter,
 )
 from django.utils import timezone
 
@@ -993,63 +993,6 @@ class WorkspaceMemberViewSet(viewsets.ModelViewSet):
             # Owner always has full access
             if obj.workspace.owner != request.user and not is_admin_or_owner(request.user, obj.workspace):
                 self.permission_denied(request)
-
-
-@extend_schema(tags=['invites'])
-class WorkspaceInviteViewSet(viewsets.ModelViewSet):
-    """Manage workspace invite links."""
-    queryset = WorkspaceInvite.objects.all()
-    serializer_class = WorkspaceInviteSerializer
-    permission_classes = [IsAdminOrReadOnly]
-    filter_backends = [DjangoFilterBackend]
-    filterset_class = WorkspaceInviteFilter
-    http_method_names = ['get', 'post', 'delete', 'head', 'options']
-
-    @extend_schema(
-        summary="List invites",
-        description="List invite links for a workspace. Filter by workspace ID.",
-        parameters=[
-            OpenApiParameter(name='workspace', description='Filter by workspace ID', type=int),
-        ],
-    )
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
-
-    @extend_schema(exclude=True)
-    def retrieve(self, request, *args, **kwargs):
-        return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
-
-    @extend_schema(
-        summary="Create invite",
-        description="Create a workspace invite link. Only workspace admins can create invites.",
-        responses={201: WorkspaceInviteSerializer, 400: _error_detail, 403: _error_detail},
-        examples=[
-            OpenApiExample('Create invite', value={'workspace': 1, 'max_uses': 10, 'expires_at': '2025-12-31T23:59:59Z'}, request_only=True),
-            OpenApiExample('Unlimited invite', value={'workspace': 1}, request_only=True),
-        ],
-    )
-    def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
-
-    def get_queryset(self):
-        from django.db.models import Q
-        return WorkspaceInvite.objects.filter(
-            Q(workspace__members__user=self.request.user) | Q(workspace__owner=self.request.user)
-        ).distinct()
-
-    def perform_create(self, serializer):
-        workspace = serializer.validated_data['workspace']
-        # Only owner can create invites
-        if not is_admin_or_owner(self.request.user, workspace):
-            from rest_framework.exceptions import PermissionDenied
-            raise PermissionDenied("Only workspace owner can create invites.")
-        serializer.save(created_by=self.request.user)
-
-    def perform_destroy(self, instance):
-        from rest_framework.exceptions import PermissionDenied
-        if not is_admin_or_owner(self.request.user, instance.workspace):
-            raise PermissionDenied("Only workspace owner can delete invites.")
-        instance.delete()
 
 
 @extend_schema(tags=['statuses'])
