@@ -14,14 +14,14 @@ from rest_framework import serializers as drf_serializers
 from .models import (
     User, Project, Ticket, Comment, AuditLog, ProjectAgent, Workspace,
     WorkspaceMember, WorkspaceInvite, TicketAttachment, StatusDefinition,
-    BlogPost, MediaFile, Phase,
+    BlogPost, MediaFile, Phase, ProjectStatusPermission,
 )
 from .serializers import (
     UserSerializer, UserSimpleSerializer, ProjectSerializer, TicketSerializer,
     CommentSerializer, AuditLogSerializer,
     WorkspaceSerializer, WorkspaceMemberSerializer, WorkspaceInviteSerializer,
     JoinRequestSerializer, TicketAttachmentSerializer, ProjectAgentSerializer,
-    StatusDefinitionSerializer, PhaseSerializer,
+    StatusDefinitionSerializer, PhaseSerializer, ProjectStatusPermissionSerializer,
     BlogPostListSerializer, BlogPostDetailSerializer, BlogPostCreateSerializer,
     MediaFileSerializer,
 )
@@ -1222,6 +1222,25 @@ class PhaseViewSet(viewsets.ModelViewSet):
             phase.project.current_phase = phase
             phase.project.save(update_fields=['current_phase'])
         return Response(self.get_serializer(phase).data, status=status.HTTP_201_CREATED)
+
+
+@extend_schema(tags=['project-status-permissions'])
+class ProjectStatusPermissionViewSet(viewsets.ModelViewSet):
+    """Manage project-level status permission overrides."""
+    queryset = ProjectStatusPermission.objects.select_related('project', 'status_definition').prefetch_related('allowed_users').all()
+    serializer_class = ProjectStatusPermissionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+
+    def get_queryset(self):
+        qs = ProjectStatusPermission.objects.select_related('project', 'status_definition').prefetch_related('allowed_users')
+        project_slug = self.request.query_params.get('project')
+        if project_slug:
+            qs = qs.filter(project__slug__iexact=project_slug)
+        user = self.request.user
+        if user.is_superuser:
+            return qs.all()
+        return qs.filter(project__agents=user).distinct()
 
 
 @extend_schema(tags=['blog'])

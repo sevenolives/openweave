@@ -4,7 +4,7 @@ from .permissions import is_admin_or_owner
 from .models import (
     User, Project, Ticket, Comment, AuditLog, Workspace, WorkspaceMember,
     WorkspaceInvite, TicketAttachment, StatusDefinition, ProjectAgent,
-    BlogPost, MediaFile, Phase,
+    BlogPost, MediaFile, Phase, ProjectStatusPermission,
 )
 
 
@@ -101,6 +101,35 @@ class PhaseSerializer(serializers.ModelSerializer):
                 instance.project.save(update_fields=['current_phase'])
             return instance
         return super().update(instance, validated_data)
+
+
+class ProjectStatusPermissionSerializer(serializers.ModelSerializer):
+    """Project-level status permission overrides."""
+    project = serializers.SlugRelatedField(slug_field='slug', queryset=Project.objects.all())
+    status_definition = serializers.PrimaryKeyRelatedField(queryset=StatusDefinition.objects.all())
+    allowed_users = serializers.PrimaryKeyRelatedField(many=True, queryset=User.objects.all(), required=False)
+    allowed_users_details = UserSimpleSerializer(source='allowed_users', many=True, read_only=True)
+    status_key = serializers.CharField(source='status_definition.key', read_only=True)
+    status_label = serializers.CharField(source='status_definition.label', read_only=True)
+
+    class Meta:
+        model = ProjectStatusPermission
+        fields = ['id', 'project', 'status_definition', 'status_key', 'status_label',
+                  'allowed_users', 'allowed_users_details']
+
+    def update(self, instance, validated_data):
+        allowed_users = validated_data.pop('allowed_users', None)
+        instance = super().update(instance, validated_data)
+        if allowed_users is not None:
+            instance.allowed_users.set(allowed_users)
+        return instance
+
+    def create(self, validated_data):
+        allowed_users = validated_data.pop('allowed_users', [])
+        instance = ProjectStatusPermission.objects.create(**validated_data)
+        if allowed_users:
+            instance.allowed_users.set(allowed_users)
+        return instance
 
 
 class WorkspaceSerializer(serializers.ModelSerializer):
@@ -373,15 +402,21 @@ class TicketSerializer(serializers.ModelSerializer):
                                           f'Allowed from: {", ".join(allowed_sources)}.'
                             })
 
-                    # 2. Check allowed_users — uses prefetched cache
+                    # 2. Check project-level allowed_users (ProjectStatusPermission)
                     # Workspace admins/owners bypass this check
-                    allowed_users_list = list(target_status_def.allowed_users.all())
-                    if allowed_users_list and not any(u.id == user.id for u in allowed_users_list):
-                        ws = self.instance.project.workspace if self.instance.project else None
-                        if not (user.is_superuser or (ws and is_admin_or_owner(user, ws))):
-                            raise serializers.ValidationError({
-                                'status': f'You are not allowed to move tickets to {new_status}.'
-                            })
+                    project = self.instance.project
+                    if project:
+                        perm = ProjectStatusPermission.objects.filter(
+                            project=project, status_definition=target_status_def
+                        ).prefetch_related('allowed_users').first()
+                        if perm:
+                            allowed_users_list = list(perm.allowed_users.all())
+                            if allowed_users_list and not any(u.id == user.id for u in allowed_users_list):
+                                ws = project.workspace
+                                if not (user.is_superuser or (ws and is_admin_or_owner(user, ws))):
+                                    raise serializers.ValidationError({
+                                        'status': f'You are not allowed to move tickets to {new_status}.'
+                                    })
 
                     # 3. If workspace has restrict_status_to_assigned, only assigned user, workspace admin/owner, or project admin can move
                     workspace = self.instance.project.workspace if self.instance.project else None

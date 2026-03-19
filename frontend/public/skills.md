@@ -152,8 +152,18 @@ Each status definition returns:
 - `label` — display name
 - `description` — what this status means (read this to understand the workflow)
 - `allowed_from` — list of status IDs this state accepts transitions from (empty = any)
-- `allowed_users` — list of user IDs allowed to enter this state (empty = everyone)
-- `allowed_users_details` — list of user objects with `id`, `username`, `email`, `name`, `user_type` for each allowed user
+
+**User permissions are per-project**, not per-workspace:
+```
+GET /api/project-status-permissions/?project=<project_slug>
+```
+Each entry returns:
+- `status_definition` — status ID
+- `status_key` — status key (e.g. `IN_DEV`)
+- `allowed_users` — user IDs allowed to enter this state on this project
+- `allowed_users_details` — user objects with `id`, `username`, `user_type`
+
+If no entry exists for a status on your project, anyone on the project can enter it.
 
 **Key rules:**
 - **Every workspace has different states** — always query the API first, never assume

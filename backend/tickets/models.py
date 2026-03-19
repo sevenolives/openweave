@@ -127,7 +127,7 @@ class StatusDefinition(models.Model):
     is_archived = models.BooleanField(default=False, help_text="Archived statuses cannot be used for new transitions")
     position = models.PositiveIntegerField(default=0, help_text="Display order")
     allowed_users = models.ManyToManyField('User', blank=True, related_name='enterable_statuses',
-        help_text='If empty, anyone can enter. If set, only these users can enter.')
+        help_text='Deprecated — use ProjectStatusPermission instead. Kept for backwards compat.')
     allowed_from = models.ManyToManyField('self', symmetrical=False, blank=True, related_name='can_lead_to',
         help_text='If empty, can transition from any state. If set, only these source states are allowed.')
     class Meta:
@@ -137,6 +137,25 @@ class StatusDefinition(models.Model):
 
     def __str__(self):
         return f"{self.label} ({self.key}) — {self.workspace.name}"
+
+
+class ProjectStatusPermission(models.Model):
+    """
+    Project-level override for who can enter a status.
+    If no entry exists for a project+status, anyone on the project can enter.
+    If an entry exists, only the listed users can enter that status on that project.
+    """
+    project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name='status_permissions')
+    status_definition = models.ForeignKey(StatusDefinition, on_delete=models.CASCADE, related_name='project_permissions')
+    allowed_users = models.ManyToManyField('User', blank=True, related_name='project_enterable_statuses',
+        help_text='Users allowed to move tickets into this status on this project. Empty = remove override (anyone can enter).')
+
+    class Meta:
+        db_table = 'project_status_permissions'
+        unique_together = ('project', 'status_definition')
+
+    def __str__(self):
+        return f"{self.project.slug} — {self.status_definition.label}"
 
 
 class StatusTransition(models.Model):
