@@ -93,9 +93,11 @@ class WorkspaceMember(models.Model):
 
 class WorkspaceInvite(models.Model):
     """
-    Invite link for joining a workspace.
+    Invite link for joining a workspace (and optionally a project).
     """
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name='invites')
+    project = models.ForeignKey('Project', on_delete=models.CASCADE, null=True, blank=True, related_name='invites',
+        help_text='If set, joining this invite also adds the user to this project')
     token = models.UUIDField(unique=True, default=uuid.uuid4)
     created_by = models.ForeignKey("User", on_delete=models.CASCADE, related_name='created_invites')
     expires_at = models.DateTimeField(null=True, blank=True)

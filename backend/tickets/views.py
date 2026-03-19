@@ -179,9 +179,15 @@ class JoinView(APIView):
             check_member_limit(invite.workspace)
             WorkspaceMember.objects.create(workspace=invite.workspace, user=request.user)
             sync_seat_count(invite.workspace, operation='add')
+            # Auto-add to project if invite has one
+            if invite.project:
+                ProjectAgent.objects.get_or_create(project=invite.project, agent=request.user, defaults={'role': 'MEMBER'})
             invite.use_count += 1
             invite.save()
-            return Response({'workspace': WorkspaceSerializer(invite.workspace).data}, status=status.HTTP_200_OK)
+            resp_data = {'workspace': WorkspaceSerializer(invite.workspace).data}
+            if invite.project:
+                resp_data['project'] = ProjectSerializer(invite.project).data
+            return Response(resp_data, status=status.HTTP_200_OK)
 
         # Cases 1-3: Creating a new user
         if not username or not name:
@@ -211,6 +217,9 @@ class JoinView(APIView):
             check_member_limit(invite.workspace)
             WorkspaceMember.objects.create(workspace=invite.workspace, user=user)
             sync_seat_count(invite.workspace, operation='add')
+            # Auto-add to project if invite has one
+            if invite.project:
+                ProjectAgent.objects.get_or_create(project=invite.project, agent=user, defaults={'role': 'MEMBER'})
             invite.use_count += 1
             invite.save()
             workspace_data = WorkspaceSerializer(invite.workspace).data

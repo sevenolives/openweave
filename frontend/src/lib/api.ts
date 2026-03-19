@@ -111,6 +111,8 @@ export interface WorkspaceMember {
 export interface WorkspaceInvite {
   id: number;
   workspace: string;
+  project?: string | null;
+  project_name?: string | null;
   token: string;
   created_by: number;
   expires_at: string | null;
@@ -634,7 +636,7 @@ class ApiClient {
     return response.results || [];
   }
 
-  async createInvite(data: { workspace: string; expires_at?: string; max_uses?: number }): Promise<WorkspaceInvite> {
+  async createInvite(data: { workspace: string; project?: string; expires_at?: string; max_uses?: number }): Promise<WorkspaceInvite> {
     return this.request<WorkspaceInvite>('/invites/', {
       method: 'POST',
       body: JSON.stringify(data),

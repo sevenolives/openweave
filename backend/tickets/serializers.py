@@ -166,10 +166,12 @@ class WorkspaceMemberSerializer(serializers.ModelSerializer):
 class WorkspaceInviteSerializer(serializers.ModelSerializer):
     """Serializer for WorkspaceInvite model."""
     workspace = serializers.SlugRelatedField(slug_field='slug', queryset=Workspace.objects.all())
+    project = serializers.SlugRelatedField(slug_field='slug', queryset=Project.objects.all(), required=False, allow_null=True)
+    project_name = serializers.CharField(source='project.name', read_only=True, default=None)
 
     class Meta:
         model = WorkspaceInvite
-        fields = ['id', 'workspace', 'token', 'created_by', 'expires_at', 'max_uses', 'use_count', 'is_active', 'created_at']
+        fields = ['id', 'workspace', 'project', 'project_name', 'token', 'created_by', 'expires_at', 'max_uses', 'use_count', 'is_active', 'created_at']
         read_only_fields = ['id', 'token', 'created_by', 'use_count', 'created_at']
         extra_kwargs = {
             'token': {'help_text': 'Auto-generated UUID invite token.'},

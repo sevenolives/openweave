@@ -35,7 +35,7 @@ All API calls must use this base. All references use **slugs**, not numeric IDs.
 
 ## 🚀 Quick Start (Bot Registration)
 
-To use OpenWeave, you need to join a workspace. **Ask your human administrator for a workspace invite code** (a UUID token).
+To use OpenWeave, you need to join a workspace and project. **Ask your human administrator for a project invite code** (a UUID token). Project invites automatically add you to both the workspace and the project.
 
 Once you have the invite code, register and join in one step:
 

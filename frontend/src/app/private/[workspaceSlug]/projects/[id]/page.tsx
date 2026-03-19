@@ -6,7 +6,7 @@ import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useWorkspace } from '@/hooks/useWorkspace';
-import { api, Project, User, ProjectAgentMembership, Phase, StatusDefinition, ProjectStatusPermission } from '@/lib/api';
+import { api, Project, User, ProjectAgentMembership, Phase, StatusDefinition, ProjectStatusPermission, WorkspaceInvite } from '@/lib/api';
 
 export default function ProjectSettingsPage() {
   const [project, setProject] = useState<Project | null>(null);
@@ -25,6 +25,8 @@ export default function ProjectSettingsPage() {
   const [activeTab, setActiveTab] = useState<'general' | 'members' | 'phases' | 'permissions'>('general');
   const [statuses, setStatuses] = useState<StatusDefinition[]>([]);
   const [statusPerms, setStatusPerms] = useState<ProjectStatusPermission[]>([]);
+  const [projectInvites, setProjectInvites] = useState<WorkspaceInvite[]>([]);
+  const [generatingInvite, setGeneratingInvite] = useState(false);
   const [phases, setPhases] = useState<Phase[]>([]);
   const [newPhaseName, setNewPhaseName] = useState('');
   const [newPhaseDesc, setNewPhaseDesc] = useState('');
@@ -53,9 +55,12 @@ export default function ProjectSettingsPage() {
       ]);
       setHasTickets((ticketResp.count || 0) > 0);
       setProject(p); setProjectAgents(agents); setAgentMemberships(memberships); setPhases(ph); setStatusPerms(perms);
-      // Load workspace statuses
+      // Load workspace statuses and project invites
       if (p.workspace) {
         api.getStatusDefinitions(String(p.workspace)).then(setStatuses).catch(() => {});
+        api.getInvites({ workspace: String(p.workspace) }).then(invites => {
+          setProjectInvites(invites.filter(i => i.project === p.slug && i.is_active));
+        }).catch(() => {});
       }
       setEditName(p.name); setEditSlug(p.slug || ''); setEditDesc(p.description); setEditNotes(p.notes || '');
       if (p.workspace) {
@@ -238,6 +243,42 @@ export default function ProjectSettingsPage() {
                 </button>
               </div>
             )}
+
+            {/* Project Invite Link */}
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <h4 className="text-sm font-semibold text-gray-900 mb-2">🔗 Invite Link</h4>
+              <p className="text-xs text-gray-500 mb-3">Share this link to invite bots or users directly into this project (and workspace).</p>
+              {projectInvites.length > 0 ? (
+                <div className="space-y-2">
+                  {projectInvites.map(inv => (
+                    <div key={inv.id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                      <code className="text-xs text-gray-700 truncate flex-1">{`${window.location.origin}/invite/${inv.token}`}</code>
+                      <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/invite/${inv.token}`); toast('Link copied!'); }}
+                        className="px-3 py-1.5 text-xs font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg flex-shrink-0">Copy</button>
+                      <button onClick={async () => {
+                        try { await api.updateInvite(inv.id, { is_active: false }); setProjectInvites(prev => prev.filter(i => i.id !== inv.id)); toast('Invite revoked'); }
+                        catch (e: any) { toast(e?.message || 'Failed', 'error'); }
+                      }} className="px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 rounded-lg flex-shrink-0">Revoke</button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <button onClick={async () => {
+                  if (!project || !currentWorkspace) return;
+                  setGeneratingInvite(true);
+                  try {
+                    const inv = await api.createInvite({ workspace: currentWorkspace.slug, project: project.slug });
+                    setProjectInvites(prev => [...prev, inv]);
+                    navigator.clipboard.writeText(`${window.location.origin}/invite/${inv.token}`);
+                    toast('Invite link created and copied!');
+                  } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
+                  finally { setGeneratingInvite(false); }
+                }} disabled={generatingInvite}
+                  className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 transition-colors">
+                  {generatingInvite ? 'Generating…' : 'Generate Invite Link'}
+                </button>
+              )}
+            </div>
           </div>}
 
           {/* Phases */}
