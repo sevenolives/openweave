@@ -16,7 +16,8 @@ import '@xyflow/react/dist/style.css';
 import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import FormField, { parseFieldErrors, inputClass } from '@/components/FormField';
-import { api, Workspace, WorkspaceMember, WorkspaceInvite, StatusDefinition, User } from '@/lib/api';
+import { api, Workspace, WorkspaceMember, StatusDefinition, User } from '@/lib/api';
+type WorkspaceInvite = any; // deprecated — kept for type compat
 import { useWorkspace } from '@/hooks/useWorkspace';
 
 const COLORS = ['gray', 'blue', 'red', 'purple', 'amber', 'green', 'yellow', 'indigo', 'pink', 'orange'];
@@ -348,7 +349,7 @@ export default function WorkspaceSettingsPage() {
   const { workspaces, refreshWorkspaces } = useWorkspace();
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
-  const [invites, setInvites] = useState<WorkspaceInvite[]>([]);
+  const [invites] = useState<WorkspaceInvite[]>([]); // deprecated — invites now at project level
   const [loading, setLoading] = useState(true);
   const [editName, setEditName] = useState('');
   const [editSlug, setEditSlug] = useState('');
@@ -364,13 +365,11 @@ export default function WorkspaceSettingsPage() {
 
   const loadData = useCallback(async (ws: Workspace) => {
     try {
-      const [m, i, sd] = await Promise.all([
+      const [m, sd] = await Promise.all([
         api.getWorkspaceMembers({ workspace: ws.slug }),
-        api.getInvites({ workspace: ws.slug }),
         api.getStatusDefinitions(ws.slug, true),
       ]);
       setMembers(m);
-      setInvites(i);
       setStatuses(sd);
       // Extract users from members + owner for the user picker
       const memberUsers = m.map((wm: WorkspaceMember) => wm.user);
@@ -415,35 +414,6 @@ export default function WorkspaceSettingsPage() {
       toast('Member removed');
       if (workspace) loadData(workspace);
     } catch (e: any) { toast(e?.message || 'Failed to remove member', 'error'); }
-  };
-
-  const handleCreateInvite = async () => {
-    if (!workspace) return;
-    try {
-      await api.createInvite({ workspace: workspace.slug });
-      toast('Invite created');
-      loadData(workspace);
-    } catch (e: any) { toast(e?.message || 'Failed to create invite', 'error'); }
-  };
-
-  const handleDeleteInvite = async (id: number) => {
-    try {
-      await api.deleteInvite(id);
-      toast('Invite deleted');
-      if (workspace) loadData(workspace);
-    } catch (e: any) { toast(e?.message || 'Failed to delete invite', 'error'); }
-  };
-
-  const copyInviteLink = (token: string) => {
-    const url = `${window.location.origin}/invite/${token}`;
-    navigator.clipboard.writeText(url);
-    toast('Invite link copied!');
-  };
-
-  const copyInviteCode = (token: string) => {
-    const text = `Read ${window.location.origin}/skills.md and join workspace using invite token ${token}`;
-    navigator.clipboard.writeText(text);
-    toast('Bot instructions copied!');
   };
 
   const handleAddStatus = async () => {
@@ -553,13 +523,7 @@ export default function WorkspaceSettingsPage() {
           </div>
         </div>
 
-        {/* Invite Links — now at project level */}
-        <div className="bg-white border border-gray-200 rounded-xl mb-6">
-          <div className="px-5 py-4">
-            <h2 className="font-semibold text-gray-900 mb-1">Invite Links</h2>
-            <p className="text-sm text-gray-500">Invite links are now managed per-project. Go to a project → 👥 Members tab to create invite links that add users to both the workspace and project.</p>
-          </div>
-        </div>
+        
 
         {/* Danger Zone */}
         <div className="bg-white rounded-xl border border-red-200">
