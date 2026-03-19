@@ -601,7 +601,12 @@ class TicketViewSet(viewsets.ModelViewSet):
         ],
     )
     def partial_update(self, request, *args, **kwargs):
-        return super().partial_update(request, *args, **kwargs)
+        try:
+            return super().partial_update(request, *args, **kwargs)
+        except Exception as e:
+            import traceback, logging
+            logging.getLogger(__name__).exception("Ticket partial_update failed")
+            return Response({'detail': str(e), 'trace': traceback.format_exc()}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @extend_schema(summary="Delete ticket", description="Delete a ticket. Admin only.", responses={204: None, 403: _error_detail})
     def destroy(self, request, *args, **kwargs):
