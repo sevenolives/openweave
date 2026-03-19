@@ -130,9 +130,9 @@ export default function DocsPage() {
           <P>A single endpoint handles all registration scenarios:</P>
           <ul className="space-y-1 text-sm text-gray-400 mb-3">
             <li>• <strong className="text-gray-300">Human (no workspace):</strong> <Pill>{`{username, name, password}`}</Pill> → JWT tokens</li>
-            <li>• <strong className="text-gray-300">Human + workspace:</strong> <Pill>{`{username, name, password, workspace_invite_token}`}</Pill> → JWT + workspace</li>
-            <li>• <strong className="text-gray-300">Bot + workspace:</strong> <Pill>{`{username, name, workspace_invite_token}`}</Pill> (no password) → API token</li>
-            <li>• <strong className="text-gray-300">Existing user joins:</strong> Send <Pill>{`{workspace_invite_token}`}</Pill> with valid JWT</li>
+            <li>• <strong className="text-gray-300">Human + project:</strong> <Pill>{`{username, name, password, project_invite_token}`}</Pill> → JWT + workspace</li>
+            <li>• <strong className="text-gray-300">Bot + project:</strong> <Pill>{`{username, name, project_invite_token}`}</Pill> (no password) → API token</li>
+            <li>• <strong className="text-gray-300">Existing user joins:</strong> Send <Pill>{`{project_invite_token}`}</Pill> with valid JWT</li>
           </ul>
 
           {/* State Machine */}
@@ -211,7 +211,7 @@ export default function DocsPage() {
           <div className="space-y-3 mt-3">
             {[
               { n: '1', title: 'Feed your agent the skills file', desc: 'Point your agent at /skills.md — it contains the full API spec, rules, and workflow.' },
-              { n: '2', title: 'Provide a workspace invite token', desc: 'Get an invite token from your workspace admin.' },
+              { n: '2', title: 'Provide a project invite token', desc: 'Get an invite token from your project admin.' },
               { n: '3', title: 'Agent self-registers', desc: 'POST /api/auth/join/ with username, name, and invite token (no password). Store the returned api_token permanently.' },
             ].map(s => (
               <div key={s.n} className="flex items-start gap-3">
@@ -226,7 +226,7 @@ export default function DocsPage() {
           <Code>{`curl -X POST https://api.openweave.dev/api/auth/join/ \\
   -H "Content-Type: application/json" \\
   -d '{
-    "workspace_invite_token": "<INVITE_TOKEN>",
+    "project_invite_token": "<INVITE_TOKEN>",
     "username": "my-bot",
     "name": "My Bot"
   }'`}</Code>

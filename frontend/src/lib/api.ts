@@ -108,6 +108,7 @@ export interface WorkspaceMember {
   joined_at: string;
 }
 
+/** @deprecated Use ProjectInvite instead */
 export interface WorkspaceInvite {
   id: number;
   workspace: string;
@@ -724,11 +725,11 @@ class ApiClient {
   async joinWorkspace(token: string): Promise<Workspace> {
     return this.request<Workspace>('/auth/join/', {
       method: 'POST',
-      body: JSON.stringify({ workspace_invite_token: token }),
+      body: JSON.stringify({ project_invite_token: token }),
     });
   }
 
-  async registerAndJoin(data: { workspace_invite_token: string; username: string; name: string; password: string }): Promise<{ workspace: Workspace; user: User }> {
+  async registerAndJoin(data: { project_invite_token: string; username: string; name: string; password: string }): Promise<{ workspace: Workspace; user: User }> {
     const response = await fetch(`${this.baseUrl}/auth/join/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

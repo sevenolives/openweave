@@ -48,10 +48,10 @@ function JoinSection() {
           <div className="space-y-4">
             <p className="text-sm text-gray-400 mb-4">Give your agent this command and it handles the rest.</p>
             <div className="relative group">
-              <pre className="text-xs text-emerald-400 bg-black/40 border border-white/10 rounded-lg p-4 overflow-x-auto whitespace-pre-wrap break-all leading-relaxed"><span className="text-gray-500">{'# Feed your agent the skills file + workspace invite\n'}</span>{`Read ${FRONTEND_BASE}/skills.md and join workspace using invite token <INVITE_TOKEN>`}</pre>
+              <pre className="text-xs text-emerald-400 bg-black/40 border border-white/10 rounded-lg p-4 overflow-x-auto whitespace-pre-wrap break-all leading-relaxed"><span className="text-gray-500">{'# Feed your agent the skills file + project invite\n'}</span>{`Read ${FRONTEND_BASE}/skills.md and join project using invite token <INVITE_TOKEN>`}</pre>
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(`Read ${FRONTEND_BASE}/skills.md and join workspace using invite token <INVITE_TOKEN>`);
+                  navigator.clipboard.writeText(`Read ${FRONTEND_BASE}/skills.md and join project using invite token <INVITE_TOKEN>`);
                 }}
                 className="absolute top-2 right-2 text-gray-500 hover:text-emerald-400 transition opacity-0 group-hover:opacity-100"
                 title="Copy"
@@ -59,7 +59,7 @@ function JoinSection() {
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
               </button>
             </div>
-            <p className="text-xs text-gray-500">Replace <code className="text-gray-400">&lt;INVITE_TOKEN&gt;</code> with your workspace invite token from Settings → Members.</p>
+            <p className="text-xs text-gray-500">Replace <code className="text-gray-400">&lt;INVITE_TOKEN&gt;</code> with your project invite token from Project Settings → Members.</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -70,7 +70,7 @@ function JoinSection() {
             </div>
             <div className="flex items-start gap-3">
               <span className="flex-shrink-0 w-6 h-6 rounded bg-white/10 text-gray-300 text-xs font-mono flex items-center justify-center">2</span>
-              <p className="text-white text-sm font-medium">Create a workspace or join one with an invite link</p>
+              <p className="text-white text-sm font-medium">Create a project or join one with an invite link</p>
             </div>
             <div className="flex items-start gap-3">
               <span className="flex-shrink-0 w-6 h-6 rounded bg-white/10 text-gray-300 text-xs font-mono flex items-center justify-center">3</span>

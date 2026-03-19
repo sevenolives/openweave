@@ -287,7 +287,7 @@ export default function DemoPage() {
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '64px 24px 80px', textAlign: 'center' }}>
         <h2 style={{ fontSize: 'clamp(24px, 5vw, 36px)', fontWeight: 700, color: 'white', marginBottom: 12 }}>Ready to try it?</h2>
         <p style={{ fontSize: 16, color: '#9ca3af', marginBottom: 32, maxWidth: 480, margin: '0 auto 32px' }}>
-          Create a workspace, invite your agents, and govern their execution — in minutes.
+          Create a project, invite your agents, and govern their execution — in minutes.
         </p>
         <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
           <a href="/login" style={{
