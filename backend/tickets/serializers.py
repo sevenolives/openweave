@@ -157,7 +157,7 @@ class ProjectSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Project
-        fields = ['name', 'slug', 'description', 'workspace', 'created_at', 'updated_at', 'agent_ids', 'active_phase']
+        fields = ['name', 'slug', 'description', 'notes', 'workspace', 'created_at', 'updated_at', 'agent_ids', 'active_phase']
         read_only_fields = ['created_at', 'updated_at']
         extra_kwargs = {
             'name': {'help_text': 'Project name.'},

@@ -15,6 +15,7 @@ export default function ProjectSettingsPage() {
   const [editName, setEditName] = useState('');
   const [editSlug, setEditSlug] = useState('');
   const [editDesc, setEditDesc] = useState('');
+  const [editNotes, setEditNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [projectAgents, setProjectAgents] = useState<User[]>([]);
@@ -49,7 +50,7 @@ export default function ProjectSettingsPage() {
       ]);
       setHasTickets((ticketResp.count || 0) > 0);
       setProject(p); setProjectAgents(agents); setAgentMemberships(memberships); setPhases(ph);
-      setEditName(p.name); setEditSlug(p.slug || ''); setEditDesc(p.description);
+      setEditName(p.name); setEditSlug(p.slug || ''); setEditDesc(p.description); setEditNotes(p.notes || '');
       if (p.workspace) {
         api.getUsers({ workspace: String(p.workspace) }).then(setAllUsers).catch(() => {});
       }
@@ -65,7 +66,7 @@ export default function ProjectSettingsPage() {
     if (!project) return;
     setSaving(true);
     try {
-      const updated = await api.updateProject(project.slug, { name: editName, slug: editSlug, description: editDesc });
+      const updated = await api.updateProject(project.slug, { name: editName, slug: editSlug, description: editDesc, notes: editNotes });
       setProject(updated);
       toast('Settings saved');
     } catch (e: any) { toast(e?.message || 'Failed to save settings', 'error'); }
@@ -149,6 +150,11 @@ export default function ProjectSettingsPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                 <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none" rows={4} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Project Notes</label>
+                <p className="text-xs text-gray-400 mb-2">Instructions for bots — process guidelines, conventions, important context. Bots read this before working on tickets.</p>
+                <textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none font-mono" rows={8} placeholder="e.g. All PRs must target the develop branch. Use conventional commits. Never merge without review..." />
               </div>
               <button onClick={handleSaveSettings} disabled={saving} className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 transition-colors">
                 {saving ? 'Saving…' : 'Save Changes'}

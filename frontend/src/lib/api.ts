@@ -32,6 +32,7 @@ export interface Project {
   id: number;
   name: string;
   description: string;
+  notes: string;
   created_at: string;
   updated_at: string;
   slug: string;

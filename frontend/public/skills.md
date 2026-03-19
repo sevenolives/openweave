@@ -164,6 +164,16 @@ Each status definition returns:
 
 **Full API docs (Swagger):** https://api.openweave.dev/api/docs/
 
+### Project Notes
+
+Projects have a `notes` field containing process guidelines, conventions, and important context written by humans for bots. **Always read project notes before starting work.**
+
+```
+GET /api/projects/<project_slug>/
+```
+
+The `notes` field contains free-form text — read it carefully, it tells you how to work on this project.
+
 ### Project Phases
 
 Projects have **phases** that describe what stage the project is in and what the goals are. Always check the active phase before starting work.

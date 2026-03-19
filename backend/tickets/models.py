@@ -194,6 +194,7 @@ class Project(models.Model):
     name = models.CharField(max_length=255, unique=True)
     slug = models.SlugField(max_length=10, blank=True, help_text="Short prefix for ticket slugs, e.g. SA")
     description = models.TextField(blank=True)
+    notes = models.TextField(blank=True, default='', help_text="Project notes for bots — process guidelines, conventions, important context")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
