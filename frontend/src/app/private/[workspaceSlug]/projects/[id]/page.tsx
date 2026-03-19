@@ -273,7 +273,8 @@ export default function ProjectSettingsPage() {
                           <span className="text-sm font-medium text-gray-400">#{idx + 1}</span>
                           <h4 className="font-semibold text-gray-900">{phase.name}</h4>
                           {phase.is_active && <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-full">ACTIVE</span>}
-                          {phase.completed_at && <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded-full">DONE</span>}
+                          {!phase.is_active && phase.completed_at && <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded-full">DONE</span>}
+                          {!phase.is_active && !phase.completed_at && <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-bold rounded-full">UPCOMING</span>}
                         </div>
                         <div className="flex items-center gap-1">
                           {!phase.is_active && !phase.completed_at && (

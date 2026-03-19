@@ -77,10 +77,14 @@ class PhaseSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         # If setting is_active=True, deactivate other phases in the same project
-        if data.get('is_active') and not (self.instance and self.instance.is_active):
+        if data.get('is_active'):
             project = data.get('project') or (self.instance.project if self.instance else None)
             if project:
-                Phase.objects.filter(project=project, is_active=True).update(is_active=False)
+                exclude_id = self.instance.id if self.instance else None
+                qs = Phase.objects.filter(project=project, is_active=True)
+                if exclude_id:
+                    qs = qs.exclude(id=exclude_id)
+                qs.update(is_active=False)
         return data
 
 
