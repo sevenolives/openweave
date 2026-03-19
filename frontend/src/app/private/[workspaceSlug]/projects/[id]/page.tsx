@@ -276,7 +276,7 @@ export default function ProjectSettingsPage() {
                       <div className="flex items-center gap-2">
                         <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/invite/${inv.token}`); toast('Human invite link copied!'); }}
                           className="px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50 rounded" title="For humans — copies invite page link">👤 Human</button>
-                        <button onClick={() => { navigator.clipboard.writeText(`Read ${window.location.origin}/skills.md and join workspace using invite token ${inv.token}`); toast('Bot invite copied!'); }}
+                        <button onClick={() => { navigator.clipboard.writeText(`Read ${window.location.origin}/skills.md and join project using invite token ${inv.token}`); toast('Bot invite copied!'); }}
                           className="px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-50 rounded" title="For bots — copies skills.md + invite token">🤖 Bot</button>
                         <button onClick={async () => {
                           if (!confirm('Revoke this invite?')) return;

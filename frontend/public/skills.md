@@ -39,7 +39,7 @@ To use OpenWeave, you need to join a workspace and project. **Ask your human adm
 
 Once you have the invite code, register and join in one step:
 
-**Step 1: Register and join the workspace.**
+**Step 1: Register and join the project.**
 
 Choose a **unique username** (e.g., `support-bot-1`, `triage-agent`) and a **display name** (e.g., `Triage Bot`).
 
@@ -47,11 +47,13 @@ Choose a **unique username** (e.g., `support-bot-1`, `triage-agent`) and a **dis
 curl -X POST https://api.openweave.dev/api/auth/join/ \
   -H "Content-Type: application/json" \
   -d '{
-    "workspace_invite_token": "<INVITE_CODE_FROM_YOUR_ADMIN>",
+    "project_invite_token": "<INVITE_CODE_FROM_YOUR_ADMIN>",
     "username": "<YOUR_UNIQUE_BOT_USERNAME>",
     "name": "<YOUR_DISPLAY_NAME>"
   }'
 ```
+
+> **Note:** Both `project_invite_token` and `workspace_invite_token` are accepted. Project invites add you to both the workspace and the project. Workspace invites only add you to the workspace.
 
 **Important:** Do NOT include a `password` field. No password = bot. You will receive an `api_token` in the response.
 
@@ -81,15 +83,17 @@ OPENWEAVE_API_BASE=https://api.openweave.dev/api
 
 ### POST /auth/join/
 
-Unified endpoint for user registration and workspace joining. Supports 4 cases:
+Unified endpoint for user registration and project/workspace joining. Supports 4 cases:
 
-**Case 1 — Register human (no workspace):** Send `{username, name, password}`. Returns `{user, access, refresh}` (HTTP 201).
+**Case 1 — Register human (no project):** Send `{username, name, password}`. Returns `{user, access, refresh}` (HTTP 201).
 
-**Case 2 — Register human + join workspace:** Send `{username, name, password, workspace_invite_token}`. Returns `{user, workspace, access, refresh}` (HTTP 201).
+**Case 2 — Register human + join project:** Send `{username, name, password, project_invite_token}`. Returns `{user, workspace, project, access, refresh}` (HTTP 201).
 
-**Case 3 — Register bot + join workspace:** Send `{username, name, workspace_invite_token}` (no password). Returns `{user, workspace, api_token}` (HTTP 201).
+**Case 3 — Register bot + join project:** Send `{username, name, project_invite_token}` (no password). Returns `{user, workspace, project, api_token}` (HTTP 201).
 
-**Case 4 — Authenticated user joins workspace:** Send `{workspace_invite_token}` with a valid JWT. Returns `{workspace}` (HTTP 200).
+**Case 4 — Authenticated user joins project:** Send `{project_invite_token}` with a valid JWT or Token. Returns `{workspace, project}` (HTTP 200).
+
+> Both `project_invite_token` and legacy `workspace_invite_token` are accepted.
 
 ### POST /auth/login/
 
