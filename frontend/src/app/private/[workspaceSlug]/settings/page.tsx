@@ -110,16 +110,15 @@ function StateMachineSettings({
     activeStatuses.forEach((target) => {
       if (target.allowed_from && target.allowed_from.length > 0) {
         target.allowed_from.filter(id => activeIds.has(id)).forEach((srcId) => {
-          const hasRestriction = target.allowed_users && target.allowed_users.length > 0;
-          const color = hasRestriction ? '#f59e0b' : '#6b7280';
+          const color = '#6b7280';
           edges.push({
             id: `e-${srcId}-${target.id}`,
             source: String(srcId),
             target: String(target.id),
             animated: false,
-            style: { stroke: color, strokeWidth: 2, strokeDasharray: hasRestriction ? '5,5' : 'none' },
+            style: { stroke: color, strokeWidth: 2 },
             markerEnd: { type: MarkerType.ArrowClosed, color, width: 14, height: 14 },
-            label: hasRestriction ? 'restricted' : '',
+            label: '',
             labelStyle: { fontSize: 9, fontWeight: 700, fill: color },
             labelBgStyle: { fill: 'white', fillOpacity: 0.9 },
           });
@@ -248,64 +247,10 @@ function StateMachineSettings({
 
           {/* Gate controls */}
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
-            {/* Who can enter */}
+            {/* Who can enter — now project-level */}
             <div>
               <label style={labelStyle}>Who can enter</label>
-              {(() => {
-                const isSpecific = (s.allowed_users && s.allowed_users.length > 0) || specificUserMode.has(s.id);
-                return (<>
-                  <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                    <button onClick={() => {
-                      updateAndSave(s.id, { allowed_users: [] });
-                      setSpecificUserMode(prev => { const next = new Set(prev); next.delete(s.id); return next; });
-                    }}
-                      style={{
-                        ...selectStyle, width: 'auto', padding: '8px 14px', cursor: 'pointer', textAlign: 'center' as const,
-                        background: !isSpecific ? 'rgba(79,70,229,0.15)' : 'rgba(24,24,27,0.8)',
-                        borderColor: !isSpecific ? '#6366f1' : '#3f3f46',
-                        fontWeight: !isSpecific ? 600 : 400,
-                      }}>Everyone</button>
-                    <button onClick={() => setSpecificUserMode(prev => new Set(prev).add(s.id))}
-                      style={{
-                        ...selectStyle, width: 'auto', padding: '8px 14px', cursor: 'pointer', textAlign: 'center' as const,
-                        background: isSpecific ? 'rgba(79,70,229,0.15)' : 'rgba(24,24,27,0.8)',
-                        borderColor: isSpecific ? '#6366f1' : '#3f3f46',
-                        fontWeight: isSpecific ? 600 : 400,
-                      }}>Specific users</button>
-                  </div>
-                  {/* Selected user chips + picker — only in specific mode */}
-                  {isSpecific && (<>
-                    {s.allowed_users && s.allowed_users.length > 0 && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-                        {s.allowed_users.map(uid => {
-                          const u = workspaceMembers.find(m => m.id === uid) || s.allowed_users_details?.find((d: User) => d.id === uid);
-                          return (
-                            <span key={uid} style={{
-                              fontSize: 12, padding: '4px 10px', borderRadius: 8, display: 'inline-flex', alignItems: 'center', gap: 6,
-                              background: 'rgba(99,102,241,0.15)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.3)',
-                            }}>
-                              {u ? `${(u as User).username || (u as User).name} (${(u as User).user_type === 'BOT' ? '🤖' : '👤'})` : `User #${uid}`}
-                              <button onClick={() => updateAndSave(s.id, { allowed_users: s.allowed_users.filter((id: number) => id !== uid) })}
-                                style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1 }}>×</button>
-                            </span>
-                          );
-                        })}
-                      </div>
-                    )}
-                    <select value="" onChange={(e) => {
-                      const uid = Number(e.target.value);
-                      if (uid && !(s.allowed_users || []).includes(uid)) {
-                        updateAndSave(s.id, { allowed_users: [...(s.allowed_users || []), uid] });
-                      }
-                    }} style={selectStyle}>
-                      <option value="">+ Add user…</option>
-                      {workspaceMembers.filter(m => !(s.allowed_users || []).includes(m.id)).map(m => (
-                        <option key={m.id} value={m.id}>{m.username} ({m.user_type})</option>
-                      ))}
-                    </select>
-                  </>)}
-                </>);
-              })()}
+              <p style={{ fontSize: 12, color: '#6b7280', margin: 0 }}>User permissions are set per-project in Project Settings → Phases tab</p>
             </div>
 
             {/* Allowed from */}
