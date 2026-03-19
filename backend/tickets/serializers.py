@@ -509,8 +509,6 @@ class TicketSerializer(serializers.ModelSerializer):
                     workspace = self.instance.project.workspace if self.instance.project else None
                     if workspace and workspace.restrict_status_to_assigned:
                         if self.instance.assigned_to_id and self.instance.assigned_to_id != user.id:
-                            from tickets.views import is_admin_or_owner
-                            from tickets.models import ProjectAgent
                             is_ws_admin = is_admin_or_owner(user, workspace)
                             is_proj_admin = self.instance.project and ProjectAgent.objects.filter(
                                 project=self.instance.project, user=user, role='ADMIN'
