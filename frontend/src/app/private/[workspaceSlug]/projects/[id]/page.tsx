@@ -58,8 +58,8 @@ export default function ProjectSettingsPage() {
       // Load workspace statuses and project invites
       if (p.workspace) {
         api.getStatusDefinitions(String(p.workspace)).then(setStatuses).catch(() => {});
-        api.getInvites({ workspace: String(p.workspace) }).then(invites => {
-          setProjectInvites(invites.filter(i => i.project === p.slug && i.is_active));
+        api.getInvites({ project: p.slug }).then(invites => {
+          setProjectInvites(invites.filter(i => i.is_active));
         }).catch(() => {});
       }
       setEditName(p.name); setEditSlug(p.slug || ''); setEditDesc(p.description); setEditNotes(p.notes || '');

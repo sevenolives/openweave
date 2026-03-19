@@ -553,27 +553,11 @@ export default function WorkspaceSettingsPage() {
           </div>
         </div>
 
-        {/* Invite Links */}
+        {/* Invite Links — now at project level */}
         <div className="bg-white border border-gray-200 rounded-xl mb-6">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Invite Links</h2>
-            <button onClick={handleCreateInvite} className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700">New Invite</button>
-          </div>
-          <div className="divide-y divide-gray-50">
-            {invites.map(inv => (
-              <div key={inv.id} className="px-5 py-3 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-mono text-gray-700">{inv.token.slice(0, 8)}...</p>
-                  <p className="text-xs text-gray-500">Uses: {inv.use_count}{inv.max_uses ? `/${inv.max_uses}` : ''} · {inv.is_active ? 'Active' : 'Inactive'}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => copyInviteLink(inv.token)} className="px-2 py-1 text-xs text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded" title="For humans — copies invite page link">👤 Human</button>
-                  <button onClick={() => copyInviteCode(inv.token)} className="px-2 py-1 text-xs text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded" title="For bots — copies skills.md + invite token">🤖 Bot</button>
-                  <button onClick={() => { if (confirm('Delete this invite?')) handleDeleteInvite(inv.id); }} className="px-2 py-1 text-xs text-red-500 hover:text-red-700 hover:bg-red-50 rounded min-w-[44px] min-h-[44px] flex items-center justify-center" title="Delete invite">🗑️</button>
-                </div>
-              </div>
-            ))}
-            {invites.length === 0 && <p className="px-5 py-4 text-sm text-gray-400">No invite links yet.</p>}
+          <div className="px-5 py-4">
+            <h2 className="font-semibold text-gray-900 mb-1">Invite Links</h2>
+            <p className="text-sm text-gray-500">Invite links are now managed per-project. Go to a project → 👥 Members tab to create invite links that add users to both the workspace and project.</p>
           </div>
         </div>
 

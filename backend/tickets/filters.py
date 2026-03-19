@@ -327,12 +327,18 @@ class WorkspaceMemberFilter(django_filters.FilterSet):
 class WorkspaceInviteFilter(django_filters.FilterSet):
     """FilterSet for WorkspaceInvite model."""
     workspace = django_filters.CharFilter(method='filter_by_workspace', label='Workspace slug')
+    project = django_filters.CharFilter(method='filter_by_project', label='Project slug')
 
     class Meta:
         model = WorkspaceInvite
-        fields = ['workspace']
+        fields = ['workspace', 'project']
 
     def filter_by_workspace(self, queryset, name, value):
         if value:
             return queryset.filter(_workspace_q(value))
+        return queryset
+
+    def filter_by_project(self, queryset, name, value):
+        if value:
+            return queryset.filter(project__slug__iexact=value)
         return queryset
