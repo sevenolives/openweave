@@ -278,18 +278,17 @@ export default function ProjectSettingsPage() {
                           <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${badgeColors[phase.status] || badgeColors.UPCOMING}`}>{phase.status}</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          {/* Status dropdown */}
-                          <select value={phase.status} onChange={async (e) => {
-                            try {
-                              await api.updatePhase(phase.id, { status: e.target.value as Phase['status'] });
-                              const ph = await api.getPhases(projectSlug); setPhases(ph);
-                              toast(`Phase ${e.target.value.toLowerCase()}`);
-                            } catch (err: any) { toast(err?.message || 'Failed', 'error'); }
-                          }} className="px-3 py-1.5 text-xs font-medium border border-gray-200 rounded-lg bg-white">
-                            <option value="UPCOMING">Upcoming</option>
-                            <option value="ACTIVE">Active</option>
-                            <option value="COMPLETED">Completed</option>
-                          </select>
+                          {phase.status !== 'ACTIVE' && (
+                            <button onClick={async () => {
+                              try {
+                                await api.updatePhase(phase.id, { status: 'ACTIVE' });
+                                const ph = await api.getPhases(projectSlug); setPhases(ph);
+                                toast('Phase activated');
+                              } catch (err: any) { toast(err?.message || 'Failed', 'error'); }
+                            }} className="px-3 py-1.5 text-xs font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg">
+                              Set Active
+                            </button>
+                          )}
                           <button onClick={() => { setEditingPhase(phase.id); setEditPhaseName(phase.name || ''); setEditPhaseDesc(phase.description || ''); }}
                             className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>

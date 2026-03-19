@@ -76,22 +76,18 @@ class PhaseSerializer(serializers.ModelSerializer):
                   'started_at', 'completed_at', 'created_at', 'updated_at']
         read_only_fields = ['created_at', 'updated_at']
 
-    def validate_status(self, value):
-        if value == 'ACTIVE' and self.instance:
-            # Auto-set started_at when activating
-            if not self.instance.started_at:
-                self.instance.started_at = timezone.now()
-        if value == 'COMPLETED' and self.instance:
-            if not self.instance.completed_at:
-                self.instance.completed_at = timezone.now()
-        return value
-
     def update(self, instance, validated_data):
         new_status = validated_data.get('status')
         if new_status == 'ACTIVE':
             if not validated_data.get('started_at') and not instance.started_at:
                 validated_data['started_at'] = timezone.now()
-            # Set FK on project
+            # Complete the old active phase
+            old_active = instance.project.current_phase
+            if old_active and old_active.id != instance.id:
+                old_active.status = 'COMPLETED'
+                if not old_active.completed_at:
+                    old_active.completed_at = timezone.now()
+                old_active.save(update_fields=['status', 'completed_at'])
             instance = super().update(instance, validated_data)
             instance.project.current_phase = instance
             instance.project.save(update_fields=['current_phase'])
@@ -100,7 +96,6 @@ class PhaseSerializer(serializers.ModelSerializer):
             if not validated_data.get('completed_at') and not instance.completed_at:
                 validated_data['completed_at'] = timezone.now()
             instance = super().update(instance, validated_data)
-            # If this was the current phase, clear it
             if instance.project.current_phase_id == instance.id:
                 instance.project.current_phase = None
                 instance.project.save(update_fields=['current_phase'])
