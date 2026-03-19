@@ -50,7 +50,7 @@ export interface Ticket {
   status: 'OPEN' | 'IN_PROGRESS' | 'BLOCKED' | 'IN_TESTING' | 'REVIEW' | 'COMPLETED' | 'CANCELLED';
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   ticket_type: 'BUG' | 'FEATURE';
-  assigned_to: number | null;
+  assigned_to: string | number | null;
   assigned_to_details: User | null;
   created_by: number;
   created_by_details: User;
@@ -153,7 +153,7 @@ export interface ProjectStatusPermission {
   status_definition: string; // status key (e.g. IN_DEV)
   status_key: string;
   status_label: string;
-  allowed_users: number[];
+  allowed_users: string[]; // usernames
   allowed_users_details: User[];
 }
 
@@ -181,8 +181,8 @@ export interface StatusDefinition {
   is_archived: boolean;
   position: number;
   in_use?: boolean; // deprecated — removed from API
-  allowed_from: number[];
-  allowed_users: number[];
+  allowed_from: string[]; // status keys
+  allowed_users: number[]; // deprecated — use project-level permissions
   allowed_users_details: User[];
 }
 
@@ -421,7 +421,7 @@ class ApiClient {
     return response.results || [];
   }
 
-  async createProjectStatusPermission(data: { project: string; status_definition: string; allowed_users: number[] }): Promise<ProjectStatusPermission> {
+  async createProjectStatusPermission(data: { project: string; status_definition: string; allowed_users: string[] }): Promise<ProjectStatusPermission> {
     return this.request<ProjectStatusPermission>('/project-status-permissions/', { method: 'POST', body: JSON.stringify(data) });
   }
 

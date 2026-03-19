@@ -100,7 +100,7 @@ export default function TicketDetailPage() {
       const updated = await api.updateTicket(ticket.ticket_slug, {
         title: editTitle, description: editDesc,
         status: editStatus as Ticket['status'], priority: editPriority as Ticket['priority'], ticket_type: editTicketType as Ticket['ticket_type'],
-        assigned_to: editAssigned ? parseInt(editAssigned) : null,
+        assigned_to: editAssigned || null,
       });
       setTicket(updated); setEditing(false);
       setFieldErrors({});
@@ -178,7 +178,7 @@ export default function TicketDetailPage() {
                     <FormField label="Assigned To" error={fieldErrors.assigned_to}>
                       <select value={editAssigned} onChange={e => setEditAssigned(e.target.value)} className={selectClass(fieldErrors.assigned_to)}>
                         <option value="">Unassigned</option>
-                        {projectAgents.map(a => <option key={a.id} value={String(a.id)}>{a.username} ({a.user_type})</option>)}
+                        {projectAgents.map(a => <option key={a.id} value={a.username}>{a.username} ({a.user_type})</option>)}
                       </select>
                     </FormField>
                     <div className="flex gap-3 pt-2">
@@ -457,7 +457,7 @@ export default function TicketDetailPage() {
                   onChange={async (e) => {
                     const val = e.target.value;
                     try {
-                      const updated = await api.updateTicket(ticket.ticket_slug, { assigned_to: val ? parseInt(val) : null });
+                      const updated = await api.updateTicket(ticket.ticket_slug, { assigned_to: val || null });
                       setTicket(updated);
                       toast('Assignment updated');
                     } catch (e: any) { toast(e?.message || 'Failed to assign', 'error'); }
@@ -465,7 +465,7 @@ export default function TicketDetailPage() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="">Unassigned</option>
-                  {projectAgents.map(a => <option key={a.id} value={String(a.id)}>{a.username} ({a.user_type})</option>)}
+                  {projectAgents.map(a => <option key={a.id} value={a.username}>{a.username} ({a.user_type})</option>)}
                 </select>
               </div>
             </div>

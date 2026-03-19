@@ -432,7 +432,7 @@ export default function ProjectSettingsPage() {
                             {u.user_type === 'BOT' ? '🤖' : '👤'} {u.username}
                             <button onClick={async () => {
                               try {
-                                const newUsers = perm!.allowed_users.filter(uid => uid !== u.id);
+                                const newUsers = perm!.allowed_users.filter(uid => uid !== u.username);
                                 if (newUsers.length === 0) {
                                   await api.deleteProjectStatusPermission(perm!.id);
                                 } else {
@@ -448,20 +448,20 @@ export default function ProjectSettingsPage() {
 
                     {/* Add user */}
                     <select value="" onChange={async (e) => {
-                      const uid = Number(e.target.value);
-                      if (!uid) return;
+                      const username = e.target.value;
+                      if (!username) return;
                       try {
                         if (perm) {
-                          await api.updateProjectStatusPermission(perm.id, { allowed_users: [...perm.allowed_users, uid] });
+                          await api.updateProjectStatusPermission(perm.id, { allowed_users: [...perm.allowed_users, username] });
                         } else {
-                          await api.createProjectStatusPermission({ project: projectSlug, status_definition: s.key, allowed_users: [uid] });
+                          await api.createProjectStatusPermission({ project: projectSlug, status_definition: s.key, allowed_users: [username] });
                         }
                         setStatusPerms(await api.getProjectStatusPermissions(projectSlug));
                       } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
                     }} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
                       <option value="">+ Restrict to user…</option>
-                      {projectAgents.filter(a => !perm?.allowed_users.includes(a.id)).map(a => (
-                        <option key={a.id} value={a.id}>{a.username} ({a.user_type === 'BOT' ? '🤖' : '👤'})</option>
+                      {projectAgents.filter(a => !perm?.allowed_users.includes(a.username)).map(a => (
+                        <option key={a.id} value={a.username}>{a.username} ({a.user_type === 'BOT' ? '🤖' : '👤'})</option>
                       ))}
                     </select>
                   </div>

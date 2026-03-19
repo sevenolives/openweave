@@ -133,11 +133,34 @@ class StatusDefinitionKeyField(serializers.Field):
         raise serializers.ValidationError(f'Status "{data}" not found.')
 
 
+class UserListSlugField(serializers.Field):
+    """Accept list of usernames or numeric IDs, resolve to User queryset."""
+    def to_representation(self, value):
+        return [u.username for u in value.all()]
+
+    def to_internal_value(self, data):
+        if not isinstance(data, list):
+            raise serializers.ValidationError('Expected a list.')
+        users = []
+        for item in data:
+            if isinstance(item, int) or (isinstance(item, str) and item.isdigit()):
+                try:
+                    users.append(User.objects.get(pk=int(item)))
+                except User.DoesNotExist:
+                    raise serializers.ValidationError(f'User {item} not found.')
+            else:
+                try:
+                    users.append(User.objects.get(username=item))
+                except User.DoesNotExist:
+                    raise serializers.ValidationError(f'User "{item}" not found.')
+        return users
+
+
 class ProjectStatusPermissionSerializer(serializers.ModelSerializer):
     """Project-level status permission overrides."""
     project = serializers.SlugRelatedField(slug_field='slug', queryset=Project.objects.all())
     status_definition = StatusDefinitionKeyField()
-    allowed_users = serializers.PrimaryKeyRelatedField(many=True, queryset=User.objects.all(), required=False)
+    allowed_users = UserListSlugField(required=False)
     allowed_users_details = UserSimpleSerializer(source='allowed_users', many=True, read_only=True)
     status_key = serializers.CharField(source='status_definition.key', read_only=True)
     status_label = serializers.CharField(source='status_definition.label', read_only=True)
@@ -332,6 +355,25 @@ class TicketAttachmentSerializer(serializers.ModelSerializer):
         return obj.file.url if obj.file else None
 
 
+class UserSlugField(serializers.Field):
+    """Accept username or numeric ID, resolve to User."""
+    def to_representation(self, value):
+        return value.username if value else None
+
+    def to_internal_value(self, data):
+        if data is None or data == '':
+            return None
+        if isinstance(data, int) or (isinstance(data, str) and data.isdigit()):
+            try:
+                return User.objects.get(pk=int(data))
+            except User.DoesNotExist:
+                raise serializers.ValidationError(f'User {data} not found.')
+        try:
+            return User.objects.get(username=data)
+        except User.DoesNotExist:
+            raise serializers.ValidationError(f'User "{data}" not found.')
+
+
 class TicketSerializer(serializers.ModelSerializer):
     """Serializer for Ticket model."""
     project = serializers.SlugRelatedField(
@@ -339,6 +381,7 @@ class TicketSerializer(serializers.ModelSerializer):
         queryset=Project.objects.all(),
         help_text='Project slug (e.g. "OW").',
     )
+    assigned_to = UserSlugField(required=False, allow_null=True)
     assigned_to_details = UserSimpleSerializer(source='assigned_to', read_only=True)
     created_by_details = UserSimpleSerializer(source='created_by', read_only=True)
     project_name = serializers.CharField(source='project.name', read_only=True, help_text="Name of the project.")
@@ -357,9 +400,8 @@ class TicketSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'title': {'help_text': 'Ticket title.'},
             'description': {'help_text': 'Detailed description of the issue.'},
-            'status': {'help_text': 'OPEN, IN_PROGRESS, BLOCKED, IN_TESTING, REVIEW, COMPLETED, or CANCELLED.'},
+            'status': {'help_text': 'Status key, e.g. OPEN, IN_DEV, QA_PASS.'},
             'priority': {'help_text': 'LOW, MEDIUM, HIGH, or CRITICAL.'},
-            'assigned_to': {'help_text': 'User ID of the assignee (must be a project member).'},
             'created_by': {'help_text': 'Auto-set to the authenticated user.'},
         }
 
@@ -542,14 +584,51 @@ class AuditLogSerializer(serializers.ModelSerializer):
             'new_value': {'help_text': 'New values (JSON object).'},
         }
 
+class AllowedFromKeyField(serializers.Field):
+    """Accept and return status keys for allowed_from M2M."""
+    def to_representation(self, value):
+        return [sd.key for sd in value.all()]
+
+    def to_internal_value(self, data):
+        if not isinstance(data, list):
+            raise serializers.ValidationError('Expected a list of status keys.')
+        # Resolve keys to StatusDefinition objects — need workspace context
+        request = self.context.get('request')
+        instance = self.parent.instance if self.parent else None
+        workspace = None
+        if instance:
+            workspace = instance.workspace
+        elif request and request.data.get('workspace'):
+            ws_slug = request.data['workspace']
+            try:
+                workspace = Workspace.objects.get(slug=ws_slug)
+            except Workspace.DoesNotExist:
+                pass
+        results = []
+        for item in data:
+            if isinstance(item, int):
+                # Backwards compat: accept numeric IDs
+                try:
+                    results.append(StatusDefinition.objects.get(pk=item))
+                except StatusDefinition.DoesNotExist:
+                    raise serializers.ValidationError(f'Status ID {item} not found.')
+            elif workspace:
+                try:
+                    results.append(StatusDefinition.objects.get(workspace=workspace, key=item))
+                except StatusDefinition.DoesNotExist:
+                    raise serializers.ValidationError(f'Status "{item}" not found in workspace.')
+            else:
+                raise serializers.ValidationError(f'Cannot resolve status "{item}" without workspace context.')
+        return results
+
+
 class StatusDefinitionSerializer(serializers.ModelSerializer):
     """Serializer for StatusDefinition — workspace-level status config."""
     workspace = serializers.SlugRelatedField(slug_field='slug', queryset=Workspace.objects.all())
-    allowed_from = serializers.PrimaryKeyRelatedField(
-        many=True, queryset=StatusDefinition.objects.all(), required=False,
-    )
+    allowed_from = AllowedFromKeyField(required=False)
     allowed_users = serializers.PrimaryKeyRelatedField(
         many=True, queryset=User.objects.all(), required=False,
+        help_text='Deprecated — use project-level permissions instead.',
     )
     allowed_users_details = UserSimpleSerializer(source='allowed_users', many=True, read_only=True)
     class Meta:

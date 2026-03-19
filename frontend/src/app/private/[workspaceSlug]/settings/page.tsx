@@ -68,22 +68,22 @@ function StateMachineSettings({
     const g = new dagre.graphlib.Graph();
     g.setGraph({ rankdir: 'TB', nodesep: 50, ranksep: 70 });
     g.setDefaultEdgeLabel(() => ({}));
-    activeStatuses.forEach((s) => g.setNode(String(s.id), { width: 140, height: 40 }));
-    // Build edges from allowed_from relationships
-    const activeIds = new Set(activeStatuses.map(s => s.id));
+    activeStatuses.forEach((s) => g.setNode(s.key, { width: 140, height: 40 }));
+    // Build edges from allowed_from relationships (keys now)
+    const activeKeys = new Set(activeStatuses.map(s => s.key));
     activeStatuses.forEach((target) => {
       if (target.allowed_from && target.allowed_from.length > 0) {
-        target.allowed_from.filter(id => activeIds.has(id)).forEach((srcId) => {
-          g.setEdge(String(srcId), String(target.id));
+        target.allowed_from.filter((k: string) => activeKeys.has(k)).forEach((srcKey: string) => {
+          g.setEdge(srcKey, target.key);
         });
       }
     });
     dagre.layout(g);
     return activeStatuses.map((s) => {
-      const nd = g.node(String(s.id));
+      const nd = g.node(s.key);
       const color = COLOR_HEX[s.color] || '#9ca3af';
       return {
-        id: String(s.id),
+        id: s.key,
         position: { x: (nd?.x ?? 0) - 70, y: (nd?.y ?? 0) - 20 },
         data: { label: s.label },
         type: 'default',
@@ -107,15 +107,15 @@ function StateMachineSettings({
 
   const buildEdges = useMemo(() => {
     const edges: Edge[] = [];
-    const activeIds = new Set(activeStatuses.map(s => s.id));
+    const activeKeys2 = new Set(activeStatuses.map(s => s.key));
     activeStatuses.forEach((target) => {
       if (target.allowed_from && target.allowed_from.length > 0) {
-        target.allowed_from.filter(id => activeIds.has(id)).forEach((srcId) => {
+        target.allowed_from.filter((k: string) => activeKeys2.has(k)).forEach((srcKey: string) => {
           const color = '#6b7280';
           edges.push({
-            id: `e-${srcId}-${target.id}`,
-            source: String(srcId),
-            target: String(target.id),
+            id: `e-${srcKey}-${target.key}`,
+            source: srcKey,
+            target: target.key,
             animated: false,
             style: { stroke: color, strokeWidth: 2 },
             markerEnd: { type: MarkerType.ArrowClosed, color, width: 14, height: 14 },
@@ -259,11 +259,11 @@ function StateMachineSettings({
               <label style={labelStyle}>Allowed from {!s.allowed_from?.length && <span style={{ color: '#6b7280', fontWeight: 400 }}>(any state)</span>}</label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {statuses.filter(other => other.id !== s.id && !other.is_archived).map(other => {
-                  const isSelected = (s.allowed_from || []).includes(other.id);
+                  const isSelected = (s.allowed_from || []).includes(other.key);
                   return (
-                    <button key={other.id} onClick={() => {
+                    <button key={other.key} onClick={() => {
                       const current = s.allowed_from || [];
-                      const next = isSelected ? current.filter(id => id !== other.id) : [...current, other.id];
+                      const next = isSelected ? current.filter((k: string) => k !== other.key) : [...current, other.key];
                       updateAndSave(s.id, { allowed_from: next });
                     }} style={{
                       fontSize: 12, padding: '6px 10px', borderRadius: 8, cursor: 'pointer',
