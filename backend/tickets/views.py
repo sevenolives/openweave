@@ -1210,15 +1210,17 @@ class PhaseViewSet(viewsets.ModelViewSet):
         return qs.filter(project__agents=user).distinct()
 
     def create(self, request, *args, **kwargs):
-        """Override create to auto-activate first phase and return correct response."""
+        """Override create to auto-activate first phase and set FK."""
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         phase = serializer.save()
         # Auto-activate first phase in project
-        if phase.project.phases.count() == 1 and not phase.is_active:
-            phase.is_active = True
+        if phase.project.phases.count() == 1 and phase.status == 'UPCOMING':
+            phase.status = 'ACTIVE'
+            phase.started_at = timezone.now()
             phase.save()
-        # Re-serialize to return updated data
+            phase.project.current_phase = phase
+            phase.project.save(update_fields=['current_phase'])
         return Response(self.get_serializer(phase).data, status=status.HTTP_201_CREATED)
 
 

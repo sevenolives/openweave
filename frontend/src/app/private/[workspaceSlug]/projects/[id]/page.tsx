@@ -246,8 +246,11 @@ export default function ProjectSettingsPage() {
             <div className="space-y-3 mb-6">
               {phases.length === 0 ? (
                 <p className="text-sm text-gray-400 py-4 text-center">No phases yet. Add your first phase below.</p>
-              ) : phases.map((phase, idx) => (
-                <div key={phase.id} className={`rounded-xl border p-4 transition-all ${phase.is_active ? 'border-indigo-300 bg-indigo-50/50' : phase.completed_at ? 'border-green-200 bg-green-50/30' : 'border-gray-200'}`}>
+              ) : phases.map((phase, idx) => {
+                const statusColors = { UPCOMING: 'border-gray-200', ACTIVE: 'border-indigo-300 bg-indigo-50/50', COMPLETED: 'border-green-200 bg-green-50/30' };
+                const badgeColors = { UPCOMING: 'bg-gray-100 text-gray-500', ACTIVE: 'bg-indigo-100 text-indigo-700', COMPLETED: 'bg-green-100 text-green-700' };
+                return (
+                <div key={phase.id} className={`rounded-xl border p-4 transition-all ${statusColors[phase.status] || statusColors.UPCOMING}`}>
                   {editingPhase === phase.id ? (
                     <div className="space-y-3">
                       <input value={editPhaseName} onChange={e => setEditPhaseName(e.target.value)} autoFocus
@@ -272,29 +275,21 @@ export default function ProjectSettingsPage() {
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium text-gray-400">#{idx + 1}</span>
                           <h4 className="font-semibold text-gray-900">{phase.name}</h4>
-                          {phase.is_active && <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-full">ACTIVE</span>}
-                          {!phase.is_active && phase.completed_at && <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded-full">DONE</span>}
-                          {!phase.is_active && !phase.completed_at && <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-bold rounded-full">UPCOMING</span>}
+                          <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${badgeColors[phase.status] || badgeColors.UPCOMING}`}>{phase.status}</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          {!phase.is_active && !phase.completed_at && (
-                            <button onClick={async () => {
-                              try {
-                                await api.updatePhase(phase.id, { is_active: true, started_at: new Date().toISOString() });
-                                const ph = await api.getPhases(projectSlug); setPhases(ph);
-                                toast('Phase activated');
-                              } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
-                            }} className="px-3 py-1.5 text-xs font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg">Activate</button>
-                          )}
-                          {phase.is_active && (
-                            <button onClick={async () => {
-                              try {
-                                await api.updatePhase(phase.id, { is_active: false, completed_at: new Date().toISOString() });
-                                const ph = await api.getPhases(projectSlug); setPhases(ph);
-                                toast('Phase completed');
-                              } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
-                            }} className="px-3 py-1.5 text-xs font-medium text-green-600 hover:bg-green-50 rounded-lg">Complete</button>
-                          )}
+                          {/* Status dropdown */}
+                          <select value={phase.status} onChange={async (e) => {
+                            try {
+                              await api.updatePhase(phase.id, { status: e.target.value as Phase['status'] });
+                              const ph = await api.getPhases(projectSlug); setPhases(ph);
+                              toast(`Phase ${e.target.value.toLowerCase()}`);
+                            } catch (err: any) { toast(err?.message || 'Failed', 'error'); }
+                          }} className="px-3 py-1.5 text-xs font-medium border border-gray-200 rounded-lg bg-white">
+                            <option value="UPCOMING">Upcoming</option>
+                            <option value="ACTIVE">Active</option>
+                            <option value="COMPLETED">Completed</option>
+                          </select>
                           <button onClick={() => { setEditingPhase(phase.id); setEditPhaseName(phase.name || ''); setEditPhaseDesc(phase.description || ''); }}
                             className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
@@ -316,7 +311,8 @@ export default function ProjectSettingsPage() {
                     </div>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Add new phase */}

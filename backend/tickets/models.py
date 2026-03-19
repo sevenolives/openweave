@@ -195,6 +195,7 @@ class Project(models.Model):
     slug = models.SlugField(max_length=10, blank=True, help_text="Short prefix for ticket slugs, e.g. SA")
     description = models.TextField(blank=True)
     notes = models.TextField(blank=True, default='', help_text="Project notes for bots — process guidelines, conventions, important context")
+    current_phase = models.ForeignKey('Phase', on_delete=models.SET_NULL, null=True, blank=True, related_name='active_in_project', help_text="The currently active phase")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -224,11 +225,16 @@ class Phase(models.Model):
     A phase within a project. Helps bots and humans understand what stage
     the project is in and what the goals are.
     """
+    PHASE_STATUSES = [
+        ('UPCOMING', 'Upcoming'),
+        ('ACTIVE', 'Active'),
+        ('COMPLETED', 'Completed'),
+    ]
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='phases')
     name = models.CharField(max_length=100, help_text="Phase name, e.g. 'MVP', 'Beta Launch'")
     description = models.TextField(blank=True, help_text="Goals and scope of this phase")
+    status = models.CharField(max_length=20, choices=PHASE_STATUSES, default='UPCOMING', help_text="Phase status")
     position = models.PositiveIntegerField(default=0, help_text="Display order")
-    is_active = models.BooleanField(default=False, help_text="Currently active phase")
     started_at = models.DateTimeField(null=True, blank=True, help_text="When this phase started")
     completed_at = models.DateTimeField(null=True, blank=True, help_text="When this phase was completed")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -240,8 +246,8 @@ class Phase(models.Model):
         unique_together = ('project', 'name')
 
     def __str__(self):
-        status = '🟢' if self.is_active else ('✅' if self.completed_at else '⬜')
-        return f"{status} {self.name} — {self.project.name}"
+        icons = {'UPCOMING': '⬜', 'ACTIVE': '🟢', 'COMPLETED': '✅'}
+        return f"{icons.get(self.status, '⬜')} {self.name} — {self.project.name}"
 
 
 class ProjectAgent(models.Model):

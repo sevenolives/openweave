@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import serializers
 from .permissions import is_admin_or_owner
 from .models import (
@@ -71,21 +72,40 @@ class PhaseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Phase
-        fields = ['id', 'project', 'name', 'description', 'position', 'is_active',
+        fields = ['id', 'project', 'name', 'description', 'status', 'position',
                   'started_at', 'completed_at', 'created_at', 'updated_at']
         read_only_fields = ['created_at', 'updated_at']
 
-    def validate(self, data):
-        # If setting is_active=True, deactivate other phases in the same project
-        if data.get('is_active'):
-            project = data.get('project') or (self.instance.project if self.instance else None)
-            if project:
-                exclude_id = self.instance.id if self.instance else None
-                qs = Phase.objects.filter(project=project, is_active=True)
-                if exclude_id:
-                    qs = qs.exclude(id=exclude_id)
-                qs.update(is_active=False)
-        return data
+    def validate_status(self, value):
+        if value == 'ACTIVE' and self.instance:
+            # Auto-set started_at when activating
+            if not self.instance.started_at:
+                self.instance.started_at = timezone.now()
+        if value == 'COMPLETED' and self.instance:
+            if not self.instance.completed_at:
+                self.instance.completed_at = timezone.now()
+        return value
+
+    def update(self, instance, validated_data):
+        new_status = validated_data.get('status')
+        if new_status == 'ACTIVE':
+            if not validated_data.get('started_at') and not instance.started_at:
+                validated_data['started_at'] = timezone.now()
+            # Set FK on project
+            instance = super().update(instance, validated_data)
+            instance.project.current_phase = instance
+            instance.project.save(update_fields=['current_phase'])
+            return instance
+        elif new_status == 'COMPLETED':
+            if not validated_data.get('completed_at') and not instance.completed_at:
+                validated_data['completed_at'] = timezone.now()
+            instance = super().update(instance, validated_data)
+            # If this was the current phase, clear it
+            if instance.project.current_phase_id == instance.id:
+                instance.project.current_phase = None
+                instance.project.save(update_fields=['current_phase'])
+            return instance
+        return super().update(instance, validated_data)
 
 
 class WorkspaceSerializer(serializers.ModelSerializer):
@@ -193,9 +213,9 @@ class ProjectSerializer(serializers.ModelSerializer):
         return instance
 
     def get_active_phase(self, obj):
-        phase = obj.phases.filter(is_active=True).first()
+        phase = obj.current_phase
         if phase:
-            return {'id': phase.id, 'name': phase.name, 'description': phase.description}
+            return {'id': phase.id, 'name': phase.name, 'description': phase.description, 'status': phase.status}
         return None
 
 
