@@ -1209,12 +1209,17 @@ class PhaseViewSet(viewsets.ModelViewSet):
         # Only show phases for projects the user has access to
         return qs.filter(project__agents=user).distinct()
 
-    def perform_create(self, serializer):
+    def create(self, request, *args, **kwargs):
+        """Override create to auto-activate first phase and return correct response."""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         phase = serializer.save()
-        # If this is the first phase and is_active wasn't set, activate it
+        # Auto-activate first phase in project
         if phase.project.phases.count() == 1 and not phase.is_active:
             phase.is_active = True
             phase.save()
+        # Re-serialize to return updated data
+        return Response(self.get_serializer(phase).data, status=status.HTTP_201_CREATED)
 
 
 @extend_schema(tags=['blog'])
