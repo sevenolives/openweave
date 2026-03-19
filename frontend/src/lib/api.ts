@@ -133,6 +133,16 @@ export interface Phase {
   updated_at: string;
 }
 
+export interface ProjectStatusPermission {
+  id: number;
+  project: string;
+  status_definition: number;
+  status_key: string;
+  status_label: string;
+  allowed_users: number[];
+  allowed_users_details: User[];
+}
+
 export interface AuthTokens {
   access: string;
   refresh: string;
@@ -375,6 +385,24 @@ class ApiClient {
 
   async getProject(slug: string): Promise<Project> {
     return this.request<Project>(`/projects/${slug}/`);
+  }
+
+  // Project Status Permissions
+  async getProjectStatusPermissions(projectSlug: string): Promise<ProjectStatusPermission[]> {
+    const response = await this.request<PaginatedResponse<ProjectStatusPermission>>(`/project-status-permissions/?project=${projectSlug}`);
+    return response.results || [];
+  }
+
+  async createProjectStatusPermission(data: { project: string; status_definition: number; allowed_users: number[] }): Promise<ProjectStatusPermission> {
+    return this.request<ProjectStatusPermission>('/project-status-permissions/', { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  async updateProjectStatusPermission(id: number, data: Partial<ProjectStatusPermission>): Promise<ProjectStatusPermission> {
+    return this.request<ProjectStatusPermission>(`/project-status-permissions/${id}/`, { method: 'PATCH', body: JSON.stringify(data) });
+  }
+
+  async deleteProjectStatusPermission(id: number): Promise<void> {
+    await this.request<void>(`/project-status-permissions/${id}/`, { method: 'DELETE' });
   }
 
   // Phases
