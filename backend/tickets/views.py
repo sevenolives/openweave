@@ -13,13 +13,14 @@ from drf_spectacular.types import OpenApiTypes
 from rest_framework import serializers as drf_serializers
 from .models import (
     User, Project, Ticket, Comment, AuditLog, ProjectAgent, Workspace,
-    WorkspaceMember, WorkspaceInvite, TicketAttachment, StatusDefinition,
+    WorkspaceMember, WorkspaceInvite, ProjectInvite, TicketAttachment, StatusDefinition,
     BlogPost, MediaFile, Phase, ProjectStatusPermission,
 )
 from .serializers import (
     UserSerializer, UserSimpleSerializer, ProjectSerializer, TicketSerializer,
     CommentSerializer, AuditLogSerializer,
     WorkspaceSerializer, WorkspaceMemberSerializer, WorkspaceInviteSerializer,
+    ProjectInviteSerializer,
     JoinRequestSerializer, TicketAttachmentSerializer, ProjectAgentSerializer,
     StatusDefinitionSerializer, PhaseSerializer, ProjectStatusPermissionSerializer,
     BlogPostListSerializer, BlogPostDetailSerializer, BlogPostCreateSerializer,
@@ -150,44 +151,67 @@ class JoinView(APIView):
         ],
     )
     def post(self, request):
-        invite_token = request.data.get('workspace_invite_token')
+        invite_token = request.data.get('workspace_invite_token') or request.data.get('project_invite_token')
         username = request.data.get('username')
         name = request.data.get('name')
         password = request.data.get('password')
         description = request.data.get('description', '')
 
         invite = None
+        project_invite = None
         if invite_token:
+            # Try project invite first, then workspace invite
             try:
-                invite = WorkspaceInvite.objects.get(token=invite_token, is_active=True)
-            except (WorkspaceInvite.DoesNotExist, ValueError, Exception):
-                return Response({'detail': 'Invalid or inactive invite.'}, status=status.HTTP_400_BAD_REQUEST)
-            if invite.expires_at and invite.expires_at < timezone.now():
-                return Response({'detail': 'Invite has expired.'}, status=status.HTTP_400_BAD_REQUEST)
-            if invite.max_uses and invite.use_count >= invite.max_uses:
-                return Response({'detail': 'Invite has reached maximum uses.'}, status=status.HTTP_400_BAD_REQUEST)
+                project_invite = ProjectInvite.objects.select_related('project', 'project__workspace').get(token=invite_token, is_active=True)
+            except (ProjectInvite.DoesNotExist, ValueError):
+                project_invite = None
+            if project_invite:
+                if project_invite.expires_at and project_invite.expires_at < timezone.now():
+                    return Response({'detail': 'Invite has expired.'}, status=status.HTTP_400_BAD_REQUEST)
+                if project_invite.max_uses and project_invite.use_count >= project_invite.max_uses:
+                    return Response({'detail': 'Invite has reached maximum uses.'}, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                try:
+                    invite = WorkspaceInvite.objects.get(token=invite_token, is_active=True)
+                except (WorkspaceInvite.DoesNotExist, ValueError, Exception):
+                    return Response({'detail': 'Invalid or inactive invite.'}, status=status.HTTP_400_BAD_REQUEST)
+                if invite.expires_at and invite.expires_at < timezone.now():
+                    return Response({'detail': 'Invite has expired.'}, status=status.HTTP_400_BAD_REQUEST)
+                if invite.max_uses and invite.use_count >= invite.max_uses:
+                    return Response({'detail': 'Invite has reached maximum uses.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Case 4: Authenticated user joining a workspace
+        # Case 4: Authenticated user joining
         if request.user and request.user.is_authenticated:
             from .plan_limits import check_member_limit, sync_seat_count
-            if not invite:
-                return Response({'detail': 'workspace_invite_token is required.'}, status=status.HTTP_400_BAD_REQUEST)
-            if invite.workspace.owner_id == request.user.id:
-                return Response({'detail': 'You are the owner of this workspace.'}, status=status.HTTP_400_BAD_REQUEST)
-            if WorkspaceMember.objects.filter(workspace=invite.workspace, user=request.user).exists():
-                return Response({'detail': 'Already a member of this workspace.'}, status=status.HTTP_400_BAD_REQUEST)
-            check_member_limit(invite.workspace)
-            WorkspaceMember.objects.create(workspace=invite.workspace, user=request.user)
-            sync_seat_count(invite.workspace, operation='add')
-            # Auto-add to project if invite has one
-            if invite.project:
-                ProjectAgent.objects.get_or_create(project=invite.project, agent=request.user, defaults={'role': 'MEMBER'})
-            invite.use_count += 1
-            invite.save()
-            resp_data = {'workspace': WorkspaceSerializer(invite.workspace).data}
-            if invite.project:
-                resp_data['project'] = ProjectSerializer(invite.project).data
-            return Response(resp_data, status=status.HTTP_200_OK)
+            if not invite and not project_invite:
+                return Response({'detail': 'An invite token is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            if project_invite:
+                workspace = project_invite.project.workspace
+                # Add to workspace if not already member
+                if not WorkspaceMember.objects.filter(workspace=workspace, user=request.user).exists() and workspace.owner_id != request.user.id:
+                    check_member_limit(workspace)
+                    WorkspaceMember.objects.create(workspace=workspace, user=request.user)
+                    sync_seat_count(workspace, operation='add')
+                # Add to project
+                ProjectAgent.objects.get_or_create(project=project_invite.project, agent=request.user, defaults={'role': 'MEMBER'})
+                project_invite.use_count += 1
+                project_invite.save()
+                return Response({
+                    'workspace': WorkspaceSerializer(workspace).data,
+                    'project': ProjectSerializer(project_invite.project).data,
+                }, status=status.HTTP_200_OK)
+            else:
+                if invite.workspace.owner_id == request.user.id:
+                    return Response({'detail': 'You are the owner of this workspace.'}, status=status.HTTP_400_BAD_REQUEST)
+                if WorkspaceMember.objects.filter(workspace=invite.workspace, user=request.user).exists():
+                    return Response({'detail': 'Already a member of this workspace.'}, status=status.HTTP_400_BAD_REQUEST)
+                check_member_limit(invite.workspace)
+                WorkspaceMember.objects.create(workspace=invite.workspace, user=request.user)
+                sync_seat_count(invite.workspace, operation='add')
+                invite.use_count += 1
+                invite.save()
+                return Response({'workspace': WorkspaceSerializer(invite.workspace).data}, status=status.HTTP_200_OK)
 
         # Cases 1-3: Creating a new user
         if not username or not name:
@@ -197,8 +221,8 @@ class JoinView(APIView):
             return Response({'detail': 'Username already taken.'}, status=status.HTTP_400_BAD_REQUEST)
 
         is_bot = not password
-        if is_bot and not invite:
-            return Response({'detail': 'Bot users require a workspace_invite_token.'}, status=status.HTTP_400_BAD_REQUEST)
+        if is_bot and not invite and not project_invite:
+            return Response({'detail': 'Bot users require an invite token.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if password:
             user = User(username=username, name=name, user_type='HUMAN', description=description)
@@ -210,16 +234,26 @@ class JoinView(APIView):
             user.save()
 
         workspace_data = None
-        if invite:
+        project_data = None
+        if project_invite:
+            from .plan_limits import check_member_limit, sync_seat_count
+            workspace = project_invite.project.workspace
+            if not WorkspaceMember.objects.filter(workspace=workspace, user=user).exists() and workspace.owner_id != user.id:
+                check_member_limit(workspace)
+                WorkspaceMember.objects.create(workspace=workspace, user=user)
+                sync_seat_count(workspace, operation='add')
+            ProjectAgent.objects.get_or_create(project=project_invite.project, agent=user, defaults={'role': 'MEMBER'})
+            project_invite.use_count += 1
+            project_invite.save()
+            workspace_data = WorkspaceSerializer(workspace).data
+            project_data = ProjectSerializer(project_invite.project).data
+        elif invite:
             from .plan_limits import check_member_limit, sync_seat_count
             if WorkspaceMember.objects.filter(workspace=invite.workspace, user=user).exists():
                 return Response({'detail': 'Already a member of this workspace.'}, status=status.HTTP_400_BAD_REQUEST)
             check_member_limit(invite.workspace)
             WorkspaceMember.objects.create(workspace=invite.workspace, user=user)
             sync_seat_count(invite.workspace, operation='add')
-            # Auto-add to project if invite has one
-            if invite.project:
-                ProjectAgent.objects.get_or_create(project=invite.project, agent=user, defaults={'role': 'MEMBER'})
             invite.use_count += 1
             invite.save()
             workspace_data = WorkspaceSerializer(invite.workspace).data
@@ -227,11 +261,14 @@ class JoinView(APIView):
         if is_bot:
             # Case 3
             token, _ = Token.objects.get_or_create(user=user)
-            return Response({
+            resp = {
                 'api_token': token.key,
                 'workspace': workspace_data,
                 'user': UserSerializer(user).data,
-            }, status=status.HTTP_201_CREATED)
+            }
+            if project_data:
+                resp['project'] = project_data
+            return Response(resp, status=status.HTTP_201_CREATED)
 
         # Case 1 or 2
         tokens = _jwt_tokens_for_user(user)
@@ -1231,6 +1268,29 @@ class PhaseViewSet(viewsets.ModelViewSet):
             phase.project.current_phase = phase
             phase.project.save(update_fields=['current_phase'])
         return Response(self.get_serializer(phase).data, status=status.HTTP_201_CREATED)
+
+
+@extend_schema(tags=['project-invites'])
+class ProjectInviteViewSet(viewsets.ModelViewSet):
+    """Manage project invite links. Creates secret tokens for joining a project + workspace."""
+    queryset = ProjectInvite.objects.select_related('project', 'project__workspace', 'created_by').all()
+    serializer_class = ProjectInviteSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
+
+    def get_queryset(self):
+        qs = ProjectInvite.objects.select_related('project', 'project__workspace', 'created_by')
+        project_slug = self.request.query_params.get('project')
+        if project_slug:
+            qs = qs.filter(project__slug__iexact=project_slug)
+        user = self.request.user
+        if user.is_superuser:
+            return qs.all()
+        return qs.filter(project__agents=user).distinct()
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
 
 
 @extend_schema(tags=['project-status-permissions'])

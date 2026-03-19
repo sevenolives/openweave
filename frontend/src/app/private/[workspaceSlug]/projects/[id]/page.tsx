@@ -6,7 +6,7 @@ import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useWorkspace } from '@/hooks/useWorkspace';
-import { api, Project, User, ProjectAgentMembership, Phase, StatusDefinition, ProjectStatusPermission, WorkspaceInvite } from '@/lib/api';
+import { api, Project, User, ProjectAgentMembership, Phase, StatusDefinition, ProjectStatusPermission, ProjectInvite } from '@/lib/api';
 
 export default function ProjectSettingsPage() {
   const [project, setProject] = useState<Project | null>(null);
@@ -25,7 +25,7 @@ export default function ProjectSettingsPage() {
   const [activeTab, setActiveTab] = useState<'general' | 'members' | 'phases' | 'permissions'>('general');
   const [statuses, setStatuses] = useState<StatusDefinition[]>([]);
   const [statusPerms, setStatusPerms] = useState<ProjectStatusPermission[]>([]);
-  const [projectInvites, setProjectInvites] = useState<WorkspaceInvite[]>([]);
+  const [projectInvites, setProjectInvites] = useState<ProjectInvite[]>([]);
   const [generatingInvite, setGeneratingInvite] = useState(false);
   const [phases, setPhases] = useState<Phase[]>([]);
   const [newPhaseName, setNewPhaseName] = useState('');
@@ -58,7 +58,7 @@ export default function ProjectSettingsPage() {
       // Load workspace statuses and project invites
       if (p.workspace) {
         api.getStatusDefinitions(String(p.workspace)).then(setStatuses).catch(() => {});
-        api.getInvites({ project: p.slug }).then(invites => {
+        api.getProjectInvites(p.slug).then(invites => {
           setProjectInvites(invites.filter(i => i.is_active));
         }).catch(() => {});
       }
@@ -255,7 +255,7 @@ export default function ProjectSettingsPage() {
                   if (!project || !currentWorkspace) return;
                   setGeneratingInvite(true);
                   try {
-                    const inv = await api.createInvite({ workspace: currentWorkspace.slug, project: project.slug });
+                    const inv = await api.createProjectInvite({ project: project.slug });
                     setProjectInvites(prev => [...prev, inv]);
                     toast('Invite created');
                   } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
@@ -280,7 +280,7 @@ export default function ProjectSettingsPage() {
                           className="px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-50 rounded" title="For bots — copies skills.md + invite token">🤖 Bot</button>
                         <button onClick={async () => {
                           if (!confirm('Revoke this invite?')) return;
-                          try { await api.updateInvite(inv.id, { is_active: false }); setProjectInvites(prev => prev.filter(i => i.id !== inv.id)); toast('Invite revoked'); }
+                          try { await api.deleteProjectInvite(inv.id); setProjectInvites(prev => prev.filter(i => i.id !== inv.id)); toast('Invite revoked'); }
                           catch (e: any) { toast(e?.message || 'Failed', 'error'); }
                         }} className="px-2 py-1 text-xs text-red-500 hover:bg-red-50 rounded">🗑️</button>
                       </div>

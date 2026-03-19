@@ -3,7 +3,7 @@ from rest_framework import serializers
 from .permissions import is_admin_or_owner
 from .models import (
     User, Project, Ticket, Comment, AuditLog, Workspace, WorkspaceMember,
-    WorkspaceInvite, TicketAttachment, StatusDefinition, ProjectAgent,
+    WorkspaceInvite, ProjectInvite, TicketAttachment, StatusDefinition, ProjectAgent,
     BlogPost, MediaFile, Phase, ProjectStatusPermission,
 )
 
@@ -180,6 +180,19 @@ class WorkspaceInviteSerializer(serializers.ModelSerializer):
             'use_count': {'help_text': 'Number of times this invite has been used.'},
             'is_active': {'help_text': 'Whether the invite is currently active.'},
         }
+
+
+class ProjectInviteSerializer(serializers.ModelSerializer):
+    """Serializer for ProjectInvite model."""
+    project = serializers.SlugRelatedField(slug_field='slug', queryset=Project.objects.all())
+    project_name = serializers.CharField(source='project.name', read_only=True)
+    workspace_slug = serializers.CharField(source='project.workspace.slug', read_only=True)
+
+    class Meta:
+        model = ProjectInvite
+        fields = ['id', 'project', 'project_name', 'workspace_slug', 'token', 'created_by',
+                  'expires_at', 'max_uses', 'use_count', 'is_active', 'created_at']
+        read_only_fields = ['id', 'token', 'created_by', 'use_count', 'created_at']
 
 
 class JoinRequestSerializer(serializers.Serializer):

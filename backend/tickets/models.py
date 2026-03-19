@@ -93,11 +93,11 @@ class WorkspaceMember(models.Model):
 
 class WorkspaceInvite(models.Model):
     """
-    Invite link for joining a workspace (and optionally a project).
+    Invite link for joining a workspace only.
     """
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name='invites')
-    project = models.ForeignKey('Project', on_delete=models.CASCADE, null=True, blank=True, related_name='invites',
-        help_text='If set, joining this invite also adds the user to this project')
+    project = models.ForeignKey('Project', on_delete=models.CASCADE, null=True, blank=True, related_name='workspace_invites',
+        help_text='Deprecated — use ProjectInvite instead')
     token = models.UUIDField(unique=True, default=uuid.uuid4)
     created_by = models.ForeignKey("User", on_delete=models.CASCADE, related_name='created_invites')
     expires_at = models.DateTimeField(null=True, blank=True)
@@ -111,6 +111,28 @@ class WorkspaceInvite(models.Model):
 
     class Meta:
         db_table = 'workspace_invites'
+        ordering = ['-created_at']
+
+
+class ProjectInvite(models.Model):
+    """
+    Secret invite link for joining a project (and its workspace).
+    Separate from workspace invites — project-level access control.
+    """
+    project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name='invites')
+    token = models.UUIDField(unique=True, default=uuid.uuid4)
+    created_by = models.ForeignKey("User", on_delete=models.CASCADE, related_name='created_project_invites')
+    expires_at = models.DateTimeField(null=True, blank=True)
+    max_uses = models.PositiveIntegerField(null=True, blank=True)
+    use_count = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Invite to {self.project.name} ({self.token})"
+
+    class Meta:
+        db_table = 'project_invites'
         ordering = ['-created_at']
 
 

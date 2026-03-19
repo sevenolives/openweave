@@ -111,8 +111,20 @@ export interface WorkspaceMember {
 export interface WorkspaceInvite {
   id: number;
   workspace: string;
-  project?: string | null;
-  project_name?: string | null;
+  token: string;
+  created_by: number;
+  expires_at: string | null;
+  max_uses: number | null;
+  use_count: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface ProjectInvite {
+  id: number;
+  project: string;
+  project_name: string;
+  workspace_slug: string;
   token: string;
   created_by: number;
   expires_at: string | null;
@@ -387,6 +399,20 @@ class ApiClient {
 
   async getProject(slug: string): Promise<Project> {
     return this.request<Project>(`/projects/${slug}/`);
+  }
+
+  // Project Invites
+  async getProjectInvites(projectSlug: string): Promise<ProjectInvite[]> {
+    const response = await this.request<PaginatedResponse<ProjectInvite>>(`/project-invites/?project=${projectSlug}`);
+    return response.results || [];
+  }
+
+  async createProjectInvite(data: { project: string; max_uses?: number }): Promise<ProjectInvite> {
+    return this.request<ProjectInvite>('/project-invites/', { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  async deleteProjectInvite(id: number): Promise<void> {
+    await this.request<void>(`/project-invites/${id}/`, { method: 'DELETE' });
   }
 
   // Project Status Permissions
