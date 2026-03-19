@@ -409,7 +409,7 @@ export default function ProjectSettingsPage() {
 
             <div className="space-y-4">
               {statuses.filter(s => !s.is_archived).map(s => {
-                const perm = statusPerms.find(p => p.status_definition === s.id);
+                const perm = statusPerms.find(p => p.status_definition === s.key || p.status_key === s.key);
                 const hasRestriction = perm && perm.allowed_users.length > 0;
                 return (
                   <div key={s.id} className={`rounded-xl border p-4 ${hasRestriction ? 'border-amber-200 bg-amber-50/30' : 'border-gray-200'}`}>
@@ -454,7 +454,7 @@ export default function ProjectSettingsPage() {
                         if (perm) {
                           await api.updateProjectStatusPermission(perm.id, { allowed_users: [...perm.allowed_users, uid] });
                         } else {
-                          await api.createProjectStatusPermission({ project: projectSlug, status_definition: s.id, allowed_users: [uid] });
+                          await api.createProjectStatusPermission({ project: projectSlug, status_definition: s.key, allowed_users: [uid] });
                         }
                         setStatusPerms(await api.getProjectStatusPermissions(projectSlug));
                       } catch (e: any) { toast(e?.message || 'Failed', 'error'); }

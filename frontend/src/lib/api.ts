@@ -150,7 +150,7 @@ export interface Phase {
 export interface ProjectStatusPermission {
   id: number;
   project: string;
-  status_definition: number;
+  status_definition: string; // status key (e.g. IN_DEV)
   status_key: string;
   status_label: string;
   allowed_users: number[];
@@ -421,7 +421,7 @@ class ApiClient {
     return response.results || [];
   }
 
-  async createProjectStatusPermission(data: { project: string; status_definition: number; allowed_users: number[] }): Promise<ProjectStatusPermission> {
+  async createProjectStatusPermission(data: { project: string; status_definition: string; allowed_users: number[] }): Promise<ProjectStatusPermission> {
     return this.request<ProjectStatusPermission>('/project-status-permissions/', { method: 'POST', body: JSON.stringify(data) });
   }
 

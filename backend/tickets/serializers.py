@@ -103,10 +103,40 @@ class PhaseSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 
+class StatusDefinitionKeyField(serializers.Field):
+    """Accept status key (e.g. IN_DEV) and resolve to StatusDefinition via project's workspace."""
+    def to_representation(self, value):
+        return value.key if value else None
+
+    def to_internal_value(self, data):
+        if isinstance(data, int):
+            try:
+                return StatusDefinition.objects.get(pk=data)
+            except StatusDefinition.DoesNotExist:
+                raise serializers.ValidationError(f'Status definition {data} not found.')
+        # Resolve by key — need project context from parent data
+        request = self.context.get('request')
+        project_slug = request.data.get('project') if request else None
+        if project_slug:
+            try:
+                project = Project.objects.select_related('workspace').get(slug__iexact=project_slug)
+                return StatusDefinition.objects.get(workspace=project.workspace, key=data)
+            except (Project.DoesNotExist, StatusDefinition.DoesNotExist):
+                pass
+        # Fallback: try instance's project
+        if self.parent and self.parent.instance:
+            ws = self.parent.instance.project.workspace
+            try:
+                return StatusDefinition.objects.get(workspace=ws, key=data)
+            except StatusDefinition.DoesNotExist:
+                pass
+        raise serializers.ValidationError(f'Status "{data}" not found.')
+
+
 class ProjectStatusPermissionSerializer(serializers.ModelSerializer):
     """Project-level status permission overrides."""
     project = serializers.SlugRelatedField(slug_field='slug', queryset=Project.objects.all())
-    status_definition = serializers.PrimaryKeyRelatedField(queryset=StatusDefinition.objects.all())
+    status_definition = StatusDefinitionKeyField()
     allowed_users = serializers.PrimaryKeyRelatedField(many=True, queryset=User.objects.all(), required=False)
     allowed_users_details = UserSimpleSerializer(source='allowed_users', many=True, read_only=True)
     status_key = serializers.CharField(source='status_definition.key', read_only=True)
