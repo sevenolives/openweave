@@ -269,6 +269,11 @@ export default function Layout({ children }: { children: ReactNode }) {
         <main className="flex-1 overflow-y-auto">
           {children}
         </main>
+
+        {/* Build info footer */}
+        <footer className="px-4 py-2 text-[10px] text-gray-400 text-right border-t border-gray-100 flex-shrink-0">
+          {process.env.NEXT_PUBLIC_GIT_BRANCH}@{process.env.NEXT_PUBLIC_GIT_COMMIT}
+        </footer>
       </div>
     </div>
   );

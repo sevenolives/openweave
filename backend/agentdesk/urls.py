@@ -3,7 +3,7 @@ URL configuration for agentdesk project.
 """
 from django.contrib import admin
 from django.urls import path, include
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 # Cache for generated skills.md
@@ -48,6 +48,11 @@ urlpatterns += [
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 
     # Skills document (generated from schema)
+    path('api/build-info/', lambda r: JsonResponse({
+        'branch': settings.GIT_BRANCH,
+        'commit': settings.GIT_COMMIT,
+        'environment': settings.RAILWAY_ENVIRONMENT,
+    }), name='build-info'),
     path('api/skills/skills.md', skills_md_view, name='skills-md'),
     path('api/skills/heartbeat.md', heartbeat_md_view, name='heartbeat-md'),
 ]

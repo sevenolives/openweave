@@ -5,6 +5,11 @@ import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Railway build info
+GIT_BRANCH = os.environ.get('RAILWAY_GIT_BRANCH', os.environ.get('GIT_BRANCH', 'local'))
+GIT_COMMIT = os.environ.get('RAILWAY_GIT_COMMIT_SHA', os.environ.get('GIT_COMMIT', 'dev'))[:7]
+RAILWAY_ENVIRONMENT = os.environ.get('RAILWAY_ENVIRONMENT_NAME', 'local')
+
 SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-insecure-key-change-in-production')
 if not os.environ.get('SECRET_KEY') and not os.environ.get('DEBUG'):
     import warnings
@@ -103,21 +108,39 @@ STORAGES = {
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',
-]
+# CORS — calculated from branch name
+_cors_origins = ['http://localhost:3000', 'http://localhost:8000']
+_csrf_origins = ['http://localhost:3000', 'http://localhost:8000']
 
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOW_CREDENTIALS = True
+if GIT_BRANCH == 'main':
+    # Production
+    _cors_origins += [
+        'https://openweave.dev',
+        'https://www.openweave.dev',
+    ]
+    _csrf_origins += [
+        'https://openweave.dev',
+        'https://*.openweave.dev',
+    ]
+else:
+    # Preview/PR branches — allow Railway preview URLs
+    _cors_origins += []  # Will use CORS_ALLOW_ALL_ORIGINS for preview
+    _csrf_origins += [
+        'https://*.up.railway.app',
+        'https://*.railway.app',
+    ]
 
-CSRF_TRUSTED_ORIGINS = [
+# Always allow Railway URLs for CSRF (deploys hit the Railway URL first)
+_csrf_origins += [
     'https://*.up.railway.app',
     'https://*.railway.app',
-    'https://openweave.dev',
-    'https://*.openweave.dev',
-    'http://localhost:3000',
-    'http://localhost:8000',
 ]
+
+CORS_ALLOWED_ORIGINS = _cors_origins
+CORS_ALLOW_ALL_ORIGINS = GIT_BRANCH != 'main'  # Strict on production, open on preview
+CORS_ALLOW_CREDENTIALS = True
+
+CSRF_TRUSTED_ORIGINS = list(set(_csrf_origins))
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
