@@ -11,7 +11,6 @@ function wsPath(slug: string, path: string) {
 }
 
 const NAV_KEYS = [
-  { path: '/dashboard', label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
   { path: '/projects', label: 'Projects', icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z' },
   { path: '/tickets', label: 'Tickets', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
   { path: '/agents', label: 'Team', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
@@ -23,7 +22,7 @@ function getBreadcrumbs(pathname: string, wsSlug: string): { label: string; href
   // Strip /private/N/ prefix to get the page part
   const pagePart = pathname.replace(/^\/private\/[^/]+/, '');
   const parts = pagePart.split('/').filter(Boolean);
-  const crumbs: { label: string; href?: string }[] = [{ label: 'Home', href: wsPath(wsSlug, '/dashboard') }];
+  const crumbs: { label: string; href?: string }[] = [{ label: 'Home', href: wsPath(wsSlug, '/projects') }];
   if (parts[0] === 'dashboard') crumbs.push({ label: 'Dashboard' });
   else if (parts[0] === 'projects') {
     crumbs.push({ label: 'Projects', href: parts.length > 1 ? wsPath(wsSlug, '/projects') : undefined });
@@ -117,7 +116,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                     if (ws) {
                       setCurrentWorkspace(ws);
                       // Extract current page and navigate to same page in new workspace
-                      const pagePart = pathname.replace(/^\/private\/[^/]+/, '') || '/dashboard';
+                      const pagePart = pathname.replace(/^\/private\/[^/]+/, '') || '/projects';
                       router.push(wsPath(ws.slug, pagePart));
                     }
                   }}
@@ -160,7 +159,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
             {NAV_KEYS.map(item => {
               const fullPath = wsPath(wsSlug, item.path);
-              const isActive = pathname === fullPath || (item.path !== '/dashboard' && pathname.startsWith(fullPath));
+              const isActive = pathname === fullPath || (item.path !== '/projects' && pathname.startsWith(fullPath)) || (item.path === '/projects' && (pathname === fullPath || pathname.startsWith(fullPath + '/')));
               return (
                 <button
                   key={item.path}

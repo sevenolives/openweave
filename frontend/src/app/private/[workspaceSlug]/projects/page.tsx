@@ -4,17 +4,20 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 
 import Layout from '@/components/Layout';
+import PieChart from '@/components/PieChart';
+import type { PieSlice } from '@/components/PieChart';
 import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import FormField, { parseFieldErrors, inputClass } from '@/components/FormField';
-import { api, Project, Ticket, ApiError, PaginatedResponse } from '@/lib/api';
+import { api, Project, Ticket, StatusDefinition, ApiError, PaginatedResponse } from '@/lib/api';
 import { useWorkspace } from '@/hooks/useWorkspace';
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
-  const [ticketCounts, setTicketCounts] = useState<Record<string, { total: number; open: number; inProgress: number; blocked: number; completed: number; cancelled: number }>>({});
+  const [ticketCounts, setTicketCounts] = useState<Record<string, Record<string, number>>>({});
+  const [statuses, setStatuses] = useState<StatusDefinition[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState('');
@@ -34,26 +37,27 @@ export default function ProjectsPage() {
   const fetchProjects = async () => {
     if (!currentWorkspace) return;
     try {
-      const params: Record<string, string> = { workspace: currentWorkspace.slug, page: String(page) };
-      const resp = await api.getProjectsPaginated(params);
+      // Fetch status definitions + projects in parallel
+      const [statusDefs, resp] = await Promise.all([
+        api.getStatusDefinitions(currentWorkspace.slug).catch(() => [] as StatusDefinition[]),
+        api.getProjectsPaginated({ workspace: currentWorkspace.slug, page: String(page) }),
+      ]);
+      setStatuses(statusDefs);
       const projs = resp.results || [];
       setTotalCount(resp.count || 0);
       setProjects(projs);
-      // Fetch ticket counts for each project
-      const counts: Record<string, any> = {};
+      // Fetch ticket counts for each project (page_size=100 to get good counts)
+      const counts: Record<string, Record<string, number>> = {};
       await Promise.all(projs.map(async (p) => {
         try {
-          const resp = await api.getTicketsPaginated({ project: p.slug });
+          const resp = await api.getTicketsPaginated({ project: p.slug, page_size: '100' });
           const tickets = resp.results || [];
-          counts[p.slug] = {
-            total: resp.count ?? tickets.length,
-            open: tickets.filter(t => t.status === 'OPEN').length,
-            inProgress: tickets.filter(t => t.status === 'IN_PROGRESS').length,
-            blocked: tickets.filter(t => t.status === 'BLOCKED').length,
-            completed: tickets.filter(t => t.status === 'COMPLETED').length,
-            cancelled: tickets.filter(t => t.status === 'CANCELLED').length,
-          };
-        } catch { counts[p.slug] = { total: 0, open: 0, inProgress: 0, blocked: 0, completed: 0, cancelled: 0 }; }
+          const statusCounts: Record<string, number> = { _total: resp.count ?? tickets.length };
+          for (const t of tickets) {
+            statusCounts[t.status] = (statusCounts[t.status] || 0) + 1;
+          }
+          counts[p.slug] = statusCounts;
+        } catch { counts[p.slug] = { _total: 0 }; }
       }));
       setTicketCounts(counts);
     } catch (e: any) { toast(e?.message || 'Failed to load projects', 'error'); }
@@ -159,8 +163,11 @@ export default function ProjectsPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {projects.map(project => {
-              const counts = ticketCounts[project.slug] || { total: 0, open: 0, inProgress: 0, blocked: 0, completed: 0, cancelled: 0 };
-              const activeTickets = counts.open + counts.inProgress + counts.blocked;
+              const counts = ticketCounts[project.slug] || { _total: 0 };
+              const total = counts._total || 0;
+              const pieSlices: PieSlice[] = statuses
+                .filter(sd => (counts[sd.key] || 0) > 0)
+                .map(sd => ({ label: sd.label, value: counts[sd.key] || 0, color: sd.color }));
               return (
                 <div key={project.slug} onClick={() => router.push(`/private/${workspaceSlug}/tickets?project=${project.slug}`)} className="bg-white rounded-xl border border-gray-200 p-5 hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-50 transition-all cursor-pointer group">
                   <div className="flex items-start justify-between mb-2">
@@ -177,40 +184,19 @@ export default function ProjectsPage() {
                       </button>
                     </div>
                   </div>
-                  <p className="text-sm text-gray-500 line-clamp-2 mb-4">{project.description || 'No description'}</p>
+                  <p className="text-sm text-gray-500 line-clamp-2 mb-3">{project.description || 'No description'}</p>
                   
-                  {/* Ticket summary */}
-                  <div className="mb-3">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-sm font-medium text-gray-700">{counts.total} ticket{counts.total !== 1 ? 's' : ''}</span>
-                      {activeTickets > 0 && <span className="text-xs text-indigo-600 font-medium">{activeTickets} active</span>}
+                  {/* Pie chart */}
+                  {total > 0 ? (
+                    <div className="flex justify-center my-2">
+                      <PieChart slices={pieSlices} size={140} donut />
                     </div>
-                    {counts.total > 0 && (
-                      <div className="flex gap-0.5 h-1.5 rounded-full overflow-hidden bg-gray-100">
-                        {counts.open > 0 && <div className="bg-gray-400 transition-all" style={{ width: `${(counts.open / counts.total) * 100}%` }} title={`${counts.open} Open`} />}
-                        {counts.inProgress > 0 && <div className="bg-blue-500 transition-all" style={{ width: `${(counts.inProgress / counts.total) * 100}%` }} title={`${counts.inProgress} In Progress`} />}
-                        {counts.blocked > 0 && <div className="bg-red-500 transition-all" style={{ width: `${(counts.blocked / counts.total) * 100}%` }} title={`${counts.blocked} Blocked`} />}
-                        {counts.completed > 0 && <div className="bg-green-500 transition-all" style={{ width: `${(counts.completed / counts.total) * 100}%` }} title={`${counts.completed} Completed`} />}
-                        {counts.cancelled > 0 && <div className="bg-gray-300 transition-all" style={{ width: `${(counts.cancelled / counts.total) * 100}%` }} title={`${counts.cancelled} Cancelled`} />}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Status pills */}
-                  {counts.total > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-3">
-                      {counts.open > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">{counts.open} open</span>}
-                      {counts.inProgress > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600">{counts.inProgress} in progress</span>}
-                      {counts.blocked > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-50 text-red-600">{counts.blocked} blocked</span>}
-                      {counts.completed > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-50 text-green-600">{counts.completed} completed</span>}
-                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center py-4 text-sm text-gray-400">No tickets yet</div>
                   )}
 
-                  <div className="flex items-center justify-between text-xs text-gray-400">
-                    <span className="inline-flex items-center gap-1">
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                      {project.slug || '—'}
-                    </span>
+                  <div className="flex items-center justify-between text-xs text-gray-400 mt-3 pt-3 border-t border-gray-100">
+                    <span className="inline-flex items-center gap-1 font-medium text-gray-500">{project.slug}</span>
                     <span>{new Date(project.updated_at).toLocaleDateString()}</span>
                   </div>
                 </div>
