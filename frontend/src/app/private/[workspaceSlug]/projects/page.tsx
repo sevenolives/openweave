@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 
 import Layout from '@/components/Layout';
@@ -16,12 +16,13 @@ export default function DashboardPage() {
   const [dashboard, setDashboard] = useState<ProjectsDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [fabOpen, setFabOpen] = useState(false);
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [desc, setDesc] = useState('');
   const [creating, setCreating] = useState(false);
-  const [deleteSlug, setDeleteSlug] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const fabRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const { toast } = useToast();
@@ -37,6 +38,16 @@ export default function DashboardPage() {
   };
 
   useEffect(() => { fetchDashboard(); }, [currentWorkspace?.slug]);
+
+  // Close FAB on outside click
+  useEffect(() => {
+    if (!fabOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (fabRef.current && !fabRef.current.contains(e.target as Node)) setFabOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [fabOpen]);
 
   useEffect(() => {
     if (!showCreate) return;
@@ -63,38 +74,34 @@ export default function DashboardPage() {
     finally { setCreating(false); }
   };
 
-  const handleDelete = async () => {
-    if (!deleteSlug) return;
-    try {
-      await api.deleteProject(deleteSlug);
-      toast('Project deleted');
-      setDeleteSlug(null);
-      await fetchDashboard();
-    } catch (e: any) { toast(e?.message || 'Failed to delete project', 'error'); }
-  };
-
   const statuses = dashboard?.statuses || [];
 
-  // Workspace-level pie slices
   const wsSlices: PieSlice[] = statuses
     .map(sd => ({ label: sd.label, value: dashboard?.status_counts[sd.key] || 0, color: sd.color }));
+
+  const fabActions = [
+    {
+      label: 'New Project',
+      icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z',
+      onClick: () => { setFabOpen(false); setShowCreate(true); },
+    },
+    {
+      label: 'New Ticket',
+      icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
+      onClick: () => { setFabOpen(false); router.push(`/private/${workspaceSlug}/tickets`); },
+    },
+  ];
 
   return (
     <Layout>
       <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-sm text-gray-500 mt-1">Overview of all projects and ticket status</p>
-          </div>
-          <button onClick={() => setShowCreate(true)} className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-            New Project
-          </button>
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-sm text-gray-500 mt-1">Overview of all projects and ticket status</p>
         </div>
 
-        {/* Create modal */}
+        {/* Create Project modal */}
         {showCreate && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setShowCreate(false)}>
             <div className="bg-white w-full sm:w-[28rem] sm:rounded-2xl rounded-t-2xl p-6" onClick={e => e.stopPropagation()}>
@@ -118,8 +125,6 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
-
-        <ConfirmDialog open={!!deleteSlug} title="Delete Project" message="Are you sure? The project must have no tickets before it can be deleted." onConfirm={handleDelete} onCancel={() => setDeleteSlug(null)} />
 
         {/* Content */}
         {loading ? (
@@ -157,20 +162,7 @@ export default function DashboardPage() {
                   .map(sd => ({ label: sd.label, value: project.status_counts[sd.key] || 0, color: sd.color }));
                 return (
                   <div key={project.slug} onClick={() => router.push(`/private/${workspaceSlug}/tickets?project=${project.slug}`)} className="bg-white rounded-xl border border-gray-200 p-5 hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-50 transition-all cursor-pointer group">
-                    <div className="flex items-start justify-between mb-2">
-                      <h3 className="font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors truncate mr-2">{project.name}</h3>
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <button onClick={e => { e.stopPropagation(); router.push(`/private/${workspaceSlug}/projects/${project.slug}/chat`); }} className="p-1.5 rounded hover:bg-indigo-50 text-gray-400 hover:text-indigo-600 sm:opacity-0 sm:group-hover:opacity-100 transition-all" title="Chat">
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                        </button>
-                        <button onClick={e => { e.stopPropagation(); router.push(`/private/${workspaceSlug}/projects/${project.slug}`); }} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 sm:opacity-0 sm:group-hover:opacity-100 transition-all" title="Settings">
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                        </button>
-                        <button onClick={e => { e.stopPropagation(); setDeleteSlug(project.slug); }} className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 sm:opacity-0 sm:group-hover:opacity-100 transition-all">
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        </button>
-                      </div>
-                    </div>
+                    <h3 className="font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors truncate mb-1">{project.name}</h3>
                     <p className="text-sm text-gray-500 line-clamp-2 mb-3">{project.description || 'No description'}</p>
 
                     {/* Pie chart */}
@@ -194,13 +186,36 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Spacer for mobile FAB */}
-      <div className="h-20 sm:hidden" />
+      {/* Spacer for FAB */}
+      <div className="h-24" />
 
-      {/* Mobile FAB */}
-      <button onClick={() => setShowCreate(true)} className="sm:hidden fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-700 active:scale-95 transition-all z-40">
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-      </button>
+      {/* FAB Speed Dial */}
+      <div ref={fabRef} className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2">
+        {/* Action items — shown when open */}
+        {fabOpen && (
+          <div className="flex flex-col items-end gap-2 mb-1">
+            {fabActions.map((action) => (
+              <button
+                key={action.label}
+                onClick={action.onClick}
+                className="flex items-center gap-3 pl-4 pr-3 py-2.5 bg-white rounded-full shadow-lg border border-gray-200 hover:bg-gray-50 hover:shadow-xl transition-all group"
+              >
+                <span className="text-sm font-medium text-gray-700 whitespace-nowrap">{action.label}</span>
+                <div className="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center group-hover:bg-indigo-700 transition-colors">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d={action.icon} /></svg>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+        {/* Main FAB button */}
+        <button
+          onClick={() => setFabOpen(prev => !prev)}
+          className={`w-14 h-14 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-700 active:scale-95 transition-all ${fabOpen ? 'rotate-45' : ''}`}
+        >
+          <svg className="w-6 h-6 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+        </button>
+      </div>
     </Layout>
   );
 }
