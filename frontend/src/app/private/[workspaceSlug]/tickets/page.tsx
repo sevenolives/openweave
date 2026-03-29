@@ -227,7 +227,7 @@ function TicketsPage() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     try {
-      await api.deleteTicket(deleteTarget.id);
+      await api.deleteTicket(deleteTarget.ticket_slug);
       toast('Ticket deleted');
       setDeleteTarget(null);
       loadData();
