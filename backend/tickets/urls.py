@@ -9,7 +9,7 @@ from .views import (
     ProjectInviteViewSet,
     TicketAttachmentViewSet, StatusDefinitionViewSet,
     ProjectAgentViewSet, PhaseViewSet, ProjectStatusPermissionViewSet,
-    JoinView, DashboardView, BlogPostViewSet,
+    JoinView, DashboardView, ProjectsDashboardView, BlogPostViewSet,
     MediaFileViewSet,
 )
 from .billing import (
@@ -63,6 +63,7 @@ urlpatterns = [
     path('auth/login/', LoginView.as_view(), name='token_obtain_pair'),
     path('auth/token/refresh/', RefreshView.as_view(), name='token_refresh'),
     path('dashboard/', DashboardView.as_view(), name='dashboard'),
+    path('projects-dashboard/', ProjectsDashboardView.as_view(), name='projects-dashboard'),
     path('billing/checkout/', CreateCheckoutSessionView.as_view(), name='billing-checkout'),
     path('billing/webhook/', StripeWebhookView.as_view(), name='billing-webhook'),
     path('billing/portal/', CustomerPortalView.as_view(), name='billing-portal'),
