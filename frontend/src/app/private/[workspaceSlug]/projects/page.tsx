@@ -147,29 +147,7 @@ export default function DashboardPage() {
             {/* Workspace-level overview */}
             {dashboard.total_tickets > 0 && (
               <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-                <div className="flex flex-col sm:flex-row items-center gap-6">
-                  <PieChart slices={wsSlices} size={180} donut />
-                  <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    <div className="text-center sm:text-left">
-                      <p className="text-2xl font-bold text-gray-900">{dashboard.total_tickets}</p>
-                      <p className="text-xs text-gray-500">Total Tickets</p>
-                    </div>
-                    <div className="text-center sm:text-left">
-                      <p className="text-2xl font-bold text-gray-900">{dashboard.total_projects}</p>
-                      <p className="text-xs text-gray-500">Projects</p>
-                    </div>
-                    {statuses.map(sd => {
-                      const count = dashboard.status_counts[sd.key] || 0;
-                      if (count === 0) return null;
-                      return (
-                        <div key={sd.key} className="text-center sm:text-left">
-                          <p className="text-lg font-semibold text-gray-900">{count}</p>
-                          <p className="text-xs text-gray-500">{sd.label}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                <PieChart slices={wsSlices} size={200} donut />
               </div>
             )}
 
