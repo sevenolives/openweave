@@ -21,6 +21,7 @@ export default function DashboardPage() {
   const [slug, setSlug] = useState('');
   const [desc, setDesc] = useState('');
   const [creating, setCreating] = useState(false);
+  const [deleteSlug, setDeleteSlug] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const fabRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -72,6 +73,16 @@ export default function DashboardPage() {
       toast(e?.message || 'Failed to create project', 'error');
     }
     finally { setCreating(false); }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteSlug) return;
+    try {
+      await api.deleteProject(deleteSlug);
+      toast('Project deleted');
+      setDeleteSlug(null);
+      await fetchDashboard();
+    } catch (e: any) { toast(e?.message || 'Failed to delete project', 'error'); }
   };
 
   const statuses = dashboard?.statuses || [];
@@ -131,6 +142,8 @@ export default function DashboardPage() {
           </div>
         )}
 
+        <ConfirmDialog open={!!deleteSlug} title="Delete Project" message="Are you sure? The project must have no tickets before it can be deleted." onConfirm={handleDelete} onCancel={() => setDeleteSlug(null)} />
+
         {/* Content */}
         {loading ? (
           <div className="space-y-6">
@@ -167,7 +180,20 @@ export default function DashboardPage() {
                   .map(sd => ({ label: sd.label, value: project.status_counts[sd.key] || 0, color: sd.color }));
                 return (
                   <div key={project.slug} onClick={() => router.push(`/private/${workspaceSlug}/tickets?project=${project.slug}`)} className="bg-white rounded-xl border border-gray-200 p-5 hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-50 transition-all cursor-pointer group">
-                    <h3 className="font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors truncate mb-1">{project.name}</h3>
+                    <div className="flex items-start justify-between mb-1">
+                      <h3 className="font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors truncate mr-2">{project.name}</h3>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <button onClick={e => { e.stopPropagation(); router.push(`/private/${workspaceSlug}/projects/${project.slug}/chat`); }} className="p-1.5 rounded hover:bg-indigo-50 text-gray-400 hover:text-indigo-600 sm:opacity-0 sm:group-hover:opacity-100 transition-all" title="Chat">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                        </button>
+                        <button onClick={e => { e.stopPropagation(); router.push(`/private/${workspaceSlug}/projects/${project.slug}`); }} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 sm:opacity-0 sm:group-hover:opacity-100 transition-all" title="Settings">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        </button>
+                        <button onClick={e => { e.stopPropagation(); setDeleteSlug(project.slug); }} className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 sm:opacity-0 sm:group-hover:opacity-100 transition-all" title="Delete">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                      </div>
+                    </div>
                     <p className="text-sm text-gray-500 line-clamp-2 mb-3">{project.description || 'No description'}</p>
 
                     {/* Pie chart */}
