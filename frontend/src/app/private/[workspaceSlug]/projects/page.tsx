@@ -77,7 +77,6 @@ export default function DashboardPage() {
 
   // Workspace-level pie slices
   const wsSlices: PieSlice[] = statuses
-    .filter(sd => (dashboard?.status_counts[sd.key] || 0) > 0)
     .map(sd => ({ label: sd.label, value: dashboard?.status_counts[sd.key] || 0, color: sd.color }));
 
   return (
@@ -155,7 +154,6 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {dashboard.projects.map((project) => {
                 const pieSlices: PieSlice[] = statuses
-                  .filter(sd => (project.status_counts[sd.key] || 0) > 0)
                   .map(sd => ({ label: sd.label, value: project.status_counts[sd.key] || 0, color: sd.color }));
                 return (
                   <div key={project.slug} onClick={() => router.push(`/private/${workspaceSlug}/tickets?project=${project.slug}`)} className="bg-white rounded-xl border border-gray-200 p-5 hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-50 transition-all cursor-pointer group">

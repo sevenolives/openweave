@@ -159,24 +159,27 @@ export default function PieChart({ slices, size = 200, donut = true, className =
         )}
       </svg>
 
-      {/* Legend */}
+      {/* Legend — show all statuses including zero */}
       <div className="flex flex-wrap justify-center gap-x-4 gap-y-1.5">
-        {arcs.map((arc) => (
-          <div
-            key={arc.label}
-            className="flex items-center gap-1.5 cursor-pointer"
-            onMouseEnter={() => setHoveredIndex(arc.index)}
-            onMouseLeave={() => setHoveredIndex(null)}
-          >
-            <span
-              className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-              style={{ backgroundColor: toHex(arc.color) }}
-            />
-            <span className="text-xs text-gray-600">
-              {arc.label} ({arc.value})
-            </span>
-          </div>
-        ))}
+        {slices.map((slice, i) => {
+          const arcIndex = arcs.findIndex(a => a.label === slice.label);
+          return (
+            <div
+              key={slice.label}
+              className="flex items-center gap-1.5 cursor-pointer"
+              onMouseEnter={() => arcIndex >= 0 ? setHoveredIndex(arcIndex) : undefined}
+              onMouseLeave={() => setHoveredIndex(null)}
+            >
+              <span
+                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                style={{ backgroundColor: toHex(slice.color), opacity: slice.value > 0 ? 1 : 0.35 }}
+              />
+              <span className={`text-xs ${slice.value > 0 ? 'text-gray-600' : 'text-gray-400'}`}>
+                {slice.label} ({slice.value})
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
