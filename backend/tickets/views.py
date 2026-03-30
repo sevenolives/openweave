@@ -1145,6 +1145,88 @@ class DashboardView(APIView):
         })
 
 
+class ProjectsDashboardView(APIView):
+    """Efficient dashboard: per-project ticket status breakdowns for a workspace."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        tags=['dashboard'],
+        summary="Get projects dashboard with per-project status breakdowns",
+        parameters=[
+            OpenApiParameter(name='workspace', description='Workspace slug', type=str, required=True),
+        ],
+    )
+    def get(self, request):
+        from django.db.models import Count
+
+        workspace_slug = request.query_params.get('workspace')
+        if not workspace_slug:
+            return Response({'detail': 'workspace parameter required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        ws_q = Q(slug=workspace_slug) | Q(id=int(workspace_slug)) if workspace_slug.isdigit() else Q(slug=workspace_slug)
+        workspace = Workspace.objects.filter(ws_q).first()
+        if not workspace:
+            return Response({'detail': 'Workspace not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Verify access
+        has_access = (
+            workspace.owner_id == request.user.id or
+            WorkspaceMember.objects.filter(workspace=workspace, user=request.user).exists()
+        )
+        if not has_access and not request.user.is_superuser:
+            return Response({'detail': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+
+        ws_id = workspace.id
+
+        # Status definitions (once)
+        status_defs = StatusDefinition.objects.filter(workspace_id=ws_id).order_by('position')
+
+        # All projects
+        projects = Project.objects.filter(workspace_id=ws_id).order_by('-updated_at')
+
+        # Single aggregation query: project × status counts
+        ticket_qs = Ticket.objects.filter(project__workspace_id=ws_id)
+        if not request.user.is_superuser and not is_admin_or_owner(request.user, workspace):
+            ticket_qs = ticket_qs.filter(project__agents=request.user).distinct()
+
+        raw = ticket_qs.values('project__slug', 'status').annotate(cnt=Count('id'))
+        # Build { project_slug: { status_key: count } }
+        project_counts: dict = {}
+        for row in raw:
+            ps = row['project__slug']
+            if ps not in project_counts:
+                project_counts[ps] = {}
+            project_counts[ps][row['status']] = row['cnt']
+
+        # Workspace-level totals
+        ws_status_counts = {}
+        for sd in status_defs:
+            ws_status_counts[sd.key] = sum(
+                pc.get(sd.key, 0) for pc in project_counts.values()
+            )
+
+        project_list = []
+        for p in projects:
+            counts = project_counts.get(p.slug, {})
+            total = sum(counts.values())
+            project_list.append({
+                'slug': p.slug,
+                'name': p.name,
+                'description': p.description or '',
+                'updated_at': p.updated_at.isoformat(),
+                'total_tickets': total,
+                'status_counts': {sd.key: counts.get(sd.key, 0) for sd in status_defs},
+            })
+
+        return Response({
+            'statuses': StatusDefinitionSerializer(status_defs, many=True).data,
+            'total_tickets': sum(ws_status_counts.values()),
+            'status_counts': ws_status_counts,
+            'total_projects': len(project_list),
+            'projects': project_list,
+        })
+
+
 @extend_schema(tags=['project-agents'])
 class ProjectAgentViewSet(viewsets.ModelViewSet):
     """Manage project agent memberships with roles."""

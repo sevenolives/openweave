@@ -38,7 +38,7 @@ export default function WorkspacesPage() {
 
   const handleSelect = (ws: typeof workspaces[0]) => {
     setCurrentWorkspace(ws);
-    router.push(`/private/${ws.slug}/dashboard`);
+    router.push(`/private/${ws.slug}/projects`);
   };
 
   return (

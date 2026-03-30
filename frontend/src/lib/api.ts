@@ -210,6 +210,23 @@ export interface DashboardStats {
   my_assigned: Ticket[];
 }
 
+export interface ProjectDashboardItem {
+  slug: string;
+  name: string;
+  description: string;
+  updated_at: string;
+  total_tickets: number;
+  status_counts: Record<string, number>;
+}
+
+export interface ProjectsDashboard {
+  statuses: StatusDefinition[];
+  total_tickets: number;
+  status_counts: Record<string, number>;
+  total_projects: number;
+  projects: ProjectDashboardItem[];
+}
+
 // Token management
 export const tokenStorage = {
   getAccessToken: (): string | null => {
@@ -579,6 +596,10 @@ class ApiClient {
   async getDashboard(params: Record<string, string>): Promise<DashboardStats> {
     const query = '?' + new URLSearchParams(params).toString();
     return this.request<DashboardStats>(`/dashboard/${query}`);
+  }
+
+  async getProjectsDashboard(workspaceSlug: string): Promise<ProjectsDashboard> {
+    return this.request<ProjectsDashboard>(`/projects-dashboard/?workspace=${encodeURIComponent(workspaceSlug)}`);
   }
 
   async getStatusDefinitions(workspaceSlug: string, includeArchived = false): Promise<StatusDefinition[]> {

@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 
 import Layout from '@/components/Layout';
+import PieChart from '@/components/PieChart';
+import type { PieSlice } from '@/components/PieChart';
 import { useAuth } from '@/hooks/useAuth';
 import { api, DashboardStats, Ticket, StatusDefinition } from '@/lib/api';
 import { useWorkspace } from '@/hooks/useWorkspace';
@@ -156,6 +158,25 @@ export default function DashboardPage() {
                 <p className="text-2xl sm:text-3xl font-bold text-gray-900">{data.completed_today}</p>
               </div>
             </div>
+
+            {/* Ticket Status Breakdown — Pie Chart */}
+            {data.total_tickets > 0 && (() => {
+              const slices: PieSlice[] = data.statuses
+                .filter(sd => (data.status_counts[sd.key] || 0) > 0)
+                .map(sd => ({
+                  label: sd.label,
+                  value: data.status_counts[sd.key] || 0,
+                  color: sd.color,
+                }));
+              return (
+                <div className="bg-white rounded-xl border border-gray-200 p-5 mb-8">
+                  <h2 className="font-semibold text-gray-900 mb-4">Ticket Status Breakdown</h2>
+                  <div className="flex justify-center">
+                    <PieChart slices={slices} size={220} donut />
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Quick Actions */}
             <div className="flex flex-wrap gap-3 mb-8">
