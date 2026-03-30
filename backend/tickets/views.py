@@ -639,12 +639,13 @@ class TicketViewSet(viewsets.ModelViewSet):
         is_project_admin = pa and pa['role'] == 'ADMIN'
 
         if not user.is_superuser and not is_admin_or_owner(user, workspace) and not is_project_admin:
-            # Allow assignment changes even if not currently assigned
-            allowed_fields = {'assigned_to'}
-            only_allowed = set(serializer.validated_data.keys()) <= allowed_fields
-            if instance.assigned_to_id != user.id and not only_allowed:
-                from rest_framework.exceptions import PermissionDenied
-                raise PermissionDenied("You can only work on tickets assigned to you.")
+            # Only enforce assignment check if workspace has restrict_status_to_assigned enabled
+            if workspace and workspace.restrict_status_to_assigned:
+                allowed_fields = {'assigned_to'}
+                only_allowed = set(serializer.validated_data.keys()) <= allowed_fields
+                if instance.assigned_to_id and instance.assigned_to_id != user.id and not only_allowed:
+                    from rest_framework.exceptions import PermissionDenied
+                    raise PermissionDenied("You can only work on tickets assigned to you.")
 
         instance._performed_by = user
         try:
