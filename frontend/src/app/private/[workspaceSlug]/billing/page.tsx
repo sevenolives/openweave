@@ -18,6 +18,7 @@ export default function BillingPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [seatInput, setSeatInput] = useState('');
   const [seatActionLoading, setSeatActionLoading] = useState(false);
+  const [upgradeSeats, setUpgradeSeats] = useState(5);
 
   const success = searchParams.get('success');
   const cancelled = searchParams.get('cancelled');
@@ -33,6 +34,7 @@ export default function BillingPage() {
         setSubscription(sub);
         setMembers(members);
         setSeatInput(String(sub.licensed_seats || 3));
+        setUpgradeSeats(Math.max(sub.occupied_seats || 1, 5));
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -42,7 +44,7 @@ export default function BillingPage() {
     if (!wsSlug) return;
     setActionLoading(true);
     try {
-      const { checkout_url } = await api.createCheckoutSession(wsSlug, plan);
+      const { checkout_url } = await api.createCheckoutSession(wsSlug, plan, upgradeSeats);
       window.location.href = checkout_url;
     } catch (err) {
       console.error(err);
@@ -178,23 +180,57 @@ export default function BillingPage() {
             {subscription?.plan === 'free' && (
               <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                 <h2 className="text-lg font-semibold text-gray-900 mb-2">Upgrade to Pro</h2>
-                <p className="text-sm text-gray-500 mb-6">
+                <p className="text-sm text-gray-500 mb-4">
                   Licensed seats, unlimited workspaces &amp; projects, custom state machines, and more.
                 </p>
+
+                {/* Seat chooser */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Number of seats</label>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setUpgradeSeats(Math.max(occupiedSeats, upgradeSeats - 1))}
+                      disabled={upgradeSeats <= occupiedSeats}
+                      className="w-10 h-10 rounded-lg border border-gray-300 text-gray-600 font-bold hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+                    >−</button>
+                    <input
+                      type="number"
+                      value={upgradeSeats}
+                      onChange={(e) => {
+                        const v = parseInt(e.target.value) || occupiedSeats;
+                        setUpgradeSeats(Math.max(occupiedSeats, v));
+                      }}
+                      min={occupiedSeats}
+                      className="w-20 text-center px-3 py-2 border border-gray-300 rounded-lg text-lg font-semibold"
+                    />
+                    <button
+                      onClick={() => setUpgradeSeats(upgradeSeats + 1)}
+                      className="w-10 h-10 rounded-lg border border-gray-300 text-gray-600 font-bold hover:bg-gray-50"
+                    >+</button>
+                    <span className="text-sm text-gray-500">
+                      (min {occupiedSeats} — you have {occupiedSeats} user{occupiedSeats !== 1 ? 's' : ''})
+                    </span>
+                  </div>
+                  <div className="mt-3 flex gap-6 text-sm text-gray-600">
+                    <span>Monthly: <strong className="text-gray-900">${upgradeSeats * 12}/mo</strong></span>
+                    <span>Annual: <strong className="text-gray-900">${upgradeSeats * 10}/mo</strong> <span className="text-green-600">(save ${upgradeSeats * 24}/yr)</span></span>
+                  </div>
+                </div>
+
                 <div className="flex gap-3">
                   <button
                     onClick={() => handleUpgrade('pro_monthly')}
                     disabled={actionLoading}
                     className="px-4 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition disabled:opacity-50"
                   >
-                    {actionLoading ? 'Redirecting…' : '$12/seat/mo — Monthly'}
+                    {actionLoading ? 'Redirecting…' : `$${upgradeSeats * 12}/mo — Monthly`}
                   </button>
                   <button
                     onClick={() => handleUpgrade('pro_annual')}
                     disabled={actionLoading}
                     className="px-4 py-2.5 rounded-lg border border-indigo-200 text-indigo-600 text-sm font-medium hover:bg-indigo-50 transition disabled:opacity-50"
                   >
-                    {actionLoading ? 'Redirecting…' : '$10/seat/mo — Annual'}
+                    {actionLoading ? 'Redirecting…' : `$${upgradeSeats * 10}/mo — Annual`}
                   </button>
                 </div>
               </div>

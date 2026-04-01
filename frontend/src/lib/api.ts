@@ -676,12 +676,13 @@ class ApiClient {
   }
 
   // Billing
-  async createCheckoutSession(workspaceSlug: string, plan: string): Promise<{ checkout_url: string }> {
+  async createCheckoutSession(workspaceSlug: string, plan: string, quantity?: number): Promise<{ checkout_url: string }> {
     return this.request<{ checkout_url: string }>('/billing/checkout/', {
       method: 'POST',
       body: JSON.stringify({
         workspace: workspaceSlug,
         plan,
+        quantity,
         frontend_url: typeof window !== 'undefined' ? window.location.origin : 'https://openweave.dev',
       }),
     });

@@ -73,9 +73,18 @@ class CreateCheckoutSessionView(APIView):
         success_url = f"{frontend_url}/private/{workspace.slug}/billing?success=true"
         cancel_url = f"{frontend_url}/private/{workspace.slug}/billing?cancelled=true"
 
-        # Set initial quantity to current member count (minimum 1)
+        # Set quantity — user chooses seats, minimum is current member count
         member_count = WorkspaceMember.objects.filter(workspace=workspace).count() + 1  # +1 for owner
-        initial_quantity = max(1, member_count)
+        requested_quantity = request.data.get('quantity')
+        if requested_quantity:
+            requested_quantity = int(requested_quantity)
+            if requested_quantity < member_count:
+                return Response({
+                    'detail': f'Cannot purchase fewer seats than current users ({member_count}). You have {member_count} users.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            initial_quantity = requested_quantity
+        else:
+            initial_quantity = max(1, member_count)
 
         try:
             session = s.checkout.Session.create(
