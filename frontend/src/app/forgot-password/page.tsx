@@ -20,7 +20,7 @@ export default function ForgotPasswordPage() {
     setError('');
     
     try {
-      const response = await fetch('/api/auth/forgot-password/', {
+      const response = await fetch((process.env.NEXT_PUBLIC_API_URL || '/api') + '/auth/forgot-password/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -58,7 +58,7 @@ export default function ForgotPasswordPage() {
     }
 
     try {
-      const response = await fetch('/api/auth/reset-password/', {
+      const response = await fetch((process.env.NEXT_PUBLIC_API_URL || '/api') + '/auth/reset-password/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp, new_password: newPassword }),
