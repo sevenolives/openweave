@@ -26,6 +26,7 @@ from .serializers import (
     BlogPostListSerializer, BlogPostDetailSerializer, BlogPostCreateSerializer,
     MediaFileSerializer,
 )
+from .throttles import AuthRateThrottle
 from .permissions import (
     IsAdminAgent, IsAdminOrReadOnly, IsAdminOrOwner, is_admin_or_owner,
 )
@@ -56,6 +57,7 @@ class JoinView(APIView):
     Case 4: Authenticated user + {workspace_invite_token} → join existing user to workspace, return {workspace}
     """
     permission_classes = [AllowAny]
+    throttle_classes = [AuthRateThrottle]
 
     @extend_schema(
         summary="Register or join a workspace",
@@ -337,6 +339,7 @@ class JoinView(APIView):
 class ForgotPasswordView(APIView):
     """Send OTP to user's email for password reset."""
     permission_classes = [AllowAny]
+    throttle_classes = [AuthRateThrottle]
     
     @extend_schema(
         summary="Send password reset OTP",
@@ -396,6 +399,7 @@ class ForgotPasswordView(APIView):
 class ResetPasswordView(APIView):
     """Reset password using OTP."""
     permission_classes = [AllowAny]
+    throttle_classes = [AuthRateThrottle]
     
     @extend_schema(
         summary="Reset password with OTP",
@@ -462,6 +466,7 @@ class ResetPasswordView(APIView):
 class SendVerificationView(APIView):
     """Send email verification OTP to current user's email."""
     permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [AuthRateThrottle]
     
     @extend_schema(
         summary="Send email verification OTP",
@@ -521,6 +526,7 @@ class SendVerificationView(APIView):
 class VerifyEmailView(APIView):
     """Verify user's email with OTP."""
     permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [AuthRateThrottle]
     
     @extend_schema(
         summary="Verify email with OTP",

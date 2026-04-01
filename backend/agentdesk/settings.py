@@ -158,6 +158,16 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'tickets.pagination.FlexiblePageNumberPagination',
     'PAGE_SIZE': 10,
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': os.environ.get('THROTTLE_ANON', '30/minute'),
+        'user': os.environ.get('THROTTLE_USER', '120/minute'),
+        'auth': os.environ.get('THROTTLE_AUTH', '10/minute'),
+    },
+    'EXCEPTION_HANDLER': 'tickets.exception_handler.custom_exception_handler',
 }
 
 SPECTACULAR_SETTINGS = {
