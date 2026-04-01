@@ -193,7 +193,7 @@ function StateMachineSettings({
       </p>
 
       {/* State cards */}
-      {statuses.map((s) => (
+      {statuses.map((s, idx) => (
         <div key={s.id} style={cardStyle}>
           {/* Header row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -227,6 +227,32 @@ function StateMachineSettings({
             {!s.is_default && (
               <button onClick={() => handleDeleteStatus(s)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 16 }}>✕</button>
             )}
+            {/* Reorder buttons */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginLeft: 'auto' }}>
+              <button
+                disabled={idx === 0}
+                onClick={async () => {
+                  const prev = statuses[idx - 1];
+                  if (!prev) return;
+                  // Swap positions using index-based values to avoid collisions
+                  await handleUpdateStatus(s.id, { position: idx - 1 });
+                  await handleUpdateStatus(prev.id, { position: idx });
+                }}
+                style={{ background: 'none', border: '1px solid #3f3f46', borderRadius: 4, color: idx === 0 ? '#3f3f46' : '#9ca3af', cursor: idx === 0 ? 'default' : 'pointer', fontSize: 11, padding: '2px 6px', lineHeight: 1, minWidth: 28, minHeight: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                title="Move up"
+              >▲</button>
+              <button
+                disabled={idx === statuses.length - 1}
+                onClick={async () => {
+                  const next = statuses[idx + 1];
+                  if (!next) return;
+                  await handleUpdateStatus(s.id, { position: idx + 1 });
+                  await handleUpdateStatus(next.id, { position: idx });
+                }}
+                style={{ background: 'none', border: '1px solid #3f3f46', borderRadius: 4, color: idx === statuses.length - 1 ? '#3f3f46' : '#9ca3af', cursor: idx === statuses.length - 1 ? 'default' : 'pointer', fontSize: 11, padding: '2px 6px', lineHeight: 1, minWidth: 28, minHeight: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                title="Move down"
+              >▼</button>
+            </div>
           </div>
 
           {/* Description */}
