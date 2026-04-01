@@ -82,6 +82,7 @@ export default function VerifyEmailPage() {
   };
 
   const handleSkip = () => {
+    sessionStorage.setItem('email_verification_skipped', 'true');
     router.push('/private/workspaces');
   };
 

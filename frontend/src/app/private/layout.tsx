@@ -17,9 +17,10 @@ export default function PrivateLayout({ children }: { children: React.ReactNode 
     }
   }, [isLoading, isLoggedIn, router]);
 
-  // Redirect to email verification for unverified human users
+  // Redirect to email verification for unverified human users (unless skipped)
   useEffect(() => {
-    if (!isLoading && isLoggedIn && user && user.user_type === 'HUMAN' && user.email && !user.email_verified && pathname !== '/verify-email') {
+    const skipped = typeof window !== 'undefined' && sessionStorage.getItem('email_verification_skipped');
+    if (!isLoading && isLoggedIn && user && user.user_type === 'HUMAN' && user.email && !user.email_verified && !skipped && pathname !== '/verify-email') {
       router.replace('/verify-email');
     }
   }, [isLoading, isLoggedIn, user, pathname, router]);
