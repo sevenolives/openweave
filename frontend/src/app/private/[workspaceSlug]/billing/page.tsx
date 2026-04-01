@@ -1,13 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useParams } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { api, SubscriptionStatus, WorkspaceMember } from '@/lib/api';
 
 export default function BillingPage() {
   const { currentWorkspace } = useWorkspace();
+  const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
+  // Use currentWorkspace slug if available, fall back to URL param
+  const wsSlug = currentWorkspace?.slug || workspaceSlug;
   const searchParams = useSearchParams();
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
@@ -20,14 +23,11 @@ export default function BillingPage() {
   const cancelled = searchParams.get('cancelled');
 
   useEffect(() => {
-    if (!currentWorkspace) {
-      setLoading(false);
-      return;
-    }
+    if (!wsSlug) return;
     setLoading(true);
     Promise.all([
-      api.getSubscriptionStatus(currentWorkspace.slug),
-      api.getWorkspaceMembers({ workspace: currentWorkspace.slug })
+      api.getSubscriptionStatus(wsSlug),
+      api.getWorkspaceMembers({ workspace: wsSlug })
     ])
       .then(([sub, members]) => {
         setSubscription(sub);
@@ -36,13 +36,13 @@ export default function BillingPage() {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [currentWorkspace]);
+  }, [wsSlug]);
 
   const handleUpgrade = async (plan: 'pro_monthly' | 'pro_annual') => {
-    if (!currentWorkspace) return;
+    if (!wsSlug) return;
     setActionLoading(true);
     try {
-      const { checkout_url } = await api.createCheckoutSession(currentWorkspace.slug, plan);
+      const { checkout_url } = await api.createCheckoutSession(wsSlug, plan);
       window.location.href = checkout_url;
     } catch (err) {
       console.error(err);
@@ -51,10 +51,10 @@ export default function BillingPage() {
   };
 
   const handleManage = async () => {
-    if (!currentWorkspace) return;
+    if (!wsSlug) return;
     setActionLoading(true);
     try {
-      const { portal_url } = await api.createPortalSession(currentWorkspace.slug);
+      const { portal_url } = await api.createPortalSession(wsSlug);
       window.location.href = portal_url;
     } catch (err) {
       console.error(err);
@@ -67,7 +67,7 @@ export default function BillingPage() {
     if (!currentWorkspace || !newSeatCount || newSeatCount < 1) return;
     setSeatActionLoading(true);
     try {
-      const result = await api.manageSeats(currentWorkspace.slug, newSeatCount);
+      const result = await api.manageSeats(wsSlug, newSeatCount);
       if (subscription) {
         setSubscription({
           ...subscription,
