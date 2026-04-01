@@ -36,6 +36,7 @@ class CreateCheckoutSessionView(APIView):
 
         # Verify membership
         is_member = (
+            request.user.is_superuser or
             workspace.owner_id == request.user.id or
             WorkspaceMember.objects.filter(workspace=workspace, user=request.user).exists()
         )
@@ -212,6 +213,7 @@ class CustomerPortalView(APIView):
         # Verify membership
         workspace = sub.workspace
         is_member = (
+            request.user.is_superuser or
             workspace.owner_id == request.user.id or
             WorkspaceMember.objects.filter(workspace=workspace, user=request.user).exists()
         )
@@ -246,6 +248,7 @@ class SubscriptionStatusView(APIView):
 
         # Verify membership
         is_member = (
+            request.user.is_superuser or
             workspace.owner_id == request.user.id or
             WorkspaceMember.objects.filter(workspace=workspace, user=request.user).exists()
         )
