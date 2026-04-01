@@ -217,21 +217,36 @@ class JoinView(APIView):
         # Cases 1-3: Creating a new user
         if not name:
             return Response({'detail': 'name is required.'}, status=status.HTTP_400_BAD_REQUEST)
-        # Auto-generate username from email or UUID
-        if not username:
+
+        import re
+        is_bot = not password
+
+        # Username handling
+        if is_bot:
+            # Bots must choose a username
+            if not username:
+                return Response({'detail': 'username is required for bot users.'}, status=status.HTTP_400_BAD_REQUEST)
+            # Sanitize: alphanumeric and hyphens only
+            username = re.sub(r'[^a-z0-9]', '', username.lower())
+            if not username:
+                return Response({'detail': 'Username must contain letters or numbers.'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            # Humans: auto-generate from email prefix
             if email:
-                username = email.split('@')[0]
+                username = re.sub(r'[^a-z0-9]', '', email.split('@')[0].lower())
+            elif username:
+                username = re.sub(r'[^a-z0-9]', '', username.lower())
             else:
                 import uuid as _uuid
-                username = f'user-{_uuid.uuid4().hex[:8]}'
-        # Ensure unique username
-        base_username = username
-        counter = 1
-        while User.objects.filter(username=username).exists():
-            username = f'{base_username}-{counter}'
-            counter += 1
+                username = f'user{_uuid.uuid4().hex[:8]}'
 
-        is_bot = not password
+        # Ensure unique: append numeric ID if collision
+        if User.objects.filter(username=username).exists():
+            base_username = username
+            counter = 1
+            while User.objects.filter(username=username).exists():
+                username = f'{base_username}{counter}'
+                counter += 1
         if is_bot and not invite and not project_invite:
             return Response({'detail': 'Bot users require an invite token.'}, status=status.HTTP_400_BAD_REQUEST)
 
