@@ -229,7 +229,13 @@ class JoinView(APIView):
             user.set_password(password)
             user.save()
         else:
-            user = User(username=username, name=name, user_type='BOT', description=description)
+            # Stamp workspace on bot user record
+            bot_workspace = None
+            if project_invite and project_invite.project.workspace:
+                bot_workspace = project_invite.project.workspace
+            elif invite and invite.workspace:
+                bot_workspace = invite.workspace
+            user = User(username=username, name=name, user_type='BOT', description=description, created_in_workspace=bot_workspace)
             user.set_unusable_password()
             user.save()
 
@@ -394,6 +400,69 @@ class UserViewSet(viewsets.ModelViewSet):
         qs = qs[:20]
         serializer = UserSimpleSerializer(qs, many=True)
         return Response(serializer.data)
+
+    @extend_schema(
+        summary="List bots with tokens for a workspace",
+        description="Returns bot users created in this workspace with their API tokens. Workspace admin/owner only.",
+        parameters=[OpenApiParameter(name='workspace', description='Workspace slug', type=str, required=True)],
+    )
+    @action(detail=False, methods=['get'], url_path='bots')
+    def bots(self, request):
+        ws_slug = request.query_params.get('workspace')
+        if not ws_slug:
+            return Response({'detail': 'workspace parameter required.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            ws = Workspace.objects.get(slug=ws_slug)
+        except Workspace.DoesNotExist:
+            return Response({'detail': 'Workspace not found.'}, status=status.HTTP_404_NOT_FOUND)
+        if not is_admin_or_owner(request.user, ws):
+            return Response({'detail': 'Only workspace admin/owner can view bot tokens.'}, status=status.HTTP_403_FORBIDDEN)
+        bots = User.objects.filter(created_in_workspace=ws, user_type='BOT')
+        result = []
+        for bot in bots:
+            token = Token.objects.filter(user=bot).first()
+            result.append({
+                'username': bot.username,
+                'name': bot.name,
+                'description': bot.description,
+                'api_token': token.key if token else None,
+                'is_active': bot.is_active,
+                'created_at': bot.date_joined.isoformat(),
+            })
+        return Response(result)
+
+    @extend_schema(
+        summary="Regenerate bot token",
+        description="Deletes old token and creates a new one. Workspace admin/owner only.",
+    )
+    @action(detail=False, methods=['post'], url_path='regenerate-token')
+    def regenerate_token(self, request):
+        username = request.data.get('username')
+        if not username:
+            return Response({'detail': 'username required.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            bot = User.objects.get(username=username, user_type='BOT')
+        except User.DoesNotExist:
+            return Response({'detail': 'Bot not found.'}, status=status.HTTP_404_NOT_FOUND)
+        if not bot.created_in_workspace or not is_admin_or_owner(request.user, bot.created_in_workspace):
+            return Response({'detail': 'Only the workspace admin/owner can regenerate this token.'}, status=status.HTTP_403_FORBIDDEN)
+        Token.objects.filter(user=bot).delete()
+        new_token = Token.objects.create(user=bot)
+        return Response({'username': bot.username, 'api_token': new_token.key})
+
+    @extend_schema(
+        summary="Delete bot user",
+        description="Permanently deletes a bot user and their token. Workspace admin/owner only.",
+    )
+    def destroy(self, request, *args, **kwargs):
+        bot = self.get_object()
+        if bot.user_type != 'BOT':
+            return Response({'detail': 'Can only delete bot users.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not bot.created_in_workspace or not is_admin_or_owner(request.user, bot.created_in_workspace):
+            return Response({'detail': 'Only the workspace admin/owner can delete this bot.'}, status=status.HTTP_403_FORBIDDEN)
+        Token.objects.filter(user=bot).delete()
+        bot.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @extend_schema(tags=['projects'])

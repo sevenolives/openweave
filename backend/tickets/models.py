@@ -40,6 +40,8 @@ class User(AbstractUser):
         help_text="Email notification preference level"
     )
     is_active = models.BooleanField(default=True)
+    created_in_workspace = models.ForeignKey('Workspace', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='created_bots', help_text='Workspace where this bot was created (bots only)')
     
     # Keep the username field as per best practices
     # Email is already included in AbstractUser
