@@ -84,6 +84,7 @@ class AuthenticationAPITest(BaseAPITestCase):
         data = {
             'username': 'newuser',
             'name': 'New User',
+            'email': 'newuser@example.com',
             'password': 'newpass123',
         }
 

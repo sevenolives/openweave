@@ -382,7 +382,7 @@ class ApiClient {
     return tokens;
   }
 
-  async register(data: { username: string; name: string; password: string }): Promise<AuthTokens> {
+  async register(data: { username: string; name: string; email?: string; password: string }): Promise<AuthTokens> {
     const tokens = await this.request<AuthTokens>('/auth/join/', {
       method: 'POST',
       body: JSON.stringify(data),

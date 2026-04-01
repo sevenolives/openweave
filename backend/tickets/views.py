@@ -153,6 +153,7 @@ class JoinView(APIView):
     def post(self, request):
         invite_token = request.data.get('workspace_invite_token') or request.data.get('project_invite_token')
         username = request.data.get('username')
+        email = request.data.get('email', '').strip()
         name = request.data.get('name')
         password = request.data.get('password')
         description = request.data.get('description', '')
@@ -224,8 +225,14 @@ class JoinView(APIView):
         if is_bot and not invite and not project_invite:
             return Response({'detail': 'Bot users require an invite token.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Email required for human users
+        if password and not email:
+            return Response({'detail': 'Email is required for human users.'}, status=status.HTTP_400_BAD_REQUEST)
+        if email and User.objects.filter(email__iexact=email).exists():
+            return Response({'detail': 'An account with this email already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+
         if password:
-            user = User(username=username, name=name, user_type='HUMAN', description=description)
+            user = User(username=username, email=email, name=name, user_type='HUMAN', description=description)
             user.set_password(password)
             user.save()
             

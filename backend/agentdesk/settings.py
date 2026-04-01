@@ -82,7 +82,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
+    'tickets.auth_backends.EmailOrUsernameBackend',
 ]
 
 LANGUAGE_CODE = 'en-us'

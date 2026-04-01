@@ -9,6 +9,7 @@ import PublicNav from '@/components/PublicNav';
 function LoginForm() {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -29,7 +30,7 @@ function LoginForm() {
       if (mode === 'login') {
         await login(username, password);
       } else {
-        await register({ username, name, password });
+        await register({ username, name, email, password });
       }
       const redirect = searchParams.get('redirect');
       router.push(redirect || '/private/workspaces');
@@ -91,7 +92,7 @@ function LoginForm() {
           <form className="space-y-5" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1.5">
-                Username
+                {mode === 'login' ? 'Email or username' : 'Username'}
               </label>
               <input
                 id="username"
@@ -100,12 +101,31 @@ function LoginForm() {
                 autoComplete="username"
                 required
                 className={`block w-full px-4 py-2.5 bg-gray-50 border rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:border-transparent focus:bg-white transition-all text-sm ${fieldErrors.username ? 'border-red-500 focus:ring-red-500 bg-red-50' : 'border-gray-200 focus:ring-indigo-500'}`}
-                placeholder="Enter your username"
+                placeholder={mode === 'login' ? 'Email or username' : 'Choose a username'}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />
               {fieldErrors.username && <p className="mt-1 text-sm text-red-600">{fieldErrors.username}</p>}
             </div>
+
+            {mode === 'register' && (
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  className={`block w-full px-4 py-2.5 bg-gray-50 border rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:border-transparent focus:bg-white transition-all text-sm ${fieldErrors.email ? 'border-red-500 focus:ring-red-500 bg-red-50' : 'border-gray-200 focus:ring-indigo-500'}`}
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+                {fieldErrors.email && <p className="mt-1 text-sm text-red-600">{fieldErrors.email}</p>}
+              </div>
+            )}
 
             {mode === 'register' && (
               <div>
