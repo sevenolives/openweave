@@ -1,18 +1,28 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { useWorkspace } from '@/hooks/useWorkspace';
 
 export default function PrivateLayout({ children }: { children: React.ReactNode }) {
   const { isLoggedIn, isLoading } = useAuth();
+  const { workspaces, isLoading: wsLoading } = useWorkspace();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!isLoading && !isLoggedIn) {
       router.replace('/login');
     }
   }, [isLoading, isLoggedIn, router]);
+
+  // Redirect to onboarding if no workspaces (unless already on workspaces page)
+  useEffect(() => {
+    if (!isLoading && !wsLoading && isLoggedIn && workspaces.length === 0 && pathname !== '/private/workspaces') {
+      router.replace('/private/workspaces');
+    }
+  }, [isLoading, wsLoading, isLoggedIn, workspaces, pathname, router]);
 
   if (isLoading) {
     return (

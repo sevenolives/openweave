@@ -1,22 +1,34 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import FormField, { parseFieldErrors, inputClass } from '@/components/FormField';
 import { useWorkspace } from '@/hooks/useWorkspace';
+import OnboardingRamp from '@/components/OnboardingRamp';
 import { api } from '@/lib/api';
 
 export default function WorkspacesPage() {
   const { workspaces, currentWorkspace, setCurrentWorkspace, refreshWorkspaces, isLoading: wsLoading } = useWorkspace();
   const [showCreate, setShowCreate] = useState(false);
+  const [showRamp, setShowRamp] = useState(false);
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [creating, setCreating] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const router = useRouter();
   const { toast } = useToast();
+
+  // Show onboarding ramp if user has no workspaces
+  if (!wsLoading && workspaces.length === 0) {
+    return <OnboardingRamp onComplete={() => refreshWorkspaces()} />;
+  }
+
+  // Show ramp when explicitly requested (for creating additional workspaces)
+  if (showRamp) {
+    return <OnboardingRamp onComplete={() => { setShowRamp(false); refreshWorkspaces(); }} />;
+  }
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,26 +59,12 @@ export default function WorkspacesPage() {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Workspaces</h1>
           <button
-            onClick={() => setShowCreate(!showCreate)}
+            onClick={() => setShowRamp(true)}
             className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"
           >
-            New Workspace
+            + New Workspace
           </button>
         </div>
-
-        {showCreate && (
-          <form onSubmit={handleCreate} className="bg-white border border-gray-200 rounded-xl p-5 mb-6 space-y-4">
-            <FormField label="Name" error={fieldErrors.name} required>
-              <input value={name} onChange={e => { setName(e.target.value); setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')); }} className={inputClass(fieldErrors.name)} required />
-            </FormField>
-            <FormField label="Slug" error={fieldErrors.slug} required>
-              <input value={slug} onChange={e => setSlug(e.target.value)} className={inputClass(fieldErrors.slug)} required />
-            </FormField>
-            <button type="submit" disabled={creating} className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed">
-              {creating ? 'Creating…' : 'Create Workspace'}
-            </button>
-          </form>
-        )}
 
         <div className="space-y-3">
           {workspaces.map(ws => (
@@ -80,9 +78,6 @@ export default function WorkspacesPage() {
               </div>
             </button>
           ))}
-          {workspaces.length === 0 && (
-            <p className="text-center text-gray-500 py-8">No workspaces yet. Create one to get started.</p>
-          )}
         </div>
       </div>
     </Layout>
