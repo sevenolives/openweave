@@ -20,7 +20,11 @@ export default function BillingPage() {
   const cancelled = searchParams.get('cancelled');
 
   useEffect(() => {
-    if (!currentWorkspace) return;
+    if (!currentWorkspace) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
     Promise.all([
       api.getSubscriptionStatus(currentWorkspace.slug),
       api.getWorkspaceMembers({ workspace: currentWorkspace.slug })
