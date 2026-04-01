@@ -26,6 +26,7 @@ export interface User {
   skills: string[];
   description: string;
   is_active: boolean;
+  token?: string; // Bot token, only returned for bots endpoint
 }
 
 export interface Project {
@@ -738,6 +739,23 @@ class ApiClient {
       return { workspace: result.workspace, user };
     }
     return result;
+  }
+
+  // Bot Token Management
+  async getBots(workspaceSlug: string): Promise<User[]> {
+    const response = await this.request<PaginatedResponse<User>>(`/users/bots/?workspace=${encodeURIComponent(workspaceSlug)}`);
+    return response.results || [];
+  }
+
+  async regenerateToken(username: string): Promise<{ token: string }> {
+    return this.request<{ token: string }>('/users/regenerate-token/', {
+      method: 'POST',
+      body: JSON.stringify({ username }),
+    });
+  }
+
+  async deleteUser(userId: number): Promise<void> {
+    await this.request<void>(`/users/${userId}/`, { method: 'DELETE' });
   }
 }
 

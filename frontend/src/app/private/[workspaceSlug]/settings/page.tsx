@@ -385,13 +385,28 @@ export default function WorkspaceSettingsPage() {
   const [newStatusLabel, setNewStatusLabel] = useState('');
   const [newStatusColor, setNewStatusColor] = useState('gray');
   const [addingStatus, setAddingStatus] = useState(false);
-  const [settingsTab, setSettingsTab] = useState<'general' | 'members' | 'state-machine'>('general');
+  const [settingsTab, setSettingsTab] = useState<'general' | 'members' | 'bots' | 'state-machine'>('general');
   const [workspaceUsers, setWorkspaceUsers] = useState<User[]>([]);
   const [allWorkspaces, setAllWorkspaces] = useState<Workspace[]>([]);
   const [syncSource, setSyncSource] = useState('');
   const [showSyncConfirm, setShowSyncConfirm] = useState<'states' | 'transitions' | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [bots, setBots] = useState<User[]>([]);
+  const [loadingBots, setLoadingBots] = useState(false);
+  const [revealedTokens, setRevealedTokens] = useState<Set<number>>(new Set());
   const { toast } = useToast();
+
+  const loadBots = useCallback(async (ws: Workspace) => {
+    setLoadingBots(true);
+    try {
+      const botsList = await api.getBots(ws.slug);
+      setBots(botsList);
+    } catch (e: any) {
+      toast(e?.message || 'Failed to load bots', 'error');
+    } finally {
+      setLoadingBots(false);
+    }
+  }, [toast]);
 
   const loadData = useCallback(async (ws: Workspace) => {
     try {
@@ -422,6 +437,13 @@ export default function WorkspaceSettingsPage() {
       loadData(ws);
     }
   }, [workspaceSlug, workspaces, loadData]);
+
+  // Load bots when switching to bots tab
+  useEffect(() => {
+    if (settingsTab === 'bots' && workspace) {
+      loadBots(workspace);
+    }
+  }, [settingsTab, workspace, loadBots]);
 
   const handleSaveWorkspace = async () => {
     if (!workspace) return;
@@ -495,6 +517,44 @@ export default function WorkspaceSettingsPage() {
     } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
   };
 
+  const handleRegenerateToken = async (bot: User) => {
+    if (!confirm(`Regenerate token for ${bot.username}? This will invalidate the current token.`)) return;
+    try {
+      const result = await api.regenerateToken(bot.username);
+      setBots(prev => prev.map(b => b.id === bot.id ? { ...b, token: result.token } : b));
+      toast(`Token regenerated for ${bot.username}`);
+      // Reveal the new token temporarily
+      setRevealedTokens(prev => new Set(prev).add(bot.id));
+    } catch (e: any) {
+      toast(e?.message || 'Failed to regenerate token', 'error');
+    }
+  };
+
+  const handleDeleteBot = async (bot: User) => {
+    if (!confirm(`Delete bot ${bot.username}? This action cannot be undone.`)) return;
+    try {
+      await api.deleteUser(bot.id);
+      setBots(prev => prev.filter(b => b.id !== bot.id));
+      toast(`Bot ${bot.username} deleted`);
+    } catch (e: any) {
+      toast(e?.message || 'Failed to delete bot', 'error');
+    }
+  };
+
+  const maskToken = (token: string) => {
+    if (token.length <= 8) return token;
+    return token.slice(0, 4) + '...' + token.slice(-4);
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast('Token copied to clipboard');
+    } catch (e) {
+      toast('Failed to copy token', 'error');
+    }
+  };
+
   if (!workspace) return <Layout><div className="p-8 text-center text-gray-500">Workspace not found</div></Layout>;
 
   const tabClass = (tab: string, active: boolean) => `px-4 py-2.5 text-sm font-medium rounded-t-lg border-b-2 transition-colors ${active ? 'border-indigo-600 text-indigo-700 bg-white' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`;
@@ -507,6 +567,7 @@ export default function WorkspaceSettingsPage() {
         <div className="flex gap-1 mb-6 border-b border-gray-200 overflow-x-auto">
           <button onClick={() => setSettingsTab('general')} className={tabClass('general', settingsTab === 'general')}>General</button>
           <button onClick={() => setSettingsTab('members')} className={tabClass('members', settingsTab === 'members')}>Members</button>
+          <button onClick={() => setSettingsTab('bots')} className={tabClass('bots', settingsTab === 'bots')}>🤖 Bots</button>
           <button onClick={() => setSettingsTab('state-machine')} className={tabClass('state-machine', settingsTab === 'state-machine')}>
             <span className="hidden sm:inline">State Machine</span>
             <span className="sm:hidden">States</span>
@@ -628,6 +689,112 @@ export default function WorkspaceSettingsPage() {
               </div>
             ))}
           </div>
+        </div>
+        </>)}
+
+        {/* === BOTS TAB === */}
+        {settingsTab === 'bots' && (<>
+        <div className="bg-white border border-gray-200 rounded-xl mb-6">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h2 className="font-semibold text-gray-900">🤖 Bot Token Management</h2>
+            <p className="text-sm text-gray-500 mt-1">Manage API tokens for bots in this workspace. Only workspace admins can view and manage tokens.</p>
+          </div>
+          {loadingBots ? (
+            <div className="p-5 text-center">
+              <div className="animate-spin rounded-full h-6 w-6 border-2 border-indigo-600 border-t-transparent mx-auto"></div>
+              <p className="text-sm text-gray-500 mt-2">Loading bots...</p>
+            </div>
+          ) : bots.length === 0 ? (
+            <div className="p-5 text-center">
+              <div className="text-gray-400 mb-2">
+                <svg className="w-12 h-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                </svg>
+              </div>
+              <p className="text-sm text-gray-500">No bots found in this workspace.</p>
+              <p className="text-xs text-gray-400 mt-1">Contact support to create bot users for this workspace.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {bots.map(bot => (
+                <div key={bot.id} className="px-5 py-4">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                      {bot.username[0].toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="font-medium text-gray-900">{bot.username}</h3>
+                        <span className="px-2 py-1 text-xs font-medium text-purple-700 bg-purple-100 rounded">BOT</span>
+                        {!bot.is_active && <span className="px-2 py-1 text-xs font-medium text-red-700 bg-red-100 rounded">INACTIVE</span>}
+                      </div>
+                      {bot.name && <p className="text-sm text-gray-600 mb-2">{bot.name}</p>}
+                      {bot.description && <p className="text-sm text-gray-500 mb-3">{bot.description}</p>}
+                      
+                      <div className="bg-gray-50 rounded-lg p-3 mb-3">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">API Token</label>
+                        <div className="flex items-center gap-2">
+                          <code className="flex-1 text-sm font-mono text-gray-800 bg-white border border-gray-200 rounded px-2 py-1 select-all">
+                            {revealedTokens.has(bot.id) ? bot.token : maskToken(bot.token || '')}
+                          </code>
+                          <button
+                            onClick={() => {
+                              if (revealedTokens.has(bot.id)) {
+                                setRevealedTokens(prev => {
+                                  const next = new Set(prev);
+                                  next.delete(bot.id);
+                                  return next;
+                                });
+                              } else {
+                                setRevealedTokens(prev => new Set(prev).add(bot.id));
+                              }
+                            }}
+                            className="p-1.5 text-gray-400 hover:text-gray-600 rounded"
+                            title={revealedTokens.has(bot.id) ? "Hide token" : "Show full token"}
+                          >
+                            {revealedTokens.has(bot.id) ? (
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                              </svg>
+                            ) : (
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => copyToClipboard(bot.token || '')}
+                            className="p-1.5 text-gray-400 hover:text-gray-600 rounded"
+                            title="Copy token"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => handleRegenerateToken(bot)}
+                          className="px-3 py-1.5 text-sm font-medium text-orange-700 hover:text-white hover:bg-orange-600 border border-orange-300 hover:border-orange-600 rounded-lg transition-colors"
+                        >
+                          Regenerate Token
+                        </button>
+                        <button
+                          onClick={() => handleDeleteBot(bot)}
+                          className="px-3 py-1.5 text-sm font-medium text-red-700 hover:text-white hover:bg-red-600 border border-red-300 hover:border-red-600 rounded-lg transition-colors"
+                        >
+                          Delete Bot
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         </>)}
 
