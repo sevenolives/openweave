@@ -604,6 +604,17 @@ class ApiClient {
     return this.request<ProjectsDashboard>(`/projects-dashboard/?workspace=${encodeURIComponent(workspaceSlug)}`);
   }
 
+  async getStateTemplates(): Promise<{ id: string; name: string; description: string; status_count: number }[]> {
+    return this.request<any>('/status-definitions/templates/');
+  }
+
+  async applyStateTemplate(workspace: string, template: string, mode: 'additive' | 'replace' = 'additive'): Promise<{ added: number; skipped: number; total: number; statuses: StatusDefinition[] }> {
+    return this.request<any>('/status-definitions/apply-template/', {
+      method: 'POST',
+      body: JSON.stringify({ workspace, template, mode }),
+    });
+  }
+
   async syncStatusDefinitions(targetWorkspace: string, sourceWorkspace: string, mode: 'states' | 'transitions' = 'states'): Promise<{ added?: number; skipped?: number; updated?: number; warning?: string; total: number; statuses: StatusDefinition[] }> {
     return this.request<any>('/status-definitions/sync-from/', {
       method: 'POST',

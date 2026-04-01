@@ -1512,6 +1512,46 @@ class StatusDefinitionViewSet(viewsets.ModelViewSet):
                 resp['warning'] = f'Source has states not in target (run Step 1 first): {", ".join(missing_keys)}'
             return Response(resp)
 
+    @extend_schema(
+        summary="List available state machine templates",
+        description="Returns pre-built workflow templates that can be applied to a workspace.",
+    )
+    @action(detail=False, methods=['get'], url_path='templates')
+    def templates(self, request):
+        from .state_templates import get_template_list
+        return Response(get_template_list())
+
+    @extend_schema(
+        summary="Apply a state machine template to a workspace",
+        description="Applies a pre-built template. mode=additive (default) adds missing states. mode=replace deletes all existing and replaces.",
+        request={'application/json': {'type': 'object', 'properties': {'workspace': {'type': 'string'}, 'template': {'type': 'string'}, 'mode': {'type': 'string'}}}},
+    )
+    @action(detail=False, methods=['post'], url_path='apply-template')
+    def apply_template(self, request):
+        workspace_slug = request.data.get('workspace')
+        template_id = request.data.get('template')
+        mode = request.data.get('mode', 'additive')
+        if not workspace_slug or not template_id:
+            return Response({'detail': 'workspace and template are required.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            ws = Workspace.objects.get(slug=workspace_slug)
+        except Workspace.DoesNotExist:
+            return Response({'detail': 'Workspace not found.'}, status=status.HTTP_404_NOT_FOUND)
+        if not is_admin_or_owner(request.user, ws):
+            return Response({'detail': 'Only workspace admin can apply templates.'}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            from .state_templates import apply_template
+            result = apply_template(ws, template_id, mode)
+            statuses = StatusDefinitionSerializer(
+                StatusDefinition.objects.filter(workspace=ws).prefetch_related('allowed_from', 'allowed_users'),
+                many=True, context={'request': request}
+            ).data
+            return Response({**result, 'statuses': statuses})
+        except ValueError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class DashboardView(APIView):
     """Dashboard stats for a workspace."""

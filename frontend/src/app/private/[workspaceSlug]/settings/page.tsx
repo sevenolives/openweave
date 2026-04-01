@@ -824,6 +824,35 @@ export default function WorkspaceSettingsPage() {
           </div>
         )}
         {/* Sync from workspace */}
+        {/* Load Template */}
+        {settingsTab === 'state-machine' && workspace && (
+          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+            <h3 className="text-sm font-semibold text-gray-900 mb-2">Load a template</h3>
+            <p className="text-xs text-gray-500 mb-4">Start with a pre-built workflow. Adds missing states — won&apos;t overwrite existing ones.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {[
+                { id: 'software_dev', name: '💻 Software Dev', desc: 'Spec → Dev → Test → Deploy → QA' },
+                { id: 'kanban', name: '📋 Kanban', desc: 'To Do → In Progress → Review → Done' },
+                { id: 'agency', name: '🏢 Agency', desc: 'Brief → Scope → Build → Client Review → Deliver' },
+                { id: 'support', name: '🎧 Support', desc: 'New → Triage → Investigate → Resolve → Close' },
+                { id: 'content', name: '✍️ Content', desc: 'Idea → Draft → Edit → Ready → Publish' },
+              ].map(t => (
+                <button key={t.id} onClick={async () => {
+                  if (!confirm(`Load "${t.name}" template? This adds missing states (existing ones are kept).`)) return;
+                  try {
+                    const result = await api.applyStateTemplate(workspace.slug, t.id);
+                    setStatuses(result.statuses);
+                    toast(`Added ${result.added} states (${result.skipped} already existed)`);
+                  } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
+                }} className="text-left px-4 py-3 rounded-xl border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/50 transition-all">
+                  <div className="text-sm font-medium text-gray-900">{t.name}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">{t.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {settingsTab === 'state-machine' && workspace && allWorkspaces.length > 0 && (
           <div className="bg-[#111118] rounded-xl border border-[#222233] p-5 mb-6">
             <h3 className="text-sm font-semibold text-white mb-2">Sync from another workspace</h3>
