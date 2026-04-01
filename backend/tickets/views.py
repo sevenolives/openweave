@@ -1059,8 +1059,8 @@ class StatusDefinitionViewSet(viewsets.ModelViewSet):
         instance.delete()
 
     @extend_schema(
-        summary="Sync state machine from another workspace",
-        description="Copies all status definitions (key, label, color, description, position, allowed_from) from the source workspace. Replaces all statuses in the target workspace. Irreversible.",
+        summary="Sync state machine from another workspace (additive)",
+        description="Merges status definitions from the source workspace into the target. Adds new statuses, skips existing ones (matched by key). Copies allowed_from paths for new statuses and merges them for existing ones.",
         request={'application/json': {'type': 'object', 'properties': {'source_workspace': {'type': 'string'}}}},
     )
     @action(detail=False, methods=['post'], url_path='sync-from')
@@ -1077,10 +1077,8 @@ class StatusDefinitionViewSet(viewsets.ModelViewSet):
             source_ws = Workspace.objects.get(slug=source_slug)
         except Workspace.DoesNotExist:
             return Response({'detail': f'Source workspace "{source_slug}" not found.'}, status=status.HTTP_404_NOT_FOUND)
-        # Only workspace owner can sync
         if not is_admin_or_owner(request.user, target_ws):
             return Response({'detail': 'Only workspace owner can sync state machine.'}, status=status.HTTP_403_FORBIDDEN)
-        # User must also have access to source workspace
         if not request.user.is_superuser and not is_admin_or_owner(request.user, source_ws):
             if not WorkspaceMember.objects.filter(workspace=source_ws, user=request.user).exists():
                 return Response({'detail': 'You do not have access to the source workspace.'}, status=status.HTTP_403_FORBIDDEN)
@@ -1089,49 +1087,49 @@ class StatusDefinitionViewSet(viewsets.ModelViewSet):
         if not source_statuses.exists():
             return Response({'detail': 'Source workspace has no status definitions.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Check for tickets using statuses that would be removed
-        target_keys = set(StatusDefinition.objects.filter(workspace=target_ws).values_list('key', flat=True))
-        source_keys = set(source_statuses.values_list('key', flat=True))
-        removed_keys = target_keys - source_keys
-        if removed_keys:
-            from tickets.models import Ticket
-            in_use = list(Ticket.objects.filter(
-                project__workspace=target_ws, status__in=removed_keys
-            ).values_list('status', flat=True).distinct())
-            if in_use:
-                return Response({
-                    'detail': f'Cannot sync — tickets are using statuses that would be removed: {", ".join(in_use)}. Reassign those tickets first.'
-                }, status=status.HTTP_400_BAD_REQUEST)
+        # Build map of existing target statuses by key
+        target_by_key = {sd.key: sd for sd in StatusDefinition.objects.filter(workspace=target_ws)}
+        max_position = max((sd.position for sd in target_by_key.values()), default=-1)
 
-        # Delete existing statuses (except those with tickets)
-        StatusDefinition.objects.filter(workspace=target_ws).delete()
-
-        # Copy source statuses
-        key_to_new = {}
+        added = 0
+        skipped = 0
+        # Add missing statuses
         for src in source_statuses:
+            if src.key in target_by_key:
+                skipped += 1
+                continue
+            max_position += 1
             new_sd = StatusDefinition.objects.create(
                 workspace=target_ws,
                 key=src.key,
                 label=src.label,
                 color=src.color,
                 description=src.description,
-                is_default=src.is_default,
+                is_default=False,  # Don't override existing default
                 is_archived=src.is_archived,
-                position=src.position,
+                position=max_position,
             )
-            key_to_new[src.key] = new_sd
+            target_by_key[src.key] = new_sd
+            added += 1
 
-        # Copy allowed_from relationships
+        # Merge allowed_from paths from source
         for src in source_statuses:
-            new_sd = key_to_new[src.key]
-            allowed_keys = [af.key for af in src.allowed_from.all()]
-            new_sd.allowed_from.set([key_to_new[k] for k in allowed_keys if k in key_to_new])
+            target_sd = target_by_key.get(src.key)
+            if not target_sd:
+                continue
+            source_from_keys = {af.key for af in src.allowed_from.all()}
+            existing_from_keys = {af.key for af in target_sd.allowed_from.all()}
+            new_from_keys = source_from_keys - existing_from_keys
+            if new_from_keys:
+                new_from_sds = [target_by_key[k] for k in new_from_keys if k in target_by_key]
+                if new_from_sds:
+                    target_sd.allowed_from.add(*new_from_sds)
 
         result = StatusDefinitionSerializer(
             StatusDefinition.objects.filter(workspace=target_ws).prefetch_related('allowed_from', 'allowed_users'),
             many=True, context={'request': request}
         ).data
-        return Response({'synced': len(result), 'statuses': result}, status=status.HTTP_200_OK)
+        return Response({'added': added, 'skipped': skipped, 'total': len(result), 'statuses': result}, status=status.HTTP_200_OK)
 
 
 class DashboardView(APIView):

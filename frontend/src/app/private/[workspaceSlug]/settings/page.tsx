@@ -684,11 +684,11 @@ export default function WorkspaceSettingsPage() {
                 <span className="text-2xl">⚠️</span>
                 <h3 className="text-lg font-bold text-gray-900">Sync State Machine</h3>
               </div>
-              <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
-                <p className="text-sm text-red-800 font-medium mb-1">This action cannot be undone</p>
-                <p className="text-xs text-red-600">All existing statuses in this workspace will be replaced with statuses from <strong>{syncSource}</strong>. Transition paths (allowed_from) will be copied. Tickets using removed statuses will need to be reassigned first.</p>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+                <p className="text-sm text-amber-800 font-medium mb-1">Additive merge</p>
+                <p className="text-xs text-amber-700">New statuses from <strong>{syncSource}</strong> will be added. Existing statuses with matching keys will be kept as-is. Transition paths (allowed_from) will be merged.</p>
               </div>
-              <p className="text-sm text-gray-600 mb-4">Are you sure you want to replace the entire state machine?</p>
+              <p className="text-sm text-gray-600 mb-4">This won&apos;t remove or overwrite any existing statuses. Continue?</p>
               <div className="flex gap-3">
                 <button onClick={() => setShowSyncConfirm(false)} className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
                 <button onClick={async () => {
@@ -699,12 +699,12 @@ export default function WorkspaceSettingsPage() {
                     const result = await api.syncStatusDefinitions(workspace.slug, syncSource);
                     setStatuses(result.statuses);
                     setSyncSource('');
-                    toast(`Synced ${result.synced} statuses from ${syncSource}`);
+                    toast(`Added ${result.added} statuses, ${result.skipped} already existed`);
                   } catch (e: any) { toast(e?.message || e?.detail || 'Sync failed', 'error'); }
                   finally { setSyncing(false); }
                 }} disabled={syncing}
-                  className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 disabled:bg-gray-300">
-                  {syncing ? 'Syncing…' : 'Yes, replace everything'}
+                  className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300">
+                  {syncing ? 'Syncing…' : 'Yes, merge statuses'}
                 </button>
               </div>
             </div>
