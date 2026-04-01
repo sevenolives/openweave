@@ -8,7 +8,7 @@ from django.conf import settings
 
 PLAN_LIMITS = {
     'free': {
-        'max_users': int(os.environ.get('FREE_MAX_USERS', '3')),
+        'max_users': int(os.environ.get('FREE_MAX_USERS', '5')),
         'max_workspaces_per_owner': int(os.environ.get('FREE_MAX_WORKSPACES', '1')),
         'max_projects': int(os.environ.get('FREE_MAX_PROJECTS', '5')),
         'max_bot_agents': int(os.environ.get('FREE_MAX_BOT_AGENTS', '2')),
