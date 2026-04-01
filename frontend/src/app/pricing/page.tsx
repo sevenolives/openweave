@@ -14,7 +14,7 @@ const tiers = [
     features: [
       'Up to 3 users',
       '1 workspace',
-      '2 projects per workspace',
+      '5 projects per workspace',
       '2 bot agents',
       'Default state machine only',
       '24-hour audit log retention',

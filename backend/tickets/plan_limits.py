@@ -1,4 +1,5 @@
 """Plan enforcement utilities for workspace billing limits."""
+import os
 from rest_framework.exceptions import PermissionDenied
 from .models import Subscription, WorkspaceMember, Workspace
 import stripe
@@ -7,10 +8,10 @@ from django.conf import settings
 
 PLAN_LIMITS = {
     'free': {
-        'max_users': 3,
-        'max_workspaces_per_owner': 1,
-        'max_projects': 2,
-        'max_bot_agents': 2,
+        'max_users': int(os.environ.get('FREE_MAX_USERS', '3')),
+        'max_workspaces_per_owner': int(os.environ.get('FREE_MAX_WORKSPACES', '1')),
+        'max_projects': int(os.environ.get('FREE_MAX_PROJECTS', '5')),
+        'max_bot_agents': int(os.environ.get('FREE_MAX_BOT_AGENTS', '2')),
     },
     'pro': {
         'max_users': None,  # unlimited
