@@ -387,6 +387,10 @@ export default function WorkspaceSettingsPage() {
   const [addingStatus, setAddingStatus] = useState(false);
   const [settingsTab, setSettingsTab] = useState<'general' | 'members' | 'state-machine'>('general');
   const [workspaceUsers, setWorkspaceUsers] = useState<User[]>([]);
+  const [allWorkspaces, setAllWorkspaces] = useState<Workspace[]>([]);
+  const [syncSource, setSyncSource] = useState('');
+  const [showSyncConfirm, setShowSyncConfirm] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const { toast } = useToast();
 
   const loadData = useCallback(async (ws: Workspace) => {
@@ -403,6 +407,8 @@ export default function WorkspaceSettingsPage() {
       // Deduplicate by id
       const seen = new Set<number>();
       setWorkspaceUsers(memberUsers.filter((u: User) => { if (seen.has(u.id)) return false; seen.add(u.id); return true; }));
+      // Load all workspaces for sync picker
+      api.getWorkspaces().then(wsList => setAllWorkspaces(wsList.filter(w => w.slug !== ws.slug))).catch(() => {});
     } catch (e: any) { toast(e?.message || 'Failed to load workspace data', 'error'); }
     finally { setLoading(false); }
   }, [toast]);
@@ -650,6 +656,61 @@ export default function WorkspaceSettingsPage() {
             </label>
           </div>
         )}
+        {/* Sync from workspace */}
+        {settingsTab === 'state-machine' && workspace && allWorkspaces.length > 0 && (
+          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+            <h3 className="text-sm font-semibold text-gray-900 mb-2">Sync from another workspace</h3>
+            <p className="text-xs text-gray-500 mb-3">Copy the entire state machine (statuses, colors, transitions) from another workspace into this one.</p>
+            <div className="flex gap-2 items-center">
+              <select value={syncSource} onChange={e => setSyncSource(e.target.value)}
+                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm bg-white">
+                <option value="">Select source workspace…</option>
+                {allWorkspaces.map(w => <option key={w.slug} value={w.slug}>{w.name} ({w.slug})</option>)}
+              </select>
+              <button onClick={() => { if (syncSource) setShowSyncConfirm(true); }}
+                disabled={!syncSource || syncing}
+                className="px-4 py-2.5 bg-amber-600 text-white rounded-xl text-sm font-medium hover:bg-amber-700 disabled:bg-gray-300 transition-colors whitespace-nowrap">
+                Sync
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Sync confirmation dialog */}
+        {showSyncConfirm && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowSyncConfirm(false)}>
+            <div className="bg-white rounded-2xl p-6 max-w-md w-full" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-2xl">⚠️</span>
+                <h3 className="text-lg font-bold text-gray-900">Sync State Machine</h3>
+              </div>
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+                <p className="text-sm text-red-800 font-medium mb-1">This action cannot be undone</p>
+                <p className="text-xs text-red-600">All existing statuses in this workspace will be replaced with statuses from <strong>{syncSource}</strong>. Transition paths (allowed_from) will be copied. Tickets using removed statuses will need to be reassigned first.</p>
+              </div>
+              <p className="text-sm text-gray-600 mb-4">Are you sure you want to replace the entire state machine?</p>
+              <div className="flex gap-3">
+                <button onClick={() => setShowSyncConfirm(false)} className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+                <button onClick={async () => {
+                  if (!workspace) return;
+                  setSyncing(true);
+                  setShowSyncConfirm(false);
+                  try {
+                    const result = await api.syncStatusDefinitions(workspace.slug, syncSource);
+                    setStatuses(result.statuses);
+                    setSyncSource('');
+                    toast(`Synced ${result.synced} statuses from ${syncSource}`);
+                  } catch (e: any) { toast(e?.message || e?.detail || 'Sync failed', 'error'); }
+                  finally { setSyncing(false); }
+                }} disabled={syncing}
+                  className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 disabled:bg-gray-300">
+                  {syncing ? 'Syncing…' : 'Yes, replace everything'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {settingsTab === 'state-machine' && (
           <StateMachineSettings
             statuses={statuses}

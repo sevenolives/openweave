@@ -602,6 +602,13 @@ class ApiClient {
     return this.request<ProjectsDashboard>(`/projects-dashboard/?workspace=${encodeURIComponent(workspaceSlug)}`);
   }
 
+  async syncStatusDefinitions(targetWorkspace: string, sourceWorkspace: string): Promise<{ synced: number; statuses: StatusDefinition[] }> {
+    return this.request<{ synced: number; statuses: StatusDefinition[] }>('/status-definitions/sync-from/', {
+      method: 'POST',
+      body: JSON.stringify({ workspace: targetWorkspace, source_workspace: sourceWorkspace }),
+    });
+  }
+
   async getStatusDefinitions(workspaceSlug: string, includeArchived = false): Promise<StatusDefinition[]> {
     const params = `workspace=${workspaceSlug}&page_size=100${includeArchived ? '&include_archived=true' : ''}`;
     const res = await this.request<{ results: StatusDefinition[] }>(`/status-definitions/?${params}`);

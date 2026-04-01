@@ -1058,6 +1058,81 @@ class StatusDefinitionViewSet(viewsets.ModelViewSet):
             raise ValidationError("Cannot delete the default status.")
         instance.delete()
 
+    @extend_schema(
+        summary="Sync state machine from another workspace",
+        description="Copies all status definitions (key, label, color, description, position, allowed_from) from the source workspace. Replaces all statuses in the target workspace. Irreversible.",
+        request={'application/json': {'type': 'object', 'properties': {'source_workspace': {'type': 'string'}}}},
+    )
+    @action(detail=False, methods=['post'], url_path='sync-from')
+    def sync_from(self, request):
+        target_slug = request.data.get('workspace') or request.query_params.get('workspace')
+        source_slug = request.data.get('source_workspace')
+        if not target_slug or not source_slug:
+            return Response({'detail': 'workspace and source_workspace are required.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            target_ws = Workspace.objects.get(slug=target_slug)
+        except Workspace.DoesNotExist:
+            return Response({'detail': f'Target workspace "{target_slug}" not found.'}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            source_ws = Workspace.objects.get(slug=source_slug)
+        except Workspace.DoesNotExist:
+            return Response({'detail': f'Source workspace "{source_slug}" not found.'}, status=status.HTTP_404_NOT_FOUND)
+        # Only workspace owner can sync
+        if not is_admin_or_owner(request.user, target_ws):
+            return Response({'detail': 'Only workspace owner can sync state machine.'}, status=status.HTTP_403_FORBIDDEN)
+        # User must also have access to source workspace
+        if not request.user.is_superuser and not is_admin_or_owner(request.user, source_ws):
+            if not WorkspaceMember.objects.filter(workspace=source_ws, user=request.user).exists():
+                return Response({'detail': 'You do not have access to the source workspace.'}, status=status.HTTP_403_FORBIDDEN)
+
+        source_statuses = StatusDefinition.objects.filter(workspace=source_ws).prefetch_related('allowed_from')
+        if not source_statuses.exists():
+            return Response({'detail': 'Source workspace has no status definitions.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check for tickets using statuses that would be removed
+        target_keys = set(StatusDefinition.objects.filter(workspace=target_ws).values_list('key', flat=True))
+        source_keys = set(source_statuses.values_list('key', flat=True))
+        removed_keys = target_keys - source_keys
+        if removed_keys:
+            from tickets.models import Ticket
+            in_use = list(Ticket.objects.filter(
+                project__workspace=target_ws, status__in=removed_keys
+            ).values_list('status', flat=True).distinct())
+            if in_use:
+                return Response({
+                    'detail': f'Cannot sync — tickets are using statuses that would be removed: {", ".join(in_use)}. Reassign those tickets first.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Delete existing statuses (except those with tickets)
+        StatusDefinition.objects.filter(workspace=target_ws).delete()
+
+        # Copy source statuses
+        key_to_new = {}
+        for src in source_statuses:
+            new_sd = StatusDefinition.objects.create(
+                workspace=target_ws,
+                key=src.key,
+                label=src.label,
+                color=src.color,
+                description=src.description,
+                is_default=src.is_default,
+                is_archived=src.is_archived,
+                position=src.position,
+            )
+            key_to_new[src.key] = new_sd
+
+        # Copy allowed_from relationships
+        for src in source_statuses:
+            new_sd = key_to_new[src.key]
+            allowed_keys = [af.key for af in src.allowed_from.all()]
+            new_sd.allowed_from.set([key_to_new[k] for k in allowed_keys if k in key_to_new])
+
+        result = StatusDefinitionSerializer(
+            StatusDefinition.objects.filter(workspace=target_ws).prefetch_related('allowed_from', 'allowed_users'),
+            many=True, context={'request': request}
+        ).data
+        return Response({'synced': len(result), 'statuses': result}, status=status.HTTP_200_OK)
+
 
 class DashboardView(APIView):
     """Dashboard stats for a workspace."""
