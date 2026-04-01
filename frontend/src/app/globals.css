@@ -2,8 +2,8 @@
 @plugin "@tailwindcss/typography";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #1e293b;
+  --background: #0a0a0f;
+  --foreground: #e5e7eb;
 }
 
 body {
@@ -27,15 +27,31 @@ input, select, textarea {
   height: 6px;
 }
 .kanban-scroll::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #111118;
   border-radius: 3px;
 }
 .kanban-scroll::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #333355;
   border-radius: 3px;
 }
 .kanban-scroll::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #4a4a6a;
+}
+
+/* Global dark scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0a0f;
+}
+::-webkit-scrollbar-thumb {
+  background: #222233;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #333355;
 }
 
 @keyframes slideUp {

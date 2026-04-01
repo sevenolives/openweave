@@ -69,8 +69,8 @@ export default function AgentsPage() {
       <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Team</h1>
-            <p className="text-sm text-gray-500 mt-1">
+            <h1 className="text-2xl font-bold text-white">Team</h1>
+            <p className="text-sm text-gray-400 mt-1">
               {users.length} member{users.length !== 1 ? 's' : ''} in {currentWorkspace?.name || 'workspace'}
             </p>
           </div>
@@ -86,13 +86,13 @@ export default function AgentsPage() {
 
         {/* Filters */}
         <div className="flex flex-wrap gap-3 mb-6">
-          <select value={filterRole} onChange={e => setFilterRole(e.target.value)} className="px-4 py-3 h-[44px] border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500">
+          <select value={filterRole} onChange={e => setFilterRole(e.target.value)} className="px-4 py-3 h-[44px] border border-[#222233] rounded-xl text-sm bg-[#1a1a2e] text-white focus:ring-2 focus:ring-indigo-500">
             <option value="">All Roles</option>
             <option value="OWNER">Owner</option>
             <option value="ADMIN">Admin</option>
             <option value="MEMBER">Member</option>
           </select>
-          <select value={filterType} onChange={e => setFilterType(e.target.value)} className="px-4 py-3 h-[44px] border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500">
+          <select value={filterType} onChange={e => setFilterType(e.target.value)} className="px-4 py-3 h-[44px] border border-[#222233] rounded-xl text-sm bg-[#1a1a2e] text-white focus:ring-2 focus:ring-indigo-500">
             <option value="">All Types</option>
             <option value="HUMAN">Human</option>
             <option value="BOT">Bot</option>
@@ -101,20 +101,20 @@ export default function AgentsPage() {
 
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1,2,3].map(i => <div key={i} className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse"><div className="flex items-center gap-3 mb-4"><div className="w-12 h-12 bg-gray-200 rounded-full"></div><div className="flex-1"><div className="h-4 bg-gray-200 rounded w-24 mb-2"></div><div className="h-3 bg-gray-100 rounded w-32"></div></div></div></div>)}
+            {[1,2,3].map(i => <div key={i} className="bg-[#111118] rounded-xl border border-[#222233] p-6 animate-pulse"><div className="flex items-center gap-3 mb-4"><div className="w-12 h-12 bg-[#1a1a2e] rounded-full"></div><div className="flex-1"><div className="h-4 bg-[#1a1a2e] rounded w-24 mb-2"></div><div className="h-3 bg-[#1a1a2e] rounded w-32"></div></div></div></div>)}
           </div>
         ) : !currentWorkspace ? (
           <div className="text-center py-20">
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">No workspace selected</h3>
+            <h3 className="text-lg font-semibold text-white mb-1">No workspace selected</h3>
             <p className="text-sm text-gray-500">Select a workspace to see team members.</p>
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-20">
-            <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-[#1a1a2e] rounded-2xl flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">No members found</h3>
-            <p className="text-sm text-gray-500">Try adjusting your filters or invite people from <button onClick={() => router.push(`/private/${workspaceSlug}/settings`)} className="text-indigo-600 hover:underline">Settings</button>.</p>
+            <h3 className="text-lg font-semibold text-white mb-1">No members found</h3>
+            <p className="text-sm text-gray-400">Try adjusting your filters or invite people from <button onClick={() => router.push(`/private/${workspaceSlug}/settings`)} className="text-indigo-600 hover:underline">Settings</button>.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -123,13 +123,13 @@ export default function AgentsPage() {
               const openTickets = agentTickets.filter(t => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length;
               const isSelected = selectedAgent === user.id;
               return (
-                <div key={user.id} onClick={() => setSelectedAgent(isSelected ? null : user.id)} className="bg-white rounded-xl border border-gray-200 p-5 hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-50 transition-all cursor-pointer group">
+                <div key={user.id} onClick={() => setSelectedAgent(isSelected ? null : user.id)} className="bg-[#111118] rounded-xl border border-[#222233] p-5 hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10 transition-all cursor-pointer group">
                   <div className="flex items-center gap-3 mb-4">
                     <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold text-white ${user.user_type === 'BOT' ? 'bg-purple-500' : 'bg-indigo-500'}`}>
                       {(user.name || user.username)[0].toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 truncate">{user.name || user.username}</h3>
+                      <h3 className="font-semibold text-white truncate">{user.name || user.username}</h3>
                       <p className="text-xs text-gray-500 truncate">@{user.username}</p>
                     </div>
                   </div>
@@ -138,34 +138,34 @@ export default function AgentsPage() {
                     <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${user.user_type === 'BOT' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>{user.user_type}</span>
                     <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${
                       role === 'OWNER' ? 'bg-amber-100 text-amber-700' :
-                      'bg-gray-100 text-gray-700'
+                      'bg-gray-800 text-gray-300'
                     }`}>{role}</span>
                   </div>
 
                   {user.description && (
-                    <p className="text-xs text-gray-600 mb-3 line-clamp-3">{user.description}</p>
+                    <p className="text-xs text-gray-400 mb-3 line-clamp-3">{user.description}</p>
                   )}
 
                   {user.skills && user.skills.length > 0 && (
                     <div className="flex flex-wrap gap-1 mb-3">
                       {user.skills.slice(0, 3).map((skill: string, i: number) => (
-                        <span key={i} className="px-2 py-0.5 bg-gray-50 border border-gray-200 rounded text-xs text-gray-600">{skill}</span>
+                        <span key={i} className="px-2 py-0.5 bg-[#1a1a2e] border border-[#222233] rounded text-xs text-gray-400">{skill}</span>
                       ))}
                       {user.skills.length > 3 && <span className="px-2 py-0.5 text-xs text-gray-400">+{user.skills.length - 3}</span>}
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between text-xs text-gray-400 pt-2 border-t border-gray-100">
+                  <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-[#222233]">
                     <span>{agentTickets.length} ticket{agentTickets.length !== 1 ? 's' : ''} assigned</span>
                     <span>{openTickets} active</span>
                   </div>
 
                   {isSelected && agentTickets.length > 0 && (
-                    <div className="mt-4 pt-3 border-t border-gray-200 space-y-2" onClick={e => e.stopPropagation()}>
-                      <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Assigned Tickets</h4>
+                    <div className="mt-4 pt-3 border-t border-[#222233] space-y-2" onClick={e => e.stopPropagation()}>
+                      <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Assigned Tickets</h4>
                       {agentTickets.slice(0, 5).map(ticket => (
-                        <button key={ticket.ticket_slug} onClick={() => router.push(`/private/${workspaceSlug}/tickets/${ticket.ticket_slug}`)} className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors">
-                          <p className="text-sm font-medium text-gray-900 truncate">{ticket.ticket_slug} {ticket.title}</p>
+                        <button key={ticket.ticket_slug} onClick={() => router.push(`/private/${workspaceSlug}/tickets/${ticket.ticket_slug}`)} className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#1a1a2e] transition-colors">
+                          <p className="text-sm font-medium text-white truncate">{ticket.ticket_slug} {ticket.title}</p>
                           <p className="text-xs text-gray-500">{ticket.project_name} · {ticket.status.replace('_',' ')}</p>
                         </button>
                       ))}
@@ -180,10 +180,10 @@ export default function AgentsPage() {
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between mt-6 px-1">
-            <p className="text-sm text-gray-500">Page {page} of {totalPages} · {totalCount} member{totalCount !== 1 ? 's' : ''}</p>
+            <p className="text-sm text-gray-400">Page {page} of {totalPages} · {totalCount} member{totalCount !== 1 ? 's' : ''}</p>
             <div className="flex gap-2">
-              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-4 py-2 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">Previous</button>
-              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="px-4 py-2 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-4 py-2 text-sm font-medium border border-[#222233] rounded-lg hover:bg-[#1a1a2e] text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed">Previous</button>
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="px-4 py-2 text-sm font-medium border border-[#222233] rounded-lg hover:bg-[#1a1a2e] text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
             </div>
           </div>
         )}

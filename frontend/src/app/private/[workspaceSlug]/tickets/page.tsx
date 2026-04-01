@@ -242,8 +242,8 @@ function TicketsPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">All Tickets</h1>
-            <p className="text-sm text-gray-500 mt-1">
+            <h1 className="text-2xl font-bold text-white">All Tickets</h1>
+            <p className="text-sm text-gray-400 mt-1">
               {totalCount} ticket{totalCount !== 1 ? 's' : ''} across {grouped.length} project{grouped.length !== 1 ? 's' : ''}
               {hasFilters && <span className="text-indigo-500"> (filtered)</span>}
             </p>
@@ -260,37 +260,37 @@ function TicketsPage() {
         <div className="space-y-3 mb-6">
           <input
             type="text" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
-            className="px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-full"
+            className="px-4 py-3 border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-full bg-[#1a1a2e] text-white placeholder-gray-500"
             placeholder="Search tickets..."
           />
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="px-4 py-3 min-h-[44px] border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
+            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="px-4 py-3 min-h-[44px] border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-[#1a1a2e] text-white">
               <option value="">All statuses</option>
               {statuses.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
             </select>
-            <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)} className="px-4 py-3 min-h-[44px] border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
+            <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)} className="px-4 py-3 min-h-[44px] border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-[#1a1a2e] text-white">
               <option value="">All priorities</option>
               <option value="LOW">Low</option>
               <option value="MEDIUM">Medium</option>
               <option value="HIGH">High</option>
               <option value="CRITICAL">Critical</option>
             </select>
-            <select value={filterProject} onChange={e => { hasUserSelectedProject.current = true; setFilterProject(e.target.value); setPage(1); }} className="px-4 py-3 min-h-[44px] border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
+            <select value={filterProject} onChange={e => { hasUserSelectedProject.current = true; setFilterProject(e.target.value); setPage(1); }} className="px-4 py-3 min-h-[44px] border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-[#1a1a2e] text-white">
               <option value="">All projects</option>
               {projects.map(p => <option key={p.slug} value={p.slug}>{p.name}</option>)}
             </select>
-            <select value={filterAssigned} onChange={e => { setFilterAssigned(e.target.value); setPage(1); }} className="px-4 py-3 min-h-[44px] border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
+            <select value={filterAssigned} onChange={e => { setFilterAssigned(e.target.value); setPage(1); }} className="px-4 py-3 min-h-[44px] border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-[#1a1a2e] text-white">
               <option value="">All users</option>
               {wsUsers.map(u => <option key={u.id} value={u.id}>{u.name || u.username}</option>)}
             </select>
-            <select value={filterApproved} onChange={e => { setFilterApproved(e.target.value); setPage(1); }} className="px-4 py-3 min-h-[44px] border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
+            <select value={filterApproved} onChange={e => { setFilterApproved(e.target.value); setPage(1); }} className="px-4 py-3 min-h-[44px] border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-[#1a1a2e] text-white">
               <option value="">All approvals</option>
               <option value="APPROVED">✓ Approved</option>
               <option value="UNAPPROVED">Unapproved</option>
             </select>
           </div>
           {hasFilters && (
-            <button onClick={() => { setSearch(''); setFilterStatus(''); setFilterPriority(''); setFilterProject(''); setFilterAssigned(''); setFilterApproved(''); }} className="px-4 py-3 text-sm text-gray-500 hover:text-gray-700 min-h-[44px] rounded-xl hover:bg-gray-50 transition-colors">
+            <button onClick={() => { setSearch(''); setFilterStatus(''); setFilterPriority(''); setFilterProject(''); setFilterAssigned(''); setFilterApproved(''); }} className="px-4 py-3 text-sm text-gray-500 hover:text-gray-300 min-h-[44px] rounded-xl hover:bg-[#1a1a2e] transition-colors">
               Clear filters
             </button>
           )}
@@ -298,15 +298,15 @@ function TicketsPage() {
 
         {loading ? (
           <div className="space-y-4">
-            {[1,2].map(i => <div key={i} className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse"><div className="h-5 bg-gray-200 rounded w-40 mb-4"></div><div className="h-12 bg-gray-100 rounded mb-2"></div><div className="h-12 bg-gray-100 rounded"></div></div>)}
+            {[1,2].map(i => <div key={i} className="bg-[#111118] rounded-xl border border-[#222233] p-6 animate-pulse"><div className="h-5 bg-[#1a1a2e] rounded w-40 mb-4"></div><div className="h-12 bg-[#1a1a2e] rounded mb-2"></div><div className="h-12 bg-[#1a1a2e] rounded"></div></div>)}
           </div>
         ) : tickets.length === 0 ? (
           <div className="text-center py-20">
-            <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-[#1a1a2e] rounded-2xl flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">{hasFilters ? 'No matching tickets' : 'No tickets yet'}</h3>
-            <p className="text-sm text-gray-500 mb-4">{hasFilters ? 'Try adjusting your filters.' : 'Create tickets from within a project.'}</p>
+            <h3 className="text-lg font-semibold text-white mb-1">{hasFilters ? 'No matching tickets' : 'No tickets yet'}</h3>
+            <p className="text-sm text-gray-400 mb-4">{hasFilters ? 'Try adjusting your filters.' : 'Create tickets from within a project.'}</p>
             {!hasFilters && (
               <button onClick={() => router.push(`/private/${workspaceSlug}/projects`)} className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700">
                 Go to Projects
@@ -316,18 +316,18 @@ function TicketsPage() {
         ) : (
           <div className="space-y-6">
             {grouped.map(({ project, tickets: groupTickets }) => (
-              <div key={project?.id || 0} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div key={project?.id || 0} className="bg-[#111118] rounded-xl border border-[#222233] overflow-hidden">
                 {/* Project header */}
                 <div
-                  className="px-5 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors"
+                  className="px-5 py-3 bg-[#0a0a0f] border-b border-[#222233] flex items-center justify-between cursor-pointer hover:bg-[#1a1a2e] transition-colors"
                   onClick={() => project && router.push(`/private/${workspaceSlug}/projects/${project.slug}`)}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                    <div className="w-8 h-8 bg-indigo-500/10 rounded-lg flex items-center justify-center">
+                      <svg className="w-4 h-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
                     </div>
                     <div>
-                      <h2 className="text-sm font-semibold text-gray-900">{project?.name || 'Unknown Project'}</h2>
+                      <h2 className="text-sm font-semibold text-white">{project?.name || 'Unknown Project'}</h2>
                       <p className="text-xs text-gray-500">{groupTickets.length} ticket{groupTickets.length !== 1 ? 's' : ''}</p>
                     </div>
                   </div>
@@ -335,13 +335,13 @@ function TicketsPage() {
                 </div>
                 
                 {/* Tickets list */}
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-[#222233]">
                   {groupTickets.map(ticket => (
-                    <div key={ticket.ticket_slug} onClick={() => router.push(`/private/${workspaceSlug}/tickets/${ticket.ticket_slug}`)} className="px-4 py-3 hover:bg-gray-50 cursor-pointer">
+                    <div key={ticket.ticket_slug} onClick={() => router.push(`/private/${workspaceSlug}/tickets/${ticket.ticket_slug}`)} className="px-4 py-3 hover:bg-[#1a1a2e] cursor-pointer">
                       {/* Title row with delete */}
                       <div className="flex items-start gap-2">
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-gray-900 leading-snug">
+                          <p className="text-sm font-medium text-white leading-snug">
                             <span className="text-[11px] text-gray-400 font-mono mr-1">{ticket.ticket_slug}</span>
                             {ticket.title}
                           </p>
@@ -351,7 +351,7 @@ function TicketsPage() {
                         </div>
                         <button
                           onClick={e => { e.stopPropagation(); setDeleteTarget(ticket); }}
-                          className="inline-flex items-center justify-center w-8 h-8 min-w-[44px] min-h-[44px] rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors flex-shrink-0 -mr-2 -mt-1"
+                          className="inline-flex items-center justify-center w-8 h-8 min-w-[44px] min-h-[44px] rounded-lg text-red-400 hover:text-red-400 hover:bg-red-500/10 transition-colors flex-shrink-0 -mr-2 -mt-1"
                           title="Delete ticket"
                         >
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -362,7 +362,7 @@ function TicketsPage() {
                         <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusBadge(statuses, ticket.status)}`}>
                           {ticket.status.replace('_', ' ')}
                         </span>
-                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-800 text-gray-300">
                           {ticket.ticket_type === 'BUG' ? '🐛 Bug' : '✨ Feature'}
                         </span>
                         <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${PRIORITY_COLORS[ticket.priority]}`}>
@@ -382,7 +382,7 @@ function TicketsPage() {
                               toast('Assignment updated');
                             } catch (err: any) { toast(err?.message || 'Failed to assign', 'error'); }
                           }}
-                          className="text-xs sm:text-[11px] border border-gray-200 rounded px-2 py-1 sm:px-1.5 sm:py-0.5 bg-white text-gray-600 focus:ring-1 focus:ring-indigo-500 min-h-[36px] sm:min-h-[24px]"
+                          className="text-xs sm:text-[11px] border border-[#222233] rounded px-2 py-1 sm:px-1.5 sm:py-0.5 bg-[#1a1a2e] text-gray-300 focus:ring-1 focus:ring-indigo-500 min-h-[36px] sm:min-h-[24px]"
                         >
                           <option value="">Unassigned</option>
                           {(projectAgentsMap[ticket.project] || wsUsers).map(a => (
@@ -398,7 +398,7 @@ function TicketsPage() {
                               toast('Status updated');
                             } catch (err: any) { toast(err?.message || 'Failed', 'error'); }
                           }}
-                          className="text-xs sm:text-[11px] border border-gray-200 rounded px-2 py-1 sm:px-1.5 sm:py-0.5 bg-white text-gray-600 focus:ring-1 focus:ring-indigo-500 min-h-[36px] sm:min-h-[24px]"
+                          className="text-xs sm:text-[11px] border border-[#222233] rounded px-2 py-1 sm:px-1.5 sm:py-0.5 bg-[#1a1a2e] text-gray-300 focus:ring-1 focus:ring-indigo-500 min-h-[36px] sm:min-h-[24px]"
                         >
                           {statuses.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
                         </select>
@@ -415,10 +415,10 @@ function TicketsPage() {
         {/* Pagination */}
         {!loading && (
           <div className="flex items-center justify-between mt-6 px-1">
-            <p className="text-sm text-gray-500">Page {page} of {totalPages} · {totalCount} ticket{totalCount !== 1 ? 's' : ''}</p>
+            <p className="text-sm text-gray-400">Page {page} of {totalPages} · {totalCount} ticket{totalCount !== 1 ? 's' : ''}</p>
             <div className="flex gap-2">
-              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-4 py-2 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">Previous</button>
-              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="px-4 py-2 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-4 py-2 text-sm font-medium border border-[#222233] rounded-lg hover:bg-[#1a1a2e] text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed">Previous</button>
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="px-4 py-2 text-sm font-medium border border-[#222233] rounded-lg hover:bg-[#1a1a2e] text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
             </div>
           </div>
         )}
@@ -426,8 +426,8 @@ function TicketsPage() {
         {/* Create Ticket Modal */}
         {showCreate && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setShowCreate(false)}>
-            <div className="bg-white w-full sm:w-[28rem] sm:rounded-2xl rounded-t-2xl p-6" onClick={e => e.stopPropagation()}>
-              <h2 className="text-lg font-bold text-gray-900 mb-4">New Ticket</h2>
+            <div className="bg-[#111118] w-full sm:w-[28rem] sm:rounded-2xl rounded-t-2xl p-6 border border-[#222233]" onClick={e => e.stopPropagation()}>
+              <h2 className="text-lg font-bold text-white mb-4">New Ticket</h2>
               <form onSubmit={handleCreateTicket} className="space-y-4">
                 <FormField label="Project" error={fieldErrors.project} required>
                   <select value={newProject} onChange={e => setNewProject(e.target.value)} className={selectClass(fieldErrors.project)} required>
@@ -460,12 +460,12 @@ function TicketsPage() {
                   </select>
                 </FormField>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={newApproved} onChange={e => setNewApproved(e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                  <span className="text-sm text-gray-700">Pre-approve this ticket</span>
+                  <input type="checkbox" checked={newApproved} onChange={e => setNewApproved(e.target.checked)} className="w-5 h-5 rounded border-[#222233] text-indigo-600 bg-[#1a1a2e] focus:ring-indigo-500" />
+                  <span className="text-sm text-gray-300">Pre-approve this ticket</span>
                 </label>
                 <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setShowCreate(false)} className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
-                  <button type="submit" disabled={creating || !newTitle.trim() || !newProject} className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed">{creating ? 'Creating…' : 'Create Ticket'}</button>
+                  <button type="button" onClick={() => setShowCreate(false)} className="flex-1 px-4 py-3 border border-[#222233] rounded-xl text-sm font-medium text-gray-300 hover:bg-[#1a1a2e]">Cancel</button>
+                  <button type="submit" disabled={creating || !newTitle.trim() || !newProject} className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-700 disabled:cursor-not-allowed">{creating ? 'Creating…' : 'Create Ticket'}</button>
                 </div>
               </form>
             </div>

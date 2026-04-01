@@ -113,29 +113,29 @@ export default function DashboardPage() {
       <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-sm text-gray-500 mt-1">Overview of all projects and ticket status</p>
+          <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+          <p className="text-sm text-gray-400 mt-1">Overview of all projects and ticket status</p>
         </div>
 
         {/* Create Project modal */}
         {showCreate && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setShowCreate(false)}>
-            <div className="bg-white w-full sm:w-[28rem] sm:rounded-2xl rounded-t-2xl p-6" onClick={e => e.stopPropagation()}>
-              <h2 className="text-lg font-bold text-gray-900 mb-4">New Project</h2>
+            <div className="bg-[#111118] w-full sm:w-[28rem] sm:rounded-2xl rounded-t-2xl p-6 border border-[#222233]" onClick={e => e.stopPropagation()}>
+              <h2 className="text-lg font-bold text-white mb-4">New Project</h2>
               <form onSubmit={handleCreate} className="space-y-4">
                 <FormField label="Name" error={fieldErrors.name} required>
                   <input type="text" value={name} onChange={e => setName(e.target.value)} className={inputClass(fieldErrors.name)} placeholder="Project name" autoFocus />
                 </FormField>
                 <FormField label="Slug" error={fieldErrors.slug}>
                   <input type="text" value={slug} onChange={e => setSlug(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} className={inputClass(fieldErrors.slug)} placeholder="e.g. SA, PROJ (auto-generated if empty)" maxLength={10} />
-                  <p className="text-xs text-gray-400 mt-1">Used in ticket IDs like SA-1, SA-2</p>
+                  <p className="text-xs text-gray-500 mt-1">Used in ticket IDs like SA-1, SA-2</p>
                 </FormField>
                 <FormField label="Description" error={fieldErrors.description}>
                   <textarea value={desc} onChange={e => setDesc(e.target.value)} className={`${inputClass(fieldErrors.description)} resize-none`} rows={3} placeholder="Optional description" />
                 </FormField>
                 <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setShowCreate(false)} className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
-                  <button type="submit" disabled={creating || !name.trim()} className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed">{creating ? 'Creating…' : 'Create'}</button>
+                  <button type="button" onClick={() => setShowCreate(false)} className="flex-1 px-4 py-3 border border-[#222233] rounded-xl text-sm font-medium text-gray-300 hover:bg-[#1a1a2e]">Cancel</button>
+                  <button type="submit" disabled={creating || !name.trim()} className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-700 disabled:cursor-not-allowed">{creating ? 'Creating…' : 'Create'}</button>
                 </div>
               </form>
             </div>
@@ -147,18 +147,18 @@ export default function DashboardPage() {
         {/* Content */}
         {loading ? (
           <div className="space-y-6">
-            <div className="bg-white rounded-xl border border-gray-200 p-8 animate-pulse"><div className="h-40 bg-gray-100 rounded" /></div>
+            <div className="bg-[#111118] rounded-xl border border-[#222233] p-8 animate-pulse"><div className="h-40 bg-[#1a1a2e] rounded" /></div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1,2,3].map(i => <div key={i} className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse"><div className="h-5 bg-gray-200 rounded w-32 mb-3"></div><div className="h-32 bg-gray-100 rounded"></div></div>)}
+              {[1,2,3].map(i => <div key={i} className="bg-[#111118] rounded-xl border border-[#222233] p-6 animate-pulse"><div className="h-5 bg-[#1a1a2e] rounded w-32 mb-3"></div><div className="h-32 bg-[#1a1a2e] rounded"></div></div>)}
             </div>
           </div>
         ) : !dashboard || dashboard.total_projects === 0 ? (
           <div className="text-center py-20">
-            <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-[#1a1a2e] rounded-2xl flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">No projects yet</h3>
-            <p className="text-sm text-gray-500 mb-4">Create your first project to start tracking tickets.</p>
+            <h3 className="text-lg font-semibold text-white mb-1">No projects yet</h3>
+            <p className="text-sm text-gray-400 mb-4">Create your first project to start tracking tickets.</p>
             <button onClick={() => setShowCreate(true)} className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
               Create Project
@@ -168,7 +168,7 @@ export default function DashboardPage() {
           <>
             {/* Workspace-level overview */}
             {dashboard.total_tickets > 0 && (
-              <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+              <div className="bg-[#111118] rounded-xl border border-[#222233] p-6 mb-6">
                 <PieChart slices={wsSlices} size={200} donut />
               </div>
             )}
@@ -179,22 +179,22 @@ export default function DashboardPage() {
                 const pieSlices: PieSlice[] = statuses
                   .map(sd => ({ label: sd.label, value: project.status_counts[sd.key] || 0, color: sd.color }));
                 return (
-                  <div key={project.slug} onClick={() => router.push(`/private/${workspaceSlug}/tickets?project=${project.slug}`)} className="bg-white rounded-xl border border-gray-200 p-5 hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-50 transition-all cursor-pointer group">
+                  <div key={project.slug} onClick={() => router.push(`/private/${workspaceSlug}/tickets?project=${project.slug}`)} className="bg-[#111118] rounded-xl border border-[#222233] p-5 hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10 transition-all cursor-pointer group">
                     <div className="flex items-start justify-between mb-1">
-                      <h3 className="font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors truncate mr-2">{project.name}</h3>
+                      <h3 className="font-semibold text-white group-hover:text-indigo-400 transition-colors truncate mr-2">{project.name}</h3>
                       <div className="flex items-center gap-1 flex-shrink-0">
-                        <button onClick={e => { e.stopPropagation(); router.push(`/private/${workspaceSlug}/projects/${project.slug}/chat`); }} className="p-1.5 rounded hover:bg-indigo-50 text-gray-400 hover:text-indigo-600 sm:opacity-0 sm:group-hover:opacity-100 transition-all" title="Chat">
+                        <button onClick={e => { e.stopPropagation(); router.push(`/private/${workspaceSlug}/projects/${project.slug}/chat`); }} className="p-1.5 rounded hover:bg-indigo-500/10 text-gray-500 hover:text-indigo-400 sm:opacity-0 sm:group-hover:opacity-100 transition-all" title="Chat">
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                         </button>
-                        <button onClick={e => { e.stopPropagation(); router.push(`/private/${workspaceSlug}/projects/${project.slug}`); }} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 sm:opacity-0 sm:group-hover:opacity-100 transition-all" title="Settings">
+                        <button onClick={e => { e.stopPropagation(); router.push(`/private/${workspaceSlug}/projects/${project.slug}`); }} className="p-1.5 rounded hover:bg-[#1a1a2e] text-gray-500 hover:text-gray-300 sm:opacity-0 sm:group-hover:opacity-100 transition-all" title="Settings">
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                         </button>
-                        <button onClick={e => { e.stopPropagation(); setDeleteSlug(project.slug); }} className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 sm:opacity-0 sm:group-hover:opacity-100 transition-all" title="Delete">
+                        <button onClick={e => { e.stopPropagation(); setDeleteSlug(project.slug); }} className="p-1.5 rounded hover:bg-red-500/10 text-gray-500 hover:text-red-400 sm:opacity-0 sm:group-hover:opacity-100 transition-all" title="Delete">
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
                       </div>
                     </div>
-                    <p className="text-sm text-gray-500 line-clamp-2 mb-3">{project.description || 'No description'}</p>
+                    <p className="text-sm text-gray-400 line-clamp-2 mb-3">{project.description || 'No description'}</p>
 
                     {/* Pie chart */}
                     {project.total_tickets > 0 ? (
@@ -202,11 +202,11 @@ export default function DashboardPage() {
                         <PieChart slices={pieSlices} size={140} donut />
                       </div>
                     ) : (
-                      <div className="flex items-center justify-center py-6 text-sm text-gray-400">No tickets yet</div>
+                      <div className="flex items-center justify-center py-6 text-sm text-gray-500">No tickets yet</div>
                     )}
 
-                    <div className="flex items-center justify-between text-xs text-gray-400 mt-3 pt-3 border-t border-gray-100">
-                      <span className="font-medium text-gray-500">{project.slug} · {project.total_tickets} ticket{project.total_tickets !== 1 ? 's' : ''}</span>
+                    <div className="flex items-center justify-between text-xs text-gray-500 mt-3 pt-3 border-t border-[#222233]">
+                      <span className="font-medium text-gray-400">{project.slug} · {project.total_tickets} ticket{project.total_tickets !== 1 ? 's' : ''}</span>
                       <span>{new Date(project.updated_at).toLocaleDateString()}</span>
                     </div>
                   </div>
@@ -229,9 +229,9 @@ export default function DashboardPage() {
               <button
                 key={action.label}
                 onClick={action.onClick}
-                className="flex items-center gap-3 pl-4 pr-3 py-2.5 bg-white rounded-full shadow-lg border border-gray-200 hover:bg-gray-50 hover:shadow-xl transition-all group"
+                className="flex items-center gap-3 pl-4 pr-3 py-2.5 bg-[#111118] rounded-full shadow-lg border border-[#222233] hover:bg-[#1a1a2e] hover:shadow-xl transition-all group"
               >
-                <span className="text-sm font-medium text-gray-700 whitespace-nowrap">{action.label}</span>
+                <span className="text-sm font-medium text-gray-300 whitespace-nowrap">{action.label}</span>
                 <div className="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center group-hover:bg-indigo-700 transition-colors">
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d={action.icon} /></svg>
                 </div>

@@ -50,40 +50,40 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50">
+    <div className="min-h-screen bg-[#0a0a0f]">
       <PublicNav />
       <div className="flex items-center justify-center px-4 py-8" style={{ minHeight: 'calc(100vh - 80px)' }}>
       <div className="w-full max-w-md">
         {/* Logo / Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-2xl mb-4 shadow-lg shadow-indigo-200">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-2xl mb-4 shadow-lg shadow-indigo-500/20">
             <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
             OpenWeave
           </h1>
-          <p className="mt-2 text-sm text-gray-500">
+          <p className="mt-2 text-sm text-gray-400">
             Agentic support & ticketing system
           </p>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 p-6 sm:p-8">
+        <div className="bg-[#111118] rounded-2xl shadow-xl border border-[#222233] p-6 sm:p-8">
           {/* Tabs */}
-          <div className="flex mb-6 bg-gray-100 rounded-xl p-1">
+          <div className="flex mb-6 bg-[#0a0a0f] rounded-xl p-1">
             <button
               type="button"
               onClick={() => { setMode('login'); setError(''); }}
-              className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-colors ${mode === 'login' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-colors ${mode === 'login' ? 'bg-[#1a1a2e] text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}
             >
               Sign in
             </button>
             <button
               type="button"
               onClick={() => { setMode('register'); setError(''); }}
-              className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-colors ${mode === 'register' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-colors ${mode === 'register' ? 'bg-[#1a1a2e] text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}
             >
               Create account
             </button>
@@ -92,7 +92,7 @@ function LoginForm() {
           <form className="space-y-5" onSubmit={handleSubmit}>
             {mode === 'login' ? (
               <div>
-                <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-1.5">
                   Email
                 </label>
                 <input
@@ -101,7 +101,7 @@ function LoginForm() {
                   type="text"
                   autoComplete="email"
                   required
-                  className={`block w-full px-4 py-2.5 bg-gray-50 border rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:border-transparent focus:bg-white transition-all text-sm ${fieldErrors.username ? 'border-red-500 focus:ring-red-500 bg-red-50' : 'border-gray-200 focus:ring-indigo-500'}`}
+                  className={`block w-full px-4 py-2.5 bg-[#1a1a2e] border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-transparent focus:bg-[#1a1a2e] transition-all text-sm ${fieldErrors.username ? 'border-red-500 focus:ring-red-500 bg-red-50' : 'border-[#222233] focus:ring-indigo-500'}`}
                   placeholder="you@example.com"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -110,7 +110,7 @@ function LoginForm() {
               </div>
             ) : (
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1.5">
                   Email
                 </label>
                 <input
@@ -119,7 +119,7 @@ function LoginForm() {
                   type="email"
                   autoComplete="email"
                   required
-                  className={`block w-full px-4 py-2.5 bg-gray-50 border rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:border-transparent focus:bg-white transition-all text-sm ${fieldErrors.email ? 'border-red-500 focus:ring-red-500 bg-red-50' : 'border-gray-200 focus:ring-indigo-500'}`}
+                  className={`block w-full px-4 py-2.5 bg-[#1a1a2e] border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-transparent focus:bg-[#1a1a2e] transition-all text-sm ${fieldErrors.email ? 'border-red-500 focus:ring-red-500 bg-red-50' : 'border-[#222233] focus:ring-indigo-500'}`}
                   placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -130,7 +130,7 @@ function LoginForm() {
 
             {mode === 'register' && (
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-1.5">
                   Display name
                 </label>
                 <input
@@ -138,7 +138,7 @@ function LoginForm() {
                   name="name"
                   type="text"
                   required
-                  className={`block w-full px-4 py-2.5 bg-gray-50 border rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:border-transparent focus:bg-white transition-all text-sm ${fieldErrors.name ? 'border-red-500 focus:ring-red-500 bg-red-50' : 'border-gray-200 focus:ring-indigo-500'}`}
+                  className={`block w-full px-4 py-2.5 bg-[#1a1a2e] border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-transparent focus:bg-[#1a1a2e] transition-all text-sm ${fieldErrors.name ? 'border-red-500 focus:ring-red-500 bg-red-50' : 'border-[#222233] focus:ring-indigo-500'}`}
                   placeholder="Enter your display name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -149,13 +149,13 @@ function LoginForm() {
             
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-300">
                   Password
                 </label>
                 {mode === 'login' && (
                   <Link
                     href="/forgot-password"
-                    className="text-sm text-indigo-600 hover:text-indigo-500"
+                    className="text-sm text-indigo-400 hover:text-indigo-300"
                   >
                     Forgot password?
                   </Link>
@@ -167,7 +167,7 @@ function LoginForm() {
                 type="password"
                 autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                 required
-                className={`block w-full px-4 py-2.5 bg-gray-50 border rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:border-transparent focus:bg-white transition-all text-sm ${fieldErrors.password ? 'border-red-500 focus:ring-red-500 bg-red-50' : 'border-gray-200 focus:ring-indigo-500'}`}
+                className={`block w-full px-4 py-2.5 bg-[#1a1a2e] border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-transparent focus:bg-[#1a1a2e] transition-all text-sm ${fieldErrors.password ? 'border-red-500 focus:ring-red-500 bg-red-50' : 'border-[#222233] focus:ring-indigo-500'}`}
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -176,18 +176,18 @@ function LoginForm() {
             </div>
 
             {error && (
-              <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-100 rounded-xl">
+              <div className="flex items-start gap-3 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
                 <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                 </svg>
-                <p className="text-sm text-red-700">{error}</p>
+                <p className="text-sm text-red-400">{error}</p>
               </div>
             )}
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex justify-center py-2.5 px-4 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-300 disabled:cursor-not-allowed transition-colors shadow-sm"
+              className="w-full flex justify-center py-2.5 px-4 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-800 disabled:cursor-not-allowed transition-colors shadow-sm"
             >
               {isLoading ? (
                 <span className="flex items-center gap-2">

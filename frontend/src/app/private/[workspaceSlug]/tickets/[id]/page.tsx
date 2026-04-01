@@ -142,13 +142,13 @@ export default function TicketDetailPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-600 border-t-transparent"></div>
           </div>
         ) : !ticket ? (
-          <div className="text-center py-20 text-gray-500">Ticket not found</div>
+          <div className="text-center py-20 text-gray-400">Ticket not found</div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Main content */}
             <div className="lg:col-span-2 space-y-6">
               {/* Ticket header */}
-              <div className="bg-white rounded-xl border border-gray-200 p-5 sm:p-6">
+              <div className="bg-[#111118] rounded-xl border border-[#222233] p-5 sm:p-6">
                 {editing ? (
                   <div className="space-y-4">
                     <FormField label="Title" error={fieldErrors.title} required>
@@ -182,7 +182,7 @@ export default function TicketDetailPage() {
                       </select>
                     </FormField>
                     <div className="flex gap-3 pt-2">
-                      <button onClick={() => setEditing(false)} className="px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+                      <button onClick={() => setEditing(false)} className="px-4 py-2.5 border border-[#222233] rounded-xl text-sm font-medium text-gray-300 hover:bg-[#1a1a2e]">Cancel</button>
                       <button onClick={handleSave} disabled={saving} className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300">{saving ? 'Saving…' : 'Save Changes'}</button>
                     </div>
                   </div>
@@ -195,28 +195,28 @@ export default function TicketDetailPage() {
                           <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${statusBadge(statuses, ticket.status)}`}>{statuses.find(s => s.key === ticket.status)?.label || ticket.status.replace(/_/g, ' ')}</span>
                           <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${PRIORITY_COLORS[ticket.priority]}`}>{ticket.priority}</span>
                         </div>
-                        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{ticket.title}</h1>
+                        <h1 className="text-xl sm:text-2xl font-bold text-white">{ticket.title}</h1>
                       </div>
                       <div className="flex items-center gap-2 ml-4">
-                        <button onClick={() => setEditing(true)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600">
+                        <button onClick={() => setEditing(true)} className="p-2 rounded-lg hover:bg-[#1a1a2e] text-gray-400 hover:text-gray-300">
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                         </button>
-                        <button onClick={() => setShowDelete(true)} className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500">
+                        <button onClick={() => setShowDelete(true)} className="p-2 rounded-lg hover:bg-red-500/10 text-gray-400 hover:text-red-400">
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
                       </div>
                     </div>
 
-                    <p className="text-gray-600 text-sm leading-relaxed mb-5">{ticket.description || 'No description provided.'}</p>
+                    <p className="text-gray-400 text-sm leading-relaxed mb-5">{ticket.description || 'No description provided.'}</p>
 
                     {/* Quick status change */}
                     <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-2">Quick Status Change</label>
+                      <label className="block text-xs font-medium text-gray-400 mb-2">Quick Status Change</label>
                       <div className="flex flex-wrap gap-2">
                         {statuses.map(s => (
                           <button key={s.key} onClick={() => handleStatusChange(s.key)}
                             className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-semibold transition-all min-h-[44px] sm:min-h-auto ${
-                              ticket.status === s.key ? statusBadge(statuses, s.key) + ' ring-2 ring-offset-1 ring-current' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                              ticket.status === s.key ? statusBadge(statuses, s.key) + ' ring-2 ring-offset-1 ring-current' : 'bg-[#1a1a2e] text-gray-400 hover:bg-[#222233]'
                             }`}>
                             {s.label}
                           </button>
@@ -230,12 +230,12 @@ export default function TicketDetailPage() {
               </div>
 
               {/* Comments / Activity tabs */}
-              <div className="bg-white rounded-xl border border-gray-200">
-                <div className="flex border-b border-gray-200">
-                  <button onClick={() => setTab('comments')} className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${tab === 'comments' ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+              <div className="bg-[#111118] rounded-xl border border-[#222233]">
+                <div className="flex border-b border-[#222233]">
+                  <button onClick={() => setTab('comments')} className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${tab === 'comments' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-300'}`}>
                     Comments ({comments.length})
                   </button>
-                  <button onClick={() => setTab('activity')} className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${tab === 'activity' ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+                  <button onClick={() => setTab('activity')} className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${tab === 'activity' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-300'}`}>
                     Activity
                   </button>
                 </div>
@@ -245,7 +245,7 @@ export default function TicketDetailPage() {
                     <>
                       <div className="space-y-4 mb-6">
                         {comments.length === 0 ? (
-                          <p className="text-gray-400 text-center py-6 text-sm">No comments yet — be the first!</p>
+                          <p className="text-gray-500 text-center py-6 text-sm">No comments yet — be the first!</p>
                         ) : comments.map(comment => (
                           <div key={comment.id} className="flex gap-3">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold text-white ${comment.author_details.user_type === 'BOT' ? 'bg-purple-500' : 'bg-indigo-500'}`}>
@@ -253,22 +253,22 @@ export default function TicketDetailPage() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                <span className="font-medium text-sm text-gray-900">{comment.author_details.username}</span>
+                                <span className="font-medium text-sm text-white">{comment.author_details.username}</span>
                                 <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${comment.author_details.user_type === 'BOT' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>{comment.author_details.user_type}</span>
                                 <span className="text-xs text-gray-400">{new Date(comment.created_at).toLocaleString()}</span>
                               </div>
-                              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap"><MentionText text={comment.body} /></p>
+                              <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap"><MentionText text={comment.body} /></p>
                             </div>
                           </div>
                         ))}
                       </div>
 
                       <form onSubmit={handleComment}>
-                        <div className="border-2 border-gray-200 rounded-xl focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent transition-all">
+                        <div className="border-2 border-[#222233] rounded-xl focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent transition-all">
                           <MentionInput value={newComment} onChange={setNewComment} members={projectAgents} disabled={submitting} />
-                          <div className="flex justify-between items-center px-3 py-2.5 bg-gray-50 border-t border-gray-100 rounded-b-xl">
+                          <div className="flex justify-between items-center px-3 py-2.5 bg-[#0a0a0f] border-t border-[#222233] rounded-b-xl">
                             <span className="text-xs text-gray-400">{newComment.length > 0 ? `${newComment.length} chars` : ''}</span>
-                            <button type="submit" disabled={submitting || !newComment.trim()} className="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors">
+                            <button type="submit" disabled={submitting || !newComment.trim()} className="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors">
                               {submitting ? 'Sending…' : 'Add Comment'}
                             </button>
                           </div>
@@ -277,26 +277,26 @@ export default function TicketDetailPage() {
                     </>
                   ) : (
                     <div className="space-y-3">
-                      <div className="flex items-center gap-3 text-sm text-gray-500">
+                      <div className="flex items-center gap-3 text-sm text-gray-400">
                         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span>Ticket created by <span className="font-medium text-gray-700">{ticket.created_by_details.username}</span></span>
+                        <span>Ticket created by <span className="font-medium text-gray-300">{ticket.created_by_details.username}</span></span>
                         <span className="text-xs text-gray-400 ml-auto">{new Date(ticket.created_at).toLocaleString()}</span>
                       </div>
                       {ticket.resolved_at && (
-                        <div className="flex items-center gap-3 text-sm text-gray-500">
+                        <div className="flex items-center gap-3 text-sm text-gray-400">
                           <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                           <span>Ticket resolved</span>
                           <span className="text-xs text-gray-400 ml-auto">{new Date(ticket.resolved_at).toLocaleString()}</span>
                         </div>
                       )}
                       {ticket.closed_at && (
-                        <div className="flex items-center gap-3 text-sm text-gray-500">
+                        <div className="flex items-center gap-3 text-sm text-gray-400">
                           <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
                           <span>Ticket closed</span>
                           <span className="text-xs text-gray-400 ml-auto">{new Date(ticket.closed_at).toLocaleString()}</span>
                         </div>
                       )}
-                      <div className="flex items-center gap-3 text-sm text-gray-500">
+                      <div className="flex items-center gap-3 text-sm text-gray-400">
                         <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
                         <span>Last updated</span>
                         <span className="text-xs text-gray-400 ml-auto">{new Date(ticket.updated_at).toLocaleString()}</span>
@@ -307,10 +307,10 @@ export default function TicketDetailPage() {
               </div>
 
               {/* Attachments */}
-              <div className="bg-white rounded-xl border border-gray-200">
-                <div className="px-5 py-3 border-b border-gray-200 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-gray-900">Attachments ({attachments.length})</h3>
-                  <label className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors ${uploading ? 'bg-gray-100 text-gray-400' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'}`}>
+              <div className="bg-[#111118] rounded-xl border border-[#222233]">
+                <div className="px-5 py-3 border-b border-[#222233] flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-200">Attachments ({attachments.length})</h3>
+                  <label className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors ${uploading ? 'bg-[#1a1a2e] text-gray-500' : 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20'}`}>
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
                     {uploading ? 'Uploading…' : 'Upload'}
                     <input type="file" className="hidden" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.csv,.xls,.xlsx,.zip" disabled={uploading} onChange={async (e) => {
@@ -328,7 +328,7 @@ export default function TicketDetailPage() {
                 </div>
                 <div className="p-5">
                   {attachments.length === 0 ? (
-                    <p className="text-gray-400 text-center py-4 text-sm">No attachments yet</p>
+                    <p className="text-gray-500 text-center py-4 text-sm">No attachments yet</p>
                   ) : (
                     <div className="space-y-2">
                       {attachments.map(att => {
@@ -338,19 +338,19 @@ export default function TicketDetailPage() {
                         const isAudio = /\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(name);
                         const mediaUrl = resolveMediaUrl(att.url);
                         return (
-                        <div key={att.id} className="rounded-lg bg-gray-50 group overflow-hidden">
+                        <div key={att.id} className="rounded-lg bg-[#1a1a2e] group overflow-hidden">
                           {isImage && (
                             <a href={mediaUrl} target="_blank" rel="noopener noreferrer">
                               <img
                                 src={mediaUrl}
                                 alt={att.filename}
-                                className="w-full max-h-64 object-contain bg-gray-100 rounded-t-lg"
+                                className="w-full max-h-64 object-contain bg-[#0a0a0f] rounded-t-lg"
                                 onError={(e) => {
                                   // Replace broken image with a file icon fallback
                                   const target = e.currentTarget;
                                   target.style.display = 'none';
                                   const fallback = document.createElement('div');
-                                  fallback.className = 'flex items-center gap-2 p-4 bg-gray-100 rounded-t-lg text-gray-500 text-sm';
+                                  fallback.className = 'flex items-center gap-2 p-4 bg-[#0a0a0f] rounded-t-lg text-gray-500 text-sm';
                                   fallback.innerHTML = '<svg class="w-6 h-6 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><span>Image not available</span>';
                                   target.parentElement?.appendChild(fallback);
                                 }}
@@ -363,7 +363,7 @@ export default function TicketDetailPage() {
                             </video>
                           )}
                           {isAudio && (
-                            <div className="p-3 bg-gray-100 rounded-t-lg">
+                            <div className="p-3 bg-[#0a0a0f] rounded-t-lg">
                               <audio controls className="w-full"><source src={mediaUrl} /></audio>
                             </div>
                           )}
@@ -372,7 +372,7 @@ export default function TicketDetailPage() {
                             <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
                           )}
                           <div className="flex-1 min-w-0">
-                            <a href={mediaUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-indigo-600 hover:text-indigo-800 truncate block">{att.filename}</a>
+                            <a href={mediaUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-indigo-400 hover:text-indigo-300 truncate block">{att.filename}</a>
                             <p className="text-xs text-gray-400">{att.uploaded_by_details?.username} · {new Date(att.created_at).toLocaleDateString()}</p>
                           </div>
                           <button
@@ -383,7 +383,7 @@ export default function TicketDetailPage() {
                                 toast('Attachment deleted');
                               } catch (err: any) { toast(err?.message || 'Delete failed', 'error'); }
                             }}
-                            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md text-gray-300 hover:text-red-500 hover:bg-red-50 transition-all"
+                            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md text-gray-300 hover:text-red-400 hover:bg-red-500/10 transition-all"
                             title="Delete"
                           >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -400,30 +400,30 @@ export default function TicketDetailPage() {
             {/* Sidebar */}
             <div className="space-y-6">
               {/* Details card */}
-              <div className="bg-white rounded-xl border border-gray-200 p-5">
-                <h3 className="text-sm font-semibold text-gray-900 mb-4">Details</h3>
+              <div className="bg-[#111118] rounded-xl border border-[#222233] p-5">
+                <h3 className="text-sm font-semibold text-white mb-4">Details</h3>
                 <dl className="space-y-4">
                   <div>
-                    <dt className="text-xs font-medium text-gray-500 mb-1">Status</dt>
+                    <dt className="text-xs font-medium text-gray-400 mb-1">Status</dt>
                     <dd><span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${statusBadge(statuses, ticket.status)}`}>{statuses.find(s => s.key === ticket.status)?.label || ticket.status.replace(/_/g, ' ')}</span></dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-medium text-gray-500 mb-1">Priority</dt>
+                    <dt className="text-xs font-medium text-gray-400 mb-1">Priority</dt>
                     <dd><span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${PRIORITY_COLORS[ticket.priority]}`}>{ticket.priority}</span></dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-medium text-gray-500 mb-1">Type</dt>
-                    <dd><span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700">{ticket.ticket_type === 'BUG' ? '🐛 Bug' : '✨ Feature'}</span></dd>
+                    <dt className="text-xs font-medium text-gray-400 mb-1">Type</dt>
+                    <dd><span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-800 text-gray-300">{ticket.ticket_type === 'BUG' ? '🐛 Bug' : '✨ Feature'}</span></dd>
                   </div>
                   {/* approved status removed */}
                   <div>
-                    <dt className="text-xs font-medium text-gray-500 mb-1">Project</dt>
-                    <dd><button onClick={() => router.push(`/private/${workspaceSlug}/projects/${ticket.project}`)} className="text-sm text-indigo-600 hover:text-indigo-800 font-medium">{ticket.project_name}</button></dd>
+                    <dt className="text-xs font-medium text-gray-400 mb-1">Project</dt>
+                    <dd><button onClick={() => router.push(`/private/${workspaceSlug}/projects/${ticket.project}`)} className="text-sm text-indigo-400 hover:text-indigo-300 font-medium">{ticket.project_name}</button></dd>
 
                   </div>
                   <div>
-                    <dt className="text-xs font-medium text-gray-500 mb-1">Assigned To</dt>
-                    <dd className="text-sm text-gray-700">
+                    <dt className="text-xs font-medium text-gray-400 mb-1">Assigned To</dt>
+                    <dd className="text-sm text-gray-300">
                       {ticket.assigned_to_details ? (
                         <span className="inline-flex items-center gap-1.5">
                           <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white ${ticket.assigned_to_details.user_type === 'BOT' ? 'bg-purple-500' : 'bg-indigo-500'}`}>
@@ -435,23 +435,23 @@ export default function TicketDetailPage() {
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-medium text-gray-500 mb-1">Created By</dt>
-                    <dd className="text-sm text-gray-700">{ticket.created_by_details.username}</dd>
+                    <dt className="text-xs font-medium text-gray-400 mb-1">Created By</dt>
+                    <dd className="text-sm text-gray-300">{ticket.created_by_details.username}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-medium text-gray-500 mb-1">Created</dt>
+                    <dt className="text-xs font-medium text-gray-400 mb-1">Created</dt>
                     <dd className="text-sm text-gray-500">{new Date(ticket.created_at).toLocaleString()}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-medium text-gray-500 mb-1">Updated</dt>
+                    <dt className="text-xs font-medium text-gray-400 mb-1">Updated</dt>
                     <dd className="text-sm text-gray-500">{new Date(ticket.updated_at).toLocaleString()}</dd>
                   </div>
                 </dl>
               </div>
 
               {/* Quick assign */}
-              <div className="bg-white rounded-xl border border-gray-200 p-5">
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">Quick Assign</h3>
+              <div className="bg-[#111118] rounded-xl border border-[#222233] p-5">
+                <h3 className="text-sm font-semibold text-white mb-3">Quick Assign</h3>
                 <select
                   value={ticket.assigned_to?.toString() || ''}
                   onChange={async (e) => {
@@ -462,7 +462,7 @@ export default function TicketDetailPage() {
                       toast('Assignment updated');
                     } catch (e: any) { toast(e?.message || 'Failed to assign', 'error'); }
                   }}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-3 border border-[#222233] rounded-xl text-sm bg-[#1a1a2e] text-white focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="">Unassigned</option>
                   {projectAgents.map(a => <option key={a.id} value={a.username}>{a.username} ({a.user_type})</option>)}

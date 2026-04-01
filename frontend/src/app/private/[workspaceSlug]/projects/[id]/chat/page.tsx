@@ -170,17 +170,17 @@ export default function ProjectChatPage() {
     <Layout>
       <div className="flex flex-col h-[calc(100vh-64px)]">
         {/* Header */}
-        <div className="flex items-center gap-3 px-4 sm:px-6 lg:px-8 py-4 border-b border-gray-200 bg-white flex-shrink-0">
+        <div className="flex items-center gap-3 px-4 sm:px-6 lg:px-8 py-4 border-b border-[#222233] bg-[#111118] flex-shrink-0">
           <button
             onClick={() => router.push(`/private/${workspaceSlug}/projects/${projectId}`)}
-            className="p-2 rounded-lg hover:bg-gray-100 text-gray-400"
+            className="p-2 rounded-lg hover:bg-[#1a1a2e] text-gray-400"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
           <div className="min-w-0">
-            <h1 className="text-xl font-bold text-gray-900 truncate">
+            <h1 className="text-xl font-bold text-white truncate">
               💬 {project?.name || 'Project'} Activity
             </h1>
             <p className="text-xs text-gray-500">{totalCount} comments across all tickets</p>
@@ -197,7 +197,7 @@ export default function ProjectChatPage() {
         </div>
 
         {/* Chat feed */}
-        <div ref={feedRef} className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-4 space-y-1 bg-gray-50">
+        <div ref={feedRef} className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-4 space-y-1 bg-[#0a0a0f]">
           {loading ? (
             <div className="text-center text-gray-400 py-16">Loading…</div>
           ) : comments.length === 0 ? (
@@ -221,35 +221,35 @@ export default function ProjectChatPage() {
                 <div key={group.date}>
                   {/* Date divider */}
                   <div className="flex items-center gap-3 my-4">
-                    <div className="flex-1 h-px bg-gray-200" />
+                    <div className="flex-1 h-px bg-[#222233]" />
                     <span className="text-xs font-medium text-gray-400 whitespace-nowrap">{group.date}</span>
-                    <div className="flex-1 h-px bg-gray-200" />
+                    <div className="flex-1 h-px bg-[#222233]" />
                   </div>
 
                   {group.comments.map((comment) => {
                     const isBot = comment.author_details?.user_type === 'BOT';
                     const initials = (comment.author_details?.username || '?')[0].toUpperCase();
                     return (
-                      <div key={comment.id} className="flex gap-3 py-2 group hover:bg-white/60 rounded-lg px-2 transition-colors">
+                      <div key={comment.id} className="flex gap-3 py-2 group hover:bg-[#111118] rounded-lg px-2 transition-colors">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 ${isBot ? 'bg-purple-500' : 'bg-indigo-500'}`}>
                           {initials}
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-baseline gap-2 flex-wrap">
-                            <span className="text-sm font-semibold text-gray-900">
+                            <span className="text-sm font-semibold text-white">
                               {isBot ? '🤖' : '👤'} {comment.author_details?.name || comment.author_details?.username || 'Unknown'}
                             </span>
                             {comment.ticket_details && (
                               <button
                                 onClick={() => router.push(`/private/${workspaceSlug}/tickets/${comment.ticket_details!.ticket_slug}`)}
-                                className="text-xs font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
+                                className="text-xs font-medium text-indigo-400 hover:text-indigo-300 hover:underline"
                               >
                                 {comment.ticket_details.ticket_slug}: {comment.ticket_details.title}
                               </button>
                             )}
                             <span className="text-[11px] text-gray-400">{formatTime(comment.created_at)}</span>
                           </div>
-                          <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-wrap break-words"><MentionText text={comment.body} /></p>
+                          <p className="text-sm text-gray-300 mt-0.5 whitespace-pre-wrap break-words"><MentionText text={comment.body} /></p>
                         </div>
                       </div>
                     );

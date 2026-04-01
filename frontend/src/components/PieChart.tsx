@@ -128,7 +128,7 @@ export default function PieChart({ slices, size = 200, donut = true, className =
             d={arc.d}
             fill={toHex(arc.color)}
             fillRule="evenodd"
-            stroke="white"
+            stroke="#0a0a0f"
             strokeWidth={2}
             opacity={hoveredIndex === null || hoveredIndex === arc.index ? 1 : 0.4}
             className="transition-opacity duration-150 cursor-pointer"
@@ -139,7 +139,7 @@ export default function PieChart({ slices, size = 200, donut = true, className =
         {/* Center label on hover */}
         {donut && hoveredIndex !== null && arcs[hoveredIndex] && (
           <>
-            <text x={cx} y={cy - 6} textAnchor="middle" className="fill-gray-900 text-lg font-bold" style={{ fontSize: 18 }}>
+            <text x={cx} y={cy - 6} textAnchor="middle" className="fill-white text-lg font-bold" style={{ fontSize: 18 }}>
               {arcs[hoveredIndex].value}
             </text>
             <text x={cx} y={cy + 14} textAnchor="middle" className="fill-gray-500" style={{ fontSize: 11 }}>
@@ -149,7 +149,7 @@ export default function PieChart({ slices, size = 200, donut = true, className =
         )}
         {donut && hoveredIndex === null && (
           <>
-            <text x={cx} y={cy - 6} textAnchor="middle" className="fill-gray-900 text-lg font-bold" style={{ fontSize: 20 }}>
+            <text x={cx} y={cy - 6} textAnchor="middle" className="fill-white text-lg font-bold" style={{ fontSize: 20 }}>
               {total}
             </text>
             <text x={cx} y={cy + 14} textAnchor="middle" className="fill-gray-500" style={{ fontSize: 11 }}>
@@ -174,7 +174,7 @@ export default function PieChart({ slices, size = 200, donut = true, className =
                 className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                 style={{ backgroundColor: toHex(slice.color), opacity: slice.value > 0 ? 1 : 0.35 }}
               />
-              <span className={`text-xs ${slice.value > 0 ? 'text-gray-600' : 'text-gray-400'}`}>
+              <span className={`text-xs ${slice.value > 0 ? 'text-gray-400' : 'text-gray-400'}`}>
                 {slice.label} ({slice.value})
               </span>
             </div>

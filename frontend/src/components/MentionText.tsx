@@ -13,7 +13,7 @@ export default function MentionText({ text, className = '' }: { text: string; cl
           return (
             <span
               key={i}
-              className="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 text-xs font-medium mx-0.5"
+              className="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 text-xs font-medium mx-0.5"
             >
               @{match[1]}
             </span>

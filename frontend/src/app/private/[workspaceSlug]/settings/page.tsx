@@ -557,14 +557,14 @@ export default function WorkspaceSettingsPage() {
 
   if (!workspace) return <Layout><div className="p-8 text-center text-gray-500">Workspace not found</div></Layout>;
 
-  const tabClass = (tab: string, active: boolean) => `px-4 py-2.5 text-sm font-medium rounded-t-lg border-b-2 transition-colors ${active ? 'border-indigo-600 text-indigo-700 bg-white' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`;
+  const tabClass = (tab: string, active: boolean) => `px-4 py-2.5 text-sm font-medium rounded-t-lg border-b-2 transition-colors ${active ? 'border-indigo-500 text-indigo-400 bg-[#111118]' : 'border-transparent text-gray-500 hover:text-gray-300 hover:border-gray-600'}`;
 
   return (
     <Layout>
       <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">{workspace.name} — Settings</h1>
+        <h1 className="text-2xl font-bold text-white mb-2">{workspace.name} — Settings</h1>
 
-        <div className="flex gap-1 mb-6 border-b border-gray-200 overflow-x-auto">
+        <div className="flex gap-1 mb-6 border-b border-[#222233] overflow-x-auto">
           <button onClick={() => setSettingsTab('general')} className={tabClass('general', settingsTab === 'general')}>General</button>
           <button onClick={() => setSettingsTab('members')} className={tabClass('members', settingsTab === 'members')}>Members</button>
           <button onClick={() => setSettingsTab('bots')} className={tabClass('bots', settingsTab === 'bots')}>🤖 Bots</button>
@@ -576,9 +576,9 @@ export default function WorkspaceSettingsPage() {
 
         {/* === GENERAL TAB === */}
         {settingsTab === 'general' && (<>
-        <div className="bg-white border border-gray-200 rounded-xl mb-6">
-          <div className="px-5 py-4 border-b border-gray-100">
-            <h2 className="font-semibold text-gray-900">Workspace Details</h2>
+        <div className="bg-[#111118] border border-[#222233] rounded-xl mb-6">
+          <div className="px-5 py-4 border-b border-[#222233]">
+            <h2 className="font-semibold text-white">Workspace Details</h2>
           </div>
           <div className="p-5 space-y-4">
             <FormField label="Name" error={fieldErrors.name} required>
@@ -588,21 +588,21 @@ export default function WorkspaceSettingsPage() {
               <input type="text" value={editSlug} onChange={e => setEditSlug(e.target.value)} className={inputClass(fieldErrors.slug)} />
             </FormField>
             <button onClick={handleSaveWorkspace} disabled={saving || !editName.trim() || !editSlug.trim()}
-              className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors">
+              className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors">
               {saving ? 'Saving…' : 'Save Changes'}
             </button>
           </div>
         </div>
 
         {/* Billing */}
-        <div className="bg-white border border-gray-200 rounded-xl mb-6">
-          <div className="px-5 py-4 border-b border-gray-100">
-            <h2 className="font-semibold text-gray-900">Billing & Subscription</h2>
+        <div className="bg-[#111118] border border-[#222233] rounded-xl mb-6">
+          <div className="px-5 py-4 border-b border-[#222233]">
+            <h2 className="font-semibold text-white">Billing & Subscription</h2>
           </div>
           <div className="p-5 flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-900">Manage your subscription and billing</p>
-              <p className="text-xs text-gray-500 mt-1">View usage, upgrade plans, and manage payment methods</p>
+              <p className="text-sm font-medium text-white">Manage your subscription and billing</p>
+              <p className="text-xs text-gray-400 mt-1">View usage, upgrade plans, and manage payment methods</p>
             </div>
             <button
               onClick={() => router.push(`/private/${workspaceSlug}/billing`)}
@@ -619,14 +619,14 @@ export default function WorkspaceSettingsPage() {
         
 
         {/* Danger Zone */}
-        <div className="bg-white rounded-xl border border-red-200">
-          <div className="px-5 py-4 border-b border-red-100">
-            <h2 className="font-semibold text-red-600">Danger Zone</h2>
+        <div className="bg-[#111118] rounded-xl border border-red-500/30">
+          <div className="px-5 py-4 border-b border-red-500/20">
+            <h2 className="font-semibold text-red-400">Danger Zone</h2>
           </div>
           <div className="px-5 py-4 flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-900">Delete this workspace</p>
-              <p className="text-xs text-gray-500">This action cannot be undone. All projects, tickets, and data will be permanently deleted.</p>
+              <p className="text-sm font-medium text-white">Delete this workspace</p>
+              <p className="text-xs text-gray-400">This action cannot be undone. All projects, tickets, and data will be permanently deleted.</p>
             </div>
             <button
               onClick={async () => {
@@ -650,19 +650,19 @@ export default function WorkspaceSettingsPage() {
 
         {/* === MEMBERS TAB === */}
         {settingsTab === 'members' && (<>
-        <div className="bg-white border border-gray-200 rounded-xl mb-6">
-          <div className="px-5 py-4 border-b border-gray-100">
-            <h2 className="font-semibold text-gray-900">Members ({members.filter(m => m.user.id !== workspace?.owner).length + 1})</h2>
+        <div className="bg-[#111118] border border-[#222233] rounded-xl mb-6">
+          <div className="px-5 py-4 border-b border-[#222233]">
+            <h2 className="font-semibold text-white">Members ({members.filter(m => m.user.id !== workspace?.owner).length + 1})</h2>
           </div>
-          <div className="divide-y divide-gray-50">
+          <div className="divide-y divide-[#222233]">
             {(workspace as any).owner_details && (
-              <div className="px-5 py-3 flex items-center justify-between bg-amber-50/50">
+              <div className="px-5 py-3 flex items-center justify-between bg-amber-500/5">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0 bg-amber-500">
                     {(workspace as any).owner_details.username[0].toUpperCase()}
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{(workspace as any).owner_details.username}</p>
+                    <p className="text-sm font-medium text-white">{(workspace as any).owner_details.username}</p>
                     <p className="text-xs text-gray-500">{(workspace as any).owner_details.email}</p>
                   </div>
                 </div>
@@ -676,13 +676,13 @@ export default function WorkspaceSettingsPage() {
                     {m.user.username[0].toUpperCase()}
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{m.user.username}</p>
-                    <p className="text-xs text-gray-500">{m.user.email} · <span className={m.user.user_type === 'BOT' ? 'text-purple-600' : ''}>{m.user.user_type}</span></p>
+                    <p className="text-sm font-medium text-white">{m.user.username}</p>
+                    <p className="text-xs text-gray-400">{m.user.email} · <span className={m.user.user_type === 'BOT' ? 'text-purple-600' : ''}>{m.user.user_type}</span></p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-gray-500 px-2 py-1 bg-gray-100 rounded">Member</span>
-                  <button onClick={() => handleRemoveMember(m.id)} className="px-3 py-2 text-sm font-medium text-red-600 hover:text-white hover:bg-red-600 border border-red-200 hover:border-red-600 rounded-lg transition-colors min-w-[80px]">
+                  <span className="text-xs text-gray-400 px-2 py-1 bg-[#1a1a2e] rounded">Member</span>
+                  <button onClick={() => handleRemoveMember(m.id)} className="px-3 py-2 text-sm font-medium text-red-400 hover:text-white hover:bg-red-600 border border-red-500/30 hover:border-red-600 rounded-lg transition-colors min-w-[80px]">
                     Remove
                   </button>
                 </div>
@@ -694,15 +694,15 @@ export default function WorkspaceSettingsPage() {
 
         {/* === BOTS TAB === */}
         {settingsTab === 'bots' && (<>
-        <div className="bg-white border border-gray-200 rounded-xl mb-6">
-          <div className="px-5 py-4 border-b border-gray-100">
-            <h2 className="font-semibold text-gray-900">🤖 Bot Token Management</h2>
-            <p className="text-sm text-gray-500 mt-1">Manage API tokens for bots in this workspace. Only workspace admins can view and manage tokens.</p>
+        <div className="bg-[#111118] border border-[#222233] rounded-xl mb-6">
+          <div className="px-5 py-4 border-b border-[#222233]">
+            <h2 className="font-semibold text-white">🤖 Bot Token Management</h2>
+            <p className="text-sm text-gray-400 mt-1">Manage API tokens for bots in this workspace. Only workspace admins can view and manage tokens.</p>
           </div>
           {loadingBots ? (
             <div className="p-5 text-center">
               <div className="animate-spin rounded-full h-6 w-6 border-2 border-indigo-600 border-t-transparent mx-auto"></div>
-              <p className="text-sm text-gray-500 mt-2">Loading bots...</p>
+              <p className="text-sm text-gray-400 mt-2">Loading bots...</p>
             </div>
           ) : bots.length === 0 ? (
             <div className="p-5 text-center">
@@ -711,11 +711,11 @@ export default function WorkspaceSettingsPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
                 </svg>
               </div>
-              <p className="text-sm text-gray-500">No bots found in this workspace.</p>
-              <p className="text-xs text-gray-400 mt-1">Contact support to create bot users for this workspace.</p>
+              <p className="text-sm text-gray-400">No bots found in this workspace.</p>
+              <p className="text-xs text-gray-500 mt-1">Contact support to create bot users for this workspace.</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-50">
+            <div className="divide-y divide-[#222233]">
               {bots.map(bot => (
                 <div key={bot.username} className="px-5 py-4">
                   <div className="flex items-start gap-4">
@@ -724,17 +724,17 @@ export default function WorkspaceSettingsPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-medium text-gray-900">{bot.username}</h3>
+                        <h3 className="font-medium text-white">{bot.username}</h3>
                         <span className="px-2 py-1 text-xs font-medium text-purple-700 bg-purple-100 rounded">BOT</span>
                         {!bot.is_active && <span className="px-2 py-1 text-xs font-medium text-red-700 bg-red-100 rounded">INACTIVE</span>}
                       </div>
-                      {bot.name && <p className="text-sm text-gray-600 mb-2">{bot.name}</p>}
-                      {bot.description && <p className="text-sm text-gray-500 mb-3">{bot.description}</p>}
+                      {bot.name && <p className="text-sm text-gray-400 mb-2">{bot.name}</p>}
+                      {bot.description && <p className="text-sm text-gray-400 mb-3">{bot.description}</p>}
                       
-                      <div className="bg-gray-50 rounded-lg p-3 mb-3">
-                        <label className="block text-xs font-medium text-gray-700 mb-1">API Token</label>
+                      <div className="bg-[#1a1a2e] rounded-lg p-3 mb-3">
+                        <label className="block text-xs font-medium text-gray-300 mb-1">API Token</label>
                         <div className="flex items-center gap-2">
-                          <code className="flex-1 text-sm font-mono text-gray-800 bg-white border border-gray-200 rounded px-2 py-1 select-all">
+                          <code className="flex-1 text-sm font-mono text-gray-200 bg-[#0a0a0f] border border-[#222233] rounded px-2 py-1 select-all">
                             {revealedTokens.has(bot.username) ? bot.api_token : maskToken(bot.api_token || '')}
                           </code>
                           <button
@@ -749,7 +749,7 @@ export default function WorkspaceSettingsPage() {
                                 setRevealedTokens(prev => new Set(prev).add(bot.username));
                               }
                             }}
-                            className="p-1.5 text-gray-400 hover:text-gray-600 rounded"
+                            className="p-1.5 text-gray-400 hover:text-gray-300 rounded"
                             title={revealedTokens.has(bot.username) ? "Hide token" : "Show full token"}
                           >
                             {revealedTokens.has(bot.username) ? (
@@ -765,7 +765,7 @@ export default function WorkspaceSettingsPage() {
                           </button>
                           <button
                             onClick={() => copyToClipboard(bot.api_token || '')}
-                            className="p-1.5 text-gray-400 hover:text-gray-600 rounded"
+                            className="p-1.5 text-gray-400 hover:text-gray-300 rounded"
                             title="Copy token"
                           >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -778,13 +778,13 @@ export default function WorkspaceSettingsPage() {
                       <div className="flex flex-wrap gap-2">
                         <button
                           onClick={() => handleRegenerateToken(bot)}
-                          className="px-3 py-1.5 text-sm font-medium text-orange-700 hover:text-white hover:bg-orange-600 border border-orange-300 hover:border-orange-600 rounded-lg transition-colors"
+                          className="px-3 py-1.5 text-sm font-medium text-orange-400 hover:text-white hover:bg-orange-600 border border-orange-500/30 hover:border-orange-600 rounded-lg transition-colors"
                         >
                           Regenerate Token
                         </button>
                         <button
                           onClick={() => handleDeleteBot(bot)}
-                          className="px-3 py-1.5 text-sm font-medium text-red-700 hover:text-white hover:bg-red-600 border border-red-300 hover:border-red-600 rounded-lg transition-colors"
+                          className="px-3 py-1.5 text-sm font-medium text-red-400 hover:text-white hover:bg-red-600 border border-red-500/30 hover:border-red-600 rounded-lg transition-colors"
                         >
                           Delete Bot
                         </button>
@@ -800,7 +800,7 @@ export default function WorkspaceSettingsPage() {
 
         {/* === STATE MACHINE TAB === */}
         {settingsTab === 'state-machine' && workspace && (
-          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+          <div className="bg-[#111118] rounded-xl border border-[#222233] p-5 mb-6">
             <label className="flex items-center gap-3 cursor-pointer">
               <input
                 type="checkbox"
@@ -814,39 +814,39 @@ export default function WorkspaceSettingsPage() {
                     toast(err?.message || 'Failed to update setting', 'error');
                   }
                 }}
-                className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                className="w-5 h-5 rounded border-[#222233] text-indigo-600 focus:ring-indigo-500 bg-[#1a1a2e]"
               />
               <div>
-                <p className="text-sm font-medium text-gray-900">Restrict status changes to assigned user</p>
-                <p className="text-xs text-gray-500">When enabled, only the assigned user, workspace admin, or project admin can change a ticket&apos;s status</p>
+                <p className="text-sm font-medium text-white">Restrict status changes to assigned user</p>
+                <p className="text-xs text-gray-400">When enabled, only the assigned user, workspace admin, or project admin can change a ticket&apos;s status</p>
               </div>
             </label>
           </div>
         )}
         {/* Sync from workspace */}
         {settingsTab === 'state-machine' && workspace && allWorkspaces.length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
-            <h3 className="text-sm font-semibold text-gray-900 mb-2">Sync from another workspace</h3>
-            <p className="text-xs text-gray-500 mb-3">Import a state machine from another workspace you have access to. This is a two-step process:</p>
-            <div className="bg-gray-50 rounded-xl p-4 mb-4 space-y-3">
+          <div className="bg-[#111118] rounded-xl border border-[#222233] p-5 mb-6">
+            <h3 className="text-sm font-semibold text-white mb-2">Sync from another workspace</h3>
+            <p className="text-xs text-gray-400 mb-3">Import a state machine from another workspace you have access to. This is a two-step process:</p>
+            <div className="bg-[#1a1a2e] rounded-xl p-4 mb-4 space-y-3">
               <div className="flex items-start gap-3">
                 <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">1</span>
                 <div>
-                  <p className="text-sm font-medium text-gray-900">Sync States</p>
+                  <p className="text-sm font-medium text-white">Sync States</p>
                   <p className="text-xs text-gray-500"><strong>Additive</strong> — new statuses are added (name, color, description). Existing statuses with the same key are kept untouched. Nothing is deleted.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <span className="w-6 h-6 rounded-full bg-red-100 text-red-700 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</span>
                 <div>
-                  <p className="text-sm font-medium text-gray-900">Sync Transitions</p>
+                  <p className="text-sm font-medium text-white">Sync Transitions</p>
                   <p className="text-xs text-gray-500"><strong>Destructive</strong> — all existing allowed_from rules are replaced with the source workspace&apos;s rules. Previous transition paths are deleted. This requires all states to exist first (run Step 1 first).</p>
                 </div>
               </div>
             </div>
             <div className="flex gap-2 items-center mb-3">
               <select value={syncSource} onChange={e => setSyncSource(e.target.value)}
-                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm bg-white">
+                className="flex-1 px-4 py-2.5 border border-[#222233] rounded-xl text-sm bg-[#1a1a2e] text-white">
                 <option value="">Select source workspace…</option>
                 {allWorkspaces.map(w => <option key={w.slug} value={w.slug}>{w.name} ({w.slug})</option>)}
               </select>
@@ -869,10 +869,10 @@ export default function WorkspaceSettingsPage() {
         {/* Sync confirmation dialog */}
         {showSyncConfirm && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowSyncConfirm(null)}>
-            <div className="bg-white rounded-2xl p-6 max-w-md w-full" onClick={e => e.stopPropagation()}>
+            <div className="bg-[#111118] rounded-2xl p-6 max-w-md w-full border border-[#222233]" onClick={e => e.stopPropagation()}>
               <div className="flex items-center gap-3 mb-4">
                 <span className="text-2xl">{showSyncConfirm === 'states' ? '📋' : '⚠️'}</span>
-                <h3 className="text-lg font-bold text-gray-900">{showSyncConfirm === 'states' ? 'Sync States' : 'Sync Transitions'}</h3>
+                <h3 className="text-lg font-bold text-white">{showSyncConfirm === 'states' ? 'Sync States' : 'Sync Transitions'}</h3>
               </div>
               {showSyncConfirm === 'states' ? (
                 <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-4">
@@ -886,7 +886,7 @@ export default function WorkspaceSettingsPage() {
                 </div>
               )}
               <div className="flex gap-3">
-                <button onClick={() => setShowSyncConfirm(null)} className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+                <button onClick={() => setShowSyncConfirm(null)} className="flex-1 px-4 py-3 border border-[#222233] rounded-xl text-sm font-medium text-gray-300 hover:bg-[#1a1a2e]">Cancel</button>
                 <button onClick={async () => {
                   if (!workspace) return;
                   const mode = showSyncConfirm;

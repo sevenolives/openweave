@@ -133,14 +133,14 @@ export default function MentionInput({
       {showDropdown && filtered.length > 0 && (
         <div
           ref={dropdownRef}
-          className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto z-50"
+          className="absolute bottom-full left-0 right-0 mb-1 bg-[#111118] border border-[#222233] rounded-lg shadow-lg max-h-48 overflow-y-auto z-50"
         >
           {filtered.map((user, i) => (
             <button
               key={user.id}
               type="button"
               className={`w-full flex items-center gap-3 px-3 py-2 text-left text-sm transition-colors ${
-                i === selectedIndex ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-gray-50 text-gray-700'
+                i === selectedIndex ? 'bg-indigo-500/10 text-indigo-400' : 'hover:bg-[#1a1a2e] text-gray-300'
               }`}
               onMouseDown={(e) => {
                 e.preventDefault();

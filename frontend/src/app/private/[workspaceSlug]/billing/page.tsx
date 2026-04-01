@@ -95,7 +95,7 @@ export default function BillingPage() {
   return (
     <Layout>
       <div className="max-w-2xl mx-auto py-8 px-4">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Billing</h1>
+        <h1 className="text-2xl font-bold text-white mb-6">Billing</h1>
 
         {success && (
           <div className="mb-6 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
@@ -110,21 +110,21 @@ export default function BillingPage() {
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-indigo-600" />
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#222233] border-t-indigo-600" />
           </div>
         ) : (
           <div className="space-y-6">
             {/* Current Plan */}
-            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="rounded-xl border border-[#222233] bg-[#111118] p-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <p className="text-sm text-gray-500">Current Plan</p>
-                  <p className="text-2xl font-bold text-gray-900">{planLabel}</p>
+                  <p className="text-sm text-gray-400">Current Plan</p>
+                  <p className="text-2xl font-bold text-white">{planLabel}</p>
                 </div>
                 <span className={`text-sm font-medium px-3 py-1 rounded-full ${
                   subscription?.status === 'active' ? 'bg-emerald-100 text-emerald-700' :
                   subscription?.status === 'past_due' ? 'bg-amber-100 text-amber-700' :
-                  'bg-gray-100 text-gray-600'
+                  'bg-gray-800 text-gray-400'
                 }`}>
                   {subscription?.status === 'active' ? '● Active' : subscription?.status || 'active'}
                 </span>
@@ -134,17 +134,17 @@ export default function BillingPage() {
                 {subscription?.plan === 'free' ? (
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-500">Users</span>
-                    <span className="text-gray-900 font-medium">{occupiedSeats} of {licensedSeats}</span>
+                    <span className="text-white font-medium">{occupiedSeats} of {licensedSeats}</span>
                   </div>
                 ) : (
                   <>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-gray-500">Licensed seats</span>
-                      <span className="text-gray-900 font-semibold text-lg">{licensedSeats}</span>
+                      <span className="text-white font-semibold text-lg">{licensedSeats}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-gray-500">Occupied</span>
-                      <span className="text-gray-900 font-medium">{occupiedSeats} of {licensedSeats}</span>
+                      <span className="text-white font-medium">{occupiedSeats} of {licensedSeats}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-gray-500">Available</span>
@@ -154,7 +154,7 @@ export default function BillingPage() {
                     </div>
                     {/* Seat usage bar */}
                     <div className="mt-2">
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-2 bg-[#1a1a2e] rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all ${occupiedSeats >= licensedSeats ? 'bg-amber-500' : 'bg-indigo-500'}`}
                           style={{ width: `${Math.min(100, (occupiedSeats / licensedSeats) * 100)}%` }}
@@ -163,14 +163,14 @@ export default function BillingPage() {
                     </div>
                     <div className="flex items-center justify-between text-sm pt-1">
                       <span className="text-gray-500">Per-seat price</span>
-                      <span className="text-gray-900 font-medium">$12/seat/month</span>
+                      <span className="text-white font-medium">$12/seat/month</span>
                     </div>
                   </>
                 )}
               </div>
               
               {subscription?.current_period_end && (
-                <p className="text-sm text-gray-400 mt-4 pt-3 border-t border-gray-100">
+                <p className="text-sm text-gray-500 mt-4 pt-3 border-t border-[#222233]">
                   Next billing: {new Date(subscription.current_period_end).toLocaleDateString()}
                 </p>
               )}
@@ -178,20 +178,20 @@ export default function BillingPage() {
 
             {/* Upgrade to Pro */}
             {subscription?.plan === 'free' && (
-              <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-900 mb-2">Upgrade to Pro</h2>
-                <p className="text-sm text-gray-500 mb-4">
+              <div className="rounded-xl border border-[#222233] bg-[#111118] p-6">
+                <h2 className="text-lg font-semibold text-white mb-2">Upgrade to Pro</h2>
+                <p className="text-sm text-gray-400 mb-4">
                   Licensed seats, unlimited workspaces &amp; projects, custom state machines, and more.
                 </p>
 
                 {/* Seat chooser */}
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Number of seats</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Number of seats</label>
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => setUpgradeSeats(Math.max(occupiedSeats, upgradeSeats - 1))}
                       disabled={upgradeSeats <= occupiedSeats}
-                      className="w-10 h-10 rounded-lg border border-gray-300 text-gray-600 font-bold hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+                      className="w-10 h-10 rounded-lg border border-[#222233] text-gray-300 font-bold hover:bg-[#1a1a2e] disabled:opacity-30 disabled:cursor-not-allowed"
                     >−</button>
                     <input
                       type="number"
@@ -201,19 +201,19 @@ export default function BillingPage() {
                         setUpgradeSeats(Math.max(occupiedSeats, v));
                       }}
                       min={occupiedSeats}
-                      className="w-20 text-center px-3 py-2 border border-gray-300 rounded-lg text-lg font-semibold"
+                      className="w-20 text-center px-3 py-2 border border-[#222233] rounded-lg text-lg font-semibold bg-[#1a1a2e] text-white"
                     />
                     <button
                       onClick={() => setUpgradeSeats(upgradeSeats + 1)}
-                      className="w-10 h-10 rounded-lg border border-gray-300 text-gray-600 font-bold hover:bg-gray-50"
+                      className="w-10 h-10 rounded-lg border border-[#222233] text-gray-300 font-bold hover:bg-[#1a1a2e]"
                     >+</button>
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-gray-400">
                       (min {occupiedSeats} — you have {occupiedSeats} user{occupiedSeats !== 1 ? 's' : ''})
                     </span>
                   </div>
-                  <div className="mt-3 flex gap-6 text-sm text-gray-600">
-                    <span>Monthly: <strong className="text-gray-900">${upgradeSeats * 12}/mo</strong></span>
-                    <span>Annual: <strong className="text-gray-900">${upgradeSeats * 10}/mo</strong> <span className="text-green-600">(save ${upgradeSeats * 24}/yr)</span></span>
+                  <div className="mt-3 flex gap-6 text-sm text-gray-400">
+                    <span>Monthly: <strong className="text-white">${upgradeSeats * 12}/mo</strong></span>
+                    <span>Annual: <strong className="text-white">${upgradeSeats * 10}/mo</strong> <span className="text-green-600">(save ${upgradeSeats * 24}/yr)</span></span>
                   </div>
                 </div>
 
@@ -228,7 +228,7 @@ export default function BillingPage() {
                   <button
                     onClick={() => handleUpgrade('pro_annual')}
                     disabled={actionLoading}
-                    className="px-4 py-2.5 rounded-lg border border-indigo-200 text-indigo-600 text-sm font-medium hover:bg-indigo-50 transition disabled:opacity-50"
+                    className="px-4 py-2.5 rounded-lg border border-indigo-500/30 text-indigo-400 text-sm font-medium hover:bg-indigo-500/10 transition disabled:opacity-50"
                   >
                     {actionLoading ? 'Redirecting…' : `$${upgradeSeats * 10}/mo — Annual`}
                   </button>
@@ -239,9 +239,9 @@ export default function BillingPage() {
             {/* Seat Management */}
             {subscription?.plan !== 'free' && subscription?.stripe_customer_id && (
               <>
-                <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-2">Manage Seats</h2>
-                  <p className="text-sm text-gray-500 mb-4">
+                <div className="rounded-xl border border-[#222233] bg-[#111118] p-6">
+                  <h2 className="text-lg font-semibold text-white mb-2">Manage Seats</h2>
+                  <p className="text-sm text-gray-400 mb-4">
                     Add or remove user licenses. Changes are reflected in your next billing cycle.
                   </p>
                   <div className="flex items-center gap-3">
@@ -250,10 +250,10 @@ export default function BillingPage() {
                       inputMode="numeric"
                       value={seatInput}
                       onChange={(e) => setSeatInput(e.target.value.replace(/[^0-9]/g, ''))}
-                      className="w-24 px-4 py-2.5 rounded-lg border border-gray-300 text-gray-900 text-base font-medium text-center focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      className="w-24 px-4 py-2.5 rounded-lg border border-[#222233] text-white bg-[#1a1a2e] text-base font-medium text-center focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                       placeholder="Seats"
                     />
-                    <span className="text-sm text-gray-500">seats</span>
+                    <span className="text-sm text-gray-400">seats</span>
                     <button
                       onClick={handleSeatUpdate}
                       disabled={seatActionLoading || !seatInput || parseInt(seatInput) === licensedSeats}
@@ -270,15 +270,15 @@ export default function BillingPage() {
                 </div>
 
                 {/* Manage Subscription */}
-                <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-2">Manage Subscription</h2>
-                  <p className="text-sm text-gray-500 mb-4">
+                <div className="rounded-xl border border-[#222233] bg-[#111118] p-6">
+                  <h2 className="text-lg font-semibold text-white mb-2">Manage Subscription</h2>
+                  <p className="text-sm text-gray-400 mb-4">
                     Update payment method, change plan, or cancel via Stripe.
                   </p>
                   <button
                     onClick={handleManage}
                     disabled={actionLoading}
-                    className="px-4 py-2.5 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition disabled:opacity-50"
+                    className="px-4 py-2.5 rounded-lg border border-[#222233] text-gray-300 text-sm font-medium hover:bg-[#1a1a2e] transition disabled:opacity-50"
                   >
                     {actionLoading ? 'Redirecting…' : 'Manage Subscription →'}
                   </button>
@@ -287,12 +287,12 @@ export default function BillingPage() {
             )}
             
             {/* Plan Comparison */}
-            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Plan Comparison</h2>
+            <div className="rounded-xl border border-[#222233] bg-[#111118] p-6">
+              <h2 className="text-lg font-semibold text-white mb-4">Plan Comparison</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                  <h3 className="font-medium text-gray-700 mb-2">Free</h3>
-                  <ul className="space-y-1.5 text-sm text-gray-500">
+                  <h3 className="font-medium text-gray-300 mb-2">Free</h3>
+                  <ul className="space-y-1.5 text-sm text-gray-400">
                     <li>• Up to 3 users</li>
                     <li>• 1 workspace</li>
                     <li>• 2 projects</li>
@@ -300,8 +300,8 @@ export default function BillingPage() {
                   </ul>
                 </div>
                 <div>
-                  <h3 className="font-medium text-indigo-600 mb-2">Pro — $12/seat/mo</h3>
-                  <ul className="space-y-1.5 text-sm text-gray-700">
+                  <h3 className="font-medium text-indigo-400 mb-2">Pro — $12/seat/mo</h3>
+                  <ul className="space-y-1.5 text-sm text-gray-300">
                     <li>• Licensed seats — buy as needed</li>
                     <li>• Unlimited workspaces &amp; projects</li>
                     <li>• Custom state machines</li>
