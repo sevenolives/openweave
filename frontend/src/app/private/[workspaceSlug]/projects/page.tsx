@@ -147,14 +147,14 @@ export default function DashboardPage() {
         {/* Content */}
         {loading ? (
           <div className="space-y-6">
-            <div className="bg-[#111118] rounded-xl border border-[#222233] p-8 animate-pulse"><div className="h-40 bg-[#1a1a2e] rounded" /></div>
+            <div className="bg-[#111118] rounded-xl border border-[#222233] p-8 animate-pulse"><div className="h-40 bg-[#252540] rounded" /></div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1,2,3].map(i => <div key={i} className="bg-[#111118] rounded-xl border border-[#222233] p-6 animate-pulse"><div className="h-5 bg-[#1a1a2e] rounded w-32 mb-3"></div><div className="h-32 bg-[#1a1a2e] rounded"></div></div>)}
+              {[1,2,3].map(i => <div key={i} className="bg-[#111118] rounded-xl border border-[#222233] p-6 animate-pulse"><div className="h-5 bg-[#252540] rounded w-32 mb-3"></div><div className="h-32 bg-[#252540] rounded"></div></div>)}
             </div>
           </div>
         ) : !dashboard || dashboard.total_projects === 0 ? (
           <div className="text-center py-20">
-            <div className="w-16 h-16 bg-[#1a1a2e] rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-[#252540] rounded-2xl flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
             </div>
             <h3 className="text-lg font-semibold text-white mb-1">No projects yet</h3>
@@ -183,13 +183,13 @@ export default function DashboardPage() {
                     <div className="flex items-start justify-between mb-1">
                       <h3 className="font-semibold text-white group-hover:text-indigo-400 transition-colors truncate mr-2">{project.name}</h3>
                       <div className="flex items-center gap-1 flex-shrink-0">
-                        <button onClick={e => { e.stopPropagation(); router.push(`/private/${workspaceSlug}/projects/${project.slug}/chat`); }} className="p-1.5 rounded hover:bg-indigo-500/10 text-gray-500 hover:text-indigo-400 sm:opacity-0 sm:group-hover:opacity-100 transition-all" title="Chat">
+                        <button onClick={e => { e.stopPropagation(); router.push(`/private/${workspaceSlug}/projects/${project.slug}/chat`); }} className="p-1.5 rounded hover:bg-indigo-900/200/10 text-gray-500 hover:text-indigo-400 sm:opacity-0 sm:group-hover:opacity-100 transition-all" title="Chat">
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                         </button>
                         <button onClick={e => { e.stopPropagation(); router.push(`/private/${workspaceSlug}/projects/${project.slug}`); }} className="p-1.5 rounded hover:bg-[#1a1a2e] text-gray-500 hover:text-gray-300 sm:opacity-0 sm:group-hover:opacity-100 transition-all" title="Settings">
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                         </button>
-                        <button onClick={e => { e.stopPropagation(); setDeleteSlug(project.slug); }} className="p-1.5 rounded hover:bg-red-500/10 text-gray-500 hover:text-red-400 sm:opacity-0 sm:group-hover:opacity-100 transition-all" title="Delete">
+                        <button onClick={e => { e.stopPropagation(); setDeleteSlug(project.slug); }} className="p-1.5 rounded hover:bg-red-900/200/10 text-gray-500 hover:text-red-400 sm:opacity-0 sm:group-hover:opacity-100 transition-all" title="Delete">
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
                       </div>

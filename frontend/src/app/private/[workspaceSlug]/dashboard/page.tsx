@@ -12,18 +12,18 @@ import { useWorkspace } from '@/hooks/useWorkspace';
 
 // Map color tokens to tailwind classes
 const COLOR_MAP: Record<string, { bg: string; text: string; badge: string }> = {
-  gray:   { bg: 'bg-gray-50',   text: 'text-gray-700',   badge: 'bg-gray-100 text-gray-700' },
-  blue:   { bg: 'bg-blue-50',   text: 'text-blue-700',   badge: 'bg-blue-100 text-blue-700' },
-  red:    { bg: 'bg-red-50',    text: 'text-red-700',    badge: 'bg-red-100 text-red-700' },
-  purple: { bg: 'bg-purple-50', text: 'text-purple-700', badge: 'bg-purple-100 text-purple-700' },
-  amber:  { bg: 'bg-amber-50',  text: 'text-amber-700',  badge: 'bg-amber-100 text-amber-700' },
-  green:  { bg: 'bg-green-50',  text: 'text-green-700',  badge: 'bg-green-100 text-green-700' },
-  yellow: { bg: 'bg-yellow-50', text: 'text-yellow-700', badge: 'bg-yellow-100 text-yellow-700' },
-  indigo: { bg: 'bg-indigo-50', text: 'text-indigo-700', badge: 'bg-indigo-100 text-indigo-700' },
-  pink:   { bg: 'bg-pink-50',   text: 'text-pink-700',   badge: 'bg-pink-100 text-pink-700' },
-  orange: { bg: 'bg-orange-50', text: 'text-orange-700', badge: 'bg-orange-100 text-orange-700' },
+  gray:   { bg: 'bg-gray-900/30',   text: 'text-gray-300',   badge: 'bg-gray-800/50 text-gray-300' },
+  blue:   { bg: 'bg-blue-900/30',   text: 'text-blue-300',   badge: 'bg-blue-900/50 text-blue-300' },
+  red:    { bg: 'bg-red-900/30',    text: 'text-red-300',    badge: 'bg-red-900/50 text-red-300' },
+  purple: { bg: 'bg-purple-900/30', text: 'text-purple-300', badge: 'bg-purple-900/50 text-purple-300' },
+  amber:  { bg: 'bg-amber-900/30',  text: 'text-amber-300',  badge: 'bg-amber-900/50 text-amber-300' },
+  green:  { bg: 'bg-green-900/30',  text: 'text-green-300',  badge: 'bg-green-900/50 text-green-300' },
+  yellow: { bg: 'bg-yellow-900/30', text: 'text-yellow-300', badge: 'bg-yellow-900/50 text-yellow-300' },
+  indigo: { bg: 'bg-indigo-900/30', text: 'text-indigo-300', badge: 'bg-indigo-900/50 text-indigo-300' },
+  pink:   { bg: 'bg-pink-900/30',   text: 'text-pink-300',   badge: 'bg-pink-900/50 text-pink-300' },
+  orange: { bg: 'bg-orange-900/30', text: 'text-orange-300', badge: 'bg-orange-900/50 text-orange-300' },
 };
-const fallback = { bg: 'bg-gray-50', text: 'text-gray-700', badge: 'bg-gray-100 text-gray-700' };
+const fallback = { bg: 'bg-gray-900/30', text: 'text-gray-300', badge: 'bg-gray-800/50 text-gray-300' };
 function colorFor(color: string) { return COLOR_MAP[color] || fallback; }
 
 export function statusBadgeClass(statuses: StatusDefinition[], statusKey: string): string {
@@ -49,8 +49,8 @@ export default function DashboardPage() {
   }, [currentWorkspace?.slug]);
 
   const priorityColors: Record<string, string> = {
-    LOW: 'bg-green-100 text-green-700', MEDIUM: 'bg-yellow-100 text-yellow-700',
-    HIGH: 'bg-orange-100 text-orange-700', CRITICAL: 'bg-red-100 text-red-700',
+    LOW: 'bg-green-900/50 text-green-300', MEDIUM: 'bg-yellow-900/50 text-yellow-300',
+    HIGH: 'bg-orange-900/50 text-orange-300', CRITICAL: 'bg-red-900/50 text-red-300',
   };
 
   return (
@@ -78,7 +78,7 @@ export default function DashboardPage() {
                 onClick={() => router.push(`/private/${workspaceSlug}/projects`)}
                 className="bg-[#111118] rounded-xl border border-[#222233] p-6 hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10 transition-all text-left group"
               >
-                <div className="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center mb-4 group-hover:bg-indigo-500/20 transition-colors">
+                <div className="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center mb-4 group-hover:bg-indigo-900/200/20 transition-colors">
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
                 </div>
                 <h3 className="font-semibold text-white mb-1">Create a Project</h3>
@@ -112,8 +112,8 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             {[1,2,3,4,5,6,7,8].map(i => (
               <div key={i} className="bg-[#111118] rounded-xl border border-[#222233] p-5 animate-pulse">
-                <div className="h-4 bg-[#1a1a2e] rounded w-20 mb-3"></div>
-                <div className="h-8 bg-[#1a1a2e] rounded w-12"></div>
+                <div className="h-4 bg-[#252540] rounded w-20 mb-3"></div>
+                <div className="h-8 bg-[#252540] rounded w-12"></div>
               </div>
             ))}
           </div>
@@ -125,7 +125,7 @@ export default function DashboardPage() {
               <div onClick={() => router.push(`/private/${workspaceSlug}/tickets`)} className="bg-[#111118] rounded-xl border border-[#222233] p-5 hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10 transition-all cursor-pointer">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-medium text-gray-400">Total Tickets</span>
-                  <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-indigo-50 text-indigo-700">
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-indigo-900/20 text-indigo-300">
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
                   </div>
                 </div>
@@ -151,7 +151,7 @@ export default function DashboardPage() {
               <div onClick={() => router.push(`/private/${workspaceSlug}/tickets?status=COMPLETED`)} className="bg-[#111118] rounded-xl border border-[#222233] p-5 hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10 transition-all cursor-pointer">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-medium text-gray-400">Completed Today</span>
-                  <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-green-50 text-green-700">
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-green-900/20 text-green-300">
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   </div>
                 </div>

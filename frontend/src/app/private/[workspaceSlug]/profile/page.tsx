@@ -46,7 +46,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <p className="text-lg font-semibold text-white">{user?.username}</p>
-              <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${user?.user_type === 'BOT' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>
+              <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${user?.user_type === 'BOT' ? 'bg-purple-900/50 text-purple-300' : 'bg-indigo-900/50 text-indigo-300'}`}>
                 {user?.user_type}
               </span>
             </div>

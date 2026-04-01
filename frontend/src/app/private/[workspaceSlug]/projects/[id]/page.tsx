@@ -127,10 +127,10 @@ export default function ProjectSettingsPage() {
             <p className="text-sm text-gray-400">Project Settings</p>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <button onClick={() => router.push(`/private/${workspaceSlug}/projects/${project.slug}/chat`)} className="px-4 py-2 text-sm font-medium text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors">
+            <button onClick={() => router.push(`/private/${workspaceSlug}/projects/${project.slug}/chat`)} className="px-4 py-2 text-sm font-medium text-indigo-400 hover:bg-indigo-900/200/10 rounded-lg transition-colors">
               💬 Activity
             </button>
-            <button onClick={() => router.push(`/private/${workspaceSlug}/tickets?project=${project.slug}`)} className="px-4 py-2 text-sm font-medium text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors">
+            <button onClick={() => router.push(`/private/${workspaceSlug}/tickets?project=${project.slug}`)} className="px-4 py-2 text-sm font-medium text-indigo-400 hover:bg-indigo-900/200/10 rounded-lg transition-colors">
               View Tickets →
             </button>
           </div>
@@ -191,7 +191,7 @@ export default function ProjectSettingsPage() {
                         <div className="text-sm font-medium text-white truncate">{agent.username}</div>
                         {agent.name && <div className="text-xs text-gray-500 truncate">{agent.name}</div>}
                       </div>
-                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold flex-shrink-0 ${agent.user_type === 'BOT' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold flex-shrink-0 ${agent.user_type === 'BOT' ? 'bg-purple-900/50 text-purple-300' : 'bg-indigo-900/50 text-indigo-300'}`}>
                         {agent.user_type}
                       </span>
                     </div>
@@ -218,7 +218,7 @@ export default function ProjectSettingsPage() {
                           </select>
                           {/* approval permission removed */}
                         </div>
-                        <button onClick={() => handleRemoveMember(agent.id)} disabled={memberSaving} className="ml-2 min-w-[44px] h-[44px] flex items-center justify-center text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50" title="Remove">
+                        <button onClick={() => handleRemoveMember(agent.id)} disabled={memberSaving} className="ml-2 min-w-[44px] h-[44px] flex items-center justify-center text-red-500 hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50" title="Remove">
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
                       </>
@@ -275,14 +275,14 @@ export default function ProjectSettingsPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/invite/${inv.token}`); toast('Human invite link copied!'); }}
-                          className="px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50 rounded" title="For humans — copies invite page link">👤 Human</button>
+                          className="px-2 py-1 text-xs text-indigo-400 hover:bg-indigo-900/20 rounded" title="For humans — copies invite page link">👤 Human</button>
                         <button onClick={() => { navigator.clipboard.writeText(`Read ${window.location.origin}/skills.md and join project using invite token ${inv.token}`); toast('Bot invite copied!'); }}
-                          className="px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-50 rounded" title="For bots — copies skills.md + invite token">🤖 Bot</button>
+                          className="px-2 py-1 text-xs text-emerald-400 hover:bg-emerald-900/20 rounded" title="For bots — copies skills.md + invite token">🤖 Bot</button>
                         <button onClick={async () => {
                           if (!confirm('Revoke this invite?')) return;
                           try { await api.deleteProjectInvite(inv.id); setProjectInvites(prev => prev.filter(i => i.id !== inv.id)); toast('Invite revoked'); }
                           catch (e: any) { toast(e?.message || 'Failed', 'error'); }
-                        }} className="px-2 py-1 text-xs text-red-500 hover:bg-red-50 rounded">🗑️</button>
+                        }} className="px-2 py-1 text-xs text-red-500 hover:bg-red-900/20 rounded">🗑️</button>
                       </div>
                     </div>
                   ))}
@@ -345,7 +345,7 @@ export default function ProjectSettingsPage() {
                                 const ph = await api.getPhases(projectSlug); setPhases(ph);
                                 toast('Phase activated');
                               } catch (err: any) { toast(err?.message || 'Failed', 'error'); }
-                            }} className="px-3 py-1.5 text-xs font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg">
+                            }} className="px-3 py-1.5 text-xs font-medium text-indigo-400 hover:bg-indigo-900/20 rounded-lg">
                               Set Active
                             </button>
                           )}
@@ -360,7 +360,7 @@ export default function ProjectSettingsPage() {
                               const ph = await api.getPhases(projectSlug); setPhases(ph);
                               toast('Phase deleted');
                             } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
-                          }} className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg">
+                          }} className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-900/200/10 rounded-lg">
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                           </button>
                         </div>

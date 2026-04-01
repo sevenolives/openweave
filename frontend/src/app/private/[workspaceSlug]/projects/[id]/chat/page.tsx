@@ -187,7 +187,7 @@ export default function ProjectChatPage() {
           </div>
           <button
             onClick={() => { pollNew(); toast('Refreshed'); }}
-            className="ml-auto px-3 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors flex items-center gap-1.5"
+            className="ml-auto px-3 py-2 text-sm font-medium text-indigo-400 hover:bg-indigo-900/20 rounded-lg transition-colors flex items-center gap-1.5"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -210,7 +210,7 @@ export default function ProjectChatPage() {
                   <button
                     onClick={loadOlder}
                     disabled={loadingMore}
-                    className="px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors disabled:opacity-50"
+                    className="px-4 py-2 text-sm font-medium text-indigo-400 hover:bg-indigo-900/20 rounded-lg transition-colors disabled:opacity-50"
                   >
                     {loadingMore ? 'Loading…' : '↑ Load older messages'}
                   </button>

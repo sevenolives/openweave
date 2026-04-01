@@ -13,19 +13,19 @@ import MentionText from '@/components/MentionText';
 import MentionInput from '@/components/MentionInput';
 
 const PRIORITY_COLORS: Record<string, string> = {
-  LOW: 'bg-green-100 text-green-700', MEDIUM: 'bg-yellow-100 text-yellow-700',
-  HIGH: 'bg-orange-100 text-orange-700', CRITICAL: 'bg-red-100 text-red-700',
+  LOW: 'bg-green-900/50 text-green-300', MEDIUM: 'bg-yellow-900/50 text-yellow-300',
+  HIGH: 'bg-orange-900/50 text-orange-300', CRITICAL: 'bg-red-900/50 text-red-300',
 };
 const COLOR_BADGES: Record<string, string> = {
-  gray: 'bg-gray-100 text-gray-700', blue: 'bg-blue-100 text-blue-700',
-  red: 'bg-red-100 text-red-700', purple: 'bg-purple-100 text-purple-700',
-  amber: 'bg-amber-100 text-amber-700', green: 'bg-green-100 text-green-700',
-  yellow: 'bg-yellow-100 text-yellow-700', indigo: 'bg-indigo-100 text-indigo-700',
-  pink: 'bg-pink-100 text-pink-700', orange: 'bg-orange-100 text-orange-700',
+  gray: 'bg-gray-800/50 text-gray-300', blue: 'bg-blue-900/50 text-blue-300',
+  red: 'bg-red-900/50 text-red-300', purple: 'bg-purple-900/50 text-purple-300',
+  amber: 'bg-amber-900/50 text-amber-300', green: 'bg-green-900/50 text-green-300',
+  yellow: 'bg-yellow-900/50 text-yellow-300', indigo: 'bg-indigo-900/50 text-indigo-300',
+  pink: 'bg-pink-900/50 text-pink-300', orange: 'bg-orange-900/50 text-orange-300',
 };
 function statusBadge(statuses: StatusDefinition[], key: string): string {
   const sd = statuses.find(s => s.key === key);
-  return sd ? (COLOR_BADGES[sd.color] || 'bg-gray-100 text-gray-700') : 'bg-gray-100 text-gray-700';
+  return sd ? (COLOR_BADGES[sd.color] || 'bg-gray-800/50 text-gray-300') : 'bg-gray-800/50 text-gray-300';
 }
 const ALL_PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 
@@ -201,7 +201,7 @@ export default function TicketDetailPage() {
                         <button onClick={() => setEditing(true)} className="p-2 rounded-lg hover:bg-[#1a1a2e] text-gray-400 hover:text-gray-300">
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                         </button>
-                        <button onClick={() => setShowDelete(true)} className="p-2 rounded-lg hover:bg-red-500/10 text-gray-400 hover:text-red-400">
+                        <button onClick={() => setShowDelete(true)} className="p-2 rounded-lg hover:bg-red-900/200/10 text-gray-400 hover:text-red-400">
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
                       </div>
@@ -254,7 +254,7 @@ export default function TicketDetailPage() {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1 flex-wrap">
                                 <span className="font-medium text-sm text-white">{comment.author_details.username}</span>
-                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${comment.author_details.user_type === 'BOT' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>{comment.author_details.user_type}</span>
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${comment.author_details.user_type === 'BOT' ? 'bg-purple-900/50 text-purple-300' : 'bg-indigo-900/50 text-indigo-300'}`}>{comment.author_details.user_type}</span>
                                 <span className="text-xs text-gray-400">{new Date(comment.created_at).toLocaleString()}</span>
                               </div>
                               <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap"><MentionText text={comment.body} /></p>
@@ -310,7 +310,7 @@ export default function TicketDetailPage() {
               <div className="bg-[#111118] rounded-xl border border-[#222233]">
                 <div className="px-5 py-3 border-b border-[#222233] flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-gray-200">Attachments ({attachments.length})</h3>
-                  <label className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors ${uploading ? 'bg-[#1a1a2e] text-gray-500' : 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20'}`}>
+                  <label className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors ${uploading ? 'bg-[#1a1a2e] text-gray-500' : 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-900/200/20'}`}>
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
                     {uploading ? 'Uploading…' : 'Upload'}
                     <input type="file" className="hidden" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.csv,.xls,.xlsx,.zip" disabled={uploading} onChange={async (e) => {
@@ -383,7 +383,7 @@ export default function TicketDetailPage() {
                                 toast('Attachment deleted');
                               } catch (err: any) { toast(err?.message || 'Delete failed', 'error'); }
                             }}
-                            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md text-gray-300 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md text-gray-300 hover:text-red-400 hover:bg-red-900/200/10 transition-all"
                             title="Delete"
                           >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>

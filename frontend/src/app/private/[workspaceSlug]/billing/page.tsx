@@ -98,7 +98,7 @@ export default function BillingPage() {
         <h1 className="text-2xl font-bold text-white mb-6">Billing</h1>
 
         {success && (
-          <div className="mb-6 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          <div className="mb-6 rounded-lg border border-emerald-800 bg-emerald-900/20 px-4 py-3 text-sm text-emerald-300">
             🎉 Subscription activated! Welcome to Pro.
           </div>
         )}
@@ -122,8 +122,8 @@ export default function BillingPage() {
                   <p className="text-2xl font-bold text-white">{planLabel}</p>
                 </div>
                 <span className={`text-sm font-medium px-3 py-1 rounded-full ${
-                  subscription?.status === 'active' ? 'bg-emerald-100 text-emerald-700' :
-                  subscription?.status === 'past_due' ? 'bg-amber-100 text-amber-700' :
+                  subscription?.status === 'active' ? 'bg-emerald-100 text-emerald-300' :
+                  subscription?.status === 'past_due' ? 'bg-amber-900/50 text-amber-300' :
                   'bg-gray-800 text-gray-400'
                 }`}>
                   {subscription?.status === 'active' ? '● Active' : subscription?.status || 'active'}
@@ -148,7 +148,7 @@ export default function BillingPage() {
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-gray-500">Available</span>
-                      <span className={`font-medium ${availableSeats > 0 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                      <span className={`font-medium ${availableSeats > 0 ? 'text-emerald-400' : 'text-amber-600'}`}>
                         {availableSeats} remaining
                       </span>
                     </div>
@@ -228,7 +228,7 @@ export default function BillingPage() {
                   <button
                     onClick={() => handleUpgrade('pro_annual')}
                     disabled={actionLoading}
-                    className="px-4 py-2.5 rounded-lg border border-indigo-500/30 text-indigo-400 text-sm font-medium hover:bg-indigo-500/10 transition disabled:opacity-50"
+                    className="px-4 py-2.5 rounded-lg border border-indigo-500/30 text-indigo-400 text-sm font-medium hover:bg-indigo-900/200/10 transition disabled:opacity-50"
                   >
                     {actionLoading ? 'Redirecting…' : `$${upgradeSeats * 10}/mo — Annual`}
                   </button>

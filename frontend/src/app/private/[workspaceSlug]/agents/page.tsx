@@ -77,7 +77,7 @@ export default function AgentsPage() {
           {currentWorkspace && (
             <button
               onClick={() => router.push(`/private/${workspaceSlug}/settings`)}
-              className="px-3 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition-colors"
+              className="px-3 py-2 text-sm font-medium text-indigo-400 hover:text-indigo-800 hover:bg-indigo-900/20 rounded-lg transition-colors"
             >
               ⚙️ Manage
             </button>
@@ -101,7 +101,7 @@ export default function AgentsPage() {
 
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1,2,3].map(i => <div key={i} className="bg-[#111118] rounded-xl border border-[#222233] p-6 animate-pulse"><div className="flex items-center gap-3 mb-4"><div className="w-12 h-12 bg-[#1a1a2e] rounded-full"></div><div className="flex-1"><div className="h-4 bg-[#1a1a2e] rounded w-24 mb-2"></div><div className="h-3 bg-[#1a1a2e] rounded w-32"></div></div></div></div>)}
+            {[1,2,3].map(i => <div key={i} className="bg-[#111118] rounded-xl border border-[#222233] p-6 animate-pulse"><div className="flex items-center gap-3 mb-4"><div className="w-12 h-12 bg-[#252540] rounded-full"></div><div className="flex-1"><div className="h-4 bg-[#252540] rounded w-24 mb-2"></div><div className="h-3 bg-[#252540] rounded w-32"></div></div></div></div>)}
           </div>
         ) : !currentWorkspace ? (
           <div className="text-center py-20">
@@ -110,11 +110,11 @@ export default function AgentsPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-20">
-            <div className="w-16 h-16 bg-[#1a1a2e] rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-[#252540] rounded-2xl flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
             </div>
             <h3 className="text-lg font-semibold text-white mb-1">No members found</h3>
-            <p className="text-sm text-gray-400">Try adjusting your filters or invite people from <button onClick={() => router.push(`/private/${workspaceSlug}/settings`)} className="text-indigo-600 hover:underline">Settings</button>.</p>
+            <p className="text-sm text-gray-400">Try adjusting your filters or invite people from <button onClick={() => router.push(`/private/${workspaceSlug}/settings`)} className="text-indigo-400 hover:underline">Settings</button>.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -135,9 +135,9 @@ export default function AgentsPage() {
                   </div>
 
                   <div className="flex flex-wrap gap-2 mb-3">
-                    <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${user.user_type === 'BOT' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>{user.user_type}</span>
+                    <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${user.user_type === 'BOT' ? 'bg-purple-900/50 text-purple-300' : 'bg-indigo-900/50 text-indigo-300'}`}>{user.user_type}</span>
                     <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${
-                      role === 'OWNER' ? 'bg-amber-100 text-amber-700' :
+                      role === 'OWNER' ? 'bg-amber-900/50 text-amber-300' :
                       'bg-gray-800 text-gray-300'
                     }`}>{role}</span>
                   </div>

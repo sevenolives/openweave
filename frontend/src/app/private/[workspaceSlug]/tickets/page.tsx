@@ -14,23 +14,23 @@ import { useWorkspace } from '@/hooks/useWorkspace';
 const PAGE_SIZE = 10;
 
 const PRIORITY_COLORS: Record<string, string> = {
-  LOW: 'bg-green-100 text-green-700', MEDIUM: 'bg-yellow-100 text-yellow-700',
-  HIGH: 'bg-orange-100 text-orange-700', CRITICAL: 'bg-red-100 text-red-700',
+  LOW: 'bg-green-900/50 text-green-300', MEDIUM: 'bg-yellow-900/50 text-yellow-300',
+  HIGH: 'bg-orange-900/50 text-orange-300', CRITICAL: 'bg-red-900/50 text-red-300',
 };
 
 const COLOR_ACCENTS: Record<string, { accent: string; bg: string; badge: string }> = {
-  gray:   { accent: 'bg-gray-400',   bg: 'bg-gray-50',   badge: 'bg-gray-100 text-gray-700' },
-  blue:   { accent: 'bg-blue-500',   bg: 'bg-blue-50',   badge: 'bg-blue-100 text-blue-700' },
-  red:    { accent: 'bg-red-500',    bg: 'bg-red-50',    badge: 'bg-red-100 text-red-700' },
-  purple: { accent: 'bg-purple-500', bg: 'bg-purple-50', badge: 'bg-purple-100 text-purple-700' },
-  amber:  { accent: 'bg-amber-500',  bg: 'bg-amber-50',  badge: 'bg-amber-100 text-amber-700' },
-  green:  { accent: 'bg-green-500',  bg: 'bg-green-50',  badge: 'bg-green-100 text-green-700' },
-  yellow: { accent: 'bg-yellow-500', bg: 'bg-yellow-50', badge: 'bg-yellow-100 text-yellow-700' },
-  indigo: { accent: 'bg-indigo-500', bg: 'bg-indigo-50', badge: 'bg-indigo-100 text-indigo-700' },
-  pink:   { accent: 'bg-pink-500',   bg: 'bg-pink-50',   badge: 'bg-pink-100 text-pink-700' },
-  orange: { accent: 'bg-orange-500', bg: 'bg-orange-50', badge: 'bg-orange-100 text-orange-700' },
+  gray:   { accent: 'bg-gray-400',   bg: 'bg-gray-900/30',   badge: 'bg-gray-800/50 text-gray-300' },
+  blue:   { accent: 'bg-blue-500',   bg: 'bg-blue-900/30',   badge: 'bg-blue-900/50 text-blue-300' },
+  red:    { accent: 'bg-red-500',    bg: 'bg-red-900/30',    badge: 'bg-red-900/50 text-red-300' },
+  purple: { accent: 'bg-purple-500', bg: 'bg-purple-900/30', badge: 'bg-purple-900/50 text-purple-300' },
+  amber:  { accent: 'bg-amber-500',  bg: 'bg-amber-900/30',  badge: 'bg-amber-900/50 text-amber-300' },
+  green:  { accent: 'bg-green-500',  bg: 'bg-green-900/30',  badge: 'bg-green-900/50 text-green-300' },
+  yellow: { accent: 'bg-yellow-500', bg: 'bg-yellow-900/30', badge: 'bg-yellow-900/50 text-yellow-300' },
+  indigo: { accent: 'bg-indigo-500', bg: 'bg-indigo-900/30', badge: 'bg-indigo-900/50 text-indigo-300' },
+  pink:   { accent: 'bg-pink-500',   bg: 'bg-pink-900/30',   badge: 'bg-pink-900/50 text-pink-300' },
+  orange: { accent: 'bg-orange-500', bg: 'bg-orange-900/30', badge: 'bg-orange-900/50 text-orange-300' },
 };
-const fallbackColor = { accent: 'bg-gray-400', bg: 'bg-gray-50', badge: 'bg-gray-100 text-gray-700' };
+const fallbackColor = { accent: 'bg-gray-400', bg: 'bg-gray-900/30', badge: 'bg-gray-800/50 text-gray-300' };
 function colorFor(c: string) { return COLOR_ACCENTS[c] || fallbackColor; }
 
 function statusBadge(statuses: StatusDefinition[], key: string): string {
@@ -298,11 +298,11 @@ function TicketsPage() {
 
         {loading ? (
           <div className="space-y-4">
-            {[1,2].map(i => <div key={i} className="bg-[#111118] rounded-xl border border-[#222233] p-6 animate-pulse"><div className="h-5 bg-[#1a1a2e] rounded w-40 mb-4"></div><div className="h-12 bg-[#1a1a2e] rounded mb-2"></div><div className="h-12 bg-[#1a1a2e] rounded"></div></div>)}
+            {[1,2].map(i => <div key={i} className="bg-[#111118] rounded-xl border border-[#222233] p-6 animate-pulse"><div className="h-5 bg-[#252540] rounded w-40 mb-4"></div><div className="h-12 bg-[#252540] rounded mb-2"></div><div className="h-12 bg-[#252540] rounded"></div></div>)}
           </div>
         ) : tickets.length === 0 ? (
           <div className="text-center py-20">
-            <div className="w-16 h-16 bg-[#1a1a2e] rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-[#252540] rounded-2xl flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
             </div>
             <h3 className="text-lg font-semibold text-white mb-1">{hasFilters ? 'No matching tickets' : 'No tickets yet'}</h3>
@@ -351,7 +351,7 @@ function TicketsPage() {
                         </div>
                         <button
                           onClick={e => { e.stopPropagation(); setDeleteTarget(ticket); }}
-                          className="inline-flex items-center justify-center w-8 h-8 min-w-[44px] min-h-[44px] rounded-lg text-red-400 hover:text-red-400 hover:bg-red-500/10 transition-colors flex-shrink-0 -mr-2 -mt-1"
+                          className="inline-flex items-center justify-center w-8 h-8 min-w-[44px] min-h-[44px] rounded-lg text-red-400 hover:text-red-400 hover:bg-red-900/200/10 transition-colors flex-shrink-0 -mr-2 -mt-1"
                           title="Delete ticket"
                         >
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -460,7 +460,7 @@ function TicketsPage() {
                   </select>
                 </FormField>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={newApproved} onChange={e => setNewApproved(e.target.checked)} className="w-5 h-5 rounded border-[#222233] text-indigo-600 bg-[#1a1a2e] focus:ring-indigo-500" />
+                  <input type="checkbox" checked={newApproved} onChange={e => setNewApproved(e.target.checked)} className="w-5 h-5 rounded border-[#222233] text-indigo-400 bg-[#1a1a2e] focus:ring-indigo-500" />
                   <span className="text-sm text-gray-300">Pre-approve this ticket</span>
                 </label>
                 <div className="flex gap-3 pt-2">

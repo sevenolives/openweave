@@ -814,7 +814,7 @@ export default function WorkspaceSettingsPage() {
                     toast(err?.message || 'Failed to update setting', 'error');
                   }
                 }}
-                className="w-5 h-5 rounded border-[#222233] text-indigo-600 focus:ring-indigo-500 bg-[#1a1a2e]"
+                className="w-5 h-5 rounded border-[#222233] text-indigo-400 focus:ring-indigo-500 bg-[#1a1a2e]"
               />
               <div>
                 <p className="text-sm font-medium text-white">Restrict status changes to assigned user</p>
@@ -830,14 +830,14 @@ export default function WorkspaceSettingsPage() {
             <p className="text-xs text-gray-400 mb-3">Import a state machine from another workspace you have access to. This is a two-step process:</p>
             <div className="bg-[#1a1a2e] rounded-xl p-4 mb-4 space-y-3">
               <div className="flex items-start gap-3">
-                <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">1</span>
+                <span className="w-6 h-6 rounded-full bg-indigo-900/50 text-indigo-300 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">1</span>
                 <div>
                   <p className="text-sm font-medium text-white">Sync States</p>
                   <p className="text-xs text-gray-500"><strong>Additive</strong> — new statuses are added (name, color, description). Existing statuses with the same key are kept untouched. Nothing is deleted.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <span className="w-6 h-6 rounded-full bg-red-100 text-red-700 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</span>
+                <span className="w-6 h-6 rounded-full bg-red-900/50 text-red-300 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</span>
                 <div>
                   <p className="text-sm font-medium text-white">Sync Transitions</p>
                   <p className="text-xs text-gray-500"><strong>Destructive</strong> — all existing allowed_from rules are replaced with the source workspace&apos;s rules. Previous transition paths are deleted. This requires all states to exist first (run Step 1 first).</p>
@@ -875,12 +875,12 @@ export default function WorkspaceSettingsPage() {
                 <h3 className="text-lg font-bold text-white">{showSyncConfirm === 'states' ? 'Sync States' : 'Sync Transitions'}</h3>
               </div>
               {showSyncConfirm === 'states' ? (
-                <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-4">
+                <div className="bg-indigo-900/20 border border-indigo-800 rounded-xl p-4 mb-4">
                   <p className="text-sm text-indigo-800 font-medium mb-1">Additive — safe operation</p>
-                  <p className="text-xs text-indigo-700">New statuses from <strong>{syncSource}</strong> will be added. Existing statuses with matching keys are kept untouched. Nothing is deleted or overwritten.</p>
+                  <p className="text-xs text-indigo-300">New statuses from <strong>{syncSource}</strong> will be added. Existing statuses with matching keys are kept untouched. Nothing is deleted or overwritten.</p>
                 </div>
               ) : (
-                <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+                <div className="bg-red-900/20 border border-red-800 rounded-xl p-4 mb-4">
                   <p className="text-sm text-red-800 font-medium mb-1">Destructive — cannot be undone</p>
                   <p className="text-xs text-red-600">All existing transition rules (allowed_from) will be <strong>deleted and replaced</strong> with the rules from <strong>{syncSource}</strong>. Make sure you&apos;ve run Step 1 (Sync States) first so all required states exist.</p>
                 </div>
