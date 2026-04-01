@@ -243,6 +243,48 @@ class CustomerPortalView(APIView):
         return Response({'portal_url': session.url})
 
 
+class SyncSubscriptionView(APIView):
+    """POST /api/billing/sync/ — manually sync subscription from Stripe."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        workspace_slug = request.data.get('workspace')
+        if not workspace_slug:
+            return Response({'detail': 'workspace required.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            workspace = Workspace.objects.get(slug=workspace_slug)
+        except Workspace.DoesNotExist:
+            return Response({'detail': 'Workspace not found.'}, status=status.HTTP_404_NOT_FOUND)
+        if not request.user.is_superuser:
+            return Response({'detail': 'Admin only.'}, status=status.HTTP_403_FORBIDDEN)
+
+        sub, _ = Subscription.objects.get_or_create(workspace=workspace)
+        if not sub.stripe_customer_id:
+            return Response({'detail': 'No Stripe customer linked.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        s = _get_stripe()
+        # Find active subscription for this customer
+        subs = s.Subscription.list(customer=sub.stripe_customer_id, status='active', limit=1)
+        if not subs.data:
+            return Response({'detail': 'No active Stripe subscription found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        stripe_sub = subs.data[0]
+        sub.stripe_subscription_id = stripe_sub.id
+        sub.plan = 'pro'
+        sub.status = 'active'
+        if stripe_sub.items and stripe_sub.items.data:
+            sub.licensed_seats = stripe_sub.items.data[0].quantity
+        sub.save()
+
+        from .plan_limits import get_seat_info
+        return Response({
+            'synced': True,
+            'plan': sub.plan,
+            'stripe_subscription_id': sub.stripe_subscription_id,
+            **get_seat_info(workspace),
+        })
+
+
 class SubscriptionStatusView(APIView):
     """GET /api/billing/status/?workspace=<slug> — get subscription status."""
     permission_classes = [IsAuthenticated]

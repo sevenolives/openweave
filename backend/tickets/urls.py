@@ -16,6 +16,7 @@ from .views import (
 from .billing import (
     CreateCheckoutSessionView, StripeWebhookView,
     CustomerPortalView, SubscriptionStatusView, ManageSeatsView,
+    SyncSubscriptionView,
 )
 
 router = DefaultRouter()
@@ -74,5 +75,6 @@ urlpatterns = [
     path('billing/portal/', CustomerPortalView.as_view(), name='billing-portal'),
     path('billing/status/', SubscriptionStatusView.as_view(), name='billing-status'),
     path('billing/seats/', ManageSeatsView.as_view(), name='billing-seats'),
+    path('billing/sync/', SyncSubscriptionView.as_view(), name='billing-sync'),
     path('', include(router.urls)),
 ]
