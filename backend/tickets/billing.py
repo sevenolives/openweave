@@ -265,11 +265,11 @@ class SyncSubscriptionView(APIView):
 
         try:
             s = _get_stripe()
-            subs = s.Subscription.list(customer=sub.stripe_customer_id, status='active', limit=1)
-            if not subs.data:
+            subs = list(s.Subscription.list(customer=sub.stripe_customer_id, status='active', limit=1))
+            if not subs:
                 return Response({'detail': 'No active Stripe subscription found.'}, status=status.HTTP_404_NOT_FOUND)
 
-            stripe_sub = subs.data[0]
+            stripe_sub = subs[0]
             sub.stripe_subscription_id = stripe_sub.id
             sub.plan = 'pro'
             sub.status = 'active'
