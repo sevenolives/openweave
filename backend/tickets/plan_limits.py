@@ -6,12 +6,14 @@ import stripe
 from django.conf import settings
 
 
+_FREE_MAX_USERS = int(os.environ.get('FREE_MAX_USERS', '5'))
+
 PLAN_LIMITS = {
     'free': {
-        'max_users': int(os.environ.get('FREE_MAX_USERS', '5')),
+        'max_users': _FREE_MAX_USERS,
         'max_workspaces_per_owner': int(os.environ.get('FREE_MAX_WORKSPACES', '1')),
         'max_projects': int(os.environ.get('FREE_MAX_PROJECTS', '5')),
-        'max_bot_agents': int(os.environ.get('FREE_MAX_BOT_AGENTS', '2')),
+        'max_bot_agents': _FREE_MAX_USERS,  # same as max_users — all users (human + bot) share the same limit
     },
     'pro': {
         'max_users': None,  # unlimited

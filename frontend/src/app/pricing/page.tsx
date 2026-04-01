@@ -8,7 +8,7 @@ import PublicNav from '@/components/PublicNav';
 const FREE_MAX_USERS = process.env.NEXT_PUBLIC_FREE_MAX_USERS || '3';
 const FREE_MAX_WORKSPACES = process.env.NEXT_PUBLIC_FREE_MAX_WORKSPACES || '1';
 const FREE_MAX_PROJECTS = process.env.NEXT_PUBLIC_FREE_MAX_PROJECTS || '5';
-const FREE_MAX_BOT_AGENTS = process.env.NEXT_PUBLIC_FREE_MAX_BOT_AGENTS || '2';
+
 const PRO_MONTHLY = process.env.NEXT_PUBLIC_PRO_MONTHLY_PRICE || '12';
 const PRO_ANNUAL = process.env.NEXT_PUBLIC_PRO_ANNUAL_PRICE || '10';
 
@@ -19,10 +19,9 @@ const tiers = [
     annualPrice: 0,
     unit: '',
     features: [
-      `Up to ${FREE_MAX_USERS} users`,
+      `Up to ${FREE_MAX_USERS} users (humans + bots)`,
       `${FREE_MAX_WORKSPACES} workspace`,
       `${FREE_MAX_PROJECTS} projects per workspace`,
-      `${FREE_MAX_BOT_AGENTS} bot agents`,
       'Default state machine only',
       '24-hour audit log retention',
       'Community support',
@@ -41,7 +40,6 @@ const tiers = [
       'Buy seats, assign users flexibly',
       'Unlimited workspaces',
       'Unlimited projects',
-      'Unlimited bot agents',
       'Full custom state machines',
       'Gate-based state permissions',
       '1 year audit log retention',
