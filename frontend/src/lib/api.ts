@@ -602,10 +602,10 @@ class ApiClient {
     return this.request<ProjectsDashboard>(`/projects-dashboard/?workspace=${encodeURIComponent(workspaceSlug)}`);
   }
 
-  async syncStatusDefinitions(targetWorkspace: string, sourceWorkspace: string): Promise<{ synced: number; statuses: StatusDefinition[] }> {
-    return this.request<{ synced: number; statuses: StatusDefinition[] }>('/status-definitions/sync-from/', {
+  async syncStatusDefinitions(targetWorkspace: string, sourceWorkspace: string, mode: 'states' | 'transitions' = 'states'): Promise<{ added?: number; skipped?: number; updated?: number; warning?: string; total: number; statuses: StatusDefinition[] }> {
+    return this.request<any>('/status-definitions/sync-from/', {
       method: 'POST',
-      body: JSON.stringify({ workspace: targetWorkspace, source_workspace: sourceWorkspace }),
+      body: JSON.stringify({ workspace: targetWorkspace, source_workspace: sourceWorkspace, mode }),
     });
   }
 

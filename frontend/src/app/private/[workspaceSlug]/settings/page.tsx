@@ -389,7 +389,7 @@ export default function WorkspaceSettingsPage() {
   const [workspaceUsers, setWorkspaceUsers] = useState<User[]>([]);
   const [allWorkspaces, setAllWorkspaces] = useState<Workspace[]>([]);
   const [syncSource, setSyncSource] = useState('');
-  const [showSyncConfirm, setShowSyncConfirm] = useState(false);
+  const [showSyncConfirm, setShowSyncConfirm] = useState<'states' | 'transitions' | null>(null);
   const [syncing, setSyncing] = useState(false);
   const { toast } = useToast();
 
@@ -660,17 +660,40 @@ export default function WorkspaceSettingsPage() {
         {settingsTab === 'state-machine' && workspace && allWorkspaces.length > 0 && (
           <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
             <h3 className="text-sm font-semibold text-gray-900 mb-2">Sync from another workspace</h3>
-            <p className="text-xs text-gray-500 mb-3">Copy the entire state machine (statuses, colors, transitions) from another workspace into this one.</p>
-            <div className="flex gap-2 items-center">
+            <p className="text-xs text-gray-500 mb-3">Import a state machine from another workspace you have access to. This is a two-step process:</p>
+            <div className="bg-gray-50 rounded-xl p-4 mb-4 space-y-3">
+              <div className="flex items-start gap-3">
+                <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">1</span>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Sync States</p>
+                  <p className="text-xs text-gray-500"><strong>Additive</strong> — new statuses are added (name, color, description). Existing statuses with the same key are kept untouched. Nothing is deleted.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="w-6 h-6 rounded-full bg-red-100 text-red-700 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</span>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Sync Transitions</p>
+                  <p className="text-xs text-gray-500"><strong>Destructive</strong> — all existing allowed_from rules are replaced with the source workspace&apos;s rules. Previous transition paths are deleted. This requires all states to exist first (run Step 1 first).</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2 items-center mb-3">
               <select value={syncSource} onChange={e => setSyncSource(e.target.value)}
                 className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm bg-white">
                 <option value="">Select source workspace…</option>
                 {allWorkspaces.map(w => <option key={w.slug} value={w.slug}>{w.name} ({w.slug})</option>)}
               </select>
-              <button onClick={() => { if (syncSource) setShowSyncConfirm(true); }}
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => { if (syncSource) setShowSyncConfirm('states'); }}
                 disabled={!syncSource || syncing}
-                className="px-4 py-2.5 bg-amber-600 text-white rounded-xl text-sm font-medium hover:bg-amber-700 disabled:bg-gray-300 transition-colors whitespace-nowrap">
-                Sync
+                className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 transition-colors">
+                {syncing ? 'Syncing…' : '① Sync States'}
+              </button>
+              <button onClick={() => { if (syncSource) setShowSyncConfirm('transitions'); }}
+                disabled={!syncSource || syncing}
+                className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 disabled:bg-gray-300 transition-colors">
+                {syncing ? 'Syncing…' : '② Sync Transitions'}
               </button>
             </div>
           </div>
@@ -678,33 +701,43 @@ export default function WorkspaceSettingsPage() {
 
         {/* Sync confirmation dialog */}
         {showSyncConfirm && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowSyncConfirm(false)}>
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowSyncConfirm(null)}>
             <div className="bg-white rounded-2xl p-6 max-w-md w-full" onClick={e => e.stopPropagation()}>
               <div className="flex items-center gap-3 mb-4">
-                <span className="text-2xl">⚠️</span>
-                <h3 className="text-lg font-bold text-gray-900">Sync State Machine</h3>
+                <span className="text-2xl">{showSyncConfirm === 'states' ? '📋' : '⚠️'}</span>
+                <h3 className="text-lg font-bold text-gray-900">{showSyncConfirm === 'states' ? 'Sync States' : 'Sync Transitions'}</h3>
               </div>
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
-                <p className="text-sm text-amber-800 font-medium mb-1">Additive merge</p>
-                <p className="text-xs text-amber-700">New statuses from <strong>{syncSource}</strong> will be added. Existing statuses with matching keys will be kept as-is. Transition paths (allowed_from) will be merged.</p>
-              </div>
-              <p className="text-sm text-gray-600 mb-4">This won&apos;t remove or overwrite any existing statuses. Continue?</p>
+              {showSyncConfirm === 'states' ? (
+                <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-4">
+                  <p className="text-sm text-indigo-800 font-medium mb-1">Additive — safe operation</p>
+                  <p className="text-xs text-indigo-700">New statuses from <strong>{syncSource}</strong> will be added. Existing statuses with matching keys are kept untouched. Nothing is deleted or overwritten.</p>
+                </div>
+              ) : (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+                  <p className="text-sm text-red-800 font-medium mb-1">Destructive — cannot be undone</p>
+                  <p className="text-xs text-red-600">All existing transition rules (allowed_from) will be <strong>deleted and replaced</strong> with the rules from <strong>{syncSource}</strong>. Make sure you&apos;ve run Step 1 (Sync States) first so all required states exist.</p>
+                </div>
+              )}
               <div className="flex gap-3">
-                <button onClick={() => setShowSyncConfirm(false)} className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+                <button onClick={() => setShowSyncConfirm(null)} className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
                 <button onClick={async () => {
                   if (!workspace) return;
+                  const mode = showSyncConfirm;
                   setSyncing(true);
-                  setShowSyncConfirm(false);
+                  setShowSyncConfirm(null);
                   try {
-                    const result = await api.syncStatusDefinitions(workspace.slug, syncSource);
+                    const result = await api.syncStatusDefinitions(workspace.slug, syncSource, mode);
                     setStatuses(result.statuses);
-                    setSyncSource('');
-                    toast(`Added ${result.added} statuses, ${result.skipped} already existed`);
+                    if (mode === 'states') {
+                      toast(`Added ${result.added} statuses, ${result.skipped} already existed`);
+                    } else {
+                      toast(`Transitions synced for ${result.updated} statuses${result.warning ? '. ' + result.warning : ''}`);
+                    }
                   } catch (e: any) { toast(e?.message || e?.detail || 'Sync failed', 'error'); }
                   finally { setSyncing(false); }
                 }} disabled={syncing}
-                  className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300">
-                  {syncing ? 'Syncing…' : 'Yes, merge statuses'}
+                  className={`flex-1 px-4 py-3 text-white rounded-xl text-sm font-medium disabled:bg-gray-300 ${showSyncConfirm === 'states' ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-red-600 hover:bg-red-700'}`}>
+                  {syncing ? 'Syncing…' : showSyncConfirm === 'states' ? 'Add States' : 'Replace Transitions'}
                 </button>
               </div>
             </div>

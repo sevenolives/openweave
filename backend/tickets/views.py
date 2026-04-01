@@ -1059,16 +1059,19 @@ class StatusDefinitionViewSet(viewsets.ModelViewSet):
         instance.delete()
 
     @extend_schema(
-        summary="Sync state machine from another workspace (additive)",
-        description="Merges status definitions from the source workspace into the target. Adds new statuses, skips existing ones (matched by key). Copies allowed_from paths for new statuses and merges them for existing ones.",
-        request={'application/json': {'type': 'object', 'properties': {'source_workspace': {'type': 'string'}}}},
+        summary="Sync state machine from another workspace",
+        description="Two modes: mode=states (additive — adds new statuses, skips existing by key) or mode=transitions (destructive — overwrites all allowed_from rules with source's rules). Run states first, then transitions.",
+        request={'application/json': {'type': 'object', 'properties': {'source_workspace': {'type': 'string'}, 'mode': {'type': 'string', 'enum': ['states', 'transitions']}}}},
     )
     @action(detail=False, methods=['post'], url_path='sync-from')
     def sync_from(self, request):
         target_slug = request.data.get('workspace') or request.query_params.get('workspace')
         source_slug = request.data.get('source_workspace')
+        mode = request.data.get('mode', 'states')  # 'states' or 'transitions'
         if not target_slug or not source_slug:
             return Response({'detail': 'workspace and source_workspace are required.'}, status=status.HTTP_400_BAD_REQUEST)
+        if mode not in ('states', 'transitions'):
+            return Response({'detail': 'mode must be "states" or "transitions".'}, status=status.HTTP_400_BAD_REQUEST)
         try:
             target_ws = Workspace.objects.get(slug=target_slug)
         except Workspace.DoesNotExist:
@@ -1087,49 +1090,58 @@ class StatusDefinitionViewSet(viewsets.ModelViewSet):
         if not source_statuses.exists():
             return Response({'detail': 'Source workspace has no status definitions.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Build map of existing target statuses by key
         target_by_key = {sd.key: sd for sd in StatusDefinition.objects.filter(workspace=target_ws)}
-        max_position = max((sd.position for sd in target_by_key.values()), default=-1)
 
-        added = 0
-        skipped = 0
-        # Add missing statuses
-        for src in source_statuses:
-            if src.key in target_by_key:
-                skipped += 1
-                continue
-            max_position += 1
-            new_sd = StatusDefinition.objects.create(
-                workspace=target_ws,
-                key=src.key,
-                label=src.label,
-                color=src.color,
-                description=src.description,
-                is_default=False,  # Don't override existing default
-                is_archived=src.is_archived,
-                position=max_position,
-            )
-            target_by_key[src.key] = new_sd
-            added += 1
+        if mode == 'states':
+            # Step 1: Additive — add missing statuses, don't touch existing
+            max_position = max((sd.position for sd in target_by_key.values()), default=-1)
+            added = 0
+            skipped = 0
+            for src in source_statuses:
+                if src.key in target_by_key:
+                    skipped += 1
+                    continue
+                max_position += 1
+                new_sd = StatusDefinition.objects.create(
+                    workspace=target_ws,
+                    key=src.key, label=src.label, color=src.color,
+                    description=src.description, is_default=False,
+                    is_archived=src.is_archived, position=max_position,
+                )
+                target_by_key[src.key] = new_sd
+                added += 1
 
-        # Merge allowed_from paths from source
-        for src in source_statuses:
-            target_sd = target_by_key.get(src.key)
-            if not target_sd:
-                continue
-            source_from_keys = {af.key for af in src.allowed_from.all()}
-            existing_from_keys = {af.key for af in target_sd.allowed_from.all()}
-            new_from_keys = source_from_keys - existing_from_keys
-            if new_from_keys:
-                new_from_sds = [target_by_key[k] for k in new_from_keys if k in target_by_key]
-                if new_from_sds:
-                    target_sd.allowed_from.add(*new_from_sds)
+            result = StatusDefinitionSerializer(
+                StatusDefinition.objects.filter(workspace=target_ws).prefetch_related('allowed_from', 'allowed_users'),
+                many=True, context={'request': request}
+            ).data
+            return Response({'mode': 'states', 'added': added, 'skipped': skipped, 'total': len(result), 'statuses': result})
 
-        result = StatusDefinitionSerializer(
-            StatusDefinition.objects.filter(workspace=target_ws).prefetch_related('allowed_from', 'allowed_users'),
-            many=True, context={'request': request}
-        ).data
-        return Response({'added': added, 'skipped': skipped, 'total': len(result), 'statuses': result}, status=status.HTTP_200_OK)
+        else:
+            # Step 2: Destructive — overwrite all allowed_from with source's rules
+            # Refresh target map after potential step 1
+            target_by_key = {sd.key: sd for sd in StatusDefinition.objects.filter(workspace=target_ws)}
+            updated = 0
+            missing_keys = []
+            for src in source_statuses:
+                target_sd = target_by_key.get(src.key)
+                if not target_sd:
+                    missing_keys.append(src.key)
+                    continue
+                # Destructive: clear and replace allowed_from
+                source_from_keys = [af.key for af in src.allowed_from.all()]
+                resolved = [target_by_key[k] for k in source_from_keys if k in target_by_key]
+                target_sd.allowed_from.set(resolved)
+                updated += 1
+
+            result = StatusDefinitionSerializer(
+                StatusDefinition.objects.filter(workspace=target_ws).prefetch_related('allowed_from', 'allowed_users'),
+                many=True, context={'request': request}
+            ).data
+            resp = {'mode': 'transitions', 'updated': updated, 'total': len(result), 'statuses': result}
+            if missing_keys:
+                resp['warning'] = f'Source has states not in target (run Step 1 first): {", ".join(missing_keys)}'
+            return Response(resp)
 
 
 class DashboardView(APIView):
