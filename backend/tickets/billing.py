@@ -401,3 +401,16 @@ class ManageSeatsView(APIView):
             return Response({
                 'detail': f'Failed to update Stripe subscription: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ClearSubscriptionsView(APIView):
+    """DELETE /api/billing/clear-subscriptions/ — Admin-only: wipe all subscription data."""
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request):
+        if not request.user.is_superuser:
+            return Response({'detail': 'Superuser only.'}, status=status.HTTP_403_FORBIDDEN)
+
+        count = Subscription.objects.count()
+        Subscription.objects.all().delete()
+        return Response({'detail': f'Deleted {count} subscription(s). Ready to rehydrate from Stripe.'})
