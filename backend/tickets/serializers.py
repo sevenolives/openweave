@@ -49,7 +49,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class UserSimpleSerializer(serializers.ModelSerializer):
-    """Simplified user serializer for nested usage."""
+    """Simplified user serializer for nested usage. Never exposes tokens or workspace ownership."""
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'name', 'user_type', 'description']
