@@ -5,6 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import PublicNav from '@/components/PublicNav';
 
+const FREE_MAX_USERS = process.env.NEXT_PUBLIC_FREE_MAX_USERS || '3';
+const FREE_MAX_WORKSPACES = process.env.NEXT_PUBLIC_FREE_MAX_WORKSPACES || '1';
+const FREE_MAX_PROJECTS = process.env.NEXT_PUBLIC_FREE_MAX_PROJECTS || '5';
+const FREE_MAX_BOT_AGENTS = process.env.NEXT_PUBLIC_FREE_MAX_BOT_AGENTS || '2';
+const PRO_MONTHLY = process.env.NEXT_PUBLIC_PRO_MONTHLY_PRICE || '12';
+const PRO_ANNUAL = process.env.NEXT_PUBLIC_PRO_ANNUAL_PRICE || '10';
+
 const tiers = [
   {
     name: 'Free',
@@ -12,10 +19,10 @@ const tiers = [
     annualPrice: 0,
     unit: '',
     features: [
-      'Up to 3 users',
-      '1 workspace',
-      '5 projects per workspace',
-      '2 bot agents',
+      `Up to ${FREE_MAX_USERS} users`,
+      `${FREE_MAX_WORKSPACES} workspace`,
+      `${FREE_MAX_PROJECTS} projects per workspace`,
+      `${FREE_MAX_BOT_AGENTS} bot agents`,
       'Default state machine only',
       '24-hour audit log retention',
       'Community support',
@@ -26,11 +33,11 @@ const tiers = [
   },
   {
     name: 'Pro',
-    monthlyPrice: 12,
-    annualPrice: 10,
+    monthlyPrice: parseInt(PRO_MONTHLY),
+    annualPrice: parseInt(PRO_ANNUAL),
     unit: '/user/mo',
     features: [
-      'Licensed seats ($12/seat/mo)',
+      `Licensed seats ($${PRO_MONTHLY}/seat/mo)`,
       'Buy seats, assign users flexibly',
       'Unlimited workspaces',
       'Unlimited projects',
