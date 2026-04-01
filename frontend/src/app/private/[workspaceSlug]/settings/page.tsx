@@ -391,9 +391,9 @@ export default function WorkspaceSettingsPage() {
   const [syncSource, setSyncSource] = useState('');
   const [showSyncConfirm, setShowSyncConfirm] = useState<'states' | 'transitions' | null>(null);
   const [syncing, setSyncing] = useState(false);
-  const [bots, setBots] = useState<User[]>([]);
+  const [bots, setBots] = useState<(User & { api_token?: string })[]>([]);
   const [loadingBots, setLoadingBots] = useState(false);
-  const [revealedTokens, setRevealedTokens] = useState<Set<number>>(new Set());
+  const [revealedTokens, setRevealedTokens] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   const loadBots = useCallback(async (ws: Workspace) => {
@@ -517,24 +517,24 @@ export default function WorkspaceSettingsPage() {
     } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
   };
 
-  const handleRegenerateToken = async (bot: User) => {
+  const handleRegenerateToken = async (bot: User & { api_token?: string }) => {
     if (!confirm(`Regenerate token for ${bot.username}? This will invalidate the current token.`)) return;
     try {
       const result = await api.regenerateToken(bot.username);
-      setBots(prev => prev.map(b => b.id === bot.id ? { ...b, token: result.token } : b));
+      setBots(prev => prev.map(b => b.username === bot.username ? { ...b, api_token: result.api_token } : b));
       toast(`Token regenerated for ${bot.username}`);
       // Reveal the new token temporarily
-      setRevealedTokens(prev => new Set(prev).add(bot.id));
+      setRevealedTokens(prev => new Set(prev).add(bot.username));
     } catch (e: any) {
       toast(e?.message || 'Failed to regenerate token', 'error');
     }
   };
 
-  const handleDeleteBot = async (bot: User) => {
+  const handleDeleteBot = async (bot: User & { api_token?: string }) => {
     if (!confirm(`Delete bot ${bot.username}? This action cannot be undone.`)) return;
     try {
-      await api.deleteUser(bot.id);
-      setBots(prev => prev.filter(b => b.id !== bot.id));
+      await api.deleteUser(bot.username as any);
+      setBots(prev => prev.filter((b: any) => b.username !== bot.username));
       toast(`Bot ${bot.username} deleted`);
     } catch (e: any) {
       toast(e?.message || 'Failed to delete bot', 'error');
@@ -717,7 +717,7 @@ export default function WorkspaceSettingsPage() {
           ) : (
             <div className="divide-y divide-gray-50">
               {bots.map(bot => (
-                <div key={bot.id} className="px-5 py-4">
+                <div key={bot.username} className="px-5 py-4">
                   <div className="flex items-start gap-4">
                     <div className="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                       {bot.username[0].toUpperCase()}
@@ -735,24 +735,24 @@ export default function WorkspaceSettingsPage() {
                         <label className="block text-xs font-medium text-gray-700 mb-1">API Token</label>
                         <div className="flex items-center gap-2">
                           <code className="flex-1 text-sm font-mono text-gray-800 bg-white border border-gray-200 rounded px-2 py-1 select-all">
-                            {revealedTokens.has(bot.id) ? bot.token : maskToken(bot.token || '')}
+                            {revealedTokens.has(bot.username) ? bot.api_token : maskToken(bot.api_token || '')}
                           </code>
                           <button
                             onClick={() => {
-                              if (revealedTokens.has(bot.id)) {
+                              if (revealedTokens.has(bot.username)) {
                                 setRevealedTokens(prev => {
                                   const next = new Set(prev);
-                                  next.delete(bot.id);
+                                  next.delete(bot.username);
                                   return next;
                                 });
                               } else {
-                                setRevealedTokens(prev => new Set(prev).add(bot.id));
+                                setRevealedTokens(prev => new Set(prev).add(bot.username));
                               }
                             }}
                             className="p-1.5 text-gray-400 hover:text-gray-600 rounded"
-                            title={revealedTokens.has(bot.id) ? "Hide token" : "Show full token"}
+                            title={revealedTokens.has(bot.username) ? "Hide token" : "Show full token"}
                           >
-                            {revealedTokens.has(bot.id) ? (
+                            {revealedTokens.has(bot.username) ? (
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
                               </svg>
@@ -764,7 +764,7 @@ export default function WorkspaceSettingsPage() {
                             )}
                           </button>
                           <button
-                            onClick={() => copyToClipboard(bot.token || '')}
+                            onClick={() => copyToClipboard(bot.api_token || '')}
                             className="p-1.5 text-gray-400 hover:text-gray-600 rounded"
                             title="Copy token"
                           >

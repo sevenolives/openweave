@@ -743,13 +743,14 @@ class ApiClient {
   }
 
   // Bot Token Management
-  async getBots(workspaceSlug: string): Promise<User[]> {
-    const response = await this.request<PaginatedResponse<User>>(`/users/bots/?workspace=${encodeURIComponent(workspaceSlug)}`);
-    return response.results || [];
+  async getBots(workspaceSlug: string): Promise<any[]> {
+    const response = await this.request<any>(`/users/bots/?workspace=${encodeURIComponent(workspaceSlug)}`);
+    // API returns plain array, not paginated
+    return Array.isArray(response) ? response : response.results || [];
   }
 
-  async regenerateToken(username: string): Promise<{ token: string }> {
-    return this.request<{ token: string }>('/users/regenerate-token/', {
+  async regenerateToken(username: string): Promise<{ api_token: string }> {
+    return this.request<{ api_token: string }>('/users/regenerate-token/', {
       method: 'POST',
       body: JSON.stringify({ username }),
     });

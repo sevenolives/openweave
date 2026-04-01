@@ -674,7 +674,12 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'Workspace not found.'}, status=status.HTTP_404_NOT_FOUND)
         if not is_admin_or_owner(request.user, ws):
             return Response({'detail': 'Only workspace admin/owner can view bot tokens.'}, status=status.HTTP_403_FORBIDDEN)
-        bots = User.objects.filter(created_in_workspace=ws, user_type='BOT')
+        # Include bots created in this workspace AND bots that are workspace members
+        from django.db.models import Q
+        bots = User.objects.filter(
+            Q(created_in_workspace=ws) | Q(workspace_memberships__workspace=ws),
+            user_type='BOT'
+        ).distinct()
         result = []
         for bot in bots:
             token = Token.objects.filter(user=bot).first()
