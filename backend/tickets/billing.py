@@ -154,8 +154,8 @@ class StripeWebhookView(APIView):
             if sub.stripe_subscription_id:
                 s = _get_stripe()
                 stripe_sub = s.Subscription.retrieve(sub.stripe_subscription_id)
-                if stripe_sub and stripe_sub.items and stripe_sub.items.data:
-                    quantity = stripe_sub.items.data[0].quantity
+                if stripe_sub and stripe_sub.get('items', {}).get('data'):
+                    quantity = stripe_sub['items']['data'][0]['quantity']
                     sub.licensed_seats = quantity
             
             sub.save()
@@ -273,8 +273,8 @@ class SyncSubscriptionView(APIView):
             sub.stripe_subscription_id = stripe_sub.id
             sub.plan = 'pro'
             sub.status = 'active'
-            if stripe_sub.items and stripe_sub.items.data:
-                sub.licensed_seats = stripe_sub.items.data[0].quantity
+            if stripe_sub.get("items", {}).get("data"):
+                sub.licensed_seats = stripe_sub['items']['data'][0]['quantity']
             sub.save()
 
             from .plan_limits import get_seat_info
