@@ -26,6 +26,7 @@ export interface User {
   skills: string[];
   description: string;
   is_active: boolean;
+  email_verified: boolean;
   token?: string; // Bot token, only returned for bots endpoint
 }
 

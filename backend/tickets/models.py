@@ -40,6 +40,7 @@ class User(AbstractUser):
         help_text="Email notification preference level"
     )
     is_active = models.BooleanField(default=True)
+    email_verified = models.BooleanField(default=False, help_text="Whether the user's email has been verified")
     created_in_workspace = models.ForeignKey('Workspace', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='created_bots', help_text='Workspace where this bot was created (bots only)')
     
@@ -671,4 +672,54 @@ class MediaFile(models.Model):
                 self.size = self.file.size
             except Exception:
                 pass
+        super().save(*args, **kwargs)
+
+
+class OTP(models.Model):
+    """
+    One-time password for email verification and password reset.
+    6-digit OTP code with expiration.
+    """
+    PURPOSE_CHOICES = [
+        ('verify_email', 'Email Verification'),
+        ('reset_password', 'Password Reset'),
+    ]
+    
+    email = models.EmailField(help_text="Email address this OTP is for")
+    otp_code = models.CharField(max_length=6, help_text="6-digit OTP code")
+    purpose = models.CharField(max_length=20, choices=PURPOSE_CHOICES, help_text="What this OTP is for")
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(help_text="When this OTP expires")
+    used = models.BooleanField(default=False, help_text="Whether this OTP has been used")
+    
+    class Meta:
+        db_table = 'otps'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['email', 'purpose'], name='idx_otp_email_purpose'),
+            models.Index(fields=['expires_at'], name='idx_otp_expires'),
+        ]
+    
+    def __str__(self):
+        return f"OTP {self.otp_code} for {self.email} ({self.purpose})"
+    
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+    
+    def is_valid(self):
+        return not self.used and not self.is_expired()
+    
+    @classmethod
+    def generate_code(cls):
+        """Generate a random 6-digit OTP code."""
+        import random
+        return f"{random.randint(100000, 999999)}"
+    
+    def save(self, *args, **kwargs):
+        if not self.otp_code:
+            self.otp_code = self.generate_code()
+        if not self.expires_at:
+            # OTPs expire after 15 minutes
+            from datetime import timedelta
+            self.expires_at = timezone.now() + timedelta(minutes=15)
         super().save(*args, **kwargs)

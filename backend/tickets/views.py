@@ -228,6 +228,23 @@ class JoinView(APIView):
             user = User(username=username, name=name, user_type='HUMAN', description=description)
             user.set_password(password)
             user.save()
+            
+            # Auto-send email verification OTP for new human users with email
+            if user.email:
+                from .models import OTP
+                from django.core.mail import send_mail
+                from django.conf import settings
+                try:
+                    otp = OTP.objects.create(email=user.email, purpose='verify_email')
+                    send_mail(
+                        subject='Welcome to OpenWeave - Verify Your Email',
+                        message=f'Welcome to OpenWeave!\n\nYour email verification code is: {otp.otp_code}\n\nThis code expires in 15 minutes.',
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[user.email],
+                        fail_silently=True,  # Don't fail registration if email fails
+                    )
+                except Exception:
+                    pass  # Don't fail registration if email verification fails
         else:
             # Stamp workspace on bot user record
             bot_workspace = None
@@ -282,6 +299,246 @@ class JoinView(APIView):
         if workspace_data:
             response_data['workspace'] = workspace_data
         return Response(response_data, status=status.HTTP_201_CREATED)
+
+
+@extend_schema(tags=['auth'])
+class ForgotPasswordView(APIView):
+    """Send OTP to user's email for password reset."""
+    permission_classes = [AllowAny]
+    
+    @extend_schema(
+        summary="Send password reset OTP",
+        description="Send a 6-digit OTP to the user's email for password reset.",
+        request=inline_serializer('ForgotPasswordRequest', fields={
+            'email': drf_serializers.EmailField()
+        }),
+        responses={
+            200: inline_serializer('ForgotPasswordResponse', fields={
+                'message': drf_serializers.CharField(),
+            }),
+            400: _error_detail,
+        },
+    )
+    def post(self, request):
+        email = request.data.get('email', '').strip()
+        if not email:
+            return Response({'detail': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Find user by email
+        try:
+            user = User.objects.get(email=email, user_type='HUMAN')
+        except User.DoesNotExist:
+            # Don't reveal if email exists or not
+            return Response({'message': 'If an account with this email exists, a reset code has been sent.'}, 
+                          status=status.HTTP_200_OK)
+        
+        # Generate and send OTP
+        from .models import OTP
+        from django.core.mail import send_mail
+        from django.conf import settings
+        
+        # Deactivate any existing password reset OTPs for this email
+        OTP.objects.filter(email=email, purpose='reset_password', used=False).update(used=True)
+        
+        # Create new OTP
+        otp = OTP.objects.create(email=email, purpose='reset_password')
+        
+        # Send email
+        try:
+            send_mail(
+                subject='OpenWeave Password Reset',
+                message=f'Your password reset code is: {otp.otp_code}\n\nThis code expires in 15 minutes.',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email],
+                fail_silently=False,
+            )
+        except Exception as e:
+            return Response({'detail': 'Failed to send email. Please try again later.'}, 
+                          status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        return Response({'message': 'If an account with this email exists, a reset code has been sent.'}, 
+                      status=status.HTTP_200_OK)
+
+
+@extend_schema(tags=['auth'])
+class ResetPasswordView(APIView):
+    """Reset password using OTP."""
+    permission_classes = [AllowAny]
+    
+    @extend_schema(
+        summary="Reset password with OTP",
+        description="Reset user's password using the OTP sent to their email.",
+        request=inline_serializer('ResetPasswordRequest', fields={
+            'email': drf_serializers.EmailField(),
+            'otp': drf_serializers.CharField(max_length=6),
+            'new_password': drf_serializers.CharField(min_length=8),
+        }),
+        responses={
+            200: inline_serializer('ResetPasswordResponse', fields={
+                'message': drf_serializers.CharField(),
+            }),
+            400: _error_detail,
+        },
+    )
+    def post(self, request):
+        email = request.data.get('email', '').strip()
+        otp_code = request.data.get('otp', '').strip()
+        new_password = request.data.get('new_password', '').strip()
+        
+        if not all([email, otp_code, new_password]):
+            return Response({'detail': 'Email, OTP, and new password are required.'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+        
+        # Find valid OTP
+        from .models import OTP
+        try:
+            otp = OTP.objects.get(
+                email=email, 
+                otp_code=otp_code, 
+                purpose='reset_password', 
+                used=False
+            )
+            if not otp.is_valid():
+                raise OTP.DoesNotExist()
+        except OTP.DoesNotExist:
+            return Response({'detail': 'Invalid or expired OTP.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Find user
+        try:
+            user = User.objects.get(email=email, user_type='HUMAN')
+        except User.DoesNotExist:
+            return Response({'detail': 'User not found.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate password
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError
+        try:
+            validate_password(new_password, user)
+        except ValidationError as e:
+            return Response({'detail': '; '.join(e.messages)}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Update password and mark OTP as used
+        user.set_password(new_password)
+        user.save()
+        otp.used = True
+        otp.save()
+        
+        return Response({'message': 'Password reset successfully.'}, status=status.HTTP_200_OK)
+
+
+@extend_schema(tags=['auth'])
+class SendVerificationView(APIView):
+    """Send email verification OTP to current user's email."""
+    permission_classes = [permissions.IsAuthenticated]
+    
+    @extend_schema(
+        summary="Send email verification OTP",
+        description="Send a 6-digit OTP to the current user's email for verification.",
+        request=None,
+        responses={
+            200: inline_serializer('SendVerificationResponse', fields={
+                'message': drf_serializers.CharField(),
+            }),
+            400: _error_detail,
+        },
+    )
+    def post(self, request):
+        user = request.user
+        
+        if user.user_type != 'HUMAN':
+            return Response({'detail': 'Only human users can verify email.'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+        
+        if user.email_verified:
+            return Response({'detail': 'Email is already verified.'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+        
+        if not user.email:
+            return Response({'detail': 'No email address on file.'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+        
+        # Generate and send OTP
+        from .models import OTP
+        from django.core.mail import send_mail
+        from django.conf import settings
+        
+        # Deactivate any existing verification OTPs for this email
+        OTP.objects.filter(email=user.email, purpose='verify_email', used=False).update(used=True)
+        
+        # Create new OTP
+        otp = OTP.objects.create(email=user.email, purpose='verify_email')
+        
+        # Send email
+        try:
+            send_mail(
+                subject='OpenWeave Email Verification',
+                message=f'Your email verification code is: {otp.otp_code}\n\nThis code expires in 15 minutes.',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                fail_silently=False,
+            )
+        except Exception as e:
+            return Response({'detail': 'Failed to send email. Please try again later.'}, 
+                          status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        return Response({'message': f'Verification code sent to {user.email}.'}, 
+                      status=status.HTTP_200_OK)
+
+
+@extend_schema(tags=['auth'])
+class VerifyEmailView(APIView):
+    """Verify user's email with OTP."""
+    permission_classes = [permissions.IsAuthenticated]
+    
+    @extend_schema(
+        summary="Verify email with OTP",
+        description="Verify the current user's email using the OTP sent to their email.",
+        request=inline_serializer('VerifyEmailRequest', fields={
+            'otp': drf_serializers.CharField(max_length=6),
+        }),
+        responses={
+            200: inline_serializer('VerifyEmailResponse', fields={
+                'message': drf_serializers.CharField(),
+            }),
+            400: _error_detail,
+        },
+    )
+    def post(self, request):
+        user = request.user
+        otp_code = request.data.get('otp', '').strip()
+        
+        if not otp_code:
+            return Response({'detail': 'OTP is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if user.user_type != 'HUMAN':
+            return Response({'detail': 'Only human users can verify email.'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+        
+        if user.email_verified:
+            return Response({'detail': 'Email is already verified.'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+        
+        # Find valid OTP
+        from .models import OTP
+        try:
+            otp = OTP.objects.get(
+                email=user.email, 
+                otp_code=otp_code, 
+                purpose='verify_email', 
+                used=False
+            )
+            if not otp.is_valid():
+                raise OTP.DoesNotExist()
+        except OTP.DoesNotExist:
+            return Response({'detail': 'Invalid or expired OTP.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Mark email as verified and OTP as used
+        user.email_verified = True
+        user.save()
+        otp.used = True
+        otp.save()
+        
+        return Response({'message': 'Email verified successfully.'}, status=status.HTTP_200_OK)
 
 
 @extend_schema(tags=['users'])

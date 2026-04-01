@@ -9,7 +9,8 @@ from .views import (
     ProjectInviteViewSet,
     TicketAttachmentViewSet, StatusDefinitionViewSet,
     ProjectAgentViewSet, PhaseViewSet, ProjectStatusPermissionViewSet,
-    JoinView, DashboardView, ProjectsDashboardView, BlogPostViewSet,
+    JoinView, ForgotPasswordView, ResetPasswordView, SendVerificationView, VerifyEmailView,
+    DashboardView, ProjectsDashboardView, BlogPostViewSet,
     MediaFileViewSet,
 )
 from .billing import (
@@ -62,6 +63,10 @@ urlpatterns = [
     path('auth/join/', JoinView.as_view(), name='join'),
     path('auth/login/', LoginView.as_view(), name='token_obtain_pair'),
     path('auth/token/refresh/', RefreshView.as_view(), name='token_refresh'),
+    path('auth/forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
+    path('auth/reset-password/', ResetPasswordView.as_view(), name='reset-password'),
+    path('auth/send-verification/', SendVerificationView.as_view(), name='send-verification'),
+    path('auth/verify-email/', VerifyEmailView.as_view(), name='verify-email'),
     path('dashboard/', DashboardView.as_view(), name='dashboard'),
     path('projects-dashboard/', ProjectsDashboardView.as_view(), name='projects-dashboard'),
     path('billing/checkout/', CreateCheckoutSessionView.as_view(), name='billing-checkout'),

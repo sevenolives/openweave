@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useWorkspace } from '@/hooks/useWorkspace';
 
 export default function PrivateLayout({ children }: { children: React.ReactNode }) {
-  const { isLoggedIn, isLoading } = useAuth();
+  const { isLoggedIn, isLoading, user } = useAuth();
   const { workspaces, isLoading: wsLoading } = useWorkspace();
   const router = useRouter();
   const pathname = usePathname();
@@ -17,12 +17,19 @@ export default function PrivateLayout({ children }: { children: React.ReactNode 
     }
   }, [isLoading, isLoggedIn, router]);
 
+  // Redirect to email verification for unverified human users
+  useEffect(() => {
+    if (!isLoading && isLoggedIn && user && user.user_type === 'HUMAN' && !user.email_verified && pathname !== '/verify-email') {
+      router.replace('/verify-email');
+    }
+  }, [isLoading, isLoggedIn, user, pathname, router]);
+
   // Redirect to onboarding if no workspaces (unless already on workspaces page)
   useEffect(() => {
-    if (!isLoading && !wsLoading && isLoggedIn && workspaces.length === 0 && pathname !== '/private/workspaces') {
+    if (!isLoading && !wsLoading && isLoggedIn && user?.email_verified !== false && workspaces.length === 0 && pathname !== '/private/workspaces') {
       router.replace('/private/workspaces');
     }
-  }, [isLoading, wsLoading, isLoggedIn, workspaces, pathname, router]);
+  }, [isLoading, wsLoading, isLoggedIn, user, workspaces, pathname, router]);
 
   if (isLoading) {
     return (
