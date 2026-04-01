@@ -77,17 +77,19 @@ class CreateCheckoutSessionView(APIView):
         member_count = WorkspaceMember.objects.filter(workspace=workspace).count() + 1  # +1 for owner
         initial_quantity = max(1, member_count)
 
-        session = s.checkout.Session.create(
-            customer=customer_id,
-            payment_method_types=['card'],
-            line_items=[{'price': price_id, 'quantity': initial_quantity}],
-            mode='subscription',
-            success_url=success_url,
-            cancel_url=cancel_url,
-            metadata={'workspace_id': str(workspace.id)},
-        )
-
-        return Response({'checkout_url': session.url})
+        try:
+            session = s.checkout.Session.create(
+                customer=customer_id,
+                payment_method_types=['card'],
+                line_items=[{'price': price_id, 'quantity': initial_quantity}],
+                mode='subscription',
+                success_url=success_url,
+                cancel_url=cancel_url,
+                metadata={'workspace_id': str(workspace.id)},
+            )
+            return Response({'checkout_url': session.url})
+        except Exception as e:
+            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @method_decorator(csrf_exempt, name='dispatch')
