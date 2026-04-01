@@ -215,11 +215,21 @@ class JoinView(APIView):
                 return Response({'workspace': WorkspaceSerializer(invite.workspace).data}, status=status.HTTP_200_OK)
 
         # Cases 1-3: Creating a new user
-        if not username or not name:
-            return Response({'detail': 'username and name are required.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        if User.objects.filter(username=username).exists():
-            return Response({'detail': 'Username already taken.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not name:
+            return Response({'detail': 'name is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        # Auto-generate username from email or UUID
+        if not username:
+            if email:
+                username = email.split('@')[0]
+            else:
+                import uuid as _uuid
+                username = f'user-{_uuid.uuid4().hex[:8]}'
+        # Ensure unique username
+        base_username = username
+        counter = 1
+        while User.objects.filter(username=username).exists():
+            username = f'{base_username}-{counter}'
+            counter += 1
 
         is_bot = not password
         if is_bot and not invite and not project_invite:

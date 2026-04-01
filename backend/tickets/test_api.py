@@ -82,7 +82,6 @@ class AuthenticationAPITest(BaseAPITestCase):
         """Test user registration via join endpoint."""
         url = reverse('join')
         data = {
-            'username': 'newuser',
             'name': 'New User',
             'email': 'newuser@example.com',
             'password': 'newpass123',
@@ -90,7 +89,7 @@ class AuthenticationAPITest(BaseAPITestCase):
 
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(User.objects.filter(username='newuser').count(), 1)
+        self.assertEqual(User.objects.filter(email='newuser@example.com').count(), 1)
         self.assertIn('access', response.data)
         self.assertIn('refresh', response.data)
 
