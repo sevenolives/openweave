@@ -823,15 +823,14 @@ export default function WorkspaceSettingsPage() {
             </label>
           </div>
         )}
-        {/* Sync from workspace */}
         {/* Load Template */}
         {settingsTab === 'state-machine' && workspace && (
-          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
-            <h3 className="text-sm font-semibold text-gray-900 mb-2">Load a template</h3>
-            <p className="text-xs text-gray-500 mb-4">Start with a pre-built workflow. Adds missing states — won&apos;t overwrite existing ones.</p>
+          <div style={{ background: '#0a0a0a', borderRadius: 16, padding: '20px 24px', marginBottom: 24 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'white', marginBottom: 4 }}>Starter Templates</h3>
+            <p style={{ fontSize: 12, color: '#6b7280', marginBottom: 16 }}>Load a pre-built workflow. Adds missing states — won&apos;t overwrite existing ones.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {[
-                { id: 'software_dev', name: '💻 Software Dev', desc: 'Spec → Dev → Test → Deploy → QA' },
+                { id: 'software_dev', name: '💻 Software Dev', desc: 'Spec → Dev → QA Local → Deploy → QA Pass/Fail' },
                 { id: 'kanban', name: '📋 Kanban', desc: 'To Do → In Progress → Review → Done' },
                 { id: 'agency', name: '🏢 Agency', desc: 'Brief → Scope → Build → Client Review → Deliver' },
                 { id: 'support', name: '🎧 Support', desc: 'New → Triage → Investigate → Resolve → Close' },
@@ -844,9 +843,16 @@ export default function WorkspaceSettingsPage() {
                     setStatuses(result.statuses);
                     toast(`Added ${result.added} states (${result.skipped} already existed)`);
                   } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
-                }} className="text-left px-4 py-3 rounded-xl border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/50 transition-all">
-                  <div className="text-sm font-medium text-gray-900">{t.name}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">{t.desc}</div>
+                }} style={{
+                  textAlign: 'left', padding: '12px 16px', borderRadius: 12,
+                  background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+                  cursor: 'pointer', transition: 'all 0.2s',
+                }}
+                onMouseEnter={e => { (e.target as HTMLElement).style.borderColor = '#6366f1'; (e.target as HTMLElement).style.background = 'rgba(99,102,241,0.08)'; }}
+                onMouseLeave={e => { (e.target as HTMLElement).style.borderColor = 'rgba(255,255,255,0.08)'; (e.target as HTMLElement).style.background = 'rgba(255,255,255,0.03)'; }}
+                >
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#e5e7eb' }}>{t.name}</div>
+                  <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{t.desc}</div>
                 </button>
               ))}
             </div>
@@ -854,19 +860,19 @@ export default function WorkspaceSettingsPage() {
         )}
 
         {settingsTab === 'state-machine' && workspace && allWorkspaces.length > 0 && (
-          <div className="bg-[#111118] rounded-xl border border-[#222233] p-5 mb-6">
-            <h3 className="text-sm font-semibold text-white mb-2">Sync from another workspace</h3>
-            <p className="text-xs text-gray-400 mb-3">Import a state machine from another workspace you have access to. This is a two-step process:</p>
-            <div className="bg-[#1a1a2e] rounded-xl p-4 mb-4 space-y-3">
+          <div style={{ background: '#0a0a0a', borderRadius: 16, padding: '20px 24px', marginBottom: 24 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'white', marginBottom: 4 }}>Sync from another workspace</h3>
+            <p style={{ fontSize: 12, color: '#6b7280', marginBottom: 16 }}>Import a state machine from another workspace. Two-step process:</p>
+            <div className="rounded-xl p-4 mb-4 space-y-3" style={{ background: 'rgba(255,255,255,0.03)' }}>
               <div className="flex items-start gap-3">
-                <span className="w-6 h-6 rounded-full bg-indigo-900/50 text-indigo-300 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">1</span>
+                <span className="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">1</span>
                 <div>
                   <p className="text-sm font-medium text-white">Sync States</p>
                   <p className="text-xs text-gray-500"><strong>Additive</strong> — new statuses are added (name, color, description). Existing statuses with the same key are kept untouched. Nothing is deleted.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <span className="w-6 h-6 rounded-full bg-red-900/50 text-red-300 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</span>
+                <span className="w-6 h-6 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</span>
                 <div>
                   <p className="text-sm font-medium text-white">Sync Transitions</p>
                   <p className="text-xs text-gray-500"><strong>Destructive</strong> — all existing allowed_from rules are replaced with the source workspace&apos;s rules. Previous transition paths are deleted. This requires all states to exist first (run Step 1 first).</p>
@@ -875,7 +881,7 @@ export default function WorkspaceSettingsPage() {
             </div>
             <div className="flex gap-2 items-center mb-3">
               <select value={syncSource} onChange={e => setSyncSource(e.target.value)}
-                className="flex-1 px-4 py-2.5 border border-[#222233] rounded-xl text-sm bg-[#1a1a2e] text-white">
+                className="flex-1 px-4 py-2.5 border border-[#3f3f46] rounded-xl text-sm bg-[#18181b] text-white">
                 <option value="">Select source workspace…</option>
                 {allWorkspaces.map(w => <option key={w.slug} value={w.slug}>{w.name} ({w.slug})</option>)}
               </select>
