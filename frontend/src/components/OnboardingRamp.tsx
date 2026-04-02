@@ -51,7 +51,7 @@ export default function OnboardingRamp({ onComplete }: { onComplete?: () => void
       await api.createProject({
         name: projName.trim(),
         slug: projSlug.trim().toUpperCase() || undefined,
-        description: projDesc.trim(),
+        about_text: projDesc.trim(),
         workspace: createdWs,
       });
       toast('Project created!');

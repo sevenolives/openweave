@@ -217,7 +217,7 @@ export interface DashboardStats {
 export interface ProjectDashboardItem {
   slug: string;
   name: string;
-  description: string;
+  about_text: string;
   updated_at: string;
   total_tickets: number;
   status_counts: Record<string, number>;

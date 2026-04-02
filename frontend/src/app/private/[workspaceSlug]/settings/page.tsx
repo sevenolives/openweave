@@ -397,20 +397,6 @@ export default function WorkspaceSettingsPage() {
   const [syncing, setSyncing] = useState(false);
   const { toast } = useToast();
 
-  // Load workspace bots
-  useEffect(() => {
-    const loadBots = async () => {
-      try {
-        const botsList = await api.getBots(ws.slug);
-        // TODO: Handle bots list if needed
-      } catch (e: any) {
-        toast(e?.message || 'Failed to load bots', 'error');
-      }
-    };
-    
-    loadBots();
-  }, [ws.slug, toast]);
-
   const loadData = useCallback(async (ws: Workspace) => {
     try {
       const [m, sd] = await Promise.all([
@@ -440,11 +426,6 @@ export default function WorkspaceSettingsPage() {
       loadData(ws);
     }
   }, [workspaceSlug, workspaces, loadData]);
-
-  // Load bots when switching to bots tab
-  useEffect(() => {
-    if (settingsTab === 'bots' && workspace) {
-    }
 
   const handleSaveWorkspace = async () => {
     if (!workspace) return;
