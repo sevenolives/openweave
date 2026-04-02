@@ -397,13 +397,19 @@ export default function WorkspaceSettingsPage() {
   const [syncing, setSyncing] = useState(false);
   const { toast } = useToast();
 
-    try {
-      const botsList = await api.getBots(ws.slug);
-    } catch (e: any) {
-      toast(e?.message || 'Failed to load bots', 'error');
-    } finally {
-    }
-  }, [toast]);
+  // Load workspace bots
+  useEffect(() => {
+    const loadBots = async () => {
+      try {
+        const botsList = await api.getBots(ws.slug);
+        // TODO: Handle bots list if needed
+      } catch (e: any) {
+        toast(e?.message || 'Failed to load bots', 'error');
+      }
+    };
+    
+    loadBots();
+  }, [ws.slug, toast]);
 
   const loadData = useCallback(async (ws: Workspace) => {
     try {
@@ -512,6 +518,7 @@ export default function WorkspaceSettingsPage() {
     } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
   };
 
+  const handleRegenerateToken = async (bot: User) => {
     if (!confirm(`Regenerate token for ${bot.username}? This will invalidate the current token.`)) return;
     try {
       const result = await api.regenerateToken(bot.username);
@@ -522,6 +529,7 @@ export default function WorkspaceSettingsPage() {
     }
   };
 
+  const handleDeleteBot = async (bot: User) => {
     if (!confirm(`Delete bot ${bot.username}? This action cannot be undone.`)) return;
     try {
       await api.deleteUser(bot.username as any);
@@ -531,10 +539,12 @@ export default function WorkspaceSettingsPage() {
     }
   };
 
+  const maskToken = (token: string) => {
     if (token.length <= 8) return token;
     return token.slice(0, 4) + '...' + token.slice(-4);
   };
 
+  const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
       toast('Token copied to clipboard');
