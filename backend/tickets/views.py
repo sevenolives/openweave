@@ -868,7 +868,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 action='CREATE',
                 performed_by=self.request.user,
                 old_value=None,
-                new_value={'name': project.name, 'description': project.description}
+                new_value={'name': project.name, 'about_text': project.about_text}
             )
 
 
@@ -1785,7 +1785,7 @@ class ProjectsDashboardView(APIView):
             project_list.append({
                 'slug': p.slug,
                 'name': p.name,
-                'description': p.description or '',
+                'about_text': p.about_text or '',
                 'updated_at': p.updated_at.isoformat(),
                 'total_tickets': total,
                 'status_counts': {sd.key: counts.get(sd.key, 0) for sd in status_defs},
