@@ -906,15 +906,15 @@ export default function WorkspaceSettingsPage() {
                 {allWorkspaces.map(w => <option key={w.slug} value={w.slug}>{w.name} ({w.slug})</option>)}
               </select>
             </div>
-            <div className="flex gap-2">
+            <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => { if (syncSource) setShowSyncConfirm('states'); }}
                 disabled={!syncSource || syncing}
-                className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 transition-colors">
+                style={{ flex: 1, padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: !syncSource ? 'default' : 'pointer', background: !syncSource ? 'rgba(255,255,255,0.05)' : 'rgba(99,102,241,0.15)', border: `1px solid ${!syncSource ? 'rgba(255,255,255,0.06)' : 'rgba(99,102,241,0.3)'}`, color: !syncSource ? '#4b5563' : '#a5b4fc' }}>
                 {syncing ? 'Syncing…' : '① Sync States'}
               </button>
               <button onClick={() => { if (syncSource) setShowSyncConfirm('transitions'); }}
                 disabled={!syncSource || syncing}
-                className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 disabled:bg-gray-300 transition-colors">
+                style={{ flex: 1, padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: !syncSource ? 'default' : 'pointer', background: !syncSource ? 'rgba(255,255,255,0.05)' : 'rgba(239,68,68,0.15)', border: `1px solid ${!syncSource ? 'rgba(255,255,255,0.06)' : 'rgba(239,68,68,0.3)'}`, color: !syncSource ? '#4b5563' : '#fca5a5' }}>
                 {syncing ? 'Syncing…' : '② Sync Transitions'}
               </button>
             </div>
@@ -958,7 +958,7 @@ export default function WorkspaceSettingsPage() {
                   } catch (e: any) { toast(e?.message || e?.detail || 'Sync failed', 'error'); }
                   finally { setSyncing(false); }
                 }} disabled={syncing}
-                  className={`flex-1 px-4 py-3 text-white rounded-xl text-sm font-medium disabled:bg-gray-300 ${showSyncConfirm === 'states' ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-red-600 hover:bg-red-700'}`}>
+                  className={`flex-1 px-4 py-3 text-white rounded-xl text-sm font-medium disabled:opacity-50 ${showSyncConfirm === 'states' ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-red-600 hover:bg-red-700'}`}>
                   {syncing ? 'Syncing…' : showSyncConfirm === 'states' ? 'Add States' : 'Replace Transitions'}
                 </button>
               </div>
