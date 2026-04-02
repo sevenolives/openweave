@@ -263,6 +263,9 @@ class ProjectSerializer(serializers.ModelSerializer):
         queryset=Workspace.objects.all(),
         help_text='Workspace slug.',
     )
+    # Renamed fields: description→about_text, notes→process_text
+    about_text = serializers.CharField(source='description', required=False, allow_blank=True, help_text='What this project is about.')
+    process_text = serializers.CharField(source='notes', required=False, allow_blank=True, help_text='Process guidelines for bots — conventions, rules, workflow.')
     agent_ids = serializers.ListField(
         child=serializers.IntegerField(),
         write_only=True,
@@ -273,12 +276,8 @@ class ProjectSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Project
-        fields = ['name', 'slug', 'description', 'notes', 'workspace', 'created_at', 'updated_at', 'agent_ids', 'active_phase']
+        fields = ['name', 'slug', 'about_text', 'process_text', 'workspace', 'created_at', 'updated_at', 'agent_ids', 'active_phase']
         read_only_fields = ['created_at', 'updated_at']
-        extra_kwargs = {
-            'name': {'help_text': 'Project name.'},
-            'description': {'help_text': 'Project description.'},
-        }
 
     def create(self, validated_data):
         """Create project and assign agents."""

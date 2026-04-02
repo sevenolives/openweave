@@ -63,7 +63,7 @@ export default function DashboardPage() {
     if (!name.trim()) return;
     setCreating(true);
     try {
-      await api.createProject({ name: name.trim(), description: desc.trim(), workspace: currentWorkspace?.slug, ...(slug.trim() ? { slug: slug.trim().toUpperCase() } : {}) });
+      await api.createProject({ name: name.trim(), about_text: desc.trim(), workspace: currentWorkspace?.slug, ...(slug.trim() ? { slug: slug.trim().toUpperCase() } : {}) });
       toast('Project created');
       setName(''); setSlug(''); setDesc(''); setShowCreate(false);
       setFieldErrors({});
@@ -130,8 +130,8 @@ export default function DashboardPage() {
                   <input type="text" value={slug} onChange={e => setSlug(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} className={inputClass(fieldErrors.slug)} placeholder="e.g. SA, PROJ (auto-generated if empty)" maxLength={10} />
                   <p className="text-xs text-gray-500 mt-1">Used in ticket IDs like SA-1, SA-2</p>
                 </FormField>
-                <FormField label="Description" error={fieldErrors.description}>
-                  <textarea value={desc} onChange={e => setDesc(e.target.value)} className={`${inputClass(fieldErrors.description)} resize-none`} rows={3} placeholder="Optional description" />
+                <FormField label="About" error={fieldErrors.description}>
+                  <textarea value={desc} onChange={e => setDesc(e.target.value)} className={`${inputClass(fieldErrors.description)} resize-none`} rows={3} placeholder="What is this project about?" />
                 </FormField>
                 <div className="flex gap-3 pt-2">
                   <button type="button" onClick={() => setShowCreate(false)} className="flex-1 px-4 py-3 border border-[#222233] rounded-xl text-sm font-medium text-gray-300 hover:bg-[#1a1a2e]">Cancel</button>
@@ -194,7 +194,7 @@ export default function DashboardPage() {
                         </button>
                       </div>
                     </div>
-                    <p className="text-sm text-gray-400 line-clamp-2 mb-3">{project.description || 'No description'}</p>
+                    <p className="text-sm text-gray-400 line-clamp-2 mb-3">{project.about_text || 'No description yet'}</p>
 
                     {/* Pie chart */}
                     {project.total_tickets > 0 ? (

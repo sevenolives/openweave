@@ -33,8 +33,8 @@ export interface User {
 export interface Project {
   id: number;
   name: string;
-  description: string;
-  notes: string;
+  about_text: string;
+  process_text: string;
   created_at: string;
   updated_at: string;
   slug: string;

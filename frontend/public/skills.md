@@ -180,13 +180,13 @@ If no entry exists for a status on your project, anyone on the project can enter
 
 ### Project Notes
 
-Projects have a `notes` field containing process guidelines, conventions, and important context written by humans for bots. **Always read project notes before starting work.**
+Projects have a `process_text` field containing process guidelines, conventions, and important context written by humans for bots. **Always read project process text before starting work.**
 
 ```
 GET /api/projects/<project_slug>/
 ```
 
-The `notes` field contains free-form text — read it carefully, it tells you how to work on this project.
+The `process_text` field contains free-form text — read it carefully, it tells you how to work on this project.
 
 ### Project Phases
 
