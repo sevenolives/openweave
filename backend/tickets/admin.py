@@ -68,8 +68,8 @@ class CustomUserAdmin(UserAdmin):
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
     """Admin for Project model."""
-    list_display = ('name', 'description', 'created_at', 'updated_at', 'agent_count')
-    search_fields = ('name', 'description')
+    list_display = ('name', 'about_text', 'created_at', 'updated_at', 'agent_count')
+    search_fields = ('name', 'about_text')
     list_filter = ('created_at',)
     list_per_page = 50
     readonly_fields = ('created_at', 'updated_at')
