@@ -236,65 +236,51 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
-            {/* Members */}
-            {data.members && data.members.length > 0 && (
+            {/* Team & Workload — merged, uses agent_workload data (no extra queries) */}
+            {data.members && data.members.length > 0 && (() => {
+              const workloadMap = Object.fromEntries((data.agent_workload || []).map((a: any) => [a.username, a]));
+              return (
               <div className="bg-[#111118] rounded-xl border border-[#222233] p-5">
                 <h2 className="text-lg font-semibold text-white mb-4">Team ({data.members.length})</h2>
-                <div className="flex flex-wrap gap-2">
-                  {data.members.map((m: any) => (
-                    <div key={m.username} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0a0a0f]">
-                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 ${m.user_type === 'BOT' ? 'bg-purple-600' : 'bg-indigo-600'}`}>
-                        {m.username[0]?.toUpperCase()}
-                      </div>
-                      <div>
-                        <span className="text-xs font-medium text-white">{m.name}</span>
-                        <div className="flex items-center gap-1">
-                          <span className={`text-[9px] font-bold ${m.user_type === 'BOT' ? 'text-purple-400' : 'text-indigo-400'}`}>{m.user_type}</span>
-                          {m.role === 'OWNER' && <span className="text-[9px] font-bold text-amber-400">OWNER</span>}
+                <div className="space-y-2">
+                  {data.members.map((m: any) => {
+                    const workload = workloadMap[m.username];
+                    return (
+                      <div key={m.username} className="flex items-center gap-3 p-3 rounded-lg bg-[#0a0a0f]">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 ${m.user_type === 'BOT' ? 'bg-purple-600' : 'bg-indigo-600'}`}>
+                          {m.username[0]?.toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-white truncate">{m.name}</span>
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${m.user_type === 'BOT' ? 'bg-purple-500/20 text-purple-300' : 'bg-indigo-500/20 text-indigo-300'}`}>{m.user_type}</span>
+                            {m.role === 'OWNER' && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300">OWNER</span>}
+                          </div>
+                          {workload && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {Object.entries(workload.statuses as Record<string, number>).map(([status, count]) => {
+                                const sd = data.statuses?.find((s: any) => s.key === status);
+                                const label = sd?.label || status.replace(/_/g, ' ');
+                                return (
+                                  <span key={status} className="text-[10px] px-1.5 py-0.5 rounded bg-[#1a1a2e] text-gray-400">
+                                    {label}: {count as number}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <span className="text-lg font-bold text-white">{workload?.total || 0}</span>
+                          <p className="text-[10px] text-gray-500">tickets</p>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
-            )}
-
-            {/* Agent Workload */}
-            {data.agent_workload && data.agent_workload.length > 0 && (
-              <div className="bg-[#111118] rounded-xl border border-[#222233] p-5">
-                <h2 className="text-lg font-semibold text-white mb-4">Agent Workload</h2>
-                <div className="space-y-3">
-                  {data.agent_workload.map((agent: any) => (
-                    <div key={agent.username} className="flex items-center gap-3 p-3 rounded-lg bg-[#0a0a0f]">
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 ${agent.user_type === 'BOT' ? 'bg-purple-600' : 'bg-indigo-600'}`}>
-                        {agent.username[0]?.toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-white truncate">{agent.name}</span>
-                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${agent.user_type === 'BOT' ? 'bg-purple-500/20 text-purple-300' : 'bg-indigo-500/20 text-indigo-300'}`}>{agent.user_type}</span>
-                        </div>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {Object.entries(agent.statuses as Record<string, number>).map(([status, count]) => {
-                            const sd = data.statuses?.find((s: any) => s.key === status);
-                            const label = sd?.label || status.replace(/_/g, ' ');
-                            return (
-                              <span key={status} className="text-[10px] px-1.5 py-0.5 rounded bg-[#1a1a2e] text-gray-400">
-                                {label}: {count as number}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <span className="text-lg font-bold text-white">{agent.total}</span>
-                        <p className="text-[10px] text-gray-500">tickets</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+              );
+            })()}
           </>
         )}
       </div>
