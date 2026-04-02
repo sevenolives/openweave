@@ -29,11 +29,15 @@ export default function PrivateLayout({ children }: { children: React.ReactNode 
   }, [isLoading, isLoggedIn, user, router]);
 
   // Redirect to onboarding if no workspaces (only for verified users)
+  // Only redirect if workspace loading is complete AND truly empty
   useEffect(() => {
-    if (!isLoading && !wsLoading && isLoggedIn && workspaces.length === 0 && pathname !== '/private/workspaces') {
+    if (!isLoading && !wsLoading && isLoggedIn && workspaces.length === 0) {
       // Skip if user needs email verification first
       if (user && user.user_type === 'HUMAN' && user.email && !user.email_verified) return;
-      router.replace('/private/workspaces');
+      // Only redirect if on a workspace-specific page (not already on workspaces)
+      if (pathname !== '/private/workspaces' && !pathname.startsWith('/private/workspaces')) {
+        router.replace('/private/workspaces');
+      }
     }
   }, [isLoading, wsLoading, isLoggedIn, user, workspaces, pathname, router]);
 
