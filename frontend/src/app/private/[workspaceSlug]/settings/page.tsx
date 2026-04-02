@@ -385,7 +385,11 @@ export default function WorkspaceSettingsPage() {
   const [newStatusLabel, setNewStatusLabel] = useState('');
   const [newStatusColor, setNewStatusColor] = useState('gray');
   const [addingStatus, setAddingStatus] = useState(false);
-  const [settingsTab, setSettingsTab] = useState<'general' | 'members' | 'bots' | 'state-machine'>('general');
+  // Read initial tab from URL param
+  const searchParamsTab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
+  const [settingsTab, setSettingsTab] = useState<'general' | 'members' | 'bots' | 'state-machine'>(
+    (searchParamsTab === 'members' || searchParamsTab === 'bots' || searchParamsTab === 'state-machine') ? searchParamsTab : 'general'
+  );
   const [workspaceUsers, setWorkspaceUsers] = useState<User[]>([]);
   const [allWorkspaces, setAllWorkspaces] = useState<Workspace[]>([]);
   const [syncSource, setSyncSource] = useState('');
