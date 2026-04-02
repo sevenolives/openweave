@@ -723,3 +723,23 @@ class OTP(models.Model):
             from datetime import timedelta
             self.expires_at = timezone.now() + timedelta(minutes=15)
         super().save(*args, **kwargs)
+
+class CommunityTemplate(models.Model):
+    """
+    A workspace can publish their state machine as a public community template.
+    Other workspaces can browse and sync from these.
+    """
+    workspace = models.OneToOneField(Workspace, on_delete=models.CASCADE, related_name='community_template')
+    name = models.CharField(max_length=100, help_text="Display name for the template")
+    slug = models.SlugField(max_length=50, unique=True, help_text="URL-friendly identifier")
+    description = models.TextField(blank=True, help_text="What this workflow is for")
+    is_published = models.BooleanField(default=False, help_text="Whether this template is publicly visible")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'community_templates'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.name} ({'published' if self.is_published else 'draft'})"

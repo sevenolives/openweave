@@ -4,7 +4,7 @@ from .permissions import is_admin_or_owner
 from .models import (
     User, Project, Ticket, Comment, AuditLog, Workspace, WorkspaceMember,
     WorkspaceInvite, ProjectInvite, TicketAttachment, StatusDefinition, ProjectAgent,
-    BlogPost, MediaFile, Phase, ProjectStatusPermission,
+    BlogPost, MediaFile, Phase, ProjectStatusPermission, CommunityTemplate,
 )
 
 
@@ -663,6 +663,33 @@ class StatusDefinitionSerializer(serializers.ModelSerializer):
         if allowed_users is not None:
             instance.allowed_users.set(allowed_users)
         return instance
+
+
+class CommunityTemplateSerializer(serializers.ModelSerializer):
+    """Serializer for community templates."""
+    workspace = serializers.SlugRelatedField(slug_field='slug', queryset=Workspace.objects.all())
+    workspace_name = serializers.CharField(source='workspace.name', read_only=True)
+    status_count = serializers.SerializerMethodField()
+    statuses = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CommunityTemplate
+        fields = ['id', 'workspace', 'workspace_name', 'name', 'slug', 'description',
+                  'is_published', 'status_count', 'statuses', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
+
+    def get_status_count(self, obj):
+        return StatusDefinition.objects.filter(workspace=obj.workspace, is_archived=False).count()
+
+    def get_statuses(self, obj):
+        """Return full status definitions with transitions for preview."""
+        sds = StatusDefinition.objects.filter(workspace=obj.workspace, is_archived=False).prefetch_related('allowed_from').order_by('position')
+        return [{
+            'key': sd.key, 'label': sd.label, 'color': sd.color,
+            'description': sd.description, 'position': sd.position,
+            'is_default': sd.is_default,
+            'allowed_from': [af.key for af in sd.allowed_from.all()],
+        } for sd in sds]
 
 
 class BlogPostListSerializer(serializers.ModelSerializer):

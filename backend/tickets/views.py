@@ -14,7 +14,7 @@ from rest_framework import serializers as drf_serializers
 from .models import (
     User, Project, Ticket, Comment, AuditLog, ProjectAgent, Workspace,
     WorkspaceMember, WorkspaceInvite, ProjectInvite, TicketAttachment, StatusDefinition,
-    BlogPost, MediaFile, Phase, ProjectStatusPermission,
+    BlogPost, MediaFile, Phase, ProjectStatusPermission, CommunityTemplate,
 )
 from .serializers import (
     UserSerializer, UserSimpleSerializer, ProjectSerializer, TicketSerializer,
@@ -23,6 +23,7 @@ from .serializers import (
     ProjectInviteSerializer,
     JoinRequestSerializer, TicketAttachmentSerializer, ProjectAgentSerializer,
     StatusDefinitionSerializer, PhaseSerializer, ProjectStatusPermissionSerializer,
+    CommunityTemplateSerializer,
     BlogPostListSerializer, BlogPostDetailSerializer, BlogPostCreateSerializer,
     MediaFileSerializer,
 )
@@ -1837,6 +1838,109 @@ class ProjectStatusPermissionViewSet(viewsets.ModelViewSet):
         if user.is_superuser:
             return qs.all()
         return qs.filter(project__agents=user).distinct()
+
+
+@extend_schema(tags=['community-templates'])
+class CommunityTemplateViewSet(viewsets.ModelViewSet):
+    """
+    Browse and manage community state machine templates.
+    Public (no auth) for reading. Auth required for publishing.
+    """
+    queryset = CommunityTemplate.objects.select_related('workspace').all()
+    serializer_class = CommunityTemplateSerializer
+    lookup_field = 'slug'
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name', 'description']
+
+    def get_permissions(self):
+        if self.action in ('list', 'retrieve'):
+            return [AllowAny()]
+        return [permissions.IsAuthenticated()]
+
+    def get_queryset(self):
+        if self.action in ('list', 'retrieve'):
+            return CommunityTemplate.objects.filter(is_published=True).select_related('workspace')
+        # For create/update/delete, show user's own templates
+        user = self.request.user
+        if user.is_superuser:
+            return CommunityTemplate.objects.all().select_related('workspace')
+        owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
+        return CommunityTemplate.objects.filter(workspace_id__in=owned_ws).select_related('workspace')
+
+    def perform_create(self, serializer):
+        ws = serializer.validated_data['workspace']
+        if not is_admin_or_owner(self.request.user, ws):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('Only workspace admin can publish templates.')
+        serializer.save()
+
+    @extend_schema(summary="Sync states from a community template")
+    @action(detail=True, methods=['post'], url_path='sync-states')
+    def sync_states(self, request, slug=None):
+        template = self.get_object()
+        target_slug = request.data.get('workspace')
+        if not target_slug:
+            return Response({'detail': 'workspace required.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            target_ws = Workspace.objects.get(slug=target_slug)
+        except Workspace.DoesNotExist:
+            return Response({'detail': 'Workspace not found.'}, status=status.HTTP_404_NOT_FOUND)
+        if not is_admin_or_owner(request.user, target_ws):
+            return Response({'detail': 'Only workspace admin can sync.'}, status=status.HTTP_403_FORBIDDEN)
+
+        source_sds = StatusDefinition.objects.filter(workspace=template.workspace, is_archived=False)
+        target_by_key = {sd.key: sd for sd in StatusDefinition.objects.filter(workspace=target_ws)}
+        max_pos = max((sd.position for sd in target_by_key.values()), default=-1)
+        added = skipped = 0
+        for src in source_sds:
+            if src.key in target_by_key:
+                skipped += 1
+                continue
+            max_pos += 1
+            new_sd = StatusDefinition.objects.create(
+                workspace=target_ws, key=src.key, label=src.label, color=src.color,
+                description=src.description, is_default=False, position=max_pos,
+            )
+            target_by_key[src.key] = new_sd
+            added += 1
+        result_sds = StatusDefinitionSerializer(
+            StatusDefinition.objects.filter(workspace=target_ws).prefetch_related('allowed_from', 'allowed_users'),
+            many=True, context={'request': request}
+        ).data
+        return Response({'added': added, 'skipped': skipped, 'statuses': result_sds})
+
+    @extend_schema(summary="Sync transitions from a community template (destructive)")
+    @action(detail=True, methods=['post'], url_path='sync-transitions')
+    def sync_transitions(self, request, slug=None):
+        template = self.get_object()
+        target_slug = request.data.get('workspace')
+        if not target_slug:
+            return Response({'detail': 'workspace required.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            target_ws = Workspace.objects.get(slug=target_slug)
+        except Workspace.DoesNotExist:
+            return Response({'detail': 'Workspace not found.'}, status=status.HTTP_404_NOT_FOUND)
+        if not is_admin_or_owner(request.user, target_ws):
+            return Response({'detail': 'Only workspace admin can sync.'}, status=status.HTTP_403_FORBIDDEN)
+
+        source_sds = StatusDefinition.objects.filter(workspace=template.workspace, is_archived=False).prefetch_related('allowed_from')
+        target_by_key = {sd.key: sd for sd in StatusDefinition.objects.filter(workspace=target_ws)}
+        updated = 0
+        for src in source_sds:
+            target_sd = target_by_key.get(src.key)
+            if not target_sd:
+                continue
+            sources = [target_by_key[af.key] for af in src.allowed_from.all() if af.key in target_by_key]
+            target_sd.allowed_from.set(sources)
+            updated += 1
+        for sd in target_by_key.values():
+            if sd.key not in {s.key for s in source_sds}:
+                sd.allowed_from.clear()
+        result_sds = StatusDefinitionSerializer(
+            StatusDefinition.objects.filter(workspace=target_ws).prefetch_related('allowed_from', 'allowed_users'),
+            many=True, context={'request': request}
+        ).data
+        return Response({'updated': updated, 'statuses': result_sds})
 
 
 @extend_schema(tags=['blog'])
