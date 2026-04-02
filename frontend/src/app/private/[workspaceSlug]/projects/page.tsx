@@ -206,12 +206,18 @@ export default function DashboardPage() {
                     )}
 
                     <div className="flex items-center justify-between text-xs text-gray-500 mt-3 pt-3 border-t border-[#222233]">
-                      <span className="font-medium text-gray-400">
-                        {project.slug} · {project.total_tickets} ticket{project.total_tickets !== 1 ? 's' : ''}
-                        {project.total_members > 0 && <> · {project.total_members} member{project.total_members !== 1 ? 's' : ''}{project.bot_count > 0 && <span className="text-purple-400"> ({project.bot_count} 🤖)</span>}</>}
-                      </span>
+                      <span className="font-medium text-gray-400">{project.slug} · {project.total_tickets} ticket{project.total_tickets !== 1 ? 's' : ''}</span>
                       <span>{new Date(project.updated_at).toLocaleDateString()}</span>
                     </div>
+                    {project.members && project.members.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {project.members.map((m: any) => (
+                          <span key={m.username} className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-[#1a1a2e] text-gray-400">
+                            {m.user_type === 'BOT' ? '🤖' : '👤'} {m.name} <span className="text-white font-bold">({m.tickets})</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}

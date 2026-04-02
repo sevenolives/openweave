@@ -222,8 +222,7 @@ export interface ProjectDashboardItem {
   total_tickets: number;
   status_counts: Record<string, number>;
   total_members: number;
-  bot_count: number;
-  human_count: number;
+  members: { username: string; name: string; user_type: string; tickets: number }[];
 }
 
 export interface ProjectsDashboard {

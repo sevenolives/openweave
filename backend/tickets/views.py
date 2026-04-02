@@ -1751,21 +1751,37 @@ class ProjectsDashboardView(APIView):
                 pc.get(sd.key, 0) for pc in project_counts.values()
             )
 
-        # Member counts per project (single query)
+        # Per-project members with ticket counts (two efficient queries)
         from django.db.models import Q as _Q
-        member_counts = ProjectAgent.objects.filter(
+        # All project agents
+        project_agents = ProjectAgent.objects.filter(
             project__workspace_id=ws_id
-        ).values('project__slug').annotate(
-            total_members=Count('id'),
-            bot_count=Count('id', filter=_Q(agent__user_type='BOT')),
-        )
-        member_map = {r['project__slug']: {'total': r['total_members'], 'bots': r['bot_count']} for r in member_counts}
+        ).select_related('agent').values('project__slug', 'agent__username', 'agent__name', 'agent__user_type')
+        # Per-project per-agent ticket counts
+        agent_ticket_counts = ticket_qs.exclude(assigned_to__isnull=True).values(
+            'project__slug', 'assigned_to__username'
+        ).annotate(cnt=Count('id'))
+        atc_map: dict = {}
+        for r in agent_ticket_counts:
+            atc_map.setdefault(r['project__slug'], {})[r['assigned_to__username']] = r['cnt']
+
+        # Build per-project member list
+        project_members_map: dict = {}
+        for pa in project_agents:
+            ps = pa['project__slug']
+            username = pa['agent__username']
+            project_members_map.setdefault(ps, []).append({
+                'username': username,
+                'name': pa['agent__name'] or username,
+                'user_type': pa['agent__user_type'],
+                'tickets': atc_map.get(ps, {}).get(username, 0),
+            })
 
         project_list = []
         for p in projects:
             counts = project_counts.get(p.slug, {})
             total = sum(counts.values())
-            mc = member_map.get(p.slug, {'total': 0, 'bots': 0})
+            members = project_members_map.get(p.slug, [])
             project_list.append({
                 'slug': p.slug,
                 'name': p.name,
@@ -1773,9 +1789,8 @@ class ProjectsDashboardView(APIView):
                 'updated_at': p.updated_at.isoformat(),
                 'total_tickets': total,
                 'status_counts': {sd.key: counts.get(sd.key, 0) for sd in status_defs},
-                'total_members': mc['total'],
-                'bot_count': mc['bots'],
-                'human_count': mc['total'] - mc['bots'],
+                'members': sorted(members, key=lambda m: -m['tickets']),
+                'total_members': len(members),
             })
 
         return Response({
