@@ -1635,6 +1635,27 @@ class DashboardView(APIView):
         completed_today = tickets.filter(resolved_at__date=today).count()
         my_tickets_count = tickets.filter(assigned_to=request.user).count()
 
+        # Agent workload: tickets assigned to each user
+        agent_workload = []
+        assigned_counts = tickets.exclude(assigned_to__isnull=True).values(
+            'assigned_to__username', 'assigned_to__name', 'assigned_to__user_type'
+        ).annotate(
+            total=Count('id'),
+        ).order_by('-total')
+        for ac in assigned_counts:
+            # Get per-status breakdown for this agent
+            agent_statuses = tickets.filter(
+                assigned_to__username=ac['assigned_to__username']
+            ).values('status').annotate(cnt=Count('id'))
+            status_breakdown = {s['status']: s['cnt'] for s in agent_statuses}
+            agent_workload.append({
+                'username': ac['assigned_to__username'],
+                'name': ac['assigned_to__name'] or ac['assigned_to__username'],
+                'user_type': ac['assigned_to__user_type'],
+                'total': ac['total'],
+                'statuses': status_breakdown,
+            })
+
         return Response({
             'total_tickets': total_tickets,
             'status_counts': status_counts,
@@ -1645,6 +1666,7 @@ class DashboardView(APIView):
             'my_tickets': my_tickets_count,
             'recent_tickets': TicketSerializer(recent, many=True).data,
             'my_assigned': TicketSerializer(my_assigned, many=True).data,
+            'agent_workload': agent_workload,
         })
 
 

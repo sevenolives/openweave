@@ -236,6 +236,42 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
+            {/* Agent Workload */}
+            {data.agent_workload && data.agent_workload.length > 0 && (
+              <div className="bg-[#111118] rounded-xl border border-[#222233] p-5">
+                <h2 className="text-lg font-semibold text-white mb-4">Agent Workload</h2>
+                <div className="space-y-3">
+                  {data.agent_workload.map((agent: any) => (
+                    <div key={agent.username} className="flex items-center gap-3 p-3 rounded-lg bg-[#0a0a0f]">
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 ${agent.user_type === 'BOT' ? 'bg-purple-600' : 'bg-indigo-600'}`}>
+                        {agent.username[0]?.toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-white truncate">{agent.name}</span>
+                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${agent.user_type === 'BOT' ? 'bg-purple-500/20 text-purple-300' : 'bg-indigo-500/20 text-indigo-300'}`}>{agent.user_type}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {Object.entries(agent.statuses as Record<string, number>).map(([status, count]) => {
+                            const sd = data.statuses?.find((s: any) => s.key === status);
+                            const label = sd?.label || status.replace(/_/g, ' ');
+                            return (
+                              <span key={status} className="text-[10px] px-1.5 py-0.5 rounded bg-[#1a1a2e] text-gray-400">
+                                {label}: {count as number}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <span className="text-lg font-bold text-white">{agent.total}</span>
+                        <p className="text-[10px] text-gray-500">tickets</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
