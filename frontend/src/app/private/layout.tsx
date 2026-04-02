@@ -19,7 +19,7 @@ export default function PrivateLayout({ children }: { children: React.ReactNode 
 
   // Redirect to email verification for unverified human users (unless skipped)
   useEffect(() => {
-    const skipped = typeof window !== 'undefined' && sessionStorage.getItem('email_verification_skipped');
+    const skipped = typeof window !== 'undefined' && localStorage.getItem('email_verification_skipped');
     if (!isLoading && isLoggedIn && user && user.user_type === 'HUMAN' && user.email && !user.email_verified && !skipped && pathname !== '/verify-email') {
       router.replace('/verify-email');
     }
