@@ -671,12 +671,24 @@ class CommunityTemplateSerializer(serializers.ModelSerializer):
     workspace_name = serializers.CharField(source='workspace.name', read_only=True)
     status_count = serializers.SerializerMethodField()
     statuses = serializers.SerializerMethodField()
+    avg_rating = serializers.FloatField(read_only=True)
+    my_rating = serializers.SerializerMethodField()
 
     class Meta:
         model = CommunityTemplate
         fields = ['id', 'workspace', 'workspace_name', 'name', 'slug', 'description',
-                  'is_published', 'status_count', 'statuses', 'bots', 'created_at', 'updated_at']
-        read_only_fields = ['created_at', 'updated_at']
+                  'is_published', 'status_count', 'statuses', 'bots',
+                  'avg_rating', 'rating_count', 'sync_count', 'my_rating',
+                  'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at', 'rating_sum', 'rating_count', 'sync_count']
+
+    def get_my_rating(self, obj):
+        request = self.context.get('request')
+        if request and request.user and request.user.is_authenticated:
+            from .models import CommunityRating
+            rating = CommunityRating.objects.filter(template=obj, user=request.user).first()
+            return rating.score if rating else None
+        return None
 
     def get_status_count(self, obj):
         return StatusDefinition.objects.filter(workspace=obj.workspace, is_archived=False).count()

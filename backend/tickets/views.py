@@ -14,7 +14,7 @@ from rest_framework import serializers as drf_serializers
 from .models import (
     User, Project, Ticket, Comment, AuditLog, ProjectAgent, Workspace,
     WorkspaceMember, WorkspaceInvite, ProjectInvite, TicketAttachment, StatusDefinition,
-    BlogPost, MediaFile, Phase, ProjectStatusPermission, CommunityTemplate,
+    BlogPost, MediaFile, Phase, ProjectStatusPermission, CommunityTemplate, CommunityRating,
 )
 from .serializers import (
     UserSerializer, UserSimpleSerializer, ProjectSerializer, TicketSerializer,
@@ -1874,6 +1874,31 @@ class CommunityTemplateViewSet(viewsets.ModelViewSet):
             raise PermissionDenied('Only workspace admin can publish templates.')
         serializer.save()
 
+    @extend_schema(summary="Rate a community template (1-5 stars)")
+    @action(detail=True, methods=['post'], url_path='rate')
+    def rate(self, request, slug=None):
+        template = self.get_object()
+        score = request.data.get('score')
+        if not score or not isinstance(score, int) or score < 1 or score > 5:
+            return Response({'detail': 'score must be 1-5.'}, status=status.HTTP_400_BAD_REQUEST)
+        rating, created = CommunityRating.objects.update_or_create(
+            template=template, user=request.user,
+            defaults={'score': score},
+        )
+        # Recalculate aggregates
+        from django.db.models import Sum, Count
+        agg = CommunityRating.objects.filter(template=template).aggregate(
+            total=Sum('score'), count=Count('id')
+        )
+        template.rating_sum = agg['total'] or 0
+        template.rating_count = agg['count'] or 0
+        template.save(update_fields=['rating_sum', 'rating_count'])
+        return Response({
+            'score': score,
+            'avg_rating': template.avg_rating,
+            'rating_count': template.rating_count,
+        })
+
     @extend_schema(summary="Sync states from a community template")
     @action(detail=True, methods=['post'], url_path='sync-states')
     def sync_states(self, request, slug=None):
@@ -1907,6 +1932,8 @@ class CommunityTemplateViewSet(viewsets.ModelViewSet):
             StatusDefinition.objects.filter(workspace=target_ws).prefetch_related('allowed_from', 'allowed_users'),
             many=True, context={'request': request}
         ).data
+        template.sync_count = (template.sync_count or 0) + 1
+        template.save(update_fields=['sync_count'])
         return Response({'added': added, 'skipped': skipped, 'statuses': result_sds})
 
     @extend_schema(summary="Sync transitions from a community template (destructive)")
@@ -1940,6 +1967,8 @@ class CommunityTemplateViewSet(viewsets.ModelViewSet):
             StatusDefinition.objects.filter(workspace=target_ws).prefetch_related('allowed_from', 'allowed_users'),
             many=True, context={'request': request}
         ).data
+        template.sync_count = (template.sync_count or 0) + 1
+        template.save(update_fields=['sync_count'])
         return Response({'updated': updated, 'statuses': result_sds})
 
 

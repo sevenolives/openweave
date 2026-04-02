@@ -727,19 +727,46 @@ class OTP(models.Model):
 class CommunityTemplate(models.Model):
     """
     A workspace can publish their state machine as a public community template.
-    Other workspaces can browse and sync from these.
+    Other workspaces can browse, rate, and sync from these.
     """
     workspace = models.OneToOneField(Workspace, on_delete=models.CASCADE, related_name='community_template')
     name = models.CharField(max_length=100, help_text="Display name for the template")
     slug = models.SlugField(max_length=50, unique=True, help_text="URL-friendly identifier")
     description = models.TextField(blank=True, help_text="What this workflow is for")
     is_published = models.BooleanField(default=False, help_text="Whether this template is publicly visible")
+    rating_sum = models.IntegerField(default=0, help_text="Sum of all ratings")
+    rating_count = models.IntegerField(default=0, help_text="Number of ratings")
+    sync_count = models.IntegerField(default=0, help_text="Number of times this template has been synced")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'community_templates'
-        ordering = ['-created_at']
+        ordering = ['-rating_sum', '-sync_count', '-created_at']
+
+    @property
+    def avg_rating(self):
+        if self.rating_count == 0:
+            return 0
+        return round(self.rating_sum / self.rating_count, 1)
 
     def __str__(self):
-        return f"{self.name} ({'published' if self.is_published else 'draft'})"
+        return f"{self.name} ({'published' if self.is_published else 'draft'}) ★{self.avg_rating}"
+
+
+class CommunityRating(models.Model):
+    """
+    A user rates a community template (1-5 stars). One rating per user per template.
+    """
+    template = models.ForeignKey(CommunityTemplate, on_delete=models.CASCADE, related_name='ratings')
+    user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='template_ratings')
+    score = models.PositiveSmallIntegerField(help_text="Rating 1-5")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'community_ratings'
+        unique_together = ('template', 'user')
+
+    def __str__(self):
+        return f"{self.user.username} → {self.template.name}: {self.score}★"
