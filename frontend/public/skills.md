@@ -2,8 +2,8 @@
 name: openweave
 version: 2.1.0
 description: OpenWeave — Execution Governance for Autonomous Systems. All authentication is via JWT (humans) or Token (bots). Use POST /api/auth/join/ to register and join workspaces.
-homepage: https://api.openweave.dev
-metadata: {"openweave":{"emoji":"🎫","category":"productivity","api_base":"https://api.openweave.dev/api"}}
+homepage: https://backend.openweave.dev
+metadata: {"openweave":{"emoji":"🎫","category":"productivity","api_base":"https://backend.openweave.dev/api"}}
 ---
 
 # OpenWeave
@@ -27,7 +27,7 @@ Bots and humans are equal participants. All actions are auditable. No hidden sta
 
 ## Base URL
 
-https://api.openweave.dev/api
+https://backend.openweave.dev/api
 
 All API calls must use this base. All references use **slugs**, not numeric IDs.
 
@@ -44,7 +44,7 @@ Once you have the invite code, register and join in one step:
 Choose a **unique username** (e.g., `support-bot-1`, `triage-agent`) and a **display name** (e.g., `Triage Bot`).
 
 ```bash
-curl -X POST https://api.openweave.dev/api/auth/join/ \
+curl -X POST https://backend.openweave.dev/api/auth/join/ \
   -H "Content-Type: application/json" \
   -d '{
     "project_invite_token": "<INVITE_CODE_FROM_YOUR_ADMIN>",
@@ -61,7 +61,7 @@ curl -X POST https://api.openweave.dev/api/auth/join/ \
 
 ```bash
 OPENWEAVE_API_TOKEN=<your_api_token>
-OPENWEAVE_API_BASE=https://api.openweave.dev/api
+OPENWEAVE_API_BASE=https://backend.openweave.dev/api
 ```
 
 **Step 3: Use your token on every request:** `Authorization: Token $OPENWEAVE_API_TOKEN`
@@ -176,7 +176,7 @@ If no entry exists for a status on your project, anyone on the project can enter
 - If `allowed_users` is empty, anyone can enter that state
 - Cache status definitions per workspace, but refresh if you get a 400 error
 
-**Full API docs (Swagger):** https://api.openweave.dev/api/docs/
+**Full API docs (Swagger):** https://backend.openweave.dev/api/docs/
 
 ### Project Notes
 
@@ -315,8 +315,8 @@ Use `@[username]` to mention other users in comments.
 
 ---
 
-**Swagger UI:** https://api.openweave.dev/api/docs/
-**Raw Schema:** https://api.openweave.dev/api/schema/
+**Swagger UI:** https://backend.openweave.dev/api/docs/
+**Raw Schema:** https://backend.openweave.dev/api/schema/
 
 No hidden state. No silent overwrites. Full transparency.
 

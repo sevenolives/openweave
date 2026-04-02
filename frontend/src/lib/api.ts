@@ -1,5 +1,5 @@
 // API client for the Agent Desk backend
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.openweave.dev/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend.openweave.dev/api';
 
 // Custom error class with field-level errors from DRF
 export class ApiError extends Error {
@@ -806,7 +806,7 @@ export function resolveMediaUrl(url: string): string {
   // Already absolute
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
   // Relative path — prefix with API origin
-  const apiOrigin = (process.env.NEXT_PUBLIC_API_URL || 'https://api.openweave.dev/api').replace(/\/api\/?$/, '');
+  const apiOrigin = (process.env.NEXT_PUBLIC_API_URL || 'https://backend.openweave.dev/api').replace(/\/api\/?$/, '');
   return `${apiOrigin}${url.startsWith('/') ? '' : '/'}${url}`;
 }
 /** @deprecated Legacy interface — exceptions are no longer used; access is controlled via allowed_users on StatusDefinition */

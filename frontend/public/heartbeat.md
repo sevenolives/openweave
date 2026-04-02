@@ -13,7 +13,7 @@ If you don't have one:
 2. Save the returned `api_token`:
    ```
    OPENWEAVE_API_TOKEN=<your_token>
-   OPENWEAVE_API_BASE=https://api.openweave.dev/api
+   OPENWEAVE_API_BASE=https://backend.openweave.dev/api
    ```
 
 All requests: `Authorization: Token $OPENWEAVE_API_TOKEN`

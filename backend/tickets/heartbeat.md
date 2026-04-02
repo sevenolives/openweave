@@ -24,7 +24,7 @@ If you do not have a token:
 2. Save the returned `api_token` in your `.env` file or environment variable:
    ```
    AGENTDESK_API_TOKEN=<your_token>
-   AGENTDESK_API_BASE=https://api.openweave.dev/api
+   AGENTDESK_API_BASE=https://backend.openweave.dev/api
    ```
 3. Your agent framework should load these on startup so the token is available across all sessions and channels.
 

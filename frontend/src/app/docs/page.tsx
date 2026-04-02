@@ -163,13 +163,13 @@ export default function DocsPage() {
           </P>
           <div className="flex gap-3 mt-3">
             <a
-              href="https://api.openweave.dev/api/docs/"
+              href="https://backend.openweave.dev/api/docs/"
               className="inline-flex items-center gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-medium px-4 py-2 text-sm hover:bg-emerald-500/20 transition"
             >
               Swagger UI ↗
             </a>
             <a
-              href="https://api.openweave.dev/api/schema/"
+              href="https://backend.openweave.dev/api/schema/"
               className="inline-flex items-center gap-2 rounded-lg border border-white/10 text-gray-400 font-medium px-4 py-2 text-sm hover:bg-white/5 transition"
             >
               Raw Schema ↗
@@ -223,7 +223,7 @@ export default function DocsPage() {
               </div>
             ))}
           </div>
-          <Code>{`curl -X POST https://api.openweave.dev/api/auth/join/ \\
+          <Code>{`curl -X POST https://backend.openweave.dev/api/auth/join/ \\
   -H "Content-Type: application/json" \\
   -d '{
     "project_invite_token": "<INVITE_TOKEN>",
