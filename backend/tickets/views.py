@@ -2367,6 +2367,44 @@ class StateTemplateViewSet(viewsets.ModelViewSet):
 @extend_schema(tags=['public'])
 @api_view(['GET'])
 @permission_classes([AllowAny])
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def public_workspaces_list(request):
+    """List all public workspaces with their live state definitions — for community browsing."""
+    from django.core.paginator import Paginator
+    
+    qs = Workspace.objects.filter(is_public=True).order_by('name')
+    search = request.query_params.get('search', '').strip()
+    if search:
+        qs = qs.filter(name__icontains=search)
+    
+    paginator = Paginator(qs, int(request.query_params.get('page_size', 12)))
+    page_num = int(request.query_params.get('page', 1))
+    page = paginator.get_page(page_num)
+    
+    results = []
+    for ws in page:
+        states = ws.status_definitions.filter(is_archived=False).order_by('position')
+        state_flow = ' → '.join(s.label for s in states[:8])
+        results.append({
+            'slug': ws.slug,
+            'name': ws.name,
+            'description': ws.description or '',
+            'state_count': states.count(),
+            'state_flow_preview': state_flow,
+            'states': [{'key': s.key, 'label': s.label, 'color': s.color, 'is_default': s.is_default} for s in states],
+        })
+    
+    return Response({
+        'count': paginator.count,
+        'num_pages': paginator.num_pages,
+        'page': page_num,
+        'results': results,
+    })
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
 def public_workspace(request, workspace_slug):
     """
     Public workspace profile page data.

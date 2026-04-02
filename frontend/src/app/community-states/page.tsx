@@ -1,298 +1,219 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import PublicNav from '@/components/PublicNav';
-import { api } from '@/lib/api';
 import { useToast } from '@/components/Toast';
 
-interface StateTemplate {
-  id: number;
+interface StateInfo {
+  key: string;
+  label: string;
+  color: string;
+  is_default: boolean;
+}
+
+interface PublicWorkspace {
+  slug: string;
   name: string;
   description: string;
-  icon: string;
-  workspace_name: string;
-  workspace_slug: string;
-  sync_count: number;
-  item_count: number;
+  state_count: number;
   state_flow_preview: string;
-  created_at: string;
+  states: StateInfo[];
 }
 
-interface PaginatedResponse {
+interface PageResponse {
   count: number;
-  next: string | null;
-  previous: string | null;
-  results: StateTemplate[];
+  num_pages: number;
+  page: number;
+  results: PublicWorkspace[];
 }
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://backend.openweave.dev/api';
 
 export default function CommunityStatesPage() {
-  const router = useRouter();
   const { toast } = useToast();
-  const [templates, setTemplates] = useState<StateTemplate[]>([]);
+  const [workspaces, setWorkspaces] = useState<PublicWorkspace[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
-  const [expandedTemplate, setExpandedTemplate] = useState<number | null>(null);
-  const [detailedTemplate, setDetailedTemplate] = useState<any>(null);
-
-  const pageSize = 12;
+  const [totalCount, setTotalCount] = useState(0);
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   useEffect(() => {
-    loadTemplates();
-  }, [currentPage, searchQuery]);
+    loadData();
+  }, [page, search]);
 
-  const loadTemplates = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams({
-        page: currentPage.toString(),
-        page_size: pageSize.toString(),
-      });
-      
-      if (searchQuery.trim()) {
-        params.append('search', searchQuery.trim());
-      }
-
-      const response = await fetch(`/api/state-templates/?${params}`);
-      if (!response.ok) throw new Error('Failed to load templates');
-      
-      const data: PaginatedResponse = await response.json();
-      setTemplates(data.results);
-      setTotalPages(Math.ceil(data.count / pageSize));
-    } catch (err: any) {
-      setError(err?.message || 'Failed to load community templates');
-      console.error('Error loading community templates:', err);
+      const params = new URLSearchParams({ page: page.toString(), page_size: '12' });
+      if (search) params.append('search', search);
+      const res = await fetch(`${API_BASE}/public/workspaces/?${params}`);
+      if (!res.ok) throw new Error('Failed to load');
+      const data: PageResponse = await res.json();
+      setWorkspaces(data.results);
+      setTotalPages(data.num_pages);
+      setTotalCount(data.count);
+    } catch (e: any) {
+      toast(e?.message || 'Failed to load community states', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const expandTemplate = async (templateId: number) => {
-    if (expandedTemplate === templateId) {
-      setExpandedTemplate(null);
-      setDetailedTemplate(null);
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/state-templates/${templateId}/`);
-      if (!response.ok) throw new Error('Failed to load template details');
-      
-      const data = await response.json();
-      setDetailedTemplate(data);
-      setExpandedTemplate(templateId);
-    } catch (err: any) {
-      toast(err?.message || 'Failed to load template details', 'error');
-    }
-  };
-
-  const importTemplate = async (templateId: number) => {
-    const workspaceSlug = prompt('Enter your workspace slug to import this template:');
-    if (!workspaceSlug) return;
-
-    try {
-      const response = await api.importStateTemplate(templateId, workspaceSlug);
-      toast(`Successfully imported! Added ${response.added} new states, ${response.skipped} already existed.`, 'success');
-    } catch (err: any) {
-      if (err.message.includes('login')) {
-        if (confirm('You need to log in to import templates. Go to login page?')) {
-          router.push('/login');
-        }
-      } else {
-        toast(err?.message || 'Failed to import template', 'error');
-      }
-    }
-  };
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setCurrentPage(1);
-    loadTemplates();
-  };
-
-  const renderPageNumbers = () => {
-    const pages = [];
-    const start = Math.max(1, currentPage - 2);
-    const end = Math.min(totalPages, currentPage + 2);
-
-    for (let i = start; i <= end; i++) {
-      pages.push(
-        <button
-          key={i}
-          onClick={() => setCurrentPage(i)}
-          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-            i === currentPage
-              ? 'bg-indigo-600 text-white'
-              : 'text-gray-400 hover:text-white hover:bg-gray-800'
-          }`}
-        >
-          {i}
-        </button>
-      );
-    }
-    return pages;
+    setPage(1);
   };
 
   return (
     <div className="min-h-screen bg-[#0a0a0f]">
       <PublicNav />
-      
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-white mb-4">Community State Templates</h1>
-          <p className="text-lg text-gray-400 max-w-3xl mx-auto">
-            Discover and import state machine templates shared by the OpenWeave community. 
-            Find workflow patterns that match your team's needs.
+
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
+        {/* Header */}
+        <div className="text-center mb-10">
+          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">Community States</h1>
+          <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+            Browse ticket state configurations from public workspaces. Find a workflow that fits your team and import it.
           </p>
         </div>
 
-        {/* Search bar */}
-        <form onSubmit={handleSearchSubmit} className="mb-8">
-          <div className="max-w-md mx-auto">
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search templates..."
-                className="w-full pl-4 pr-12 py-3 bg-[#111118] border border-[#222233] rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-indigo-500"
-              />
-              <button
-                type="submit"
-                className="absolute right-2 top-2 p-2 text-gray-400 hover:text-white"
-              >
-                🔍
-              </button>
-            </div>
+        {/* Search */}
+        <form onSubmit={handleSearch} className="max-w-md mx-auto mb-8">
+          <div className="relative">
+            <input
+              type="text"
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(1); }}
+              placeholder="Search workspaces..."
+              className="w-full bg-[#111118] border border-[#222233] rounded-lg px-4 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-indigo-500"
+            />
+            <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
           </div>
         </form>
 
-        {loading && (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-2 border-indigo-600 border-t-transparent"></div>
-          </div>
+        {/* Results count */}
+        {!loading && (
+          <p className="text-xs text-gray-500 mb-4">{totalCount} public workspace{totalCount !== 1 ? 's' : ''}</p>
         )}
 
-        {error && (
-          <div className="bg-red-900/20 border border-red-800 rounded-xl p-6 text-center">
-            <p className="text-red-400">{error}</p>
+        {/* Loading */}
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-600 border-t-transparent" />
           </div>
-        )}
+        ) : workspaces.length === 0 ? (
+          <div className="text-center py-20">
+            <p className="text-gray-400 text-lg mb-2">No public workspaces found</p>
+            <p className="text-gray-500 text-sm">Workspaces will appear here when owners make them public.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {workspaces.map(ws => (
+              <div key={ws.slug} className="bg-[#111118] border border-[#222233] rounded-xl overflow-hidden hover:border-[#333355] transition-colors">
+                {/* Card header */}
+                <div className="p-5">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-base font-semibold text-white truncate">{ws.name}</h3>
+                    <span className="text-[10px] font-medium text-gray-500 bg-[#1a1a2e] px-2 py-0.5 rounded-full flex-shrink-0 ml-2">
+                      {ws.state_count} states
+                    </span>
+                  </div>
+                  {ws.description && (
+                    <p className="text-xs text-gray-400 mb-3 line-clamp-2">{ws.description}</p>
+                  )}
 
-        {!loading && !error && (
-          <>
-            {templates.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-gray-400 text-lg">
-                  {searchQuery ? 'No templates found matching your search.' : 'No public templates available yet.'}
-                </p>
-                <p className="text-gray-500 text-sm mt-2">
-                  {!searchQuery && "Be the first to share your workflow by publishing it from your workspace settings!"}
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                  {templates.map((template) => (
-                    <div key={template.id} className="bg-[#111118] border border-[#222233] rounded-xl overflow-hidden hover:border-indigo-500/30 transition-colors">
-                      <div className="p-6">
-                        {/* Header */}
-                        <div className="flex items-center gap-3 mb-4">
-                          <span className="text-2xl">{template.icon}</span>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-lg font-semibold text-white truncate">{template.name}</h3>
-                            <p className="text-xs text-gray-400">by {template.workspace_name}</p>
-                          </div>
-                        </div>
+                  {/* State flow preview */}
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {ws.states.slice(0, 6).map((s, i) => (
+                      <React.Fragment key={s.key}>
+                        {i > 0 && <span className="text-gray-600 text-xs self-center">→</span>}
+                        <span
+                          className="text-[10px] font-medium px-2 py-0.5 rounded-full"
+                          style={{ backgroundColor: s.color + '20', color: s.color, border: `1px solid ${s.color}40` }}
+                        >
+                          {s.label}
+                        </span>
+                      </React.Fragment>
+                    ))}
+                    {ws.states.length > 6 && (
+                      <span className="text-[10px] text-gray-500 self-center">+{ws.states.length - 6} more</span>
+                    )}
+                  </div>
 
-                        {/* State flow preview */}
-                        <div className="mb-4">
-                          <p className="text-sm text-gray-300 font-mono text-center py-3 bg-gray-900/50 rounded-lg">
-                            {template.state_flow_preview}
-                          </p>
-                        </div>
-
-                        {/* Description */}
-                        {template.description && (
-                          <p className="text-gray-300 text-sm mb-4 line-clamp-2">{template.description}</p>
-                        )}
-
-                        {/* Stats */}
-                        <div className="flex items-center justify-between text-sm text-gray-400 mb-4">
-                          <span>🔄 {template.sync_count} imports</span>
-                          <span>{template.item_count} states</span>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => expandTemplate(template.id)}
-                            className="flex-1 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
-                          >
-                            {expandedTemplate === template.id ? 'Collapse' : 'Preview'}
-                          </button>
-                          <button
-                            onClick={() => importTemplate(template.id)}
-                            className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
-                          >
-                            Import
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Expanded details */}
-                      {expandedTemplate === template.id && detailedTemplate && (
-                        <div className="border-t border-[#222233] bg-gray-900/30 p-6">
-                          <h4 className="text-sm font-semibold text-white mb-3">States in this template:</h4>
-                          <div className="space-y-2">
-                            {detailedTemplate.items.map((item: any) => (
-                              <div key={item.id} className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <div 
-                                    className="w-3 h-3 rounded-full border"
-                                    style={{ backgroundColor: item.color, borderColor: item.color }}
-                                  />
-                                  <span className="text-sm text-gray-300">{item.name}</span>
-                                  {item.is_default && <span className="text-xs text-yellow-400">⭐ default</span>}
-                                </div>
-                                <code className="text-xs text-gray-500">{item.key}</code>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                  {/* Actions */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setExpanded(expanded === ws.slug ? null : ws.slug)}
+                      className="text-xs text-indigo-400 hover:text-indigo-300 font-medium"
+                    >
+                      {expanded === ws.slug ? 'Hide Details' : 'View Details'}
+                    </button>
+                    <Link
+                      href={`/community/${ws.slug}`}
+                      className="text-xs text-gray-400 hover:text-gray-300 font-medium ml-auto"
+                    >
+                      Full Profile →
+                    </Link>
+                  </div>
                 </div>
 
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="flex justify-center items-center gap-2">
-                    <button
-                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                      disabled={currentPage === 1}
-                      className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Previous
-                    </button>
-                    
-                    {renderPageNumbers()}
-                    
-                    <button
-                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                      disabled={currentPage === totalPages}
-                      className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Next
-                    </button>
+                {/* Expanded details */}
+                {expanded === ws.slug && (
+                  <div className="border-t border-[#222233] px-5 py-4 bg-[#0d0d14]">
+                    <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-3">All States</h4>
+                    <div className="space-y-2">
+                      {ws.states.map(s => (
+                        <div key={s.key} className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
+                          <span className="text-sm text-white">{s.label}</span>
+                          <span className="text-[10px] text-gray-500 font-mono">{s.key}</span>
+                          {s.is_default && (
+                            <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">DEFAULT</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
-              </>
-            )}
-          </>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex justify-center gap-2 mt-8">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-3 py-1.5 text-sm rounded bg-[#111118] border border-[#222233] text-gray-400 disabled:opacity-30 hover:border-indigo-500"
+            >
+              ←
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).slice(
+              Math.max(0, page - 3), Math.min(totalPages, page + 2)
+            ).map(p => (
+              <button
+                key={p}
+                onClick={() => setPage(p)}
+                className={`px-3 py-1.5 text-sm rounded border ${p === page ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-[#111118] border-[#222233] text-gray-400 hover:border-indigo-500'}`}
+              >
+                {p}
+              </button>
+            ))}
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-3 py-1.5 text-sm rounded bg-[#111118] border border-[#222233] text-gray-400 disabled:opacity-30 hover:border-indigo-500"
+            >
+              →
+            </button>
+          </div>
         )}
       </div>
     </div>

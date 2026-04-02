@@ -1,10 +1,9 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import (
-    User, Project, Ticket, Comment, AuditLog, ProjectAgent, Workspace,
+    User, Project, Ticket, Comment, AuditLog, Workspace,
     WorkspaceMember, WorkspaceMemberProject, WorkspaceInvite, BlogPost,
     TicketAttachment, MediaFile, Subscription, StatusDefinition,
-    CommunityTemplate, CommunityRating, StateTemplate, StateTemplateItem,
 )
 
 
@@ -79,15 +78,6 @@ class ProjectAdmin(admin.ModelAdmin):
         return obj.agents.count()
     agent_count.short_description = 'Agents'
 
-
-@admin.register(ProjectAgent)
-class ProjectAgentAdmin(admin.ModelAdmin):
-    """Admin for ProjectAgent join table."""
-    list_display = ('project', 'agent', 'joined_at')
-    list_filter = ('joined_at',)
-    search_fields = ('project__name', 'agent__username', 'agent__email')
-    list_select_related = ('project', 'agent')
-    list_per_page = 50
 
 
 @admin.register(Ticket)
@@ -233,26 +223,17 @@ class WorkspaceMemberProjectAdmin(admin.ModelAdmin):
     raw_id_fields = ['member', 'project']
 
 
-@admin.register(CommunityTemplate)
 class CommunityTemplateAdmin(admin.ModelAdmin):
     list_display = ['name', 'workspace', 'is_published', 'sync_count', 'created_at']
     list_filter = ['is_published']
     search_fields = ['name', 'workspace__name']
 
 
-@admin.register(CommunityRating)
 class CommunityRatingAdmin(admin.ModelAdmin):
     list_display = ['template', 'user', 'score', 'created_at']
     raw_id_fields = ['template', 'user']
 
 
-class StateTemplateItemInline(admin.TabularInline):
-    model = StateTemplateItem
-    extra = 0
-    fields = ['name', 'key', 'color', 'order', 'is_default', 'allowed_from_keys']
-
-
-@admin.register(StateTemplate)
 class StateTemplateAdmin(admin.ModelAdmin):
     list_display = ['name', 'icon', 'workspace', 'is_published', 'sync_count', 'created_at']
     list_filter = ['is_published']
@@ -260,7 +241,6 @@ class StateTemplateAdmin(admin.ModelAdmin):
     inlines = [StateTemplateItemInline]
 
 
-@admin.register(StateTemplateItem)
 class StateTemplateItemAdmin(admin.ModelAdmin):
     list_display = ['template', 'name', 'key', 'color', 'order', 'is_default']
     list_filter = ['template']
