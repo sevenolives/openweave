@@ -18,9 +18,13 @@ export default function PrivateLayout({ children }: { children: React.ReactNode 
   }, [isLoading, isLoggedIn, router]);
 
   // Redirect to email verification if human user has email but hasn't verified
+  // Skip if user came from verify-email page with skip_verify param
   useEffect(() => {
     if (!isLoading && isLoggedIn && user && user.user_type === 'HUMAN' && user.email && !user.email_verified) {
-      router.replace('/verify-email');
+      const params = new URLSearchParams(window.location.search);
+      if (!params.has('skip_verify')) {
+        router.replace('/verify-email');
+      }
     }
   }, [isLoading, isLoggedIn, user, router]);
 

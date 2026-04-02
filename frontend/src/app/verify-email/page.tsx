@@ -82,7 +82,8 @@ export default function VerifyEmailPage() {
   };
 
   const handleSkip = () => {
-    router.push('/private/workspaces');
+    // Mark as skipped via query param — layout checks this
+    router.push('/private/workspaces?skip_verify=1');
   };
 
   if (isLoading || !isLoggedIn || !user) {
