@@ -5,6 +5,7 @@ from .models import (
     User, Project, Ticket, Comment, AuditLog, Workspace, WorkspaceMember,
     WorkspaceInvite, ProjectInvite, TicketAttachment, StatusDefinition, ProjectAgent,
     BlogPost, MediaFile, Phase, ProjectStatusPermission, CommunityTemplate,
+    WorkspaceMemberProject,
 )
 
 
@@ -55,8 +56,20 @@ class UserSimpleSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email', 'name', 'user_type', 'description']
 
 
+class WorkspaceMemberProjectSerializer(serializers.ModelSerializer):
+    """Serializer for WorkspaceMemberProject with role."""
+    project = serializers.SlugRelatedField(slug_field='slug', queryset=Project.objects.all())
+    user = UserSimpleSerializer(source='member.user', read_only=True)
+    workspace = serializers.SlugRelatedField(slug_field='slug', source='member.workspace', read_only=True)
+
+    class Meta:
+        model = WorkspaceMemberProject
+        fields = ['id', 'project', 'user', 'workspace', 'role', 'joined_at']
+        read_only_fields = ['id', 'project', 'user', 'workspace', 'joined_at']
+
+
 class ProjectAgentSerializer(serializers.ModelSerializer):
-    """Serializer for ProjectAgent with role."""
+    """DEPRECATED: Serializer for ProjectAgent with role. Use WorkspaceMemberProjectSerializer instead."""
     project = serializers.SlugRelatedField(slug_field='slug', queryset=Project.objects.all())
     user = UserSimpleSerializer(source='agent', read_only=True)
 
@@ -282,8 +295,15 @@ class ProjectSerializer(serializers.ModelSerializer):
         agent_ids = validated_data.pop('agent_ids', [])
         project = Project.objects.create(**validated_data)
         if agent_ids:
-            agents = User.objects.filter(id__in=agent_ids)
-            project.agents.set(agents)
+            for user_id in agent_ids:
+                user = User.objects.get(id=user_id)
+                workspace_member, _ = WorkspaceMember.objects.get_or_create(
+                    workspace=project.workspace, user=user
+                )
+                WorkspaceMemberProject.objects.get_or_create(
+                    member=workspace_member, project=project,
+                    defaults={'role': 'MEMBER'}
+                )
         return project
 
     def update(self, instance, validated_data):
@@ -297,8 +317,24 @@ class ProjectSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
         if agent_ids is not None:
-            agents = User.objects.filter(id__in=agent_ids)
-            instance.agents.set(agents)
+            # Remove existing project members not in the new list
+            if agent_ids:
+                WorkspaceMemberProject.objects.filter(project=instance).exclude(
+                    member__user_id__in=agent_ids
+                ).delete()
+                # Add new members
+                for user_id in agent_ids:
+                    user = User.objects.get(id=user_id)
+                    workspace_member, _ = WorkspaceMember.objects.get_or_create(
+                        workspace=instance.workspace, user=user
+                    )
+                    WorkspaceMemberProject.objects.get_or_create(
+                        member=workspace_member, project=instance,
+                        defaults={'role': 'MEMBER'}
+                    )
+            else:
+                # Remove all members if empty list
+                WorkspaceMemberProject.objects.filter(project=instance).delete()
         return instance
 
     def get_active_phase(self, obj):

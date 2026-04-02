@@ -52,10 +52,16 @@ class BaseAPITestCase(TestCase):
         self.project = Project.objects.create(
             name='Test Project',
             slug='TP',
-            description='A test project',
+            about_text='A test project',
             workspace=self.workspace,
         )
-        self.project.agents.add(self.admin_user, self.member_user, self.bot_user)
+        # Set up project memberships via new model
+        from .models import WorkspaceMemberProject
+        for user in [self.admin_user, self.member_user, self.bot_user]:
+            workspace_member, _ = WorkspaceMember.objects.get_or_create(workspace=self.workspace, user=user)
+            WorkspaceMemberProject.objects.create(
+                member=workspace_member, project=self.project, role='MEMBER'
+            )
 
         # Create test ticket
         self.ticket = Ticket.objects.create(

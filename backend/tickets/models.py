@@ -296,10 +296,33 @@ class Phase(models.Model):
         return f"{icons.get(self.status, '⬜')} {self.name} — {self.project.name}"
 
 
+class WorkspaceMemberProject(models.Model):
+    """
+    Project membership as detail of workspace membership.
+    Replaces ProjectAgent with proper FK to WorkspaceMember.
+    """
+    PROJECT_ROLES = [
+        ('ADMIN', 'Admin'),
+        ('MEMBER', 'Member'),
+    ]
+    member = models.ForeignKey(WorkspaceMember, on_delete=models.CASCADE, related_name='project_memberships')
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='workspace_member_projects')
+    role = models.CharField(max_length=10, choices=PROJECT_ROLES, default='MEMBER')
+    joined_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'workspace_member_projects'
+        unique_together = ('member', 'project')
+        ordering = ['joined_at']
+
+    def __str__(self):
+        return f"{self.member.user.username} → {self.project.name} ({self.role})"
+
+
 class ProjectAgent(models.Model):
     """
-    Join table for Project-Agent many-to-many relationship.
-    Role at project level: ADMIN or MEMBER.
+    DEPRECATED: Old join table for Project-Agent many-to-many relationship.
+    Kept for backward compatibility during migration. Use WorkspaceMemberProject instead.
     """
     PROJECT_ROLES = [
         ('ADMIN', 'Admin'),

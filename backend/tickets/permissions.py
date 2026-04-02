@@ -4,7 +4,7 @@ Custom permission classes for Agent Desk RBAC.
 Workspace owner = root user. Has all admin privileges everywhere.
 """
 from rest_framework import permissions
-from .models import User, ProjectAgent, Workspace
+from .models import User, ProjectAgent, Workspace, WorkspaceMember, WorkspaceMemberProject
 
 
 def is_admin_or_owner(user, workspace=None):
@@ -150,3 +150,44 @@ def is_workspace_owner(user, workspace):
     if not user.is_authenticated or not workspace:
         return False
     return workspace.owner_id == user.id
+
+
+def user_has_project_access(user, project):
+    """
+    Check if a user has access to a project.
+    Workspace owners have implicit access. Project members have explicit access.
+    """
+    if not user.is_authenticated or not project:
+        return False
+    if is_admin_or_owner(user, project.workspace):
+        return True
+    return WorkspaceMemberProject.objects.filter(
+        member__user=user, project=project
+    ).exists()
+
+
+def project_access_q(user, prefix=''):
+    """
+    Return Q object for filtering by project access.
+    Use this in querysets to filter to only projects the user can access.
+    
+    Args:
+        user: The user to check access for
+        prefix: Field prefix for the relationship (e.g. 'project' for direct project access, or 'ticket__project' for nested queries)
+    """
+    from django.db.models import Q
+    if not user.is_authenticated:
+        return Q(pk=-1)  # No access
+    if user.is_superuser:
+        return Q()  # Access all
+    
+    # Build field names with prefix
+    if prefix:
+        member_field = f'{prefix}__workspace_member_projects__member__user'
+        workspace_field = f'{prefix}__workspace_id'
+    else:
+        member_field = 'workspace_member_projects__member__user'
+        workspace_field = 'workspace_id'
+    
+    owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
+    return Q(**{member_field: user}) | Q(**{workspace_field + '__in': owned_ws})

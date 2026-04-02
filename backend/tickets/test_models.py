@@ -78,16 +78,23 @@ class ProjectModelTest(TestCase):
             email='test@example.com',
             password='testpass123'
         )
+        from .models import Workspace
+        self.workspace = Workspace.objects.create(
+            name='Test Workspace',
+            slug='test-workspace',
+            owner=self.agent
+        )
         self.project_data = {
             'name': 'Test Project',
-            'description': 'A test project'
+            'about_text': 'A test project',
+            'workspace': self.workspace
         }
     
     def test_create_project(self):
         """Test creating a project."""
         project = Project.objects.create(**self.project_data)
         self.assertEqual(project.name, 'Test Project')
-        self.assertEqual(project.description, 'A test project')
+        self.assertEqual(project.about_text, 'A test project')
         self.assertIsNotNone(project.created_at)
         self.assertIsNotNone(project.updated_at)
     
@@ -104,12 +111,34 @@ class ProjectModelTest(TestCase):
             Project.objects.create(**self.project_data)
     
     def test_add_agent_to_project(self):
-        """Test adding an agent to a project."""
+        """Test adding an agent to a project via WorkspaceMemberProject."""
+        from .models import WorkspaceMember, WorkspaceMemberProject
         project = Project.objects.create(**self.project_data)
-        project.agents.add(self.agent)
         
-        self.assertEqual(project.agents.count(), 1)
-        self.assertIn(self.agent, project.agents.all())
+        # Create another user to add to the project
+        other_user = User.objects.create_user(
+            username='otheruser',
+            email='other@example.com',
+            password='otherpass123'
+        )
+        
+        # Add user to workspace first
+        workspace_member = WorkspaceMember.objects.create(
+            workspace=project.workspace, user=other_user
+        )
+        
+        # Add user to project
+        WorkspaceMemberProject.objects.create(
+            member=workspace_member, project=project, role='MEMBER'
+        )
+        
+        # Test access
+        self.assertEqual(WorkspaceMemberProject.objects.filter(project=project).count(), 1)
+        self.assertTrue(
+            WorkspaceMemberProject.objects.filter(
+                project=project, member__user=other_user
+            ).exists()
+        )
 
 
 class TicketModelTest(TestCase):
@@ -122,11 +151,18 @@ class TicketModelTest(TestCase):
             email='test@example.com',
             password='testpass123'
         )
+        from .models import Workspace
+        self.workspace = Workspace.objects.create(
+            name='Test Workspace',
+            slug='test-workspace',
+            owner=self.agent
+        )
         self.project = Project.objects.create(
             name='Test Project',
-            description='A test project'
+            about_text='A test project',
+            workspace=self.workspace
         )
-        self.project.agents.add(self.agent)
+        # Note: agents.add() is deprecated, workspace owner has implicit access
         
         self.ticket_data = {
             'project': self.project,
@@ -206,9 +242,16 @@ class CommentModelTest(TestCase):
             email='test@example.com',
             password='testpass123'
         )
+        from .models import Workspace
+        self.workspace = Workspace.objects.create(
+            name='Test Workspace',
+            slug='test-workspace',
+            owner=self.agent
+        )
         self.project = Project.objects.create(
             name='Test Project',
-            description='A test project'
+            about_text='A test project',
+            workspace=self.workspace
         )
         self.ticket = Ticket.objects.create(
             project=self.project,
@@ -293,9 +336,16 @@ class ProjectAgentModelTest(TestCase):
             email='test@example.com',
             password='testpass123'
         )
+        from .models import Workspace
+        self.workspace = Workspace.objects.create(
+            name='Test Workspace',
+            slug='test-workspace',
+            owner=self.agent
+        )
         self.project = Project.objects.create(
             name='Test Project',
-            description='A test project'
+            about_text='A test project',
+            workspace=self.workspace
         )
     
     def test_create_project_agent(self):
