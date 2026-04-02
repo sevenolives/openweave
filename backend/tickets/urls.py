@@ -9,7 +9,7 @@ from .views import (
     ProjectInviteViewSet,
     TicketAttachmentViewSet, StatusDefinitionViewSet,
     ProjectAgentViewSet, WorkspaceMemberProjectViewSet, PhaseViewSet, ProjectStatusPermissionViewSet,
-    CommunityTemplateViewSet,
+    CommunityTemplateViewSet, StateTemplateViewSet,
     JoinView, ForgotPasswordView, ResetPasswordView, SendVerificationView, VerifyEmailView,
     DashboardView, ProjectsDashboardView, BlogPostViewSet,
     MediaFileViewSet, public_workspace,
@@ -37,6 +37,7 @@ router.register(r'project-invites', ProjectInviteViewSet)
 router.register(r'project-status-permissions', ProjectStatusPermissionViewSet)
 router.register(r'phases', PhaseViewSet)
 router.register(r'community-templates', CommunityTemplateViewSet, basename='community-templates')
+router.register(r'state-templates', StateTemplateViewSet, basename='state-templates')
 router.register(r'blog', BlogPostViewSet, basename='blog')
 router.register(r'media', MediaFileViewSet, basename='media')
 

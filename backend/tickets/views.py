@@ -15,7 +15,7 @@ from .models import (
     User, Project, Ticket, Comment, AuditLog, ProjectAgent, Workspace,
     WorkspaceMember, WorkspaceInvite, ProjectInvite, TicketAttachment, StatusDefinition,
     BlogPost, MediaFile, Phase, ProjectStatusPermission, CommunityTemplate, CommunityRating,
-    WorkspaceMemberProject,
+    WorkspaceMemberProject, StateTemplate, StateTemplateItem,
 )
 from .serializers import (
     UserSerializer, UserSimpleSerializer, ProjectSerializer, TicketSerializer,
@@ -27,6 +27,7 @@ from .serializers import (
     CommunityTemplateSerializer,
     BlogPostListSerializer, BlogPostDetailSerializer, BlogPostCreateSerializer,
     MediaFileSerializer, WorkspaceMemberProjectSerializer,
+    StateTemplateSerializer, StateTemplateListSerializer, StateTemplateItemSerializer,
 )
 from .throttles import AuthRateThrottle
 from .permissions import (
@@ -2201,6 +2202,166 @@ class MediaFileViewSet(viewsets.ModelViewSet):
             content_type=ct,
             size=f.size,
         )
+
+
+@extend_schema(tags=['state-templates'])
+class StateTemplateViewSet(viewsets.ModelViewSet):
+    """Manage and browse state templates."""
+    queryset = StateTemplate.objects.select_related('workspace').prefetch_related('items').all()
+    lookup_field = 'id'
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name', 'description']
+    ordering_fields = ['sync_count', 'created_at', 'name']
+    ordering = ['-sync_count', 'name']
+    http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from .pagination import FlexiblePageNumberPagination
+        self.pagination_class = FlexiblePageNumberPagination
+
+    def get_permissions(self):
+        if self.action == 'list':
+            return [AllowAny()]  # Public listing
+        elif self.action in ('create', 'publish', 'import_template'):
+            return [permissions.IsAuthenticated()]
+        else:  # retrieve, update, destroy
+            return [permissions.IsAuthenticated()]
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return StateTemplateListSerializer
+        return StateTemplateSerializer
+
+    def get_queryset(self):
+        qs = StateTemplate.objects.select_related('workspace').prefetch_related('items').all()
+        
+        if self.action == 'list':
+            # Only show published templates
+            qs = qs.filter(is_published=True)
+            
+            # Optional workspace filter
+            workspace_slug = self.request.query_params.get('workspace')
+            if workspace_slug:
+                qs = qs.filter(workspace__slug=workspace_slug)
+        else:
+            # For CRUD operations, limit to user's workspaces
+            user = self.request.user
+            if not user.is_authenticated:
+                return qs.none()
+            if not user.is_superuser:
+                owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
+                qs = qs.filter(workspace_id__in=owned_ws)
+        
+        return qs
+
+    def perform_create(self, serializer):
+        # Create StateTemplate from workspace's current StatusDefinitions
+        workspace = serializer.validated_data['workspace']
+        if not is_admin_or_owner(self.request.user, workspace):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('Only workspace admin can publish templates.')
+        
+        template = serializer.save(created_by=self.request.user)
+        
+        # Create StateTemplateItems from workspace's StatusDefinitions
+        status_definitions = StatusDefinition.objects.filter(
+            workspace=workspace, is_archived=False
+        ).prefetch_related('allowed_from').order_by('position')
+        
+        for sd in status_definitions:
+            StateTemplateItem.objects.create(
+                template=template,
+                name=sd.label,
+                key=sd.key,
+                color=sd.color,
+                order=sd.position,
+                is_default=sd.is_default,
+                allowed_from_keys=[af.key for af in sd.allowed_from.all()]
+            )
+
+    @extend_schema(
+        summary="Import template into workspace",
+        description="Import a state template into your workspace. Creates StatusDefinitions from template items and increments sync_count.",
+        request=inline_serializer('ImportTemplateRequest', fields={
+            'workspace': drf_serializers.CharField(help_text='Target workspace slug'),
+        }),
+        responses={
+            200: inline_serializer('ImportTemplateResponse', fields={
+                'added': drf_serializers.IntegerField(),
+                'skipped': drf_serializers.IntegerField(),
+                'statuses': StatusDefinitionSerializer(many=True),
+            }),
+            400: _error_detail,
+            403: _error_detail,
+            404: _error_detail,
+        },
+    )
+    @action(detail=True, methods=['post'], url_path='import')
+    def import_template(self, request, id=None):
+        template = self.get_object()
+        workspace_slug = request.data.get('workspace')
+        
+        if not workspace_slug:
+            return Response({'detail': 'workspace required.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            target_workspace = Workspace.objects.get(slug=workspace_slug)
+        except Workspace.DoesNotExist:
+            return Response({'detail': 'Workspace not found.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        if not is_admin_or_owner(request.user, target_workspace):
+            return Response({'detail': 'Only workspace admin can import templates.'}, 
+                          status=status.HTTP_403_FORBIDDEN)
+
+        # Import template items as StatusDefinitions
+        existing_by_key = {sd.key: sd for sd in StatusDefinition.objects.filter(workspace=target_workspace)}
+        max_position = max((sd.position for sd in existing_by_key.values()), default=-1)
+        
+        added = 0
+        skipped = 0
+        
+        for item in template.items.order_by('order'):
+            if item.key in existing_by_key:
+                skipped += 1
+                continue
+                
+            max_position += 1
+            new_sd = StatusDefinition.objects.create(
+                workspace=target_workspace,
+                key=item.key,
+                label=item.name,
+                color=item.color,
+                description='',
+                is_default=False,
+                position=max_position,
+                is_archived=False,
+            )
+            existing_by_key[item.key] = new_sd
+            added += 1
+
+        # Set up transitions after all statuses are created
+        for item in template.items.all():
+            target_sd = existing_by_key.get(item.key)
+            if target_sd and item.allowed_from_keys:
+                allowed_from_sds = [existing_by_key[k] for k in item.allowed_from_keys if k in existing_by_key]
+                target_sd.allowed_from.set(allowed_from_sds)
+
+        # Increment sync count
+        template.sync_count += 1
+        template.save(update_fields=['sync_count'])
+
+        # Return updated statuses
+        result_sds = StatusDefinitionSerializer(
+            StatusDefinition.objects.filter(workspace=target_workspace).prefetch_related('allowed_from'),
+            many=True, context={'request': request}
+        ).data
+
+        return Response({
+            'added': added,
+            'skipped': skipped,
+            'statuses': result_sds
+        })
 
 
 @extend_schema(tags=['public'])

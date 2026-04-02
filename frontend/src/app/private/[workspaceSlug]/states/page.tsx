@@ -495,179 +495,49 @@ export default function TicketStatesPage() {
           </label>
         </div>
 
-        {/* Publish to Community */}
+        {/* Community Templates */}
         <div style={{ background: '#0a0a0a', borderRadius: 16, padding: '20px 24px', marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             <div>
-              <h3 style={{ fontSize: 14, fontWeight: 700, color: 'white', marginBottom: 2 }}>🌐 Publish to Community</h3>
-              <p style={{ fontSize: 12, color: '#6b7280' }}>Share your state machine publicly. Others can browse, rate, and sync your workflow.</p>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: 'white', marginBottom: 2 }}>🌐 Community Templates</h3>
+              <p style={{ fontSize: 12, color: '#6b7280' }}>Share your state machine with the community or browse templates from others.</p>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
             <button onClick={async () => {
+              const name = prompt('Template name (shown publicly):', `${workspace.name} Workflow`);
+              if (!name) return;
+              const description = prompt('Description (what is this workflow for?):', '') || '';
+              const icon = prompt('Icon (emoji):', '⚡') || '⚡';
               try {
-                const existing = await api.getCommunityTemplate(workspace.slug);
-                if (existing) {
-                  const updated = await api.updateCommunityTemplate(existing.slug, { is_published: !existing.is_published });
-                  toast(updated.is_published ? 'Published to community!' : 'Unpublished from community');
-                } else {
-                  const name = prompt('Template name (shown publicly):', workspace.name);
-                  if (!name) return;
-                  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-                  const desc = prompt('Description (what is this workflow for?):', '') || '';
-                  await api.publishCommunityTemplate({ workspace: workspace.slug, name, slug, description: desc, is_published: true });
-                  toast('Published to community!');
-                }
-              } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
+                await api.createStateTemplate({ 
+                  name, 
+                  description, 
+                  icon, 
+                  workspace: workspace.slug, 
+                  is_published: true 
+                });
+                toast('Template published to community!');
+              } catch (e: any) { 
+                toast(e?.message || 'Failed to publish template', 'error'); 
+              }
             }} style={{
               padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', color: '#6ee7b7',
             }}>
-              Publish / Unpublish
+              📤 Publish as Template
+            </button>
+            <button onClick={() => window.open('/community-states', '_blank')} style={{
+              padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', color: '#a5b4fc',
+            }}>
+              🌍 Browse Community Templates
             </button>
           </div>
         </div>
 
-        {/* Starter Templates */}
-        <div style={{ background: '#0a0a0a', borderRadius: 16, padding: '20px 24px', marginBottom: 24 }}>
-          <h3 style={{ fontSize: 14, fontWeight: 700, color: 'white', marginBottom: 4 }}>Starter Templates</h3>
-          <p style={{ fontSize: 12, color: '#6b7280', marginBottom: 16 }}>Two-step process: ① Sync States (additive) → ② Sync Transitions (replaces rules). You can also preview each template.</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {[
-              { id: 'software_dev', name: '💻 Software Dev', desc: 'Open → Dev → Testing → Review → Completed' },
-              { id: 'kanban', name: '📋 Kanban', desc: 'To Do → In Progress → Review → Done' },
-              { id: 'agency', name: '🏢 Agency', desc: 'Brief → Scope → Build → Client Review → Deliver' },
-              { id: 'support', name: '🎧 Support', desc: 'New → Triage → Investigate → Resolve → Close' },
-              { id: 'content', name: '✍️ Content', desc: 'Idea → Draft → Edit → Ready → Publish' },
-            ].map(t => (
-              <div key={t.id} style={{
-                padding: '14px 16px', borderRadius: 12,
-                background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                  <div style={{ flex: 1, minWidth: 180 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#e5e7eb' }}>{t.name}</div>
-                    <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{t.desc}</div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <button onClick={() => window.open(`/state-machine?template=${t.id}`, '_blank')}
-                      style={{ padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#9ca3af' }}>
-                      Preview
-                    </button>
-                    <button onClick={async () => {
-                      if (!confirm(`Sync states from "${t.name}"? Adds missing states, keeps existing.`)) return;
-                      try {
-                        const result = await api.applyStateTemplate(workspace.slug, t.id, 'additive');
-                        setStatuses(result.statuses);
-                        toast(`Added ${result.added} states (${result.skipped} already existed)`);
-                      } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
-                    }} style={{ padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer', background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', color: '#a5b4fc' }}>
-                      ① Sync States
-                    </button>
-                    <button onClick={async () => {
-                      if (!confirm(`Replace ALL transition rules with "${t.name}" template? This is destructive — existing rules will be overwritten.`)) return;
-                      try {
-                        const result = await api.applyStateTemplate(workspace.slug, t.id, 'replace');
-                        setStatuses(result.statuses);
-                        toast(`Transitions synced`);
-                      } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
-                    }} style={{ padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5' }}>
-                      ② Sync Transitions
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
 
-        {/* Sync from another workspace */}
-        {allWorkspaces.length > 0 && (
-          <div style={{ background: '#0a0a0a', borderRadius: 16, padding: '20px 24px', marginBottom: 24 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'white', marginBottom: 4 }}>Sync from another workspace</h3>
-            <p style={{ fontSize: 12, color: '#6b7280', marginBottom: 16 }}>Import a state machine from another workspace. Two-step process:</p>
-            <div className="rounded-xl p-4 mb-4 space-y-3" style={{ background: 'rgba(255,255,255,0.03)' }}>
-              <div className="flex items-start gap-3">
-                <span className="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">1</span>
-                <div>
-                  <p className="text-sm font-medium text-white">Sync States</p>
-                  <p className="text-xs text-gray-500"><strong>Additive</strong> — new statuses are added (name, color, description). Existing statuses with the same key are kept untouched. Nothing is deleted.</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <span className="w-6 h-6 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</span>
-                <div>
-                  <p className="text-sm font-medium text-white">Sync Transitions</p>
-                  <p className="text-xs text-gray-500"><strong>Destructive</strong> — all existing allowed_from rules are replaced with the source workspace&apos;s rules. Previous transition paths are deleted. This requires all states to exist first (run Step 1 first).</p>
-                </div>
-              </div>
-            </div>
-            <div className="flex gap-2 items-center mb-3">
-              <select value={syncSource} onChange={e => setSyncSource(e.target.value)}
-                className="flex-1 px-4 py-2.5 border border-[#3f3f46] rounded-xl text-sm bg-[#18181b] text-white">
-                <option value="">Select source workspace…</option>
-                {allWorkspaces.map(w => <option key={w.slug} value={w.slug}>{w.name} ({w.slug})</option>)}
-              </select>
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => { if (syncSource) setShowSyncConfirm('states'); }}
-                disabled={!syncSource || syncing}
-                style={{ flex: 1, padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: !syncSource ? 'default' : 'pointer', background: !syncSource ? 'rgba(255,255,255,0.05)' : 'rgba(99,102,241,0.15)', border: `1px solid ${!syncSource ? 'rgba(255,255,255,0.06)' : 'rgba(99,102,241,0.3)'}`, color: !syncSource ? '#4b5563' : '#a5b4fc' }}>
-                {syncing ? 'Syncing…' : '① Sync States'}
-              </button>
-              <button onClick={() => { if (syncSource) setShowSyncConfirm('transitions'); }}
-                disabled={!syncSource || syncing}
-                style={{ flex: 1, padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: !syncSource ? 'default' : 'pointer', background: !syncSource ? 'rgba(255,255,255,0.05)' : 'rgba(239,68,68,0.15)', border: `1px solid ${!syncSource ? 'rgba(255,255,255,0.06)' : 'rgba(239,68,68,0.3)'}`, color: !syncSource ? '#4b5563' : '#fca5a5' }}>
-                {syncing ? 'Syncing…' : '② Sync Transitions'}
-              </button>
-            </div>
-          </div>
-        )}
 
-        {/* Sync confirmation dialog */}
-        {showSyncConfirm && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowSyncConfirm(null)}>
-            <div className="bg-[#111118] rounded-2xl p-6 max-w-md w-full border border-[#222233]" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-2xl">{showSyncConfirm === 'states' ? '📋' : '⚠️'}</span>
-                <h3 className="text-lg font-bold text-white">{showSyncConfirm === 'states' ? 'Sync States' : 'Sync Transitions'}</h3>
-              </div>
-              {showSyncConfirm === 'states' ? (
-                <div className="bg-indigo-900/20 border border-indigo-800 rounded-xl p-4 mb-4">
-                  <p className="text-sm text-indigo-800 font-medium mb-1">Additive — safe operation</p>
-                  <p className="text-xs text-indigo-300">New statuses from <strong>{syncSource}</strong> will be added. Existing statuses with matching keys are kept untouched. Nothing is deleted or overwritten.</p>
-                </div>
-              ) : (
-                <div className="bg-red-900/20 border border-red-800 rounded-xl p-4 mb-4">
-                  <p className="text-sm text-red-800 font-medium mb-1">Destructive — cannot be undone</p>
-                  <p className="text-xs text-red-600">All existing transition rules (allowed_from) will be <strong>deleted and replaced</strong> with the rules from <strong>{syncSource}</strong>. Make sure you&apos;ve run Step 1 (Sync States) first so all required states exist.</p>
-                </div>
-              )}
-              <div className="flex gap-3">
-                <button onClick={() => setShowSyncConfirm(null)} className="flex-1 px-4 py-3 border border-[#222233] rounded-xl text-sm font-medium text-gray-300 hover:bg-[#1a1a2e]">Cancel</button>
-                <button onClick={async () => {
-                  if (!workspace) return;
-                  const mode = showSyncConfirm;
-                  setSyncing(true);
-                  setShowSyncConfirm(null);
-                  try {
-                    const result = await api.syncStatusDefinitions(workspace.slug, syncSource, mode);
-                    setStatuses(result.statuses);
-                    if (mode === 'states') {
-                      toast(`Added ${result.added} statuses, ${result.skipped} already existed`);
-                    } else {
-                      toast(`Transitions synced for ${result.updated} statuses${result.warning ? '. ' + result.warning : ''}`);
-                    }
-                  } catch (e: any) { toast(e?.message || e?.detail || 'Sync failed', 'error'); }
-                  finally { setSyncing(false); }
-                }} disabled={syncing}
-                  className={`flex-1 px-4 py-3 text-white rounded-xl text-sm font-medium disabled:opacity-50 ${showSyncConfirm === 'states' ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-red-600 hover:bg-red-700'}`}>
-                  {syncing ? 'Syncing…' : showSyncConfirm === 'states' ? 'Add States' : 'Replace Transitions'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* State Machine Management */}
         <StateMachineSettings

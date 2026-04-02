@@ -797,3 +797,42 @@ class CommunityRating(models.Model):
 
     def __str__(self):
         return f"{self.user.username} → {self.template.name}: {self.score}★"
+
+
+class StateTemplate(models.Model):
+    """A named, shareable package of states published by a workspace."""
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, default='')
+    icon = models.CharField(max_length=10, blank=True, default='')  # emoji
+    workspace = models.ForeignKey('Workspace', on_delete=models.CASCADE, related_name='state_templates')
+    is_published = models.BooleanField(default=False)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    sync_count = models.IntegerField(default=0)  # how many times imported
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'state_templates'
+        ordering = ['-sync_count', 'name']
+
+    def __str__(self):
+        return self.name
+
+
+class StateTemplateItem(models.Model):
+    """A single state within a template."""
+    template = models.ForeignKey(StateTemplate, on_delete=models.CASCADE, related_name='items')
+    name = models.CharField(max_length=100)
+    key = models.CharField(max_length=50)
+    color = models.CharField(max_length=7, default='#6366f1')
+    order = models.IntegerField(default=0)
+    is_default = models.BooleanField(default=False)
+    allowed_from_keys = models.JSONField(default=list, blank=True)  # list of key strings
+
+    class Meta:
+        db_table = 'state_template_items'
+        ordering = ['order']
+        unique_together = [('template', 'key')]
+
+    def __str__(self):
+        return f"{self.template.name} → {self.name}"

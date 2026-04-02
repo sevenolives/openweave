@@ -2,8 +2,9 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import (
     User, Project, Ticket, Comment, AuditLog, ProjectAgent, Workspace,
-    WorkspaceMember, WorkspaceInvite, BlogPost, TicketAttachment, MediaFile,
-    Subscription,
+    WorkspaceMember, WorkspaceMemberProject, WorkspaceInvite, BlogPost,
+    TicketAttachment, MediaFile, Subscription, StatusDefinition,
+    CommunityTemplate, CommunityRating, StateTemplate, StateTemplateItem,
 )
 
 
@@ -222,3 +223,45 @@ class BlogPostAdmin(admin.ModelAdmin):
     search_fields = ['title', 'content', 'tags']
     prepopulated_fields = {'slug': ('title',)}
     readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(WorkspaceMemberProject)
+class WorkspaceMemberProjectAdmin(admin.ModelAdmin):
+    list_display = ['member', 'project', 'role', 'joined_at']
+    list_filter = ['role']
+    search_fields = ['member__user__username', 'project__name']
+    raw_id_fields = ['member', 'project']
+
+
+@admin.register(CommunityTemplate)
+class CommunityTemplateAdmin(admin.ModelAdmin):
+    list_display = ['name', 'workspace', 'is_published', 'sync_count', 'created_at']
+    list_filter = ['is_published']
+    search_fields = ['name', 'workspace__name']
+
+
+@admin.register(CommunityRating)
+class CommunityRatingAdmin(admin.ModelAdmin):
+    list_display = ['template', 'user', 'rating', 'created_at']
+    raw_id_fields = ['template', 'user']
+
+
+class StateTemplateItemInline(admin.TabularInline):
+    model = StateTemplateItem
+    extra = 0
+    fields = ['name', 'key', 'color', 'order', 'is_default', 'allowed_from_keys']
+
+
+@admin.register(StateTemplate)
+class StateTemplateAdmin(admin.ModelAdmin):
+    list_display = ['name', 'icon', 'workspace', 'is_published', 'sync_count', 'created_at']
+    list_filter = ['is_published']
+    search_fields = ['name', 'description']
+    inlines = [StateTemplateItemInline]
+
+
+@admin.register(StateTemplateItem)
+class StateTemplateItemAdmin(admin.ModelAdmin):
+    list_display = ['template', 'name', 'key', 'color', 'order', 'is_default']
+    list_filter = ['template']
+    search_fields = ['name', 'key']

@@ -5,7 +5,7 @@ from .models import (
     User, Project, Ticket, Comment, AuditLog, Workspace, WorkspaceMember,
     WorkspaceInvite, ProjectInvite, TicketAttachment, StatusDefinition, ProjectAgent,
     BlogPost, MediaFile, Phase, ProjectStatusPermission, CommunityTemplate,
-    WorkspaceMemberProject,
+    WorkspaceMemberProject, StateTemplate, StateTemplateItem,
 )
 
 
@@ -801,6 +801,68 @@ class MediaFileSerializer(serializers.ModelSerializer):
         if obj.file and request:
             return request.build_absolute_uri(obj.file.url)
         return None
+
+
+class StateTemplateItemSerializer(serializers.ModelSerializer):
+    """Serializer for StateTemplateItem model."""
+    
+    class Meta:
+        model = StateTemplateItem
+        fields = ['id', 'name', 'key', 'color', 'order', 'is_default', 'allowed_from_keys']
+
+
+class StateTemplateSerializer(serializers.ModelSerializer):
+    """Serializer for StateTemplate model with nested items."""
+    items = StateTemplateItemSerializer(many=True, read_only=True)
+    workspace_name = serializers.CharField(source='workspace.name', read_only=True)
+    workspace_slug = serializers.CharField(source='workspace.slug', read_only=True)
+    item_count = serializers.SerializerMethodField()
+    state_flow_preview = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = StateTemplate
+        fields = ['id', 'name', 'description', 'icon', 'workspace', 'workspace_name', 
+                 'workspace_slug', 'is_published', 'sync_count', 'created_at', 'updated_at',
+                 'items', 'item_count', 'state_flow_preview']
+        read_only_fields = ['id', 'sync_count', 'created_at', 'updated_at', 'workspace_name', 
+                           'workspace_slug', 'item_count', 'state_flow_preview']
+
+    def get_item_count(self, obj):
+        return obj.items.count()
+
+    def get_state_flow_preview(self, obj):
+        """Generate state flow preview like 'Open → Dev → Testing → Review → Completed'."""
+        items = obj.items.order_by('order')[:5]  # Show first 5 states
+        names = [item.name for item in items]
+        preview = ' → '.join(names)
+        if obj.items.count() > 5:
+            preview += ' → ...'
+        return preview
+
+
+class StateTemplateListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for template list view."""
+    workspace_name = serializers.CharField(source='workspace.name', read_only=True)
+    workspace_slug = serializers.CharField(source='workspace.slug', read_only=True)
+    item_count = serializers.SerializerMethodField()
+    state_flow_preview = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = StateTemplate
+        fields = ['id', 'name', 'description', 'icon', 'workspace_name', 'workspace_slug',
+                 'sync_count', 'item_count', 'state_flow_preview', 'created_at']
+        
+    def get_item_count(self, obj):
+        return obj.items.count()
+
+    def get_state_flow_preview(self, obj):
+        """Generate state flow preview like 'Open → Dev → Testing → Review → Completed'."""
+        items = obj.items.order_by('order')[:5]  # Show first 5 states
+        names = [item.name for item in items]
+        preview = ' → '.join(names)
+        if obj.items.count() > 5:
+            preview += ' → ...'
+        return preview
 
 
 # Auth uses vanilla SimpleJWT TokenObtainPairView (username + password)
