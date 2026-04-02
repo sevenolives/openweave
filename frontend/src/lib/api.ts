@@ -604,6 +604,23 @@ class ApiClient {
     return this.request<ProjectsDashboard>(`/projects-dashboard/?workspace=${encodeURIComponent(workspaceSlug)}`);
   }
 
+  // Community templates
+  async getCommunityTemplate(workspaceSlug: string): Promise<any> {
+    try {
+      const results = await this.request<any>('/community-templates/');
+      const templates = Array.isArray(results) ? results : results.results || [];
+      return templates.find((t: any) => t.workspace === workspaceSlug) || null;
+    } catch { return null; }
+  }
+
+  async publishCommunityTemplate(data: { workspace: string; name: string; slug: string; description: string; is_published: boolean }): Promise<any> {
+    return this.request<any>('/community-templates/', { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  async updateCommunityTemplate(slug: string, data: any): Promise<any> {
+    return this.request<any>(`/community-templates/${slug}/`, { method: 'PATCH', body: JSON.stringify(data) });
+  }
+
   async getStateTemplates(): Promise<{ id: string; name: string; description: string; status_count: number }[]> {
     return this.request<any>('/status-definitions/templates/');
   }

@@ -823,6 +823,40 @@ export default function WorkspaceSettingsPage() {
             </label>
           </div>
         )}
+        {/* Publish to Community */}
+        {settingsTab === 'state-machine' && workspace && (
+          <div style={{ background: '#0a0a0a', borderRadius: 16, padding: '20px 24px', marginBottom: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <div>
+                <h3 style={{ fontSize: 14, fontWeight: 700, color: 'white', marginBottom: 2 }}>🌐 Publish to Community</h3>
+                <p style={{ fontSize: 12, color: '#6b7280' }}>Share your state machine publicly. Others can browse, rate, and sync your workflow.</p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+              <button onClick={async () => {
+                try {
+                  const existing = await api.getCommunityTemplate(workspace.slug);
+                  if (existing) {
+                    const updated = await api.updateCommunityTemplate(existing.slug, { is_published: !existing.is_published });
+                    toast(updated.is_published ? 'Published to community!' : 'Unpublished from community');
+                  } else {
+                    const name = prompt('Template name (shown publicly):', workspace.name);
+                    if (!name) return;
+                    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+                    const desc = prompt('Description (what is this workflow for?):', '') || '';
+                    await api.publishCommunityTemplate({ workspace: workspace.slug, name, slug, description: desc, is_published: true });
+                    toast('Published to community!');
+                  }
+                } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
+              }} style={{
+                padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', color: '#6ee7b7',
+              }}>
+                Publish / Unpublish
+              </button>
+            </div>
+          </div>
+        )}
         {/* Starter Templates */}
         {settingsTab === 'state-machine' && workspace && (
           <div style={{ background: '#0a0a0a', borderRadius: 16, padding: '20px 24px', marginBottom: 24 }}>
@@ -831,7 +865,7 @@ export default function WorkspaceSettingsPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {[
                 { id: 'software_dev', name: '💻 Software Dev', desc: 'Open → Dev → Testing → Review → Completed' },
-                { id: 'software_dev_ext', name: '💻 Software Dev (Extended)', desc: 'Open → Spec → Dev → QA Local → Deploy → QA Pass/Fail — SevenOlives workflow' },
+
                 { id: 'kanban', name: '📋 Kanban', desc: 'To Do → In Progress → Review → Done' },
                 { id: 'agency', name: '🏢 Agency', desc: 'Brief → Scope → Build → Client Review → Deliver' },
                 { id: 'support', name: '🎧 Support', desc: 'New → Triage → Investigate → Resolve → Close' },
