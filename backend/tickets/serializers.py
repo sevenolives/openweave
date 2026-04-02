@@ -675,7 +675,7 @@ class CommunityTemplateSerializer(serializers.ModelSerializer):
     class Meta:
         model = CommunityTemplate
         fields = ['id', 'workspace', 'workspace_name', 'name', 'slug', 'description',
-                  'is_published', 'status_count', 'statuses', 'created_at', 'updated_at']
+                  'is_published', 'status_count', 'statuses', 'bots', 'created_at', 'updated_at']
         read_only_fields = ['created_at', 'updated_at']
 
     def get_status_count(self, obj):
@@ -690,6 +690,25 @@ class CommunityTemplateSerializer(serializers.ModelSerializer):
             'is_default': sd.is_default,
             'allowed_from': [af.key for af in sd.allowed_from.all()],
         } for sd in sds]
+
+    bots = serializers.SerializerMethodField()
+
+    def get_bots(self, obj):
+        """Return bot users in the workspace with their details."""
+        from .models import WorkspaceMember
+        bot_members = WorkspaceMember.objects.filter(
+            workspace=obj.workspace, user__user_type='BOT'
+        ).select_related('user')
+        # Also include bots created in this workspace
+        bot_ids = set(bm.user_id for bm in bot_members)
+        created_bots = User.objects.filter(created_in_workspace=obj.workspace, user_type='BOT').exclude(id__in=bot_ids)
+        bots = [bm.user for bm in bot_members] + list(created_bots)
+        return [{
+            'username': bot.username,
+            'name': bot.name,
+            'description': bot.description,
+            'user_type': bot.user_type,
+        } for bot in bots]
 
 
 class BlogPostListSerializer(serializers.ModelSerializer):
