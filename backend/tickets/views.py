@@ -1635,6 +1635,26 @@ class DashboardView(APIView):
         completed_today = tickets.filter(resolved_at__date=today).count()
         my_tickets_count = tickets.filter(assigned_to=request.user).count()
 
+        # Workspace members list
+        members_qs = WorkspaceMember.objects.filter(workspace_id=ws_id).select_related('user')
+        members_list = []
+        # Add owner first
+        if workspace.owner:
+            members_list.append({
+                'username': workspace.owner.username,
+                'name': workspace.owner.name or workspace.owner.username,
+                'user_type': workspace.owner.user_type,
+                'role': 'OWNER',
+            })
+        for wm in members_qs:
+            if wm.user_id != workspace.owner_id:
+                members_list.append({
+                    'username': wm.user.username,
+                    'name': wm.user.name or wm.user.username,
+                    'user_type': wm.user.user_type,
+                    'role': 'MEMBER',
+                })
+
         # Agent workload: tickets assigned to each user
         agent_workload = []
         assigned_counts = tickets.exclude(assigned_to__isnull=True).values(
@@ -1667,6 +1687,7 @@ class DashboardView(APIView):
             'recent_tickets': TicketSerializer(recent, many=True).data,
             'my_assigned': TicketSerializer(my_assigned, many=True).data,
             'agent_workload': agent_workload,
+            'members': members_list,
         })
 
 

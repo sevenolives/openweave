@@ -236,6 +236,29 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
+            {/* Members */}
+            {data.members && data.members.length > 0 && (
+              <div className="bg-[#111118] rounded-xl border border-[#222233] p-5">
+                <h2 className="text-lg font-semibold text-white mb-4">Team ({data.members.length})</h2>
+                <div className="flex flex-wrap gap-2">
+                  {data.members.map((m: any) => (
+                    <div key={m.username} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0a0a0f]">
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 ${m.user_type === 'BOT' ? 'bg-purple-600' : 'bg-indigo-600'}`}>
+                        {m.username[0]?.toUpperCase()}
+                      </div>
+                      <div>
+                        <span className="text-xs font-medium text-white">{m.name}</span>
+                        <div className="flex items-center gap-1">
+                          <span className={`text-[9px] font-bold ${m.user_type === 'BOT' ? 'text-purple-400' : 'text-indigo-400'}`}>{m.user_type}</span>
+                          {m.role === 'OWNER' && <span className="text-[9px] font-bold text-amber-400">OWNER</span>}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Agent Workload */}
             {data.agent_workload && data.agent_workload.length > 0 && (
               <div className="bg-[#111118] rounded-xl border border-[#222233] p-5">

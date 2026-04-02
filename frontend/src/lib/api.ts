@@ -211,6 +211,7 @@ export interface DashboardStats {
   recent_tickets: Ticket[];
   my_assigned: Ticket[];
   agent_workload: { username: string; name: string; user_type: string; total: number; statuses: Record<string, number> }[];
+  members: { username: string; name: string; user_type: string; role: string }[];
 }
 
 export interface ProjectDashboardItem {
