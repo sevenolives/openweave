@@ -387,28 +387,21 @@ export default function WorkspaceSettingsPage() {
   const [addingStatus, setAddingStatus] = useState(false);
   // Read initial tab from URL param
   const searchParamsTab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
-  const [settingsTab, setSettingsTab] = useState<'general' | 'members' | 'bots' | 'state-machine'>(
-    (searchParamsTab === 'members' || searchParamsTab === 'bots' || searchParamsTab === 'state-machine') ? searchParamsTab : 'general'
+  const [settingsTab, setSettingsTab] = useState<'general' | 'state-machine'>(
+    searchParamsTab === 'state-machine' ? 'state-machine' : 'general'
   );
   const [workspaceUsers, setWorkspaceUsers] = useState<User[]>([]);
   const [allWorkspaces, setAllWorkspaces] = useState<Workspace[]>([]);
   const [syncSource, setSyncSource] = useState('');
   const [showSyncConfirm, setShowSyncConfirm] = useState<'states' | 'transitions' | null>(null);
   const [syncing, setSyncing] = useState(false);
-  const [bots, setBots] = useState<(User & { api_token?: string })[]>([]);
-  const [loadingBots, setLoadingBots] = useState(false);
-  const [revealedTokens, setRevealedTokens] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
-  const loadBots = useCallback(async (ws: Workspace) => {
-    setLoadingBots(true);
     try {
       const botsList = await api.getBots(ws.slug);
-      setBots(botsList);
     } catch (e: any) {
       toast(e?.message || 'Failed to load bots', 'error');
     } finally {
-      setLoadingBots(false);
     }
   }, [toast]);
 
@@ -445,9 +438,7 @@ export default function WorkspaceSettingsPage() {
   // Load bots when switching to bots tab
   useEffect(() => {
     if (settingsTab === 'bots' && workspace) {
-      loadBots(workspace);
     }
-  }, [settingsTab, workspace, loadBots]);
 
   const handleSaveWorkspace = async () => {
     if (!workspace) return;
@@ -521,36 +512,29 @@ export default function WorkspaceSettingsPage() {
     } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
   };
 
-  const handleRegenerateToken = async (bot: User & { api_token?: string }) => {
     if (!confirm(`Regenerate token for ${bot.username}? This will invalidate the current token.`)) return;
     try {
       const result = await api.regenerateToken(bot.username);
-      setBots(prev => prev.map(b => b.username === bot.username ? { ...b, api_token: result.api_token } : b));
       toast(`Token regenerated for ${bot.username}`);
       // Reveal the new token temporarily
-      setRevealedTokens(prev => new Set(prev).add(bot.username));
     } catch (e: any) {
       toast(e?.message || 'Failed to regenerate token', 'error');
     }
   };
 
-  const handleDeleteBot = async (bot: User & { api_token?: string }) => {
     if (!confirm(`Delete bot ${bot.username}? This action cannot be undone.`)) return;
     try {
       await api.deleteUser(bot.username as any);
-      setBots(prev => prev.filter((b: any) => b.username !== bot.username));
       toast(`Bot ${bot.username} deleted`);
     } catch (e: any) {
       toast(e?.message || 'Failed to delete bot', 'error');
     }
   };
 
-  const maskToken = (token: string) => {
     if (token.length <= 8) return token;
     return token.slice(0, 4) + '...' + token.slice(-4);
   };
 
-  const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
       toast('Token copied to clipboard');
@@ -570,8 +554,7 @@ export default function WorkspaceSettingsPage() {
 
         <div className="flex gap-1 mb-6 border-b border-[#222233] overflow-x-auto">
           <button onClick={() => setSettingsTab('general')} className={tabClass('general', settingsTab === 'general')}>General</button>
-          <button onClick={() => setSettingsTab('members')} className={tabClass('members', settingsTab === 'members')}>Members</button>
-          <button onClick={() => setSettingsTab('bots')} className={tabClass('bots', settingsTab === 'bots')}>🤖 Bots</button>
+
           <button onClick={() => setSettingsTab('state-machine')} className={tabClass('state-machine', settingsTab === 'state-machine')}>
             <span className="hidden sm:inline">State Machine</span>
             <span className="sm:hidden">States</span>
@@ -649,156 +632,6 @@ export default function WorkspaceSettingsPage() {
               Delete Workspace
             </button>
           </div>
-        </div>
-        </>)}
-
-        {/* === MEMBERS TAB === */}
-        {settingsTab === 'members' && (<>
-        <div className="bg-[#111118] border border-[#222233] rounded-xl mb-6">
-          <div className="px-5 py-4 border-b border-[#222233]">
-            <h2 className="font-semibold text-white">Members ({members.filter(m => m.user.id !== workspace?.owner).length + 1})</h2>
-          </div>
-          <div className="divide-y divide-[#222233]">
-            {(workspace as any).owner_details && (
-              <div className="px-5 py-3 flex items-center justify-between bg-amber-500/5">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0 bg-amber-500">
-                    {(workspace as any).owner_details.username[0].toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-white">{(workspace as any).owner_details.username}</p>
-                    <p className="text-xs text-gray-500">{(workspace as any).owner_details.email}</p>
-                  </div>
-                </div>
-                <span className="px-3 py-1.5 text-sm font-semibold text-amber-700 bg-amber-100 rounded-lg">Owner</span>
-              </div>
-            )}
-            {members.filter(m => m.user.id !== workspace.owner).map(m => (
-              <div key={m.id} className="px-5 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0 ${m.user.user_type === 'BOT' ? 'bg-purple-500' : 'bg-indigo-500'}`}>
-                    {m.user.username[0].toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-white">{m.user.username}</p>
-                    <p className="text-xs text-gray-400">{m.user.email} · <span className={m.user.user_type === 'BOT' ? 'text-purple-600' : ''}>{m.user.user_type}</span></p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-gray-400 px-2 py-1 bg-[#1a1a2e] rounded">Member</span>
-                  <button onClick={() => handleRemoveMember(m.id)} className="px-3 py-2 text-sm font-medium text-red-400 hover:text-white hover:bg-red-600 border border-red-500/30 hover:border-red-600 rounded-lg transition-colors min-w-[80px]">
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        </>)}
-
-        {/* === BOTS TAB === */}
-        {settingsTab === 'bots' && (<>
-        <div className="bg-[#111118] border border-[#222233] rounded-xl mb-6">
-          <div className="px-5 py-4 border-b border-[#222233]">
-            <h2 className="font-semibold text-white">🤖 Bot Token Management</h2>
-            <p className="text-sm text-gray-400 mt-1">Manage API tokens for bots in this workspace. Only workspace admins can view and manage tokens.</p>
-          </div>
-          {loadingBots ? (
-            <div className="p-5 text-center">
-              <div className="animate-spin rounded-full h-6 w-6 border-2 border-indigo-600 border-t-transparent mx-auto"></div>
-              <p className="text-sm text-gray-400 mt-2">Loading bots...</p>
-            </div>
-          ) : bots.length === 0 ? (
-            <div className="p-5 text-center">
-              <div className="text-gray-400 mb-2">
-                <svg className="w-12 h-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
-                </svg>
-              </div>
-              <p className="text-sm text-gray-400">No bots found in this workspace.</p>
-              <p className="text-xs text-gray-500 mt-1">Contact support to create bot users for this workspace.</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-[#222233]">
-              {bots.map(bot => (
-                <div key={bot.username} className="px-5 py-4">
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                      {bot.username[0].toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-medium text-white">{bot.username}</h3>
-                        <span className="px-2 py-1 text-xs font-medium text-purple-700 bg-purple-100 rounded">BOT</span>
-                        {!bot.is_active && <span className="px-2 py-1 text-xs font-medium text-red-700 bg-red-100 rounded">INACTIVE</span>}
-                      </div>
-                      {bot.name && <p className="text-sm text-gray-400 mb-2">{bot.name}</p>}
-                      {bot.description && <p className="text-sm text-gray-400 mb-3">{bot.description}</p>}
-                      
-                      <div className="bg-[#1a1a2e] rounded-lg p-3 mb-3">
-                        <label className="block text-xs font-medium text-gray-300 mb-1">API Token</label>
-                        <div className="flex items-center gap-2">
-                          <code className="flex-1 text-sm font-mono text-gray-200 bg-[#0a0a0f] border border-[#222233] rounded px-2 py-1 select-all">
-                            {revealedTokens.has(bot.username) ? bot.api_token : maskToken(bot.api_token || '')}
-                          </code>
-                          <button
-                            onClick={() => {
-                              if (revealedTokens.has(bot.username)) {
-                                setRevealedTokens(prev => {
-                                  const next = new Set(prev);
-                                  next.delete(bot.username);
-                                  return next;
-                                });
-                              } else {
-                                setRevealedTokens(prev => new Set(prev).add(bot.username));
-                              }
-                            }}
-                            className="p-1.5 text-gray-400 hover:text-gray-300 rounded"
-                            title={revealedTokens.has(bot.username) ? "Hide token" : "Show full token"}
-                          >
-                            {revealedTokens.has(bot.username) ? (
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-                              </svg>
-                            ) : (
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                              </svg>
-                            )}
-                          </button>
-                          <button
-                            onClick={() => copyToClipboard(bot.api_token || '')}
-                            className="p-1.5 text-gray-400 hover:text-gray-300 rounded"
-                            title="Copy token"
-                          >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          onClick={() => handleRegenerateToken(bot)}
-                          className="px-3 py-1.5 text-sm font-medium text-orange-400 hover:text-white hover:bg-orange-600 border border-orange-500/30 hover:border-orange-600 rounded-lg transition-colors"
-                        >
-                          Regenerate Token
-                        </button>
-                        <button
-                          onClick={() => handleDeleteBot(bot)}
-                          className="px-3 py-1.5 text-sm font-medium text-red-400 hover:text-white hover:bg-red-600 border border-red-500/30 hover:border-red-600 rounded-lg transition-colors"
-                        >
-                          Delete Bot
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
         </>)}
 
