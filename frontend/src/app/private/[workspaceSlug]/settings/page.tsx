@@ -823,37 +823,57 @@ export default function WorkspaceSettingsPage() {
             </label>
           </div>
         )}
-        {/* Load Template */}
+        {/* Starter Templates */}
         {settingsTab === 'state-machine' && workspace && (
           <div style={{ background: '#0a0a0a', borderRadius: 16, padding: '20px 24px', marginBottom: 24 }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, color: 'white', marginBottom: 4 }}>Starter Templates</h3>
-            <p style={{ fontSize: 12, color: '#6b7280', marginBottom: 16 }}>Load a pre-built workflow. Adds missing states — won&apos;t overwrite existing ones.</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <p style={{ fontSize: 12, color: '#6b7280', marginBottom: 16 }}>Two-step process: ① Sync States (additive) → ② Sync Transitions (replaces rules). You can also preview each template.</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {[
-                { id: 'software_dev', name: '💻 Software Dev', desc: 'Spec → Dev → QA Local → Deploy → QA Pass/Fail' },
+                { id: 'software_dev', name: '💻 Software Dev', desc: 'Open → Dev → Testing → Review → Completed' },
+                { id: 'software_dev_ext', name: '💻 Software Dev (Extended)', desc: 'Open → Spec → Dev → QA Local → Deploy → QA Pass/Fail — SevenOlives workflow' },
                 { id: 'kanban', name: '📋 Kanban', desc: 'To Do → In Progress → Review → Done' },
                 { id: 'agency', name: '🏢 Agency', desc: 'Brief → Scope → Build → Client Review → Deliver' },
                 { id: 'support', name: '🎧 Support', desc: 'New → Triage → Investigate → Resolve → Close' },
                 { id: 'content', name: '✍️ Content', desc: 'Idea → Draft → Edit → Ready → Publish' },
               ].map(t => (
-                <button key={t.id} onClick={async () => {
-                  if (!confirm(`Load "${t.name}" template? This adds missing states (existing ones are kept).`)) return;
-                  try {
-                    const result = await api.applyStateTemplate(workspace.slug, t.id);
-                    setStatuses(result.statuses);
-                    toast(`Added ${result.added} states (${result.skipped} already existed)`);
-                  } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
-                }} style={{
-                  textAlign: 'left', padding: '12px 16px', borderRadius: 12,
+                <div key={t.id} style={{
+                  padding: '14px 16px', borderRadius: 12,
                   background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
-                  cursor: 'pointer', transition: 'all 0.2s',
-                }}
-                onMouseEnter={e => { (e.target as HTMLElement).style.borderColor = '#6366f1'; (e.target as HTMLElement).style.background = 'rgba(99,102,241,0.08)'; }}
-                onMouseLeave={e => { (e.target as HTMLElement).style.borderColor = 'rgba(255,255,255,0.08)'; (e.target as HTMLElement).style.background = 'rgba(255,255,255,0.03)'; }}
-                >
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#e5e7eb' }}>{t.name}</div>
-                  <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{t.desc}</div>
-                </button>
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: 180 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#e5e7eb' }}>{t.name}</div>
+                      <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{t.desc}</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button onClick={() => window.open(`/state-machine?template=${t.id}`, '_blank')}
+                        style={{ padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#9ca3af' }}>
+                        Preview
+                      </button>
+                      <button onClick={async () => {
+                        if (!confirm(`Sync states from "${t.name}"? Adds missing states, keeps existing.`)) return;
+                        try {
+                          const result = await api.applyStateTemplate(workspace.slug, t.id, 'additive');
+                          setStatuses(result.statuses);
+                          toast(`Added ${result.added} states (${result.skipped} already existed)`);
+                        } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
+                      }} style={{ padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer', background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', color: '#a5b4fc' }}>
+                        ① Sync States
+                      </button>
+                      <button onClick={async () => {
+                        if (!confirm(`Replace ALL transition rules with "${t.name}" template? This is destructive — existing rules will be overwritten.`)) return;
+                        try {
+                          const result = await api.applyStateTemplate(workspace.slug, t.id, 'replace');
+                          setStatuses(result.statuses);
+                          toast(`Transitions synced`);
+                        } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
+                      }} style={{ padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5' }}>
+                        ② Sync Transitions
+                      </button>
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
           </div>

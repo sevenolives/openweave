@@ -1518,6 +1518,13 @@ class StatusDefinitionViewSet(viewsets.ModelViewSet):
     )
     @action(detail=False, methods=['get'], url_path='templates')
     def templates(self, request):
+        template_id = request.query_params.get('id')
+        if template_id:
+            from .state_templates import get_template_detail
+            detail = get_template_detail(template_id)
+            if not detail:
+                return Response({'detail': 'Template not found.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response(detail)
         from .state_templates import get_template_list
         return Response(get_template_list())
 

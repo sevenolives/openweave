@@ -6,23 +6,44 @@ Each template defines statuses and their allowed_from transitions.
 TEMPLATES = {
     'software_dev': {
         'name': 'Software Development',
-        'description': 'Full dev pipeline: spec → dev → QA local → deploy → QA prod. Matches SevenOlives board.',
+        'description': 'Basic dev pipeline: open → dev → testing → review → done.',
+        'statuses': [
+            {'key': 'OPEN', 'label': 'Open', 'color': 'gray', 'is_default': True, 'position': 0, 'description': 'Ticket created, waiting to be picked up'},
+            {'key': 'IN_DEV', 'label': 'In Dev', 'color': 'indigo', 'position': 1, 'description': 'Being built on a feature branch'},
+            {'key': 'IN_TESTING', 'label': 'In Testing', 'color': 'purple', 'position': 2, 'description': 'Code reviewed, being validated'},
+            {'key': 'REVIEW', 'label': 'Review', 'color': 'amber', 'position': 3, 'description': 'Ready for final review'},
+            {'key': 'COMPLETED', 'label': 'Completed', 'color': 'green', 'position': 4, 'description': 'Done and verified'},
+            {'key': 'BLOCKED', 'label': 'Blocked', 'color': 'red', 'position': 5, 'description': 'Waiting on a dependency or external input'},
+            {'key': 'CANCELLED', 'label': 'Cancelled', 'color': 'gray', 'position': 6, 'description': 'Dropped, no longer needed'},
+        ],
+        'transitions': {
+            'IN_DEV': ['OPEN'],
+            'IN_TESTING': ['IN_DEV'],
+            'REVIEW': ['IN_TESTING'],
+            'COMPLETED': ['REVIEW'],
+            'BLOCKED': ['OPEN', 'IN_DEV', 'IN_TESTING'],
+            'CANCELLED': ['OPEN', 'BLOCKED'],
+        },
+    },
+    'software_dev_ext': {
+        'name': 'Software Dev (Extended)',
+        'description': 'Full pipeline with spec, QA local, deploy, production QA. Based on SevenOlives workflow.',
         'statuses': [
             {'key': 'OPEN', 'label': 'Open', 'color': 'gray', 'is_default': True, 'position': 0, 'description': 'Ticket created, waiting to be picked up'},
             {'key': 'IN_SPEC', 'label': 'In Spec', 'color': 'blue', 'position': 1, 'description': 'Product spec and requirements being written'},
-            {'key': 'IN_DEV', 'label': 'In Dev', 'color': 'indigo', 'position': 2, 'description': 'Being built on a feature branch'},
-            {'key': 'QA_LOCAL', 'label': 'QA Local', 'color': 'purple', 'position': 3, 'description': 'Code reviewed, being validated on feature branch'},
-            {'key': 'DEPLOYED', 'label': 'Deployed', 'color': 'orange', 'position': 4, 'description': 'Merged to main and live on production'},
+            {'key': 'IN_DEV', 'label': 'In Dev', 'color': 'cyan', 'position': 2, 'description': 'Being built on a feature branch'},
+            {'key': 'QA_LOCAL', 'label': 'QA Local', 'color': 'purple', 'position': 3, 'description': 'Feature branch testing phase'},
+            {'key': 'DEPLOYED', 'label': 'Deployed', 'color': 'amber', 'position': 4, 'description': 'Merged to main and live on production'},
             {'key': 'QA_PASS', 'label': 'QA Pass', 'color': 'green', 'position': 5, 'description': 'Confirmed working on production'},
             {'key': 'QA_FAIL', 'label': 'QA Fail', 'color': 'red', 'position': 6, 'description': 'Issues found on production, needs rework'},
             {'key': 'BLOCKED', 'label': 'Blocked', 'color': 'red', 'position': 7, 'description': 'Waiting on a dependency or external input'},
-            {'key': 'DUPLICATE', 'label': 'Duplicate', 'color': 'gray', 'position': 8, 'description': 'Already covered by another ticket'},
+            {'key': 'DUPLICATE', 'label': 'Duplicate', 'color': 'red', 'position': 8, 'description': 'Already covered by another ticket'},
             {'key': 'PARKED', 'label': 'Parked', 'color': 'gray', 'position': 9, 'description': 'On hold, not actively worked on'},
             {'key': 'CANCELLED', 'label': 'Cancelled', 'color': 'gray', 'position': 10, 'description': 'Dropped, no longer needed'},
         ],
         'transitions': {
-            'IN_SPEC': ['OPEN'],
-            'IN_DEV': ['OPEN', 'IN_SPEC'],
+            'IN_SPEC': ['OPEN', 'QA_PASS', 'QA_FAIL'],
+            'IN_DEV': ['OPEN', 'IN_SPEC', 'QA_LOCAL', 'QA_PASS', 'QA_FAIL'],
             'QA_LOCAL': ['IN_DEV'],
             'DEPLOYED': ['QA_LOCAL'],
             'QA_PASS': ['DEPLOYED'],
@@ -108,6 +129,20 @@ TEMPLATES = {
 }
 
 
+def get_template_detail(template_id):
+    """Return full template data for preview."""
+    template = TEMPLATES.get(template_id)
+    if not template:
+        return None
+    return {
+        'id': template_id,
+        'name': template['name'],
+        'description': template['description'],
+        'statuses': template['statuses'],
+        'transitions': template.get('transitions', {}),
+    }
+
+
 def get_template_list():
     """Return list of available templates with name and description."""
     return [
@@ -119,8 +154,8 @@ def get_template_list():
 def apply_template(workspace, template_id, mode='additive'):
     """
     Apply a template to a workspace.
-    mode='additive': add missing statuses, skip existing
-    mode='replace': delete all existing and replace with template
+    mode='additive': add missing statuses, skip existing (Step 1)
+    mode='replace': overwrite transitions only, keep existing statuses (Step 2)
     Returns: dict with added/skipped counts
     """
     from .models import StatusDefinition
@@ -129,48 +164,45 @@ def apply_template(workspace, template_id, mode='additive'):
     if not template:
         raise ValueError(f'Template "{template_id}" not found.')
     
-    if mode == 'replace':
-        # Check for tickets using current statuses
-        from .models import Ticket
-        in_use = list(Ticket.objects.filter(
-            project__workspace=workspace
-        ).values_list('status', flat=True).distinct())
-        template_keys = {s['key'] for s in template['statuses']}
-        orphaned = [s for s in in_use if s not in template_keys]
-        if orphaned:
-            raise ValueError(f'Cannot replace — tickets use statuses not in template: {", ".join(orphaned)}')
-        StatusDefinition.objects.filter(workspace=workspace).delete()
-
     existing = {sd.key: sd for sd in StatusDefinition.objects.filter(workspace=workspace)}
-    added = 0
-    skipped = 0
     key_to_sd = dict(existing)
 
-    for s in template['statuses']:
-        if s['key'] in existing:
-            skipped += 1
-            continue
-        sd = StatusDefinition.objects.create(
-            workspace=workspace,
-            key=s['key'],
-            label=s['label'],
-            color=s.get('color', 'gray'),
-            description=s.get('description', ''),
-            is_default=s.get('is_default', False) if mode == 'replace' else False,
-            position=s.get('position', 0),
-        )
-        key_to_sd[s['key']] = sd
-        added += 1
-
-    # Apply transitions
-    for target_key, source_keys in template.get('transitions', {}).items():
-        target_sd = key_to_sd.get(target_key)
-        if not target_sd:
-            continue
-        sources = [key_to_sd[k] for k in source_keys if k in key_to_sd]
-        if mode == 'replace':
+    if mode == 'replace':
+        # Step 2: Only overwrite transitions, don't add/remove statuses
+        updated = 0
+        for target_key, source_keys in template.get('transitions', {}).items():
+            target_sd = key_to_sd.get(target_key)
+            if not target_sd:
+                continue
+            sources = [key_to_sd[k] for k in source_keys if k in key_to_sd]
             target_sd.allowed_from.set(sources)
-        else:
-            target_sd.allowed_from.add(*sources)
+            updated += 1
+        # Clear transitions for statuses not in template transitions
+        for sd in key_to_sd.values():
+            if sd.key not in template.get('transitions', {}):
+                sd.allowed_from.clear()
+        return {'added': 0, 'skipped': 0, 'updated': updated, 'total': len(key_to_sd)}
+    else:
+        # Step 1: Additive — add missing statuses
+        added = 0
+        skipped = 0
+        max_pos = max((sd.position for sd in existing.values()), default=-1)
 
-    return {'added': added, 'skipped': skipped, 'total': len(key_to_sd)}
+        for s in template['statuses']:
+            if s['key'] in existing:
+                skipped += 1
+                continue
+            max_pos += 1
+            sd = StatusDefinition.objects.create(
+                workspace=workspace,
+                key=s['key'],
+                label=s['label'],
+                color=s.get('color', 'gray'),
+                description=s.get('description', ''),
+                is_default=False,
+                position=max_pos,
+            )
+            key_to_sd[s['key']] = sd
+            added += 1
+
+        return {'added': added, 'skipped': skipped, 'total': len(key_to_sd)}
