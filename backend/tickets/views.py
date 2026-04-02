@@ -1235,8 +1235,6 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         from django.db.models import Q
-        if self.request.user.is_superuser:
-            return Workspace.objects.all()
         return Workspace.objects.filter(
             Q(members__user=self.request.user) | Q(owner=self.request.user)
         ).distinct()
