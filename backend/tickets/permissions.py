@@ -144,3 +144,9 @@ class CanManageProjectAgents(permissions.BasePermission):
     """
     def has_permission(self, request, view):
         return is_admin_or_owner(request.user)
+
+def is_workspace_owner(user, workspace):
+    """Check if user owns this workspace (not superuser, just owner)."""
+    if not user.is_authenticated or not workspace:
+        return False
+    return workspace.owner_id == user.id

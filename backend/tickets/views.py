@@ -803,6 +803,10 @@ class ProjectViewSet(viewsets.ModelViewSet):
             if workspace and is_admin_or_owner(user, workspace):
                 return qs
         # Non-admins only see projects they are assigned to
+        # Workspace owners see all projects in their workspace
+        owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
+        if owned_ws:
+            return qs.filter(Q(agents=user) | Q(workspace_id__in=owned_ws)).distinct()
         return qs.filter(agents=user).distinct()
 
     @extend_schema(
@@ -920,6 +924,10 @@ class TicketViewSet(viewsets.ModelViewSet):
         if user.is_superuser or is_admin_or_owner(user, workspace):
             return qs.all()
         # Non-admins only see tickets for projects they are assigned to
+        # Workspace owners see all tickets in their workspace
+        owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
+        if owned_ws:
+            return qs.filter(Q(project__agents=user) | Q(project__workspace_id__in=owned_ws)).distinct()
         return qs.filter(project__agents=user).distinct()
 
     @extend_schema(
@@ -1042,6 +1050,10 @@ class TicketAttachmentViewSet(viewsets.ModelViewSet):
         if user.is_superuser:
             return qs.all()
         # Non-admins only see attachments for tickets in their projects
+        # Workspace owners see all
+        owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
+        if owned_ws:
+            return qs.filter(Q(ticket__project__agents=user) | Q(ticket__project__workspace_id__in=owned_ws)).distinct()
         return qs.filter(ticket__project__agents=user).distinct()
 
     @extend_schema(
@@ -1116,6 +1128,10 @@ class CommentViewSet(viewsets.ModelViewSet):
         if user.is_superuser:
             return qs.all()
         # Non-admins only see comments for tickets in their projects
+        # Workspace owners see all
+        owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
+        if owned_ws:
+            return qs.filter(Q(ticket__project__agents=user) | Q(ticket__project__workspace_id__in=owned_ws)).distinct()
         return qs.filter(ticket__project__agents=user).distinct()
 
     @extend_schema(
@@ -1611,7 +1627,8 @@ class DashboardView(APIView):
 
         tickets = Ticket.objects.filter(project__workspace_id=ws_id)
         if not request.user.is_superuser and not is_admin_or_owner(request.user, workspace):
-            tickets = tickets.filter(project__agents=request.user).distinct()
+            if workspace.owner_id != request.user.id:
+                tickets = tickets.filter(project__agents=request.user).distinct()
         today = timezone.now().date()
 
         # Dynamic status counts from StatusDefinition
@@ -1733,7 +1750,8 @@ class ProjectsDashboardView(APIView):
         # Single aggregation query: project × status counts
         ticket_qs = Ticket.objects.filter(project__workspace_id=ws_id)
         if not request.user.is_superuser and not is_admin_or_owner(request.user, workspace):
-            ticket_qs = ticket_qs.filter(project__agents=request.user).distinct()
+            if workspace.owner_id != request.user.id:
+                ticket_qs = ticket_qs.filter(project__agents=request.user).distinct()
 
         raw = ticket_qs.values('project__slug', 'status').annotate(cnt=Count('id'))
         # Build { project_slug: { status_key: count } }
@@ -1853,6 +1871,10 @@ class PhaseViewSet(viewsets.ModelViewSet):
         if user.is_superuser:
             return qs.all()
         # Only show phases for projects the user has access to
+        # Workspace owners see all tickets in their workspace
+        owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
+        if owned_ws:
+            return qs.filter(Q(project__agents=user) | Q(project__workspace_id__in=owned_ws)).distinct()
         return qs.filter(project__agents=user).distinct()
 
     def create(self, request, *args, **kwargs):
@@ -1887,6 +1909,10 @@ class ProjectInviteViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.is_superuser:
             return qs.all()
+        # Workspace owners see all tickets in their workspace
+        owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
+        if owned_ws:
+            return qs.filter(Q(project__agents=user) | Q(project__workspace_id__in=owned_ws)).distinct()
         return qs.filter(project__agents=user).distinct()
 
     def perform_create(self, serializer):
@@ -1909,6 +1935,10 @@ class ProjectStatusPermissionViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.is_superuser:
             return qs.all()
+        # Workspace owners see all tickets in their workspace
+        owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
+        if owned_ws:
+            return qs.filter(Q(project__agents=user) | Q(project__workspace_id__in=owned_ws)).distinct()
         return qs.filter(project__agents=user).distinct()
 
 
