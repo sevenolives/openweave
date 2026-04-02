@@ -242,7 +242,7 @@ class CommunityTemplateAdmin(admin.ModelAdmin):
 
 @admin.register(CommunityRating)
 class CommunityRatingAdmin(admin.ModelAdmin):
-    list_display = ['template', 'user', 'rating', 'created_at']
+    list_display = ['template', 'user', 'score', 'created_at']
     raw_id_fields = ['template', 'user']
 
 

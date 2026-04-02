@@ -383,10 +383,6 @@ export default function TicketStatesPage() {
   const [newStatusColor, setNewStatusColor] = useState('gray');
   const [addingStatus, setAddingStatus] = useState(false);
   const [workspaceUsers, setWorkspaceUsers] = useState<User[]>([]);
-  const [allWorkspaces, setAllWorkspaces] = useState<Workspace[]>([]);
-  const [syncSource, setSyncSource] = useState('');
-  const [showSyncConfirm, setShowSyncConfirm] = useState<'states' | 'transitions' | null>(null);
-  const [syncing, setSyncing] = useState(false);
   const { toast } = useToast();
 
   const loadData = useCallback(async (ws: Workspace) => {
@@ -403,8 +399,7 @@ export default function TicketStatesPage() {
       // Deduplicate by id
       const seen = new Set<number>();
       setWorkspaceUsers(memberUsers.filter((u: User) => { if (seen.has(u.id)) return false; seen.add(u.id); return true; }));
-      // Load all workspaces for sync picker
-      api.getWorkspaces().then(wsList => setAllWorkspaces(wsList.filter(w => w.slug !== ws.slug))).catch(() => {});
+
     } catch (e: any) { toast(e?.message || 'Failed to load workspace data', 'error'); }
     finally { setLoading(false); }
   }, [toast]);

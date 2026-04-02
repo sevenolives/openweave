@@ -629,16 +629,7 @@ class ApiClient {
     return this.request<any>(`/community-templates/${slug}/`, { method: 'PATCH', body: JSON.stringify(data) });
   }
 
-  async getStateTemplates(): Promise<{ id: string; name: string; description: string; status_count: number }[]> {
-    return this.request<any>('/status-definitions/templates/');
-  }
 
-  async applyStateTemplate(workspace: string, template: string, mode: 'additive' | 'replace' = 'additive'): Promise<{ added: number; skipped: number; total: number; statuses: StatusDefinition[] }> {
-    return this.request<any>('/status-definitions/apply-template/', {
-      method: 'POST',
-      body: JSON.stringify({ workspace, template, mode }),
-    });
-  }
 
   async syncStatusDefinitions(targetWorkspace: string, sourceWorkspace: string, mode: 'states' | 'transitions' = 'states'): Promise<{ added?: number; skipped?: number; updated?: number; warning?: string; total: number; statuses: StatusDefinition[] }> {
     return this.request<any>('/status-definitions/sync-from/', {
@@ -796,7 +787,6 @@ class ApiClient {
   async deleteUser(userId: number): Promise<void> {
     await this.request<void>(`/users/${userId}/`, { method: 'DELETE' });
   }
-}
 
   // State Templates API
   async getStateTemplates(params?: { page?: number; page_size?: number; search?: string; workspace?: string }): Promise<{ count: number; next: string | null; previous: string | null; results: StateTemplate[] }> {
