@@ -17,13 +17,8 @@ export default function PrivateLayout({ children }: { children: React.ReactNode 
     }
   }, [isLoading, isLoggedIn, router]);
 
-  // Redirect to email verification for unverified human users (unless skipped)
-  useEffect(() => {
-    const skipped = typeof window !== 'undefined' && localStorage.getItem('email_verification_skipped');
-    if (!isLoading && isLoggedIn && user && user.user_type === 'HUMAN' && user.email && !user.email_verified && !skipped && pathname !== '/verify-email') {
-      router.replace('/verify-email');
-    }
-  }, [isLoading, isLoggedIn, user, pathname, router]);
+  // Email verification — only redirect on first login, not on every page load
+  // User can always access /verify-email directly, but we don't force-redirect
 
   // Redirect to onboarding if no workspaces (unless already on workspaces page)
   useEffect(() => {
