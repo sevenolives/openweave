@@ -1751,10 +1751,21 @@ class ProjectsDashboardView(APIView):
                 pc.get(sd.key, 0) for pc in project_counts.values()
             )
 
+        # Member counts per project (single query)
+        from django.db.models import Q as _Q
+        member_counts = ProjectAgent.objects.filter(
+            project__workspace_id=ws_id
+        ).values('project__slug').annotate(
+            total_members=Count('id'),
+            bot_count=Count('id', filter=_Q(agent__user_type='BOT')),
+        )
+        member_map = {r['project__slug']: {'total': r['total_members'], 'bots': r['bot_count']} for r in member_counts}
+
         project_list = []
         for p in projects:
             counts = project_counts.get(p.slug, {})
             total = sum(counts.values())
+            mc = member_map.get(p.slug, {'total': 0, 'bots': 0})
             project_list.append({
                 'slug': p.slug,
                 'name': p.name,
@@ -1762,6 +1773,9 @@ class ProjectsDashboardView(APIView):
                 'updated_at': p.updated_at.isoformat(),
                 'total_tickets': total,
                 'status_counts': {sd.key: counts.get(sd.key, 0) for sd in status_defs},
+                'total_members': mc['total'],
+                'bot_count': mc['bots'],
+                'human_count': mc['total'] - mc['bots'],
             })
 
         return Response({

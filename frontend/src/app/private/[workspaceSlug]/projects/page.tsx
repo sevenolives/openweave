@@ -206,7 +206,10 @@ export default function DashboardPage() {
                     )}
 
                     <div className="flex items-center justify-between text-xs text-gray-500 mt-3 pt-3 border-t border-[#222233]">
-                      <span className="font-medium text-gray-400">{project.slug} · {project.total_tickets} ticket{project.total_tickets !== 1 ? 's' : ''}</span>
+                      <span className="font-medium text-gray-400">
+                        {project.slug} · {project.total_tickets} ticket{project.total_tickets !== 1 ? 's' : ''}
+                        {project.total_members > 0 && <> · {project.total_members} member{project.total_members !== 1 ? 's' : ''}{project.bot_count > 0 && <span className="text-purple-400"> ({project.bot_count} 🤖)</span>}</>}
+                      </span>
                       <span>{new Date(project.updated_at).toLocaleDateString()}</span>
                     </div>
                   </div>

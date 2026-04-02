@@ -221,6 +221,9 @@ export interface ProjectDashboardItem {
   updated_at: string;
   total_tickets: number;
   status_counts: Record<string, number>;
+  total_members: number;
+  bot_count: number;
+  human_count: number;
 }
 
 export interface ProjectsDashboard {
