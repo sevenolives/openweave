@@ -609,6 +609,10 @@ class ApiClient {
   }
 
   // Community templates
+  async getCommunityTemplates(): Promise<any> {
+    return this.request<any>('/community-templates/');
+  }
+
   async getCommunityTemplate(workspaceSlug: string): Promise<any> {
     try {
       const results = await this.request<any>('/community-templates/');

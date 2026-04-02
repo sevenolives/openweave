@@ -63,6 +63,8 @@ class Workspace(models.Model):
     owner = models.ForeignKey("User", on_delete=models.CASCADE, related_name='owned_workspaces')
     restrict_status_to_assigned = models.BooleanField(default=False,
         help_text='If enabled, only the assigned user (or admin/owner) can change ticket status.')
+    is_public = models.BooleanField(default=False, help_text="Whether this workspace can be viewed publicly")
+    description = models.TextField(blank=True, default='', help_text="Public description of what this workspace does")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -242,6 +244,8 @@ class Project(models.Model):
     about_text = models.TextField(blank=True, help_text="What this project is about")
     process_text = models.TextField(blank=True, default='', help_text="Process guidelines for bots — conventions, rules, workflow")
     current_phase = models.ForeignKey('Phase', on_delete=models.SET_NULL, null=True, blank=True, related_name='active_in_project', help_text="The currently active phase")
+    url = models.URLField(blank=True, null=True, help_text="Project website URL")
+    logo = models.URLField(blank=True, null=True, help_text="Project logo URL")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

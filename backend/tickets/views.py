@@ -1,5 +1,5 @@
 from rest_framework import viewsets, status, permissions, filters, parsers
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
@@ -2201,3 +2201,90 @@ class MediaFileViewSet(viewsets.ModelViewSet):
             content_type=ct,
             size=f.size,
         )
+
+
+@extend_schema(tags=['public'])
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def public_workspace(request, workspace_slug):
+    """
+    Public workspace profile page data.
+    Returns workspace details, projects, team/bots, and state machine for public workspaces.
+    """
+    from django.shortcuts import get_object_or_404
+    from django.db.models import Count
+    from .serializers import UserSimpleSerializer
+    
+    workspace = get_object_or_404(Workspace, slug=workspace_slug)
+    
+    # Only return data if workspace is public
+    if not workspace.is_public:
+        return Response({'detail': 'Workspace is not public'}, status=status.HTTP_404_NOT_FOUND)
+    
+    # Get projects with basic stats
+    projects = []
+    for project in workspace.projects.all():
+        # Count tickets by status
+        ticket_counts = {}
+        total_tickets = 0
+        for ticket in project.tickets.all():
+            status_key = ticket.status
+            ticket_counts[status_key] = ticket_counts.get(status_key, 0) + 1
+            total_tickets += 1
+        
+        projects.append({
+            'id': project.id,
+            'name': project.name,
+            'slug': project.slug,
+            'about_text': project.about_text,
+            'process_text': project.process_text,
+            'url': project.url,
+            'logo': project.logo,
+            'ticket_counts': ticket_counts,
+            'total_tickets': total_tickets,
+        })
+    
+    # Get team members and bots
+    team_members = []
+    bots = []
+    
+    for member in workspace.members.select_related('user').all():
+        user_data = {
+            'id': member.user.id,
+            'username': member.user.username,
+            'name': member.user.name,
+            'description': member.user.description,
+            'user_type': member.user.user_type,
+        }
+        
+        if member.user.user_type == 'BOT':
+            bots.append(user_data)
+        else:
+            team_members.append(user_data)
+    
+    # Get state machine definitions
+    status_definitions = []
+    for status in workspace.status_definitions.filter(is_archived=False).order_by('position'):
+        status_definitions.append({
+            'id': status.id,
+            'key': status.key,
+            'label': status.label,
+            'color': status.color,
+            'description': status.description,
+            'is_default': status.is_default,
+            'position': status.position,
+            'allowed_from': list(status.allowed_from.values_list('key', flat=True)),
+        })
+    
+    return Response({
+        'workspace': {
+            'name': workspace.name,
+            'slug': workspace.slug,
+            'description': workspace.description,
+            'created_at': workspace.created_at,
+        },
+        'projects': projects,
+        'team_members': team_members,
+        'bots': bots,
+        'status_definitions': status_definitions,
+    })

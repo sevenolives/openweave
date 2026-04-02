@@ -12,7 +12,7 @@ from .views import (
     CommunityTemplateViewSet,
     JoinView, ForgotPasswordView, ResetPasswordView, SendVerificationView, VerifyEmailView,
     DashboardView, ProjectsDashboardView, BlogPostViewSet,
-    MediaFileViewSet,
+    MediaFileViewSet, public_workspace,
 )
 from .billing import (
     CreateCheckoutSessionView, StripeWebhookView,
@@ -79,6 +79,9 @@ urlpatterns = [
     path('billing/status/', SubscriptionStatusView.as_view(), name='billing-status'),
     path('billing/seats/', ManageSeatsView.as_view(), name='billing-seats'),
     path('billing/sync/', SyncSubscriptionView.as_view(), name='billing-sync'),
+    
+    # Public endpoints (no auth required)
+    path('public/workspaces/<str:workspace_slug>/', public_workspace, name='public-workspace'),
 
     path('', include(router.urls)),
 ]
