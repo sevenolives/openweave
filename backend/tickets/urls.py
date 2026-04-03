@@ -13,6 +13,7 @@ from .views import (
     JoinView, ForgotPasswordView, ResetPasswordView, SendVerificationView, VerifyEmailView,
     DashboardView, ProjectsDashboardView, BlogPostViewSet,
     MediaFileViewSet, public_workspace, public_workspaces_list,
+    admin_cleanup_orphan_users,
 )
 from .billing import (
     CreateCheckoutSessionView, StripeWebhookView,
@@ -84,6 +85,9 @@ urlpatterns = [
     # Public endpoints (no auth required)
     path('public/workspaces/', public_workspaces_list, name='public-workspaces-list'),
     path('public/workspaces/<str:workspace_slug>/', public_workspace, name='public-workspace'),
+
+    # Admin utilities
+    path('admin/cleanup-orphan-users/', admin_cleanup_orphan_users, name='admin-cleanup-orphan-users'),
 
     path('', include(router.urls)),
 ]
