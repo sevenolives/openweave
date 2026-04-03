@@ -62,7 +62,9 @@ export default function TicketDetailPage() {
   const { currentWorkspace } = useWorkspace();
 
   useEffect(() => {
-    if (currentWorkspace) api.getStatusDefinitions(currentWorkspace.slug).then(setStatuses).catch(() => {});
+    if (currentWorkspace) api.getStatusDefinitions(currentWorkspace.slug).then(setStatuses).catch((err: any) => {
+      toast(err?.detail || err?.message || 'Failed to load status definitions', 'error');
+    });
   }, [currentWorkspace?.slug]);
 
   const fetchData = async () => {
@@ -74,7 +76,10 @@ export default function TicketDetailPage() {
       try {
         const pAgents = await api.getProjectAgents(t.project);
         setAgents(pAgents); setProjectAgents(pAgents);
-      } catch { setAgents([]); setProjectAgents([]); }
+      } catch (err: any) {
+        console.error('Failed to load project agents:', err);
+        setAgents([]); setProjectAgents([]);
+      }
       setEditTitle(t.title); setEditDesc(t.description); setEditStatus(t.status);
       setEditPriority(t.priority); setEditTicketType(t.ticket_type); setEditAssigned(t.assigned_to?.toString() || '');
     } catch (e: any) { toast(e?.message || 'Failed to load ticket', 'error'); }

@@ -139,7 +139,9 @@ function TicketsPage() {
   // Load status definitions
   useEffect(() => {
     if (currentWorkspace) {
-      api.getStatusDefinitions(currentWorkspace.slug).then(setStatuses).catch(() => {});
+      api.getStatusDefinitions(currentWorkspace.slug).then(setStatuses).catch((err: any) => {
+        toast(err?.detail || err?.message || 'Failed to load status definitions', 'error');
+      });
     }
   }, [currentWorkspace?.slug]);
 
@@ -169,7 +171,7 @@ function TicketsPage() {
       if (!projectAgentsMap[slug]) {
         api.getProjectAgents(slug).then(agents => {
           setProjectAgentsMap(prev => ({ ...prev, [slug]: agents }));
-        }).catch(() => {});
+        }).catch(() => { /* best-effort background fetch */ });
       }
     });
   }, [tickets]);
@@ -177,7 +179,10 @@ function TicketsPage() {
   // Fetch project agents when create modal project selection changes
   useEffect(() => {
     if (newProject) {
-      api.getProjectAgents(newProject).then(setCreateProjectAgents).catch(() => setCreateProjectAgents([]));
+      api.getProjectAgents(newProject).then(setCreateProjectAgents).catch((err: any) => {
+        toast(err?.detail || err?.message || 'Failed to load project agents', 'error');
+        setCreateProjectAgents([]);
+      });
     } else {
       setCreateProjectAgents([]);
     }

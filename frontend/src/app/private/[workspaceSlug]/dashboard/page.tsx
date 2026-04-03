@@ -9,6 +9,7 @@ import type { PieSlice } from '@/components/PieChart';
 import { useAuth } from '@/hooks/useAuth';
 import { api, DashboardStats, ProjectsDashboard, Ticket, StatusDefinition } from '@/lib/api';
 import { useWorkspace } from '@/hooks/useWorkspace';
+import { useToast } from '@/components/Toast';
 
 // Map color tokens to tailwind classes
 const COLOR_MAP: Record<string, { bg: string; text: string; badge: string }> = {
@@ -39,6 +40,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const { currentWorkspace } = useWorkspace();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!currentWorkspace) return;
@@ -51,7 +53,10 @@ export default function DashboardPage() {
         setData(dashboard);
         setProjectsData(projects);
       })
-      .catch(() => {})
+      .catch((err: any) => {
+        const message = err?.detail || err?.message || 'Failed to load dashboard';
+        toast(message, 'error');
+      })
       .finally(() => setLoading(false));
   }, [currentWorkspace?.slug]);
 

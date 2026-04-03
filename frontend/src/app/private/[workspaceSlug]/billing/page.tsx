@@ -5,6 +5,7 @@ import { useSearchParams, useParams } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { api, SubscriptionStatus, WorkspaceMember } from '@/lib/api';
+import { useToast } from '@/components/Toast';
 
 export default function BillingPage() {
   const { currentWorkspace } = useWorkspace();
@@ -19,6 +20,7 @@ export default function BillingPage() {
   const [seatInput, setSeatInput] = useState('');
   const [seatActionLoading, setSeatActionLoading] = useState(false);
   const [upgradeSeats, setUpgradeSeats] = useState(5);
+  const { toast } = useToast();
 
   const success = searchParams.get('success');
   const cancelled = searchParams.get('cancelled');
@@ -36,18 +38,24 @@ export default function BillingPage() {
         setSeatInput(String(sub.licensed_seats || 3));
         setUpgradeSeats(Math.max(sub.occupied_seats || 1, 5));
       })
-      .catch(console.error)
+      .catch((err: any) => {
+        const message = err?.detail || err?.message || 'Failed to load billing data';
+        toast(message, 'error');
+      })
       .finally(() => setLoading(false));
   }, [wsSlug]);
+
+  const [couponCode, setCouponCode] = useState('');
 
   const handleUpgrade = async (plan: 'pro_monthly' | 'pro_annual') => {
     if (!wsSlug) return;
     setActionLoading(true);
     try {
-      const { checkout_url } = await api.createCheckoutSession(wsSlug, plan, upgradeSeats);
+      const { checkout_url } = await api.createCheckoutSession(wsSlug, plan, upgradeSeats, couponCode.trim() || undefined);
       window.location.href = checkout_url;
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      const message = err?.detail || err?.message || 'Checkout failed';
+      toast(message, 'error');
       setActionLoading(false);
     }
   };
@@ -58,8 +66,9 @@ export default function BillingPage() {
     try {
       const { portal_url } = await api.createPortalSession(wsSlug);
       window.location.href = portal_url;
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      const message = err?.detail || err?.message || 'Failed to open billing portal';
+      toast(message, 'error');
       setActionLoading(false);
     }
   };
@@ -79,9 +88,10 @@ export default function BillingPage() {
         });
       }
       setSeatInput(String(result.licensed_seats));
-      alert(result.message);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to update seat count');
+      toast(result.message, 'success');
+    } catch (err: any) {
+      const message = err?.detail || err?.message || 'Failed to update seat count';
+      toast(message, 'error');
     } finally {
       setSeatActionLoading(false);
     }
@@ -218,6 +228,20 @@ export default function BillingPage() {
                   </div>
                 </div>
 
+                {/* Coupon code */}
+                <div className="flex items-center gap-2 mb-3">
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={e => setCouponCode(e.target.value)}
+                    placeholder="Coupon code (optional)"
+                    className="flex-1 px-3 py-2 bg-[#1a1a2e] border border-[#222233] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500"
+                  />
+                  {couponCode && (
+                    <button onClick={() => setCouponCode('')} className="text-xs text-gray-500 hover:text-gray-300">Clear</button>
+                  )}
+                </div>
+
                 <div className="flex gap-3">
                   <button
                     onClick={() => handleUpgrade('pro_monthly')}
@@ -234,6 +258,7 @@ export default function BillingPage() {
                     {actionLoading ? 'Redirecting…' : `$${upgradeSeats * 10}/mo — Annual`}
                   </button>
                 </div>
+                <p className="text-xs text-gray-500 mt-2">You can also enter promo codes on the Stripe checkout page.</p>
               </div>
             )}
 

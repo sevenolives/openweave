@@ -94,15 +94,24 @@ class CreateCheckoutSessionView(APIView):
             initial_quantity = max(1, member_count)
 
         try:
-            session = s.checkout.Session.create(
+            checkout_params = dict(
                 customer=customer_id,
                 payment_method_types=['card'],
                 line_items=[{'price': price_id, 'quantity': initial_quantity}],
                 mode='subscription',
                 success_url=success_url,
                 cancel_url=cancel_url,
+                allow_promotion_codes=True,
                 metadata={'workspace_id': str(workspace.id)},
             )
+            # Apply coupon if provided
+            coupon = request.data.get('coupon')
+            if coupon:
+                checkout_params['discounts'] = [{'coupon': coupon}]
+                # Can't use both allow_promotion_codes and discounts
+                del checkout_params['allow_promotion_codes']
+
+            session = s.checkout.Session.create(**checkout_params)
             return Response({'checkout_url': session.url})
         except Exception as e:
             return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
