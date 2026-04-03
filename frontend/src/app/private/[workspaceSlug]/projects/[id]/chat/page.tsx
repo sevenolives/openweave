@@ -125,7 +125,7 @@ export default function ProjectChatPage() {
           return prev;
         });
       }
-    } catch {}
+    } catch { /* polling — fail silently */ }
   }, [fetchPage, totalCount]);
 
   useEffect(() => {
@@ -133,7 +133,9 @@ export default function ProjectChatPage() {
       try {
         const p = await api.getProject(projectId);
         setProject(p);
-      } catch {}
+      } catch (err: any) {
+        toast(err?.detail || err?.message || 'Failed to load project', 'error');
+      }
       await fetchInitial();
       setLoading(false);
     })();

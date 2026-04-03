@@ -57,14 +57,20 @@ export default function ProjectSettingsPage() {
       setProject(p); setProjectAgents(agents); setAgentMemberships(memberships); setPhases(ph); setStatusPerms(perms);
       // Load workspace statuses and project invites
       if (p.workspace) {
-        api.getStatusDefinitions(String(p.workspace)).then(setStatuses).catch(() => {});
+        api.getStatusDefinitions(String(p.workspace)).then(setStatuses).catch((err: any) => {
+          toast(err?.detail || err?.message || 'Failed to load status definitions', 'error');
+        });
         api.getProjectInvites(p.slug).then(invites => {
           setProjectInvites(invites.filter(i => i.is_active));
-        }).catch(() => {});
+        }).catch((err: any) => {
+          toast(err?.detail || err?.message || 'Failed to load project invites', 'error');
+        });
       }
       setEditName(p.name); setEditSlug(p.slug || ''); setEditDesc(p.about_text); setEditNotes(p.process_text || '');
       if (p.workspace) {
-        api.getUsers({ workspace: String(p.workspace) }).then(setAllUsers).catch(() => {});
+        api.getUsers({ workspace: String(p.workspace) }).then(setAllUsers).catch((err: any) => {
+          toast(err?.detail || err?.message || 'Failed to load users', 'error');
+        });
       }
     } catch (e: any) { toast(e?.message || 'Failed to load project', 'error'); }
     finally { setLoading(false); }

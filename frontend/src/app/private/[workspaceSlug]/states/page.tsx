@@ -142,9 +142,10 @@ function StateMachineSettings({
     updateLocalStatus(id, updates);
     try {
       await handleUpdateStatus(id, updates);
-    } catch {
+    } catch (err: any) {
       // revert on failure
       if (prev) updateLocalStatus(id, prev);
+      toast(err?.detail || err?.message || 'Failed to update status', 'error');
     }
   };
 
