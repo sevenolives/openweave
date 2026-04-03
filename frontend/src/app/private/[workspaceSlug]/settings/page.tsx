@@ -93,27 +93,7 @@ export default function WorkspaceSettingsPage() {
           </div>
         </div>
 
-        {/* Billing */}
-        <div className="bg-[#111118] border border-[#222233] rounded-xl mb-6">
-          <div className="px-5 py-4 border-b border-[#222233]">
-            <h2 className="font-semibold text-white">Billing & Subscription</h2>
-          </div>
-          <div className="p-5 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-white">Manage your subscription and billing</p>
-              <p className="text-xs text-gray-400 mt-1">View usage, upgrade plans, and manage payment methods</p>
-            </div>
-            <button
-              onClick={() => router.push(`/private/${workspaceSlug}/billing`)}
-              className="px-4 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-              </svg>
-              Billing Dashboard
-            </button>
-          </div>
-        </div>
+        {/* Billing is now in the sidebar */}
 
         {/* Danger Zone */}
         <div className="bg-[#111118] rounded-xl border border-red-500/30">
