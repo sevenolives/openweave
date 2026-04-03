@@ -2490,7 +2490,7 @@ def public_workspace(request, workspace_slug):
 
 
 @api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([permissions.IsAuthenticated])
 def admin_cleanup_orphan_users(request):
     """Admin-only: list/delete users not in any workspace."""
     if not request.user.is_superuser:
