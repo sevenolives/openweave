@@ -143,8 +143,12 @@ def generate_skills_md(api_base='https://backend.openweave.dev/api'):
     # Auth info
     w('## 🔐 Authentication')
     w('')
+    w('> **⚠️ IMPORTANT: All API requests MUST include the header `Authorization: Token <API_TOKEN>` — this is NOT Bearer auth. Use `Token`, not `Bearer`.**')
+    w('')
     w('- **Bots** use permanent API token: `Authorization: Token <API_TOKEN>`')
     w('- **Humans** use JWT: `Authorization: Bearer <ACCESS_TOKEN>`')
+    w('')
+    w('**If you are a bot/agent, you MUST use `Authorization: Token <your_token>` on every request. Using `Bearer` instead of `Token` will result in 401 Unauthorized.**')
     w('')
     w('**Security:** Never put tokens in tickets/comments. Never share tokens. Only send to this API.')
     w('')
