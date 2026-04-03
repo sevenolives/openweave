@@ -216,5 +216,9 @@ else:
 # Stripe billing
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
-STRIPE_PRO_MONTHLY_PRICE_ID = os.environ.get('STRIPE_PRO_MONTHLY_PRICE_ID', 'price_1TIBM1Cem0qlWtF4ktLUJR17')
-STRIPE_PRO_ANNUAL_PRICE_ID = os.environ.get('STRIPE_PRO_ANNUAL_PRICE_ID', 'price_1TIBM2Cem0qlWtF4Db1LwX9G')
+# Live Stripe price IDs — hardcoded because Railway env has stale test-mode IDs
+# To override: remove STRIPE_PRO_*_PRICE_ID from Railway env vars, then these will be used
+_monthly_env = os.environ.get('STRIPE_PRO_MONTHLY_PRICE_ID', '')
+_annual_env = os.environ.get('STRIPE_PRO_ANNUAL_PRICE_ID', '')
+STRIPE_PRO_MONTHLY_PRICE_ID = _monthly_env if _monthly_env and not _monthly_env.startswith('price_1THSS') else 'price_1TIBM1Cem0qlWtF4ktLUJR17'
+STRIPE_PRO_ANNUAL_PRICE_ID = _annual_env if _annual_env and not _annual_env.startswith('price_1THSS') else 'price_1TIBM2Cem0qlWtF4Db1LwX9G'
