@@ -2497,6 +2497,7 @@ def admin_cleanup_orphan_users(request):
         return Response({'detail': 'Superuser required'}, status=status.HTTP_403_FORBIDDEN)
     
     from tickets.models import WorkspaceMember, Workspace
+    from django.contrib.auth import get_user_model
     User = get_user_model()
     
     member_ids = set(WorkspaceMember.objects.values_list('user_id', flat=True))
