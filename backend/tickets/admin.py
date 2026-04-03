@@ -223,25 +223,5 @@ class WorkspaceMemberProjectAdmin(admin.ModelAdmin):
     raw_id_fields = ['member', 'project']
 
 
-class CommunityTemplateAdmin(admin.ModelAdmin):
-    list_display = ['name', 'workspace', 'is_published', 'sync_count', 'created_at']
-    list_filter = ['is_published']
-    search_fields = ['name', 'workspace__name']
-
-
-class CommunityRatingAdmin(admin.ModelAdmin):
-    list_display = ['template', 'user', 'score', 'created_at']
-    raw_id_fields = ['template', 'user']
-
-
-class StateTemplateAdmin(admin.ModelAdmin):
-    list_display = ['name', 'icon', 'workspace', 'is_published', 'sync_count', 'created_at']
-    list_filter = ['is_published']
-    search_fields = ['name', 'description']
-    inlines = [StateTemplateItemInline]
-
-
-class StateTemplateItemAdmin(admin.ModelAdmin):
-    list_display = ['template', 'name', 'key', 'color', 'order', 'is_default']
-    list_filter = ['template']
-    search_fields = ['name', 'key']
+# Deprecated: CommunityTemplate, CommunityRating, StateTemplate, StateTemplateItem
+# Tables exist in DB but are not used. Community features use live workspace data.
