@@ -18,7 +18,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [currentWorkspace, setCurrentWorkspaceState] = useState<Workspace | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, isLoading: authLoading } = useAuth();
 
   const refreshWorkspaces = useCallback(async () => {
     try {
@@ -42,6 +42,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Don't resolve workspace loading state until auth has finished loading
+    if (authLoading) return;
+    
     if (isLoggedIn) {
       refreshWorkspaces();
     } else {
@@ -49,7 +52,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       setCurrentWorkspaceState(null);
       setIsLoading(false);
     }
-  }, [isLoggedIn, refreshWorkspaces]);
+  }, [authLoading, isLoggedIn, refreshWorkspaces]);
 
   const setCurrentWorkspace = (ws: Workspace) => {
     setCurrentWorkspaceState(ws);
