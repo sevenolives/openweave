@@ -929,8 +929,11 @@ class TicketViewSet(viewsets.ModelViewSet):
         qs = Ticket.objects.select_related('project', 'assigned_to', 'created_by')
         user = self.request.user
         workspace = self._get_workspace()
+        # ALWAYS scope to workspace if provided — never leak cross-workspace data
+        if workspace:
+            qs = qs.filter(project__workspace=workspace)
         if user.is_superuser or is_admin_or_owner(user, workspace):
-            return qs.all()
+            return qs
         # Non-admins only see tickets for projects they have access to
         return qs.filter(project_access_q(user, prefix='project')).distinct()
 
