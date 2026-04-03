@@ -18,7 +18,7 @@ export default function PublicNav() {
     { href: '/pricing', label: 'Pricing' },
     { href: '/blog', label: 'Blog' },
     { href: 'https://backend.openweave.dev/api/docs/', label: 'API Docs' },
-    { href: 'https://github.com/sevenolives/openweave', label: '⭐ GitHub' },
+
   ];
 
   const ctaHref = isLoggedIn ? '/private/workspaces' : '/login';

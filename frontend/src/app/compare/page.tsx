@@ -185,7 +185,6 @@ export default function ComparePage() {
             <a href="/compare" className="hover:text-gray-400 transition">Compare</a>
             <a href="/policies" className="hover:text-gray-400 transition">Policies</a>
             <a href="https://backend.openweave.dev/api/docs/" className="hover:text-gray-400 transition">API</a>
-            <a href="https://github.com/sevenolives/openweave" className="hover:text-gray-400 transition">GitHub</a>
           </div>
         </div>
       </footer>

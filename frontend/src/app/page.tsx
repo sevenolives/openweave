@@ -386,9 +386,7 @@ export default function HomePage() {
             <a href="/login" className="inline-flex items-center justify-center rounded-lg bg-emerald-500 text-white font-medium px-6 py-3 hover:bg-emerald-400 transition text-sm">
               Request Access →
             </a>
-            <a href="https://github.com/sevenolives/openweave" className="inline-flex items-center justify-center rounded-lg border border-white/10 text-gray-300 font-medium px-6 py-3 hover:bg-white/5 transition text-sm">
-              View Source ↗
-            </a>
+
           </div>
         </div>
       </Section>
@@ -402,7 +400,7 @@ export default function HomePage() {
             <a href="/compare" className="hover:text-gray-400 transition">Compare</a>
             <a href="/policies" className="hover:text-gray-400 transition">Policies</a>
             <a href="https://backend.openweave.dev/api/docs/" className="hover:text-gray-400 transition">API</a>
-            <a href="https://github.com/sevenolives/openweave" className="hover:text-gray-400 transition">GitHub</a>
+
           </div>
         </div>
       </footer>
