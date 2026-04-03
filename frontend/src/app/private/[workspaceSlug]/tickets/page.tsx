@@ -120,18 +120,7 @@ function TicketsPage() {
   const { currentWorkspace } = useWorkspace();
   // Auth gated by (private) layout — component only mounts when logged in
 
-  // Initialize filters from URL params (runs once)
-  useEffect(() => {
-    const statusParam = searchParams.get('status');
-    if (statusParam) setFilterStatus(statusParam);
-    const projectParam = searchParams.get('project');
-    if (projectParam) setFilterProject(projectParam);
-    const priorityParam = searchParams.get('priority');
-    if (priorityParam) setFilterPriority(priorityParam);
-    const assignedParam = searchParams.get('assigned_to');
-    if (assignedParam) setFilterAssigned(assignedParam);
-    // approval gates removed
-  }, []);
+  // Filters are initialized from URL via useState initializers above
 
   // Sync filters to URL so navigating back preserves context
   useEffect(() => {
@@ -145,7 +134,7 @@ function TicketsPage() {
     if (page > 1) params.set('page', String(page));
     const url = params.toString() ? `${basePath}?${params.toString()}` : basePath;
     window.history.replaceState(null, '', url);
-  }, [filterProject, filterStatus, filterPriority, filterAssigned, filterApproved, workspaceSlug]);
+  }, [filterProject, filterStatus, filterPriority, filterAssigned, filterApproved, debouncedSearch, page, workspaceSlug]);
 
   // Load status definitions
   useEffect(() => {
