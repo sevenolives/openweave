@@ -87,7 +87,8 @@ export default function BillingPage() {
     }
   };
 
-  const planLabel = subscription?.plan === 'pro' ? 'Pro' : subscription?.plan === 'enterprise' ? 'Enterprise' : 'Free';
+  const planLabels: Record<string, string> = { free: 'Free', pro: 'Pro', enterprise: 'Enterprise' };
+  const planLabel = planLabels[subscription?.plan ?? 'free'] ?? subscription?.plan ?? 'Free';
   const licensedSeats = subscription?.licensed_seats ?? 3;
   const occupiedSeats = subscription?.occupied_seats ?? (currentWorkspace ? members.length + 1 : 1);
   const availableSeats = subscription?.available_seats ?? (licensedSeats - occupiedSeats);
@@ -122,9 +123,9 @@ export default function BillingPage() {
                   <p className="text-2xl font-bold text-white">{planLabel}</p>
                 </div>
                 <span className={`text-sm font-medium px-3 py-1 rounded-full ${
-                  subscription?.status === 'active' ? 'bg-emerald-100 text-emerald-300' :
-                  subscription?.status === 'past_due' ? 'bg-amber-900/50 text-amber-300' :
-                  'bg-gray-800 text-gray-400'
+                  subscription?.status === 'active' ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' :
+                  subscription?.status === 'past_due' ? 'bg-amber-900/50 text-amber-300 border border-amber-800' :
+                  'bg-gray-800 text-gray-400 border border-gray-700'
                 }`}>
                   {subscription?.status === 'active' ? '● Active' : subscription?.status || 'active'}
                 </span>

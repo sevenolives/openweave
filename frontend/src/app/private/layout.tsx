@@ -13,9 +13,12 @@ export default function PrivateLayout({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     if (!isLoading && !isLoggedIn) {
-      router.replace('/login');
+      // Preserve the current path so login can redirect back after auth
+      const returnPath = pathname + (typeof window !== 'undefined' ? window.location.search : '');
+      const redirectParam = returnPath && returnPath !== '/' ? `?redirect=${encodeURIComponent(returnPath)}` : '';
+      router.replace(`/login${redirectParam}`);
     }
-  }, [isLoading, isLoggedIn, router]);
+  }, [isLoading, isLoggedIn, router, pathname]);
 
   // Redirect to email verification if human user has email but hasn't verified
   // Skip if user came from verify-email page with skip_verify param

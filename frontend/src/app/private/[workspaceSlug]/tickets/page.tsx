@@ -49,11 +49,23 @@ export default function TicketsPageWrapper() {
 function TicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [totalCount, setTotalCount] = useState(0);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const p = parseInt(new URLSearchParams(window.location.search).get('page') || '', 10);
+      return p > 0 ? p : 1;
+    }
+    return 1;
+  });
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [search, setSearch] = useState(() => {
+    if (typeof window !== 'undefined') return new URLSearchParams(window.location.search).get('search') || '';
+    return '';
+  });
+  const [debouncedSearch, setDebouncedSearch] = useState(() => {
+    if (typeof window !== 'undefined') return new URLSearchParams(window.location.search).get('search') || '';
+    return '';
+  });
 
   // Debounce search input
   useEffect(() => {
@@ -64,7 +76,10 @@ function TicketsPage() {
     if (typeof window !== 'undefined') return new URLSearchParams(window.location.search).get('status') || '';
     return '';
   });
-  const [filterPriority, setFilterPriority] = useState('');
+  const [filterPriority, setFilterPriority] = useState(() => {
+    if (typeof window !== 'undefined') return new URLSearchParams(window.location.search).get('priority') || '';
+    return '';
+  });
   const [filterProjectInit] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       const p = new URLSearchParams(window.location.search).get('project');
@@ -73,8 +88,14 @@ function TicketsPage() {
     return '';
   });
   const [filterProject, setFilterProject] = useState<string>(filterProjectInit);
-  const [filterAssigned, setFilterAssigned] = useState('');
-  const [filterApproved, setFilterApproved] = useState('');
+  const [filterAssigned, setFilterAssigned] = useState(() => {
+    if (typeof window !== 'undefined') return new URLSearchParams(window.location.search).get('assigned_to') || '';
+    return '';
+  });
+  const [filterApproved, setFilterApproved] = useState(() => {
+    if (typeof window !== 'undefined') return new URLSearchParams(window.location.search).get('approved') || '';
+    return '';
+  });
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -120,7 +141,8 @@ function TicketsPage() {
     if (filterStatus) params.set('status', filterStatus);
     if (filterPriority) params.set('priority', filterPriority);
     if (filterAssigned) params.set('assigned_to', filterAssigned);
-    // approval filter removed
+    if (debouncedSearch) params.set('search', debouncedSearch);
+    if (page > 1) params.set('page', String(page));
     const url = params.toString() ? `${basePath}?${params.toString()}` : basePath;
     window.history.replaceState(null, '', url);
   }, [filterProject, filterStatus, filterPriority, filterAssigned, filterApproved, workspaceSlug]);
