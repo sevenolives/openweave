@@ -373,6 +373,9 @@ class Ticket(models.Model):
     ticket_type = models.CharField(max_length=20, choices=TICKET_TYPE_CHOICES, default='BUG')
     approved_status = models.CharField(max_length=20, default='UNAPPROVED', help_text="Deprecated — approval gates removed")
     
+    # Phase association
+    phase = models.ForeignKey('Phase', on_delete=models.SET_NULL, null=True, blank=True, related_name='tickets')
+    
     # Assignment - one agent or null
     assigned_to = models.ForeignKey(
         "User", 

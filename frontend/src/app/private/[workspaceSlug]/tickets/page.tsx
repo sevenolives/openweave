@@ -7,7 +7,7 @@ import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import FormField, { parseFieldErrors, inputClass, selectClass } from '@/components/FormField';
-import { api, Ticket, Project, User, WorkspaceMember, ApiError, PaginatedResponse, StatusDefinition } from '@/lib/api';
+import { api, Ticket, Project, User, WorkspaceMember, ApiError, PaginatedResponse, StatusDefinition, Phase } from '@/lib/api';
 import { useWorkspace } from '@/hooks/useWorkspace';
 // Auth handled by (private) layout
 
@@ -96,6 +96,11 @@ function TicketsPage() {
     if (typeof window !== 'undefined') return new URLSearchParams(window.location.search).get('approved') || '';
     return '';
   });
+  const [filterPhase, setFilterPhase] = useState(() => {
+    if (typeof window !== 'undefined') return new URLSearchParams(window.location.search).get('phase') || '';
+    return '';
+  });
+  const [allPhases, setAllPhases] = useState<Phase[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -130,11 +135,12 @@ function TicketsPage() {
     if (filterStatus) params.set('status', filterStatus);
     if (filterPriority) params.set('priority', filterPriority);
     if (filterAssigned) params.set('assigned_to', filterAssigned);
+    if (filterPhase) params.set('phase', filterPhase);
     if (debouncedSearch) params.set('search', debouncedSearch);
     if (page > 1) params.set('page', String(page));
     const url = params.toString() ? `${basePath}?${params.toString()}` : basePath;
     window.history.replaceState(null, '', url);
-  }, [filterProject, filterStatus, filterPriority, filterAssigned, filterApproved, debouncedSearch, page, workspaceSlug]);
+  }, [filterProject, filterStatus, filterPriority, filterAssigned, filterApproved, filterPhase, debouncedSearch, page, workspaceSlug]);
 
   // Load status definitions
   useEffect(() => {
@@ -145,6 +151,13 @@ function TicketsPage() {
     }
   }, [currentWorkspace?.slug]);
 
+  // Load all phases for the workspace (for filter + badges)
+  useEffect(() => {
+    if (!currentWorkspace || projects.length === 0) return;
+    Promise.all(projects.map(p => api.getPhases(p.slug).catch(() => [] as Phase[])))
+      .then(results => setAllPhases(results.flat()));
+  }, [currentWorkspace?.slug, projects.length]);
+
   useEffect(() => {
     if (!currentWorkspace) return;
     setLoading(true);
@@ -154,6 +167,7 @@ function TicketsPage() {
     if (filterStatus) ticketParams.status = filterStatus;
     if (filterPriority) ticketParams.priority = filterPriority;
     if (filterAssigned) ticketParams.assigned_to = filterAssigned;
+    if (filterPhase) ticketParams.phase = filterPhase;
     if (debouncedSearch) ticketParams.search = debouncedSearch;
     const membersPromise: Promise<User[]> = api.getUsers({ workspace: currentWorkspace.slug });
     Promise.all([api.getTicketsPaginated(ticketParams), api.getProjects(wsParams), membersPromise])
@@ -162,7 +176,7 @@ function TicketsPage() {
       })
       .catch((e: any) => toast(e?.message || 'Failed to load data', 'error'))
       .finally(() => setLoading(false));
-  }, [currentWorkspace?.slug, page, filterProject, filterStatus, filterPriority, filterAssigned, filterApproved, debouncedSearch]);
+  }, [currentWorkspace?.slug, page, filterProject, filterStatus, filterPriority, filterAssigned, filterApproved, filterPhase, debouncedSearch]);
 
   // Fetch project agents for all visible projects (for inline assign dropdown)
   useEffect(() => {
@@ -211,6 +225,7 @@ function TicketsPage() {
     if (filterStatus) ticketParams.status = filterStatus;
     if (filterPriority) ticketParams.priority = filterPriority;
     if (filterAssigned) ticketParams.assigned_to = filterAssigned;
+    if (filterPhase) ticketParams.phase = filterPhase;
     if (debouncedSearch) ticketParams.search = debouncedSearch;
     Promise.all([api.getTicketsPaginated(ticketParams), api.getProjects(wsParams)])
       .then(([resp, p]) => { setTickets(resp.results || []); setTotalCount(resp.count || 0); setProjects(p); })
@@ -250,7 +265,7 @@ function TicketsPage() {
     } catch (e: any) { toast(e?.message || 'Failed to delete ticket', 'error'); }
   };
 
-  const hasFilters = search || filterStatus || filterPriority || filterProject || filterAssigned || filterApproved;
+  const hasFilters = search || filterStatus || filterPriority || filterProject || filterAssigned || filterApproved || filterPhase;
 
   return (
     <Layout>
@@ -299,14 +314,17 @@ function TicketsPage() {
               <option value="">All users</option>
               {wsUsers.map(u => <option key={u.id} value={u.id}>{u.name || u.username}</option>)}
             </select>
-            <select value={filterApproved} onChange={e => { setFilterApproved(e.target.value); setPage(1); }} className="px-4 py-3 min-h-[44px] border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-[#1a1a2e] text-white">
-              <option value="">All approvals</option>
-              <option value="APPROVED">✓ Approved</option>
-              <option value="UNAPPROVED">Unapproved</option>
+            <select value={filterPhase} onChange={e => { setFilterPhase(e.target.value); setPage(1); }} className="px-4 py-3 min-h-[44px] border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-[#1a1a2e] text-white">
+              <option value="">All phases</option>
+              {allPhases.map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.status === 'ACTIVE' ? '🟢' : p.status === 'COMPLETED' ? '✅' : '⬜'} {p.name}
+                </option>
+              ))}
             </select>
           </div>
           {hasFilters && (
-            <button onClick={() => { setSearch(''); setFilterStatus(''); setFilterPriority(''); setFilterProject(''); setFilterAssigned(''); setFilterApproved(''); }} className="px-4 py-3 text-sm text-gray-500 hover:text-gray-300 min-h-[44px] rounded-xl hover:bg-[#1a1a2e] transition-colors">
+            <button onClick={() => { setSearch(''); setFilterStatus(''); setFilterPriority(''); setFilterProject(''); setFilterAssigned(''); setFilterApproved(''); setFilterPhase(''); }} className="px-4 py-3 text-sm text-gray-500 hover:text-gray-300 min-h-[44px] rounded-xl hover:bg-[#1a1a2e] transition-colors">
               Clear filters
             </button>
           )}
@@ -384,7 +402,15 @@ function TicketsPage() {
                         <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${PRIORITY_COLORS[ticket.priority]}`}>
                           {ticket.priority}
                         </span>
-                        {/* approval button removed */}
+                        {ticket.phase_details && (
+                          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                            ticket.phase_details.status === 'ACTIVE' ? 'bg-emerald-900/50 text-emerald-300' :
+                            ticket.phase_details.status === 'COMPLETED' ? 'bg-blue-900/50 text-blue-300' :
+                            'bg-gray-800/50 text-gray-300'
+                          }`}>
+                            {ticket.phase_details.status === 'ACTIVE' ? '🟢' : ticket.phase_details.status === 'COMPLETED' ? '✅' : '⬜'} {ticket.phase_details.name}
+                          </span>
+                        )}
                       </div>
                       {/* Assignee + Status row */}
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-2" onClick={e => e.stopPropagation()}>

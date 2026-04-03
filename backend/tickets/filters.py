@@ -50,6 +50,9 @@ class TicketFilter(django_filters.FilterSet):
         lookup_expr='lte'
     )
     
+    # Filter by phase
+    phase = django_filters.NumberFilter(field_name='phase_id', label='Phase ID')
+    
     # Filter by whether ticket is assigned or unassigned
     is_assigned = django_filters.BooleanFilter(method='filter_assignment')
     

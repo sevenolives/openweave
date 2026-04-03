@@ -407,6 +407,14 @@ class UserSlugField(serializers.Field):
             raise serializers.ValidationError(f'User "{data}" not found.')
 
 
+class PhaseDetailsField(serializers.RelatedField):
+    """Read-only field returning phase id, name, status."""
+    def to_representation(self, value):
+        if value is None:
+            return None
+        return {'id': value.id, 'name': value.name, 'status': value.status}
+
+
 class TicketSerializer(serializers.ModelSerializer):
     """Serializer for Ticket model."""
     project = serializers.SlugRelatedField(
@@ -420,6 +428,11 @@ class TicketSerializer(serializers.ModelSerializer):
     project_name = serializers.CharField(source='project.name', read_only=True, help_text="Name of the project.")
     ticket_slug = serializers.CharField(read_only=True, help_text="Project-scoped ticket slug, e.g. SA-1.")
     attachments = TicketAttachmentSerializer(many=True, read_only=True)
+    phase = serializers.PrimaryKeyRelatedField(
+        queryset=Phase.objects.all(), required=False, allow_null=True,
+        help_text='Phase ID (must belong to the same project as the ticket).',
+    )
+    phase_details = PhaseDetailsField(source='phase', read_only=True)
 
     class Meta:
         model = Ticket
@@ -427,7 +440,7 @@ class TicketSerializer(serializers.ModelSerializer):
             'project', 'project_name', 'ticket_slug', 'title', 'description',
             'status', 'priority', 'ticket_type', 'assigned_to', 'assigned_to_details',
             'created_by', 'created_by_details', 'created_at', 'updated_at',
-            'resolved_at', 'closed_at', 'attachments'
+            'resolved_at', 'closed_at', 'attachments', 'phase', 'phase_details'
         ]
         read_only_fields = ['created_by', 'created_at', 'updated_at', 'resolved_at', 'closed_at', 'ticket_slug']
         extra_kwargs = {
@@ -490,8 +503,24 @@ class TicketSerializer(serializers.ModelSerializer):
                 )
         return value
 
+    def validate_phase(self, value):
+        """Validate phase belongs to the same project as the ticket."""
+        if value is not None:
+            project = self._resolve_project()
+            if project and value.project_id != project.id:
+                raise serializers.ValidationError(
+                    "Phase must belong to the same project as the ticket."
+                )
+        return value
+
     def validate(self, data):
         """Validate status transitions using gate-based permissions on StatusDefinition."""
+        # Cross-check phase + project on create (when both are in data)
+        if 'phase' in data and data['phase'] is not None and 'project' in data:
+            if data['phase'].project_id != data['project'].id:
+                raise serializers.ValidationError({
+                    'phase': 'Phase must belong to the same project as the ticket.'
+                })
         request = self.context.get('request')
         if request and self.instance and 'status' in data:
             new_status = data['status']

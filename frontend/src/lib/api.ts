@@ -60,6 +60,8 @@ export interface Ticket {
   updated_at: string;
   resolved_at: string | null;
   closed_at: string | null;
+  phase: number | null;
+  phase_details: { id: number; name: string; status: string } | null;
 }
 
 export interface TicketAttachment {
