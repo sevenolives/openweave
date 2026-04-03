@@ -124,14 +124,14 @@ export default function Layout({ children }: { children: ReactNode }) {
                       router.push(wsPath(ws.slug, pagePart));
                     }
                   }}
-                  className="flex-1 text-sm font-medium text-white bg-[#1a1a2e] border border-[#222233] rounded-lg px-3 py-2"
+                  className="flex-1 min-w-0 text-sm font-medium text-white bg-[#1a1a2e] border border-[#222233] rounded-lg px-3 py-2"
                 >
                   {workspaces.map(ws => (
                     <option key={ws.slug} value={ws.slug}>{ws.name}</option>
                   ))}
                 </select>
                 {subscription && (
-                  <span className={`text-xs font-bold px-2 py-1 rounded ${
+                  <span className={`flex-shrink-0 text-xs font-bold px-2 py-1 rounded whitespace-nowrap ${
                     subscription.plan === 'pro' 
                       ? 'bg-emerald-900/50 text-emerald-400'
                       : subscription.plan === 'enterprise'
