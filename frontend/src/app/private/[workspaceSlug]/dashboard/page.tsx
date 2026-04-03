@@ -7,7 +7,7 @@ import Layout from '@/components/Layout';
 import PieChart from '@/components/PieChart';
 import type { PieSlice } from '@/components/PieChart';
 import { useAuth } from '@/hooks/useAuth';
-import { api, DashboardStats, Ticket, StatusDefinition } from '@/lib/api';
+import { api, DashboardStats, ProjectsDashboard, Ticket, StatusDefinition } from '@/lib/api';
 import { useWorkspace } from '@/hooks/useWorkspace';
 
 // Map color tokens to tailwind classes
@@ -33,6 +33,7 @@ export function statusBadgeClass(statuses: StatusDefinition[], statusKey: string
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardStats | null>(null);
+  const [projectsData, setProjectsData] = useState<ProjectsDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const router = useRouter();
@@ -42,8 +43,14 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!currentWorkspace) return;
     setLoading(true);
-    api.getDashboard({ workspace: currentWorkspace.slug })
-      .then(setData)
+    Promise.all([
+      api.getDashboard({ workspace: currentWorkspace.slug }),
+      api.getProjectsDashboard(currentWorkspace.slug),
+    ])
+      .then(([dashboard, projects]) => {
+        setData(dashboard);
+        setProjectsData(projects);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [currentWorkspace?.slug]);
@@ -189,6 +196,47 @@ export default function DashboardPage() {
                 New Project
               </button>
             </div>
+
+            {/* Project Cards with Member Workload */}
+            {projectsData && projectsData.projects.length > 0 && (
+              <div className="mb-8">
+                <h2 className="text-lg font-semibold text-white mb-4">Projects</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {projectsData.projects.map(project => (
+                    <div
+                      key={project.slug}
+                      onClick={() => router.push(`/private/${workspaceSlug}/projects/${project.slug}`)}
+                      className="bg-[#111118] rounded-xl border border-[#222233] p-5 hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10 transition-all cursor-pointer"
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-semibold text-white truncate">{project.name}</h3>
+                        <span className="text-xs bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded-full font-medium flex-shrink-0 ml-2">
+                          {project.total_tickets} ticket{project.total_tickets !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      {project.members.length > 0 && (
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">Team</p>
+                          {project.members.map(member => (
+                            <div key={member.username} className="flex items-center gap-2">
+                              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0 ${member.user_type === 'BOT' ? 'bg-purple-600' : 'bg-indigo-600'}`}>
+                                {member.user_type === 'BOT' ? '🤖' : (member.name?.[0] || member.username[0]).toUpperCase()}
+                              </div>
+                              <span className="text-xs text-gray-300 truncate flex-1">{member.name || member.username}</span>
+                              {member.tickets > 0 && (
+                                <span className="text-[10px] text-gray-400 bg-[#1a1a2e] px-1.5 py-0.5 rounded flex-shrink-0">
+                                  {member.tickets}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* My Tickets */}
