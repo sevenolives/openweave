@@ -57,8 +57,15 @@ class CreateCheckoutSessionView(APIView):
 
         # Create or retrieve Stripe customer
         if sub.stripe_customer_id:
-            customer_id = sub.stripe_customer_id
-        else:
+            # Validate customer exists in current Stripe mode (test vs live)
+            try:
+                s.Customer.retrieve(sub.stripe_customer_id)
+                customer_id = sub.stripe_customer_id
+            except Exception:
+                # Customer from wrong mode (test/live mismatch) — create new
+                sub.stripe_customer_id = ''
+                sub.save(update_fields=['stripe_customer_id'])
+        if not sub.stripe_customer_id:
             customer = s.Customer.create(
                 email=request.user.email,
                 name=workspace.name,
