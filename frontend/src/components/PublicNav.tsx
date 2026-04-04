@@ -37,14 +37,9 @@ export default function PublicNav() {
           {links.map(l => (
             <Link key={l.href} href={l.href} className="text-sm text-gray-500 hover:text-gray-300 transition">{l.label}</Link>
           ))}
-          {isLoggedIn ? (
-            <div className="flex items-center gap-3">
-              <Link href="/private/workspaces" className="text-sm font-medium text-gray-300 hover:text-white transition">Dashboard →</Link>
-              <button onClick={handleSignOut} className="text-sm text-gray-500 hover:text-red-400 transition">Sign Out</button>
-            </div>
-          ) : (
-            <Link href="/login" className="text-sm font-medium text-gray-300 hover:text-white transition">Sign In →</Link>
-          )}
+          <Link href={isLoggedIn ? '/private/workspaces' : '/login'} className="text-sm font-medium text-gray-300 hover:text-white transition">
+            {isLoggedIn ? 'Dashboard →' : 'Sign In →'}
+          </Link>
         </div>
         <button onClick={() => setMenuOpen(!menuOpen)} className="sm:hidden p-2 text-gray-400 hover:text-white transition" aria-label="Menu">
           {menuOpen ? (
@@ -59,14 +54,9 @@ export default function PublicNav() {
           {links.map(l => (
             <Link key={l.href} href={l.href} className="block text-sm text-gray-400 hover:text-white transition">{l.label}</Link>
           ))}
-          {isLoggedIn ? (
-            <>
-              <Link href="/private/workspaces" className="block text-sm font-medium text-gray-300 hover:text-white transition">Dashboard →</Link>
-              <button onClick={handleSignOut} className="block text-sm text-gray-500 hover:text-red-400 transition">Sign Out</button>
-            </>
-          ) : (
-            <Link href="/login" className="block text-sm font-medium text-gray-300 hover:text-white transition">Sign In →</Link>
-          )}
+          <Link href={isLoggedIn ? '/private/workspaces' : '/login'} className="block text-sm font-medium text-gray-300 hover:text-white transition">
+            {isLoggedIn ? 'Dashboard →' : 'Sign In →'}
+          </Link>
         </div>
       )}
     </nav>
