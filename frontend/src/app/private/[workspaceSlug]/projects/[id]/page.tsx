@@ -174,6 +174,27 @@ export default function ProjectSettingsPage() {
                 <p className="text-xs text-gray-400 mb-2">Process guidelines for bots — process guidelines, conventions, important context. Bots read this before working on tickets.</p>
                 <textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} className="w-full px-4 py-3 border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-[#1a1a2e] text-white placeholder-gray-500 resize-none font-mono" rows={8} placeholder="e.g. All PRs must target the develop branch. Use conventional commits. Never merge without review..." />
               </div>
+              <div className="flex items-center justify-between p-4 bg-[#1a1a2e] rounded-xl border border-[#222233]">
+                <div>
+                  <label className="text-sm font-medium text-white">Publish to community</label>
+                  <p className="text-xs text-gray-400 mt-0.5">Show this project on your public workspace profile</p>
+                </div>
+                <button
+                  onClick={async () => {
+                    if (!project) return;
+                    try {
+                      const updated = await api.updateProject(project.slug, { is_public: !project.is_public });
+                      setProject(updated);
+                      toast(updated.is_public ? 'Project is now public' : 'Project is now private');
+                    } catch (e: any) {
+                      toast(e?.message || 'Failed to update visibility', 'error');
+                    }
+                  }}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${project?.is_public ? 'bg-indigo-600' : 'bg-gray-600'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${project?.is_public ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+              </div>
               <button onClick={handleSaveSettings} disabled={saving} className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-700 transition-colors">
                 {saving ? 'Saving…' : 'Save Changes'}
               </button>

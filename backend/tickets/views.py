@@ -2425,9 +2425,9 @@ def public_workspace(request, workspace_slug):
     if not workspace.is_public:
         return Response({'detail': 'Workspace is not public'}, status=status.HTTP_404_NOT_FOUND)
     
-    # Get projects with basic stats
+    # Get projects with basic stats (only public ones)
     projects = []
-    for project in workspace.projects.all():
+    for project in workspace.projects.filter(is_public=True):
         # Count tickets by status
         ticket_counts = {}
         total_tickets = 0

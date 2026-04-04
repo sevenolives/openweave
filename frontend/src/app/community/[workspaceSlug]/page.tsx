@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { useParams } from 'next/navigation';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import PublicNav from '@/components/PublicNav';
+import { api, tokenStorage, Workspace } from '@/lib/api';
 import {
   ReactFlow,
   Background,
@@ -67,9 +68,16 @@ const COLOR_HEX: Record<string, string> = {
 
 export default function PublicWorkspacePage() {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
+  const router = useRouter();
   const [data, setData] = useState<WorkspaceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showWorkspacePicker, setShowWorkspacePicker] = useState<'states' | 'transitions' | null>(null);
+  const [userWorkspaces, setUserWorkspaces] = useState<Workspace[]>([]);
+  const [loadingWorkspaces, setLoadingWorkspaces] = useState(false);
+  const [applyingSync, setApplyingSync] = useState(false);
+  const [toastMsg, setToastMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const loadWorkspace = async () => {
@@ -98,6 +106,68 @@ export default function PublicWorkspacePage() {
       loadWorkspace();
     }
   }, [workspaceSlug]);
+
+  // Auto-dismiss toast
+  useEffect(() => {
+    if (toastMsg) {
+      const t = setTimeout(() => setToastMsg(null), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [toastMsg]);
+
+  // Close picker on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as globalThis.Node)) {
+        setShowWorkspacePicker(null);
+      }
+    };
+    if (showWorkspacePicker) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showWorkspacePicker]);
+
+  const openWorkspacePicker = async (mode: 'states' | 'transitions') => {
+    const token = tokenStorage.getAccessToken();
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+    setShowWorkspacePicker(mode);
+    setLoadingWorkspaces(true);
+    try {
+      const workspaces = await api.getWorkspaces();
+      setUserWorkspaces(workspaces);
+    } catch {
+      setToastMsg({ text: 'Failed to load your workspaces', type: 'error' });
+      setShowWorkspacePicker(null);
+    } finally {
+      setLoadingWorkspaces(false);
+    }
+  };
+
+  const handleApplySync = async (targetSlug: string) => {
+    if (!data || !showWorkspacePicker) return;
+    setApplyingSync(true);
+    try {
+      const token = tokenStorage.getAccessToken();
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://backend.openweave.dev/api'}/status-definitions/sync-from/`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workspace: targetSlug, source_workspace: data.workspace.slug, mode: showWorkspacePicker }),
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        setToastMsg({ text: d.detail || 'Sync failed', type: 'error' });
+      } else {
+        setToastMsg({ text: d.detail || `Applied! ${d.added || 0} added, ${d.skipped || 0} skipped.`, type: 'success' });
+      }
+    } catch {
+      setToastMsg({ text: 'Failed to apply. Please try again.', type: 'error' });
+    } finally {
+      setApplyingSync(false);
+      setShowWorkspacePicker(null);
+    }
+  };
 
   // Build workflow diagram
   const { nodes, edges } = useMemo(() => {
@@ -336,33 +406,55 @@ export default function PublicWorkspacePage() {
           <section className="mb-12">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-white">Workflow State Machine</h2>
-              <button
-                onClick={() => {
-                  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-                  if (!token) {
-                    window.location.href = '/login';
-                    return;
-                  }
-                  const wsSlug = typeof window !== 'undefined' ? localStorage.getItem('currentWorkspaceSlug') : null;
-                  if (!wsSlug) {
-                    window.location.href = '/private/workspaces';
-                    return;
-                  }
-                  if (confirm(`Apply these ${data.status_definitions.length} states to your workspace?`)) {
-                    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://backend.openweave.dev/api'}/status-definitions/sync-from/`, {
-                      method: 'POST',
-                      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ workspace: wsSlug, source_workspace: data.workspace.slug }),
-                    })
-                    .then(r => r.json())
-                    .then(d => alert(d.detail || `Applied! ${d.added || 0} states added, ${d.skipped || 0} skipped.`))
-                    .catch(() => alert('Failed to apply states. Please try again.'));
-                  }
-                }}
-                className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition"
-              >
-                Apply to my workspace
-              </button>
+              <div className="relative" ref={pickerRef}>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => openWorkspacePicker('states')}
+                    className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition"
+                  >
+                    Apply States
+                  </button>
+                  <button
+                    onClick={() => openWorkspacePicker('transitions')}
+                    className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition"
+                  >
+                    Apply Transitions
+                  </button>
+                </div>
+                {showWorkspacePicker && (
+                  <div className="absolute right-0 top-full mt-2 w-72 bg-[#1a1a2e] border border-[#333355] rounded-xl shadow-2xl z-50 p-4">
+                    <p className="text-sm text-gray-300 mb-3">
+                      Apply <span className="font-semibold text-white">{showWorkspacePicker}</span> to:
+                    </p>
+                    {loadingWorkspaces ? (
+                      <div className="flex justify-center py-4">
+                        <div className="animate-spin rounded-full h-6 w-6 border-2 border-indigo-500 border-t-transparent"></div>
+                      </div>
+                    ) : userWorkspaces.length === 0 ? (
+                      <p className="text-sm text-gray-400 py-2">No workspaces found. Create one first.</p>
+                    ) : (
+                      <div className="space-y-1 max-h-48 overflow-y-auto">
+                        {userWorkspaces.map((ws) => (
+                          <button
+                            key={ws.slug}
+                            onClick={() => handleApplySync(ws.slug)}
+                            disabled={applyingSync}
+                            className="w-full text-left px-3 py-2 rounded-lg text-sm text-white hover:bg-indigo-600/30 transition disabled:opacity-50"
+                          >
+                            {ws.name} <span className="text-gray-400">@{ws.slug}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <button
+                      onClick={() => setShowWorkspacePicker(null)}
+                      className="mt-3 w-full text-center text-xs text-gray-400 hover:text-gray-300"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="bg-[#111118] border border-[#222233] rounded-xl p-6">
               {nodes.length > 0 ? (
@@ -437,6 +529,15 @@ export default function PublicWorkspacePage() {
           </p>
         </div>
       </div>
+
+      {/* Toast notification */}
+      {toastMsg && (
+        <div className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl text-sm font-medium shadow-lg transition-all ${
+          toastMsg.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+        }`}>
+          {toastMsg.text}
+        </div>
+      )}
     </div>
   );
 }
