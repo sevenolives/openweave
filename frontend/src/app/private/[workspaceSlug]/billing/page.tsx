@@ -223,8 +223,8 @@ export default function BillingPage() {
                     </span>
                   </div>
                   <div className="mt-3 flex gap-6 text-sm text-gray-400">
-                    <span>Monthly: <strong className="text-white">${upgradeSeats * 12}/mo</strong></span>
-                    <span>Annual: <strong className="text-white">${upgradeSeats * 10}/mo</strong> <span className="text-green-600">(save ${upgradeSeats * 24}/yr)</span></span>
+                    <span>Monthly: <strong className="text-white">$29/mo</strong> <span className="text-gray-500">(10 agents + ${Math.max(0, upgradeSeats - 10) * 4}/mo extra)</span></span>
+                    <span>Annual: <strong className="text-white">$24/mo</strong> <span className="text-green-600">(save 17%)</span></span>
                   </div>
                 </div>
 
@@ -248,14 +248,14 @@ export default function BillingPage() {
                     disabled={actionLoading}
                     className="px-4 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition disabled:opacity-50"
                   >
-                    {actionLoading ? 'Redirecting…' : `$${upgradeSeats * 12}/mo — Monthly`}
+                    {actionLoading ? 'Redirecting…' : '$29/mo — Monthly'}
                   </button>
                   <button
                     onClick={() => handleUpgrade('pro_annual')}
                     disabled={actionLoading}
                     className="px-4 py-2.5 rounded-lg border border-indigo-500/30 text-indigo-400 text-sm font-medium hover:bg-indigo-900/200/10 transition disabled:opacity-50"
                   >
-                    {actionLoading ? 'Redirecting…' : `$${upgradeSeats * 10}/mo — Annual`}
+                    {actionLoading ? 'Redirecting…' : '$24/mo — Annual'}
                   </button>
                 </div>
                 <p className="text-xs text-gray-500 mt-2">You can also enter promo codes on the Stripe checkout page.</p>
