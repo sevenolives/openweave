@@ -198,12 +198,22 @@ export default function BillingPage() {
 
                 {/* Pricing */}
                 <div className="mb-6 space-y-2">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold text-white">$29</span>
-                    <span className="text-sm text-gray-400">/month</span>
-                  </div>
-                  <p className="text-sm text-gray-400">10 agents included. Additional agents $4/mo each.</p>
-                  <p className="text-sm text-gray-400">You currently have <strong className="text-white">{occupiedSeats} agent{occupiedSeats !== 1 ? 's' : ''}</strong>{occupiedSeats > 10 ? ` — ${occupiedSeats - 10} additional agent${occupiedSeats - 10 !== 1 ? 's' : ''} at $4/mo ($${(occupiedSeats - 10) * 4}/mo extra)` : ''}.</p>
+                  {(() => {
+                    const extraAgents = Math.max(0, occupiedSeats - 10);
+                    const extraCost = extraAgents * 4;
+                    const totalMonthly = 29 + extraCost;
+                    return <>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-3xl font-bold text-white">${totalMonthly}</span>
+                        <span className="text-sm text-gray-400">/month</span>
+                      </div>
+                      <div className="text-sm text-gray-400 space-y-1">
+                        <p>$29/mo base — 10 agents included</p>
+                        {extraAgents > 0 && <p>+ {extraAgents} additional agent{extraAgents !== 1 ? 's' : ''} × $4/mo = <strong className="text-white">${extraCost}/mo</strong></p>}
+                        <p className="text-xs text-gray-500">You have {occupiedSeats} agent{occupiedSeats !== 1 ? 's' : ''} in this workspace</p>
+                      </div>
+                    </>;
+                  })()}
                 </div>
 
                 {/* Coupon code */}

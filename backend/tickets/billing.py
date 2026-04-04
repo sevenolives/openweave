@@ -80,29 +80,26 @@ class CreateCheckoutSessionView(APIView):
         success_url = f"{frontend_url}/private/{workspace.slug}/billing?success=true"
         cancel_url = f"{frontend_url}/private/{workspace.slug}/billing?cancelled=true"
 
-        # Set quantity — user chooses seats, minimum is current member count
+        # Calculate pricing: $29/mo base (10 agents included) + $4/mo per extra agent
         member_count = WorkspaceMember.objects.filter(workspace=workspace).count() + 1  # +1 for owner
-        requested_quantity = request.data.get('quantity')
-        if requested_quantity:
-            requested_quantity = int(requested_quantity)
-            if requested_quantity < member_count:
-                return Response({
-                    'detail': f'Cannot purchase fewer seats than current users ({member_count}). You have {member_count} users.'
-                }, status=status.HTTP_400_BAD_REQUEST)
-            initial_quantity = requested_quantity
-        else:
-            initial_quantity = max(1, member_count)
+        extra_agents = max(0, member_count - 10)
+
+        # Build line items: base price (qty=1) + extra agents if any
+        line_items = [{'price': price_id, 'quantity': 1}]
+        if extra_agents > 0:
+            additional_price_id = getattr(settings, 'STRIPE_PRO_ADDITIONAL_AGENT_PRICE_ID', 'price_1TIKNvCem0qlWtF4NFcVdDIi')
+            line_items.append({'price': additional_price_id, 'quantity': extra_agents})
 
         try:
             checkout_params = dict(
                 customer=customer_id,
                 payment_method_types=['card'],
-                line_items=[{'price': price_id, 'quantity': initial_quantity}],
+                line_items=line_items,
                 mode='subscription',
                 success_url=success_url,
                 cancel_url=cancel_url,
                 allow_promotion_codes=True,
-                metadata={'workspace_id': str(workspace.id)},
+                metadata={'workspace_id': str(workspace.id), 'extra_agents': str(extra_agents)},
             )
             # Apply coupon if provided
             coupon = request.data.get('coupon')
