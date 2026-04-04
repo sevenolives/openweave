@@ -51,7 +51,8 @@ export default function BillingPage() {
     if (!wsSlug) return;
     setActionLoading(true);
     try {
-      const { checkout_url } = await api.createCheckoutSession(wsSlug, plan, upgradeSeats, couponCode.trim() || undefined);
+      // Base price is flat ($29/mo or $24/mo annual) — quantity=1, not per-seat
+      const { checkout_url } = await api.createCheckoutSession(wsSlug, plan, 1, couponCode.trim() || undefined);
       window.location.href = checkout_url;
     } catch (err: any) {
       const message = err?.detail || err?.message || 'Checkout failed';
@@ -195,37 +196,14 @@ export default function BillingPage() {
                   Licensed seats, unlimited workspaces &amp; projects, custom state machines, and more.
                 </p>
 
-                {/* Seat chooser */}
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Number of seats</label>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setUpgradeSeats(Math.max(occupiedSeats, upgradeSeats - 1))}
-                      disabled={upgradeSeats <= occupiedSeats}
-                      className="w-10 h-10 rounded-lg border border-[#222233] text-gray-300 font-bold hover:bg-[#1a1a2e] disabled:opacity-30 disabled:cursor-not-allowed"
-                    >−</button>
-                    <input
-                      type="number"
-                      value={upgradeSeats}
-                      onChange={(e) => {
-                        const v = parseInt(e.target.value) || occupiedSeats;
-                        setUpgradeSeats(Math.max(occupiedSeats, v));
-                      }}
-                      min={occupiedSeats}
-                      className="w-20 text-center px-3 py-2 border border-[#222233] rounded-lg text-lg font-semibold bg-[#1a1a2e] text-white"
-                    />
-                    <button
-                      onClick={() => setUpgradeSeats(upgradeSeats + 1)}
-                      className="w-10 h-10 rounded-lg border border-[#222233] text-gray-300 font-bold hover:bg-[#1a1a2e]"
-                    >+</button>
-                    <span className="text-sm text-gray-400">
-                      (min {occupiedSeats} — you have {occupiedSeats} user{occupiedSeats !== 1 ? 's' : ''})
-                    </span>
+                {/* Pricing */}
+                <div className="mb-6 space-y-2">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-3xl font-bold text-white">$29</span>
+                    <span className="text-sm text-gray-400">/month</span>
                   </div>
-                  <div className="mt-3 flex gap-6 text-sm text-gray-400">
-                    <span>Monthly: <strong className="text-white">$29/mo</strong> <span className="text-gray-500">(10 agents + ${Math.max(0, upgradeSeats - 10) * 4}/mo extra)</span></span>
-                    <span>Annual: <strong className="text-white">$24/mo</strong> <span className="text-green-600">(save 17%)</span></span>
-                  </div>
+                  <p className="text-sm text-gray-400">10 agents included. Additional agents $4/mo each.</p>
+                  <p className="text-sm text-gray-400">You currently have <strong className="text-white">{occupiedSeats} agent{occupiedSeats !== 1 ? 's' : ''}</strong>{occupiedSeats > 10 ? ` — ${occupiedSeats - 10} additional agent${occupiedSeats - 10 !== 1 ? 's' : ''} at $4/mo ($${(occupiedSeats - 10) * 4}/mo extra)` : ''}.</p>
                 </div>
 
                 {/* Coupon code */}
