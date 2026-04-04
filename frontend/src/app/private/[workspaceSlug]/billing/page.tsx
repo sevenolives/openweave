@@ -174,7 +174,7 @@ export default function BillingPage() {
                     </div>
                     <div className="flex items-center justify-between text-sm pt-1">
                       <span className="text-gray-500">Per-seat price</span>
-                      <span className="text-white font-medium">$4/seat/month</span>
+                      <span className="text-white font-medium">$29/mo (10 agents included, +$4/additional)</span>
                     </div>
                   </>
                 )}
@@ -326,7 +326,7 @@ export default function BillingPage() {
                   </ul>
                 </div>
                 <div>
-                  <h3 className="font-medium text-indigo-400 mb-2">Pro — $4/seat/mo</h3>
+                  <h3 className="font-medium text-indigo-400 mb-2">Pro — $29/mo + $4/additional agent</h3>
                   <ul className="space-y-1.5 text-sm text-gray-300">
                     <li>• Licensed seats — buy as needed</li>
                     <li>• Unlimited workspaces &amp; projects</li>

@@ -5,13 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import PublicNav from '@/components/PublicNav';
 
-const FREE_MAX_USERS = process.env.NEXT_PUBLIC_FREE_MAX_USERS || '3';
-const FREE_MAX_WORKSPACES = process.env.NEXT_PUBLIC_FREE_MAX_WORKSPACES || '1';
-const FREE_MAX_PROJECTS = process.env.NEXT_PUBLIC_FREE_MAX_PROJECTS || '5';
-
-const PRO_MONTHLY = process.env.NEXT_PUBLIC_PRO_MONTHLY_PRICE || '4';
-const PRO_ANNUAL = process.env.NEXT_PUBLIC_PRO_ANNUAL_PRICE || '3';
-
 const tiers = [
   {
     name: 'Free',
@@ -19,10 +12,10 @@ const tiers = [
     annualPrice: 0,
     unit: '',
     features: [
-      `Up to ${FREE_MAX_USERS} users (humans + bots)`,
-      `${FREE_MAX_WORKSPACES} workspace`,
-      `${FREE_MAX_PROJECTS} projects per workspace`,
-      'Default state machine only',
+      'Up to 5 agents (humans + bots)',
+      '1 workspace',
+      '3 projects',
+      'Default state machine',
       '24-hour audit log retention',
       'Community support',
     ],
@@ -32,12 +25,12 @@ const tiers = [
   },
   {
     name: 'Pro',
-    monthlyPrice: parseInt(PRO_MONTHLY),
-    annualPrice: parseInt(PRO_ANNUAL),
-    unit: '/user/mo',
+    monthlyPrice: 29,
+    annualPrice: 24,
+    unit: '/mo',
     features: [
-      `Licensed seats ($${PRO_MONTHLY}/seat/mo)`,
-      'Buy seats, assign users flexibly',
+      '10 agents included',
+      '$4/mo per additional agent',
       'Unlimited workspaces',
       'Unlimited projects',
       'Full custom state machines',
@@ -74,8 +67,8 @@ const faqs = [
     a: 'Yes. OpenWeave is available under the BSL 1.1 license. You can self-host for internal use at no cost. Production use as a commercial service requires a commercial license.',
   },
   {
-    q: 'How do licensed seats work?',
-    a: 'You purchase a number of seats (licenses) and assign users to them. You can have fewer users than seats (empty seats). When adding users beyond your seat count, we auto-upgrade your seat count. Removing users frees up seats for later use.',
+    q: 'How does Pro pricing work?',
+    a: 'Pro starts at $29/month which includes 10 agents (humans + bots). Each additional agent beyond 10 is $4/month. When you add agents beyond your limit, we automatically adjust your billing. Removing agents frees up slots.',
   },
   {
     q: 'Can I change plans?',

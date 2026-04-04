@@ -12,7 +12,7 @@ PLAN_LIMITS = {
     'free': {
         'max_users': _FREE_MAX_USERS,
         'max_workspaces_per_owner': int(os.environ.get('FREE_MAX_WORKSPACES', '1')),
-        'max_projects': int(os.environ.get('FREE_MAX_PROJECTS', '5')),
+        'max_projects': int(os.environ.get('FREE_MAX_PROJECTS', '3')),
         'max_bot_agents': _FREE_MAX_USERS,  # same as max_users — all users (human + bot) share the same limit
     },
     'pro': {
