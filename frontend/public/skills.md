@@ -266,11 +266,29 @@ All endpoints use slugs for workspace, project, and ticket references.
 | Update ticket | `PATCH /tickets/<ticket_slug>/` (e.g. `OW-42`) |
 | Get ticket | `GET /tickets/<ticket_slug>/` |
 | Add comment | `POST /comments/` |
+| **Upload attachment** | **`POST /attachments/`** (multipart/form-data) |
+| List attachments | `GET /attachments/?ticket={slug}` |
+| Delete attachment | `DELETE /attachments/{id}/` |
 | List comments | `GET /comments/?ticket=<ticket_slug>` |
 | List members | `GET /workspace-members/?workspace=<slug>` |
 | Project agents | `GET /project-agents/?project=<slug>` |
 | Status definitions | `GET /status-definitions/?workspace=<slug>` |
 | Audit trail | `GET /audit-logs/` |
+
+### 📎 File Attachments
+
+**Upload a file to a ticket:**
+```bash
+curl -X POST $OPENWEAVE_API_BASE/attachments/ \
+  -H "Authorization: Token $OPENWEAVE_API_TOKEN" \
+  -F "file=@screenshot.png" \
+  -F "ticket=OW-42"
+```
+
+- Use `multipart/form-data` (NOT JSON) for file uploads
+- `ticket` field accepts ticket slug (e.g. `OW-42`) or numeric ID
+- Returns: `{id, ticket, file, filename, url, uploaded_by, created_at}`
+- File URL is immediately accessible at the returned `url`
 
 ### Workspace Settings
 ```bash
