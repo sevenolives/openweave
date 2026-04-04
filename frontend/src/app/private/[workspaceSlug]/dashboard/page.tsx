@@ -210,7 +210,7 @@ export default function DashboardPage() {
                   {projectsData.projects.map(project => (
                     <div
                       key={project.slug}
-                      onClick={() => router.push(`/private/${workspaceSlug}/projects/${project.slug}`)}
+                      onClick={() => { window.location.href = `/private/${workspaceSlug}/tickets?project=${project.slug}`; }}
                       className="bg-[#111118] rounded-xl border border-[#222233] p-5 hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10 transition-all cursor-pointer"
                     >
                       <div className="flex items-center justify-between mb-3">
