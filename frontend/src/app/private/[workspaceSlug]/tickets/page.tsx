@@ -175,6 +175,8 @@ function TicketsPage() {
     Promise.all([api.getTicketsPaginated(ticketParams), api.getProjects(wsParams), membersPromise])
       .then(([resp, p, u]) => {
         if (cancelled) return; // Prevent stale response from overwriting
+        const projects_in_results = [...new Set((resp.results || []).map((t: any) => t.project))];
+        console.log('[TICKETS] Setting', resp.results?.length, 'tickets, projects:', projects_in_results);
         setTickets(resp.results || []); setTotalCount(resp.count || 0); setProjects(p); setWsUsers(u);
       })
       .catch((e: any) => { if (!cancelled) toast(e?.message || 'Failed to load data', 'error'); })
