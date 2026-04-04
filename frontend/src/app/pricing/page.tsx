@@ -9,8 +9,8 @@ const FREE_MAX_USERS = process.env.NEXT_PUBLIC_FREE_MAX_USERS || '3';
 const FREE_MAX_WORKSPACES = process.env.NEXT_PUBLIC_FREE_MAX_WORKSPACES || '1';
 const FREE_MAX_PROJECTS = process.env.NEXT_PUBLIC_FREE_MAX_PROJECTS || '5';
 
-const PRO_MONTHLY = process.env.NEXT_PUBLIC_PRO_MONTHLY_PRICE || '12';
-const PRO_ANNUAL = process.env.NEXT_PUBLIC_PRO_ANNUAL_PRICE || '10';
+const PRO_MONTHLY = process.env.NEXT_PUBLIC_PRO_MONTHLY_PRICE || '4';
+const PRO_ANNUAL = process.env.NEXT_PUBLIC_PRO_ANNUAL_PRICE || '3';
 
 const tiers = [
   {

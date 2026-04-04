@@ -37,7 +37,7 @@ const rows: { feature: string; values: [CellValue, CellValue, CellValue, CellVal
   { feature: 'Audit trail', values: [true, true, false, true] },
   { feature: 'Self-hosted option', values: [true, false, false, false] },
   { feature: 'Open source', values: ['✓ (BSL)', false, true, true] },
-  { feature: 'Pricing', values: ['$12/user/mo', '$39/seat/mo', '$0.25/msg', 'Contact us'] },
+  { feature: 'Pricing', values: ['$4/user/mo', '$39/seat/mo', '$0.25/msg', 'Contact us'] },
 ];
 
 const competitors = ['OpenWeave', 'LangSmith', 'Guardrails AI', 'AgentOps'];
