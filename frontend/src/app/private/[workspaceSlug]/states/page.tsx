@@ -501,21 +501,17 @@ export default function TicketStatesPage() {
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
             <button onClick={async () => {
-              const name = prompt('Template name (shown publicly):', `${workspace.name} Workflow`);
-              if (!name) return;
-              const description = prompt('Description (what is this workflow for?):', '') || '';
-              const icon = prompt('Icon (emoji):', '⚡') || '⚡';
               try {
                 await api.createStateTemplate({ 
-                  name, 
-                  description, 
-                  icon, 
+                  name: `${workspace.name} Workflow`, 
+                  description: `State workflow from ${workspace.name}`, 
+                  icon: '⚡', 
                   workspace: workspace.slug, 
                   is_published: true 
                 });
-                toast('Template published to community!');
+                toast('Workflow published to community!');
               } catch (e: any) { 
-                toast(e?.message || 'Failed to publish template', 'error'); 
+                toast(e?.detail || e?.message || 'Failed to publish', 'error'); 
               }
             }} style={{
               padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer',

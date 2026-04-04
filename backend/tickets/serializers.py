@@ -856,6 +856,20 @@ class StateTemplateSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'sync_count', 'created_at', 'updated_at', 'workspace_name', 
                            'workspace_slug', 'item_count', 'state_flow_preview']
 
+    def validate_workspace(self, value):
+        """Accept workspace slug or ID."""
+        return value
+
+    def to_internal_value(self, data):
+        """Convert workspace slug to workspace object."""
+        if 'workspace' in data and isinstance(data['workspace'], str) and not data['workspace'].isdigit():
+            try:
+                data = data.copy()
+                data['workspace'] = Workspace.objects.get(slug=data['workspace']).id
+            except Workspace.DoesNotExist:
+                raise serializers.ValidationError({'workspace': f'Workspace "{data["workspace"]}" not found.'})
+        return super().to_internal_value(data)
+
     def get_item_count(self, obj):
         return obj.items.count()
 
