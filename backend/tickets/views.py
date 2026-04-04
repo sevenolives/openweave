@@ -2370,45 +2370,42 @@ class StateTemplateViewSet(viewsets.ModelViewSet):
 @extend_schema(tags=['public'])
 @api_view(['GET'])
 @permission_classes([AllowAny])
-@api_view(['GET'])
-@permission_classes([AllowAny])
 def public_workspaces_list(request):
-    """List all public workspaces with their live state definitions — for community browsing."""
-    try:
-        qs = Workspace.objects.filter(is_public=True).order_by('name')
-        search = request.query_params.get('search', '').strip()
-        if search:
-            qs = qs.filter(name__icontains=search)
-        
-        page_size = min(int(request.query_params.get('page_size', 12)), 50)
-        page_num = max(int(request.query_params.get('page', 1)), 1)
-        total = qs.count()
-        start = (page_num - 1) * page_size
-        workspaces = list(qs[start:start + page_size])
-        
-        results = []
-        for ws in workspaces:
-            states = list(ws.status_definitions.filter(is_archived=False).order_by('position'))
-            state_flow = ' → '.join(s.label for s in states[:8])
-            results.append({
-                'slug': ws.slug,
-                'name': ws.name,
-                'description': ws.description or '',
-                'state_count': len(states),
-                'state_flow_preview': state_flow,
-                'states': [{'key': s.key, 'label': s.label, 'color': s.color, 'is_default': s.is_default} for s in states],
-            })
-        
-        num_pages = max(1, (total + page_size - 1) // page_size)
-        return Response({
-            'count': total,
-            'num_pages': num_pages,
-            'page': page_num,
-            'results': results,
+    """List all public workspaces with their live state definitions — for community browsing.
+    Plain Django view (no DRF) to avoid Django 6 request compatibility issues."""
+    from django.http import JsonResponse
+    
+    qs = Workspace.objects.filter(is_public=True).order_by('name')
+    search = request.GET.get('search', '').strip()
+    if search:
+        qs = qs.filter(name__icontains=search)
+    
+    page_size = min(int(request.GET.get('page_size', 12)), 50)
+    page_num = max(int(request.GET.get('page', 1)), 1)
+    total = qs.count()
+    start = (page_num - 1) * page_size
+    workspaces = list(qs[start:start + page_size])
+    
+    results = []
+    for ws in workspaces:
+        states = list(ws.status_definitions.filter(is_archived=False).order_by('position'))
+        state_flow = ' → '.join(s.label for s in states[:8])
+        results.append({
+            'slug': ws.slug,
+            'name': ws.name,
+            'description': ws.description or '',
+            'state_count': len(states),
+            'state_flow_preview': state_flow,
+            'states': [{'key': s.key, 'label': s.label, 'color': s.color, 'is_default': s.is_default} for s in states],
         })
-    except Exception as e:
-        import traceback
-        return Response({'detail': str(e), 'trace': traceback.format_exc()}, status=500)
+    
+    num_pages = max(1, (total + page_size - 1) // page_size)
+    return JsonResponse({
+        'count': total,
+        'num_pages': num_pages,
+        'page': page_num,
+        'results': results,
+    })
 
 
 @api_view(['GET'])
