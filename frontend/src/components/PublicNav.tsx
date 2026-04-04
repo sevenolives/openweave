@@ -38,7 +38,7 @@ export default function PublicNav() {
             <Link key={l.href} href={l.href} className="text-sm text-gray-500 hover:text-gray-300 transition">{l.label}</Link>
           ))}
           <Link href={isLoggedIn ? '/private/workspaces' : '/login'} className="text-sm font-medium text-gray-300 hover:text-white transition">
-            {isLoggedIn ? 'Dashboard →' : 'Sign In →'}
+            {isLoggedIn ? 'Projects →' : 'Sign In →'}
           </Link>
         </div>
         <button onClick={() => setMenuOpen(!menuOpen)} className="sm:hidden p-2 text-gray-400 hover:text-white transition" aria-label="Menu">
@@ -55,7 +55,7 @@ export default function PublicNav() {
             <Link key={l.href} href={l.href} className="block text-sm text-gray-400 hover:text-white transition">{l.label}</Link>
           ))}
           <Link href={isLoggedIn ? '/private/workspaces' : '/login'} className="block text-sm font-medium text-gray-300 hover:text-white transition">
-            {isLoggedIn ? 'Dashboard →' : 'Sign In →'}
+            {isLoggedIn ? 'Projects →' : 'Sign In →'}
           </Link>
         </div>
       )}

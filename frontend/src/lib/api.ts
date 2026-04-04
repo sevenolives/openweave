@@ -203,20 +203,6 @@ export interface SubscriptionStatus {
   available_seats: number;
 }
 
-export interface DashboardStats {
-  total_tickets: number;
-  status_counts: Record<string, number>;
-  statuses: StatusDefinition[];
-  completed_today: number;
-  total_projects: number;
-  total_members: number;
-  my_tickets: number;
-  recent_tickets: Ticket[];
-  my_assigned: Ticket[];
-  agent_workload: { username: string; name: string; user_type: string; total: number; statuses: Record<string, number> }[];
-  members: { username: string; name: string; user_type: string; role: string }[];
-}
-
 export interface ProjectDashboardItem {
   slug: string;
   name: string;
@@ -600,11 +586,6 @@ class ApiClient {
 
   async getCurrentUser(): Promise<User> {
     return this.request<User>('/users/me/');
-  }
-
-  async getDashboard(params: Record<string, string>): Promise<DashboardStats> {
-    const query = '?' + new URLSearchParams(params).toString();
-    return this.request<DashboardStats>(`/dashboard/${query}`);
   }
 
   async getProjectsDashboard(workspaceSlug: string): Promise<ProjectsDashboard> {

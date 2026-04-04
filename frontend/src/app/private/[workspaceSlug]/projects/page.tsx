@@ -113,7 +113,7 @@ export default function DashboardPage() {
       <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-white">Projects</h1>
           <p className="text-sm text-gray-400 mt-1">Overview of all projects and ticket status</p>
         </div>
 

@@ -11,7 +11,7 @@ from .views import (
     ProjectAgentViewSet, WorkspaceMemberProjectViewSet, PhaseViewSet, ProjectStatusPermissionViewSet,
     CommunityTemplateViewSet, StateTemplateViewSet,
     JoinView, ForgotPasswordView, ResetPasswordView, SendVerificationView, VerifyEmailView,
-    DashboardView, ProjectsDashboardView, BlogPostViewSet,
+    ProjectsDashboardView, BlogPostViewSet,
     MediaFileViewSet, public_workspace, public_workspaces_list,
     admin_cleanup_orphan_users,
 )
@@ -73,7 +73,6 @@ urlpatterns = [
     path('auth/reset-password/', ResetPasswordView.as_view(), name='reset-password'),
     path('auth/send-verification/', SendVerificationView.as_view(), name='send-verification'),
     path('auth/verify-email/', VerifyEmailView.as_view(), name='verify-email'),
-    path('dashboard/', DashboardView.as_view(), name='dashboard'),
     path('projects-dashboard/', ProjectsDashboardView.as_view(), name='projects-dashboard'),
     path('billing/checkout/', CreateCheckoutSessionView.as_view(), name='billing-checkout'),
     path('billing/webhook/', StripeWebhookView.as_view(), name='billing-webhook'),
