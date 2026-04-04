@@ -131,7 +131,7 @@ export default function PricingPage() {
       </div>
 
       {/* Tiers */}
-      <div className="max-w-5xl mx-auto px-4 pb-20 grid gap-6 md:grid-cols-3">
+      <div className="max-w-3xl mx-auto px-4 pb-20 grid gap-6 md:grid-cols-2">
         {tiers.map((tier) => {
           const price = annual ? tier.annualPrice : tier.monthlyPrice;
           return (
