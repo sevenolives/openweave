@@ -2374,19 +2374,19 @@ class StateTemplateViewSet(viewsets.ModelViewSet):
 @permission_classes([AllowAny])
 def public_workspaces_list(request):
     """List all public workspaces with their live state definitions — for community browsing."""
-    from django.core.paginator import Paginator
-    
     qs = Workspace.objects.filter(is_public=True).order_by('name')
     search = request.query_params.get('search', '').strip()
     if search:
         qs = qs.filter(name__icontains=search)
     
-    paginator = Paginator(qs, int(request.query_params.get('page_size', 12)))
-    page_num = int(request.query_params.get('page', 1))
-    page = paginator.get_page(page_num)
+    page_size = min(int(request.query_params.get('page_size', 12)), 50)
+    page_num = max(int(request.query_params.get('page', 1)), 1)
+    total = qs.count()
+    start = (page_num - 1) * page_size
+    workspaces = qs[start:start + page_size]
     
     results = []
-    for ws in page:
+    for ws in workspaces:
         states = ws.status_definitions.filter(is_archived=False).order_by('position')
         state_flow = ' → '.join(s.label for s in states[:8])
         results.append({
@@ -2398,9 +2398,10 @@ def public_workspaces_list(request):
             'states': [{'key': s.key, 'label': s.label, 'color': s.color, 'is_default': s.is_default} for s in states],
         })
     
+    num_pages = max(1, (total + page_size - 1) // page_size)
     return Response({
-        'count': paginator.count,
-        'num_pages': paginator.num_pages,
+        'count': total,
+        'num_pages': num_pages,
         'page': page_num,
         'results': results,
     })
