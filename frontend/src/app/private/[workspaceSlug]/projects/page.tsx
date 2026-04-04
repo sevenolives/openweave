@@ -179,7 +179,7 @@ export default function DashboardPage() {
                 const pieSlices: PieSlice[] = statuses
                   .map(sd => ({ label: sd.label, value: project.status_counts[sd.key] || 0, color: sd.color }));
                 return (
-                  <div key={project.slug} onClick={() => router.push(`/private/${workspaceSlug}/tickets?project=${project.slug}`)} className="bg-[#111118] rounded-xl border border-[#222233] p-5 hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10 transition-all cursor-pointer group">
+                  <div key={project.slug} onClick={() => { window.location.href = `/private/${workspaceSlug}/tickets?project=${project.slug}`; }} className="bg-[#111118] rounded-xl border border-[#222233] p-5 hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10 transition-all cursor-pointer group">
                     <div className="flex items-start justify-between mb-1">
                       <h3 className="font-semibold text-white group-hover:text-indigo-400 transition-colors truncate mr-2">{project.name}</h3>
                       <div className="flex items-center gap-1 flex-shrink-0">
