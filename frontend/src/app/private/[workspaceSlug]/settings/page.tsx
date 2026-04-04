@@ -106,6 +106,27 @@ export default function WorkspaceSettingsPage() {
                 <p className="text-sm font-medium text-white">Your workflow is not published</p>
               )}
               <p className="text-xs text-gray-400 mt-1">Published workspaces are visible on the community page and can be used as templates by others.</p>
+              {workspace.is_public && (
+                <div className="mt-3 flex items-center gap-2">
+                  <label className="text-xs text-gray-400">Website:</label>
+                  <input
+                    type="url"
+                    defaultValue={workspace.website || ''}
+                    placeholder="https://yoursite.com"
+                    onBlur={async (e) => {
+                      const val = e.target.value.trim();
+                      if (val !== (workspace.website || '')) {
+                        try {
+                          const updated = await api.updateWorkspace(workspace.slug, { website: val } as any);
+                          setWorkspace(updated);
+                          toast('Website updated');
+                        } catch (err: any) { toast(err?.message || 'Failed to update', 'error'); }
+                      }
+                    }}
+                    className="flex-1 px-3 py-1.5 bg-[#1a1a2e] border border-[#222233] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+              )}
             </div>
             <button
               onClick={async () => {

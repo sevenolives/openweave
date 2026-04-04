@@ -65,6 +65,7 @@ class Workspace(models.Model):
         help_text='If enabled, only the assigned user (or admin/owner) can change ticket status.')
     is_public = models.BooleanField(default=False, help_text="Whether this workspace can be viewed publicly")
     description = models.TextField(blank=True, default='', help_text="Public description of what this workspace does")
+    website = models.URLField(max_length=500, blank=True, default='', help_text="Public website URL — shown on community profile as a backlink")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
