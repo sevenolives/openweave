@@ -160,7 +160,9 @@ function TicketsPage() {
 
   useEffect(() => {
     if (!currentWorkspace) return;
+    let cancelled = false;
     setLoading(true);
+    setTickets([]); // Clear stale tickets immediately when filters change
     const wsParams: Record<string, string> = { workspace: currentWorkspace.slug };
     const ticketParams: Record<string, string> = { ...wsParams, page: String(page) };
     if (filterProject) ticketParams.project = String(filterProject);
@@ -172,10 +174,12 @@ function TicketsPage() {
     const membersPromise: Promise<User[]> = api.getUsers({ workspace: currentWorkspace.slug });
     Promise.all([api.getTicketsPaginated(ticketParams), api.getProjects(wsParams), membersPromise])
       .then(([resp, p, u]) => {
+        if (cancelled) return; // Prevent stale response from overwriting
         setTickets(resp.results || []); setTotalCount(resp.count || 0); setProjects(p); setWsUsers(u);
       })
-      .catch((e: any) => toast(e?.message || 'Failed to load data', 'error'))
-      .finally(() => setLoading(false));
+      .catch((e: any) => { if (!cancelled) toast(e?.message || 'Failed to load data', 'error'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [currentWorkspace?.slug, page, filterProject, filterStatus, filterPriority, filterAssigned, filterApproved, filterPhase, debouncedSearch]);
 
   // Fetch project agents for all visible projects (for inline assign dropdown)
