@@ -119,6 +119,7 @@ export default function CommunityStatesPage() {
                 <div className="p-5">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-base font-semibold text-white truncate">{ws.name}</h3>
+                    <p className="text-xs text-gray-500">@{ws.slug}</p>
                     <span className="text-[10px] font-medium text-gray-500 bg-[#1a1a2e] px-2 py-0.5 rounded-full flex-shrink-0 ml-2">
                       {ws.state_count} states
                     </span>

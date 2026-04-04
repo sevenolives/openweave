@@ -205,7 +205,8 @@ export default function PublicWorkspacePage() {
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Workspace Header */}
         <div className="mb-12 text-center">
-          <h1 className="text-4xl font-bold text-white mb-4">{data.workspace.name}</h1>
+          <h1 className="text-4xl font-bold text-white mb-2">{data.workspace.name}</h1>
+          <p className="text-sm text-indigo-400 mb-4">@{data.workspace.slug}</p>
           {data.workspace.description && (
             <p className="text-lg text-gray-300 max-w-3xl mx-auto">{data.workspace.description}</p>
           )}
