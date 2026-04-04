@@ -42,23 +42,6 @@ const tiers = [
     href: '/login',
     highlighted: true,
   },
-  {
-    name: 'Enterprise',
-    monthlyPrice: -1,
-    annualPrice: -1,
-    unit: '',
-    features: [
-      'Everything in Pro',
-      'SSO / SAML',
-      'Self-hosted deployment',
-      'Custom audit log retention',
-      'Dedicated support',
-      'SLA',
-    ],
-    cta: 'Contact Sales',
-    href: 'mailto:sales@openweave.dev',
-    highlighted: false,
-  },
 ];
 
 const faqs = [
@@ -89,12 +72,6 @@ export default function PricingPage() {
     if (planName === 'Free') {
       // Free tier - redirect to signup
       router.push('/signup');
-      return;
-    }
-    
-    if (planName === 'Enterprise') {
-      // Enterprise - email contact
-      window.location.href = 'mailto:sales@openweave.dev';
       return;
     }
     

@@ -134,8 +134,6 @@ export default function Layout({ children }: { children: ReactNode }) {
                   <span className={`flex-shrink-0 text-xs font-bold px-2 py-1 rounded whitespace-nowrap ${
                     subscription.plan === 'pro' 
                       ? 'bg-emerald-900/50 text-emerald-400'
-                      : subscription.plan === 'enterprise'
-                      ? 'bg-purple-900/50 text-purple-400'
                       : 'bg-gray-800 text-gray-400'
                   }`}>
                     {subscription.plan.toUpperCase()}

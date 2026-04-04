@@ -97,7 +97,7 @@ export default function BillingPage() {
     }
   };
 
-  const planLabels: Record<string, string> = { free: 'Free', pro: 'Pro', enterprise: 'Enterprise' };
+  const planLabels: Record<string, string> = { free: 'Free', pro: 'Pro' };
   const planLabel = planLabels[subscription?.plan ?? 'free'] ?? subscription?.plan ?? 'Free';
   const licensedSeats = subscription?.licensed_seats ?? 3;
   const occupiedSeats = subscription?.occupied_seats ?? (currentWorkspace ? members.length + 1 : 1);
