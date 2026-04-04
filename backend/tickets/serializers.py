@@ -205,7 +205,7 @@ class WorkspaceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Workspace
-        fields = ['name', 'slug', 'owner', 'owner_details', 'member_count', 'restrict_status_to_assigned', 'created_at']
+        fields = ['name', 'slug', 'owner', 'owner_details', 'member_count', 'restrict_status_to_assigned', 'is_public', 'created_at']
         read_only_fields = ['owner', 'owner_details', 'created_at']
         extra_kwargs = {
             'name': {'help_text': 'Workspace display name.'},
