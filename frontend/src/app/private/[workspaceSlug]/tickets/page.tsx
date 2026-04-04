@@ -313,11 +313,11 @@ function TicketsPage() {
             <select value={filterProject} onChange={e => {
               hasUserSelectedProject.current = true;
               const val = e.target.value;
-              // Navigate via URL to ensure clean state — prevents stale ticket rendering
+              // Full page navigation to ensure clean React state — SPA navigation leaves stale DOM
               const params = new URLSearchParams(window.location.search);
               if (val) params.set('project', val); else params.delete('project');
               params.set('page', '1');
-              router.push(`/private/${workspaceSlug}/tickets?${params.toString()}`);
+              window.location.href = `/private/${workspaceSlug}/tickets?${params.toString()}`;
             }} className="px-4 py-3 min-h-[44px] border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-[#1a1a2e] text-white">
               <option value="">All projects</option>
               {projects.map(p => <option key={p.slug} value={p.slug}>{p.name}</option>)}
