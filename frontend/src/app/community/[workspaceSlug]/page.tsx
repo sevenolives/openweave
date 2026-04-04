@@ -279,21 +279,21 @@ export default function PublicWorkspacePage() {
         {/* State Machine Section */}
         {data.status_definitions.length > 0 && (
           <section className="mb-12">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-white">Workflow State Machine</h2>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-white mb-4">Workflow State Machine</h2>
               <div className="relative" ref={pickerRef}>
                 <div className="flex gap-2">
                   <button
                     onClick={() => openWorkspacePicker('states')}
-                    className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition"
+                    className="px-3 py-1.5 text-xs font-medium rounded-lg border border-indigo-500/40 text-indigo-400 hover:bg-indigo-500/10 transition"
                   >
-                    Apply States
+                    ↓ Apply States
                   </button>
                   <button
                     onClick={() => openWorkspacePicker('transitions')}
-                    className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition"
+                    className="px-3 py-1.5 text-xs font-medium rounded-lg border border-purple-500/40 text-purple-400 hover:bg-purple-500/10 transition"
                   >
-                    Apply Transitions
+                    ↓ Apply Transitions
                   </button>
                 </div>
                 {showWorkspacePicker && (
