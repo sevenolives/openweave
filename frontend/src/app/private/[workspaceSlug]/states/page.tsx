@@ -491,40 +491,42 @@ export default function TicketStatesPage() {
           </label>
         </div>
 
-        {/* Community Templates */}
+        {/* Community Publishing */}
         <div style={{ background: '#0a0a0a', borderRadius: 16, padding: '20px 24px', marginBottom: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <h3 style={{ fontSize: 14, fontWeight: 700, color: 'white', marginBottom: 2 }}>🌐 Community Templates</h3>
-              <p style={{ fontSize: 12, color: '#6b7280' }}>Share your state machine with the community or browse templates from others.</p>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: 'white', marginBottom: 2 }}>🌐 Community</h3>
+              <p style={{ fontSize: 12, color: '#6b7280' }}>
+                {workspace.is_public
+                  ? '✅ Your workflow is published to the community'
+                  : 'Publish your workflow so others can browse and apply your states'}
+              </p>
             </div>
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-            <button onClick={async () => {
-              try {
-                await api.createStateTemplate({ 
-                  name: `${workspace.name} Workflow`, 
-                  description: `State workflow from ${workspace.name}`, 
-                  icon: '⚡', 
-                  workspace: workspace.slug, 
-                  is_published: true 
-                });
-                toast('Workflow published to community!');
-              } catch (e: any) { 
-                toast(e?.detail || e?.message || 'Failed to publish', 'error'); 
-              }
-            }} style={{
-              padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-              background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', color: '#6ee7b7',
-            }}>
-              📤 Publish as Template
-            </button>
-            <button onClick={() => window.open('/community-states', '_blank')} style={{
-              padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-              background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', color: '#a5b4fc',
-            }}>
-              🌍 Browse Community Templates
-            </button>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button onClick={async () => {
+                try {
+                  const updated = await api.updateWorkspace(workspace.slug, { is_public: !workspace.is_public } as any);
+                  setWorkspace(updated);
+                  await refreshWorkspaces();
+                  toast(updated.is_public ? 'Workflow published to community!' : 'Workflow unpublished');
+                } catch (e: any) {
+                  toast(e?.message || 'Failed to update publish status', 'error');
+                }
+              }} style={{
+                padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                background: workspace.is_public ? 'rgba(107,114,128,0.2)' : 'rgba(16,185,129,0.15)',
+                border: workspace.is_public ? '1px solid rgba(107,114,128,0.3)' : '1px solid rgba(16,185,129,0.3)',
+                color: workspace.is_public ? '#9ca3af' : '#6ee7b7',
+              }}>
+                {workspace.is_public ? 'Unpublish' : '📤 Publish to Community'}
+              </button>
+              <button onClick={() => window.open('/community-states', '_blank')} style={{
+                padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', color: '#a5b4fc',
+              }}>
+                🌍 Browse Community Workflows
+              </button>
+            </div>
           </div>
         </div>
 

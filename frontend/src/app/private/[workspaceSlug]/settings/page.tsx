@@ -93,7 +93,41 @@ export default function WorkspaceSettingsPage() {
           </div>
         </div>
 
-        {/* Billing is now in the sidebar */}
+        {/* Publish to Community */}
+        <div className="bg-[#111118] border border-[#222233] rounded-xl mb-6">
+          <div className="px-5 py-4 border-b border-[#222233]">
+            <h2 className="font-semibold text-white">Community</h2>
+          </div>
+          <div className="px-5 py-4 flex items-center justify-between">
+            <div>
+              {workspace.is_public ? (
+                <p className="text-sm font-medium text-white">✅ Your workflow is published to the community</p>
+              ) : (
+                <p className="text-sm font-medium text-white">Your workflow is not published</p>
+              )}
+              <p className="text-xs text-gray-400 mt-1">Published workspaces are visible on the community page and can be used as templates by others.</p>
+            </div>
+            <button
+              onClick={async () => {
+                try {
+                  const updated = await api.updateWorkspace(workspace.slug, { is_public: !workspace.is_public } as any);
+                  setWorkspace(updated);
+                  await refreshWorkspaces();
+                  toast(updated.is_public ? 'Workflow published to community!' : 'Workflow unpublished');
+                } catch (e: any) {
+                  toast(e?.message || 'Failed to update publish status', 'error');
+                }
+              }}
+              className={`px-4 py-2.5 text-white rounded-xl text-sm font-medium transition-colors flex-shrink-0 ${
+                workspace.is_public
+                  ? 'bg-gray-600 hover:bg-gray-700'
+                  : 'bg-indigo-600 hover:bg-indigo-700'
+              }`}
+            >
+              {workspace.is_public ? 'Unpublish' : 'Publish to Community'}
+            </button>
+          </div>
+        </div>
 
         {/* Danger Zone */}
         <div className="bg-[#111118] rounded-xl border border-red-500/30">

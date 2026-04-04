@@ -27,26 +27,6 @@ interface StatusDefinition {
   allowed_from: string[];
 }
 
-interface Project {
-  id: number;
-  name: string;
-  slug: string;
-  about_text: string;
-  process_text: string;
-  url: string | null;
-  logo: string | null;
-  ticket_counts: Record<string, number>;
-  total_tickets: number;
-}
-
-interface TeamMember {
-  id: number;
-  username: string;
-  name: string;
-  description: string;
-  user_type: string;
-}
-
 interface WorkspaceData {
   workspace: {
     name: string;
@@ -54,9 +34,6 @@ interface WorkspaceData {
     description: string;
     created_at: string;
   };
-  projects: Project[];
-  // team_members removed — humans are private
-  bots: TeamMember[];
   status_definitions: StatusDefinition[];
 }
 
@@ -129,7 +106,7 @@ export default function PublicWorkspacePage() {
   const openWorkspacePicker = async (mode: 'states' | 'transitions') => {
     const token = tokenStorage.getAccessToken();
     if (!token) {
-      router.push('/login');
+      router.push(`/login?redirect=/community/${workspaceSlug}`);
       return;
     }
     setShowWorkspacePicker(mode);
@@ -147,19 +124,26 @@ export default function PublicWorkspacePage() {
 
   const handleApplySync = async (targetSlug: string) => {
     if (!data || !showWorkspacePicker) return;
+    const mode = showWorkspacePicker;
+    const targetWs = userWorkspaces.find(ws => ws.slug === targetSlug);
+    const targetName = targetWs?.name || targetSlug;
     setApplyingSync(true);
     try {
       const token = tokenStorage.getAccessToken();
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://backend.openweave.dev/api'}/status-definitions/sync-from/`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workspace: targetSlug, source_workspace: data.workspace.slug, mode: showWorkspacePicker }),
+        body: JSON.stringify({ workspace: targetSlug, source_workspace: data.workspace.slug, mode }),
       });
       const d = await res.json();
       if (!res.ok) {
         setToastMsg({ text: d.detail || 'Sync failed', type: 'error' });
       } else {
-        setToastMsg({ text: d.detail || `Applied! ${d.added || 0} added, ${d.skipped || 0} skipped.`, type: 'success' });
+        if (mode === 'states') {
+          setToastMsg({ text: `Applied ${d.added || 0} states to ${targetName}`, type: 'success' });
+        } else {
+          setToastMsg({ text: `Applied transitions to ${targetName}`, type: 'success' });
+        }
       }
     } catch {
       setToastMsg({ text: 'Failed to apply. Please try again.', type: 'error' });
@@ -183,7 +167,6 @@ export default function PublicWorkspacePage() {
     
     activeStatuses.forEach((s) => g.setNode(s.key, { width: 140, height: 40 }));
     
-    // Build edges from allowed_from relationships
     const activeKeys = new Set(activeStatuses.map(s => s.key));
     activeStatuses.forEach((target) => {
       if (target.allowed_from && target.allowed_from.length > 0) {
@@ -243,6 +226,14 @@ export default function PublicWorkspacePage() {
     return { nodes, edges };
   }, [data?.status_definitions]);
 
+  // Helper to resolve key → label
+  const keyToLabel = useMemo(() => {
+    if (!data?.status_definitions) return new Map<string, { label: string; color: string }>();
+    const map = new Map<string, { label: string; color: string }>();
+    data.status_definitions.forEach(s => map.set(s.key, { label: s.label, color: s.color }));
+    return map;
+  }, [data?.status_definitions]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0a0a0f]">
@@ -284,122 +275,6 @@ export default function PublicWorkspacePage() {
             Public since {new Date(data.workspace.created_at).toLocaleDateString()}
           </div>
         </div>
-
-        {/* Projects Section */}
-        {data.projects.length > 0 && (
-          <section className="mb-12">
-            <h2 className="text-2xl font-bold text-white mb-6">Projects</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {data.projects.map((project) => (
-                <div
-                  key={project.id}
-                  className="bg-[#111118] border border-[#222233] rounded-xl p-6"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        {project.logo && (
-                          <img 
-                            src={project.logo} 
-                            alt={`${project.name} logo`}
-                            className="w-6 h-6 rounded"
-                          />
-                        )}
-                        <h3 className="text-lg font-semibold text-white">{project.name}</h3>
-                        <span className="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded font-mono">
-                          {project.slug}
-                        </span>
-                      </div>
-                      {project.about_text && (
-                        <p className="text-gray-300 text-sm mb-3">{project.about_text}</p>
-                      )}
-                      {project.url && (
-                        <a
-                          href={project.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-indigo-400 hover:text-indigo-300 text-sm inline-flex items-center gap-1"
-                        >
-                          Visit Website
-                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                          </svg>
-                        </a>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Ticket Stats */}
-                  <div className="border-t border-[#222233] pt-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-400">Total Tickets</span>
-                      <span className="text-sm font-medium text-white">{project.total_tickets}</span>
-                    </div>
-                    {Object.keys(project.ticket_counts).length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {Object.entries(project.ticket_counts).map(([status, count]) => (
-                          <span 
-                            key={status}
-                            className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded"
-                          >
-                            {status}: {count}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {project.process_text && (
-                    <details className="mt-4">
-                      <summary className="text-sm text-gray-400 cursor-pointer hover:text-gray-300">
-                        View Process Guidelines
-                      </summary>
-                      <div className="mt-2 text-xs text-gray-400 bg-gray-900/50 p-3 rounded">
-                        {project.process_text}
-                      </div>
-                    </details>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Bots Section — humans are private */}
-        {data.bots.length > 0 && (
-          <section className="mb-12">
-            <h2 className="text-2xl font-bold text-white mb-6">🤖 Bots & Automation</h2>
-
-            {data.bots.length > 0 && (
-              <div>
-                <h3 className="text-lg font-semibold text-white mb-4">Bots & Automation</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {data.bots.map((bot) => (
-                    <div
-                      key={bot.id}
-                      className="bg-[#111118] border border-[#222233] rounded-lg p-4"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-emerald-500/20 rounded-full flex items-center justify-center text-sm font-bold text-emerald-400">
-                          🤖
-                        </div>
-                        <div>
-                          <div className="font-medium text-white flex items-center gap-2">
-                            {bot.name || bot.username}
-                            <span className="text-xs bg-emerald-900/50 text-emerald-400 px-2 py-0.5 rounded">BOT</span>
-                          </div>
-                          {bot.description && (
-                            <div className="text-sm text-gray-400">{bot.description}</div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </section>
-        )}
 
         {/* State Machine Section */}
         {data.status_definitions.length > 0 && (
@@ -456,6 +331,8 @@ export default function PublicWorkspacePage() {
                 )}
               </div>
             </div>
+
+            {/* Flow Diagram */}
             <div className="bg-[#111118] border border-[#222233] rounded-xl p-6">
               {nodes.length > 0 ? (
                 <div className="h-96 w-full rounded-lg overflow-hidden border border-[#27272a] bg-gradient-to-br from-gray-50 to-gray-100">
@@ -480,34 +357,7 @@ export default function PublicWorkspacePage() {
                   </ReactFlow>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {data.status_definitions.map((status) => {
-                    const color = COLOR_HEX[status.color] || '#9ca3af';
-                    return (
-                      <div
-                        key={status.id}
-                        className="bg-[#1a1a2e] border border-[#222233] rounded-lg p-4"
-                        style={{ borderLeftColor: color, borderLeftWidth: '4px' }}
-                      >
-                        <div className="flex items-center gap-2 mb-2">
-                          <div
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: color }}
-                          ></div>
-                          <span className="font-medium text-white">{status.label}</span>
-                          {status.is_default && (
-                            <span className="text-xs bg-yellow-900/50 text-yellow-400 px-2 py-0.5 rounded">
-                              DEFAULT
-                            </span>
-                          )}
-                        </div>
-                        {status.description && (
-                          <p className="text-sm text-gray-400">{status.description}</p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                <p className="text-center text-gray-400 py-8">No workflow diagram available</p>
               )}
               
               <div className="mt-6 text-center">
@@ -515,6 +365,74 @@ export default function PublicWorkspacePage() {
                   This workflow defines {data.status_definitions.length} states for managing tickets and tasks.
                 </p>
               </div>
+            </div>
+
+            {/* State Cards */}
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {data.status_definitions.map((status) => {
+                const color = COLOR_HEX[status.color] || '#9ca3af';
+                return (
+                  <div
+                    key={status.id}
+                    className="bg-[#111118] border border-[#222233] rounded-xl p-5"
+                    style={{ borderLeftColor: color, borderLeftWidth: '4px' }}
+                  >
+                    {/* Header: color dot + label + key */}
+                    <div className="flex items-center gap-2.5 mb-2">
+                      <div
+                        className="w-3 h-3 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: color }}
+                      />
+                      <span className="font-semibold text-white text-sm">{status.label}</span>
+                      <span className="text-[11px] font-mono text-gray-500 bg-gray-800/60 px-1.5 py-0.5 rounded">
+                        {status.key}
+                      </span>
+                      {status.is_default && (
+                        <span className="text-[10px] bg-yellow-900/50 text-yellow-400 px-2 py-0.5 rounded font-medium">
+                          DEFAULT
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Description */}
+                    {status.description && (
+                      <p className="text-xs text-gray-400 mb-3 leading-relaxed">{status.description}</p>
+                    )}
+
+                    {/* Allowed from badges */}
+                    {status.allowed_from && status.allowed_from.length > 0 ? (
+                      <div className="mt-auto">
+                        <p className="text-[11px] text-gray-500 font-medium mb-1.5">Allowed from</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {status.allowed_from.map((fromKey) => {
+                            const source = keyToLabel.get(fromKey);
+                            const srcColor = source ? (COLOR_HEX[source.color] || '#9ca3af') : '#9ca3af';
+                            return (
+                              <span
+                                key={fromKey}
+                                className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-md font-medium"
+                                style={{
+                                  background: `${srcColor}15`,
+                                  color: srcColor,
+                                  border: `1px solid ${srcColor}30`,
+                                }}
+                              >
+                                <span
+                                  className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                                  style={{ backgroundColor: srcColor }}
+                                />
+                                {source?.label || fromKey}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-gray-600 mt-auto">Reachable from any state</p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </section>
         )}

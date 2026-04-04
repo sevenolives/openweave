@@ -95,6 +95,7 @@ export interface Workspace {
   owner_details?: User;
   member_count: number;
   restrict_status_to_assigned: boolean;
+  is_public: boolean;
   created_at: string;
 }
 
