@@ -2448,23 +2448,16 @@ def public_workspace(request, workspace_slug):
             'total_tickets': total_tickets,
         })
     
-    # Get team members and bots
-    team_members = []
+    # Get bots only — humans are private
     bots = []
-    
-    for member in workspace.members.select_related('user').all():
-        user_data = {
+    for member in workspace.members.select_related('user').filter(user__user_type='BOT'):
+        bots.append({
             'id': member.user.id,
             'username': member.user.username,
             'name': member.user.name,
             'description': member.user.description,
             'user_type': member.user.user_type,
-        }
-        
-        if member.user.user_type == 'BOT':
-            bots.append(user_data)
-        else:
-            team_members.append(user_data)
+        })
     
     # Get state machine definitions
     status_definitions = []
@@ -2488,7 +2481,6 @@ def public_workspace(request, workspace_slug):
             'created_at': workspace.created_at,
         },
         'projects': projects,
-        'team_members': team_members,
         'bots': bots,
         'status_definitions': status_definitions,
     })

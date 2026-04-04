@@ -54,7 +54,7 @@ interface WorkspaceData {
     created_at: string;
   };
   projects: Project[];
-  team_members: TeamMember[];
+  // team_members removed — humans are private
   bots: TeamMember[];
   status_definitions: StatusDefinition[];
 }
@@ -295,36 +295,10 @@ export default function PublicWorkspacePage() {
           </section>
         )}
 
-        {/* Team Section */}
-        {(data.team_members.length > 0 || data.bots.length > 0) && (
+        {/* Bots Section — humans are private */}
+        {data.bots.length > 0 && (
           <section className="mb-12">
-            <h2 className="text-2xl font-bold text-white mb-6">Team</h2>
-            
-            {data.team_members.length > 0 && (
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold text-white mb-4">Team Members</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {data.team_members.map((member) => (
-                    <div
-                      key={member.id}
-                      className="bg-[#111118] border border-[#222233] rounded-lg p-4"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-indigo-500/20 rounded-full flex items-center justify-center text-sm font-bold text-indigo-400">
-                          {member.name[0]?.toUpperCase() || member.username[0]?.toUpperCase() || '?'}
-                        </div>
-                        <div>
-                          <div className="font-medium text-white">{member.name || member.username}</div>
-                          {member.description && (
-                            <div className="text-sm text-gray-400">{member.description}</div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <h2 className="text-2xl font-bold text-white mb-6">🤖 Bots & Automation</h2>
 
             {data.bots.length > 0 && (
               <div>
@@ -360,7 +334,36 @@ export default function PublicWorkspacePage() {
         {/* State Machine Section */}
         {data.status_definitions.length > 0 && (
           <section className="mb-12">
-            <h2 className="text-2xl font-bold text-white mb-6">Workflow State Machine</h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-white">Workflow State Machine</h2>
+              <button
+                onClick={() => {
+                  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+                  if (!token) {
+                    window.location.href = '/login';
+                    return;
+                  }
+                  const wsSlug = typeof window !== 'undefined' ? localStorage.getItem('currentWorkspaceSlug') : null;
+                  if (!wsSlug) {
+                    window.location.href = '/private/workspaces';
+                    return;
+                  }
+                  if (confirm(`Apply these ${data.status_definitions.length} states to your workspace?`)) {
+                    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://backend.openweave.dev/api'}/status-definitions/sync-from/`, {
+                      method: 'POST',
+                      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ workspace: wsSlug, source_workspace: data.workspace.slug }),
+                    })
+                    .then(r => r.json())
+                    .then(d => alert(d.detail || `Applied! ${d.added || 0} states added, ${d.skipped || 0} skipped.`))
+                    .catch(() => alert('Failed to apply states. Please try again.'));
+                  }
+                }}
+                className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition"
+              >
+                Apply to my workspace
+              </button>
+            </div>
             <div className="bg-[#111118] border border-[#222233] rounded-xl p-6">
               {nodes.length > 0 ? (
                 <div className="h-96 w-full rounded-lg overflow-hidden border border-[#27272a] bg-gradient-to-br from-gray-50 to-gray-100">
