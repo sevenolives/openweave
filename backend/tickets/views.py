@@ -1271,15 +1271,21 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
 
     @extend_schema(
         summary="Update workspace",
-        description="Update workspace name or slug. Only workspace admins or owner can update.",
-        responses={200: WorkspaceSerializer, 400: _error_detail},
+        description="Update workspace name, slug, or settings. Only workspace owner can update.",
+        responses={200: WorkspaceSerializer, 400: _error_detail, 403: _error_detail},
         examples=[OpenApiExample('Update name', value={'name': 'Acme Inc'}, request_only=True)],
     )
     def partial_update(self, request, *args, **kwargs):
+        workspace = self.get_object()
+        if not is_admin_or_owner(request.user, workspace):
+            return Response({'detail': 'Only workspace owner can update settings.'}, status=status.HTTP_403_FORBIDDEN)
         return super().partial_update(request, *args, **kwargs)
 
-    @extend_schema(summary="Delete workspace", description="Delete a workspace. Admin or owner only.", responses={204: None})
+    @extend_schema(summary="Delete workspace", description="Delete a workspace. Owner only.", responses={204: None, 403: _error_detail})
     def destroy(self, request, *args, **kwargs):
+        workspace = self.get_object()
+        if not is_admin_or_owner(request.user, workspace):
+            return Response({'detail': 'Only workspace owner can delete.'}, status=status.HTTP_403_FORBIDDEN)
         return super().destroy(request, *args, **kwargs)
 
     def perform_create(self, serializer):
@@ -1463,9 +1469,11 @@ class StatusDefinitionViewSet(viewsets.ModelViewSet):
             return Response({'detail': f'Source workspace "{source_slug}" not found.'}, status=status.HTTP_404_NOT_FOUND)
         if not is_admin_or_owner(request.user, target_ws):
             return Response({'detail': 'Only workspace owner can sync state machine.'}, status=status.HTTP_403_FORBIDDEN)
-        if not request.user.is_superuser and not is_admin_or_owner(request.user, source_ws):
-            if not WorkspaceMember.objects.filter(workspace=source_ws, user=request.user).exists():
-                return Response({'detail': 'You do not have access to the source workspace.'}, status=status.HTTP_403_FORBIDDEN)
+        # Source workspace must be public OR user must have access
+        if not source_ws.is_public:
+            if not request.user.is_superuser and not is_admin_or_owner(request.user, source_ws):
+                if not WorkspaceMember.objects.filter(workspace=source_ws, user=request.user).exists():
+                    return Response({'detail': 'Source workspace is not public and you do not have access.'}, status=status.HTTP_403_FORBIDDEN)
 
         source_statuses = StatusDefinition.objects.filter(workspace=source_ws).prefetch_related('allowed_from')
         if not source_statuses.exists():
