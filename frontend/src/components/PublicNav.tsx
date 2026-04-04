@@ -8,8 +8,17 @@ export default function PublicNav() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    setIsLoggedIn(!!localStorage.getItem('access_token'));
+    setIsLoggedIn(!!localStorage.getItem('accessToken'));
   }, []);
+
+  const handleSignOut = () => {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+    localStorage.removeItem('currentWorkspaceSlug');
+    setIsLoggedIn(false);
+    window.location.href = '/';
+  };
 
   const links = [
     { href: '/docs', label: 'Docs' },
@@ -18,11 +27,7 @@ export default function PublicNav() {
     { href: '/pricing', label: 'Pricing' },
     { href: '/blog', label: 'Blog' },
     { href: 'https://backend.openweave.dev/api/docs/', label: 'API Docs' },
-
   ];
-
-  const ctaHref = isLoggedIn ? '/private/workspaces' : '/login';
-  const ctaLabel = isLoggedIn ? 'Dashboard →' : 'Sign In →';
 
   return (
     <nav className="sticky top-0 z-50 bg-gray-950/90 backdrop-blur border-b border-white/5">
@@ -32,7 +37,14 @@ export default function PublicNav() {
           {links.map(l => (
             <Link key={l.href} href={l.href} className="text-sm text-gray-500 hover:text-gray-300 transition">{l.label}</Link>
           ))}
-          <Link href={ctaHref} className="text-sm font-medium text-gray-300 hover:text-white transition">{ctaLabel}</Link>
+          {isLoggedIn ? (
+            <div className="flex items-center gap-3">
+              <Link href="/private/workspaces" className="text-sm font-medium text-gray-300 hover:text-white transition">Dashboard →</Link>
+              <button onClick={handleSignOut} className="text-sm text-gray-500 hover:text-red-400 transition">Sign Out</button>
+            </div>
+          ) : (
+            <Link href="/login" className="text-sm font-medium text-gray-300 hover:text-white transition">Sign In →</Link>
+          )}
         </div>
         <button onClick={() => setMenuOpen(!menuOpen)} className="sm:hidden p-2 text-gray-400 hover:text-white transition" aria-label="Menu">
           {menuOpen ? (
@@ -47,7 +59,14 @@ export default function PublicNav() {
           {links.map(l => (
             <Link key={l.href} href={l.href} className="block text-sm text-gray-400 hover:text-white transition">{l.label}</Link>
           ))}
-          <Link href={ctaHref} className="block text-sm font-medium text-gray-300 hover:text-white transition">{ctaLabel}</Link>
+          {isLoggedIn ? (
+            <>
+              <Link href="/private/workspaces" className="block text-sm font-medium text-gray-300 hover:text-white transition">Dashboard →</Link>
+              <button onClick={handleSignOut} className="block text-sm text-gray-500 hover:text-red-400 transition">Sign Out</button>
+            </>
+          ) : (
+            <Link href="/login" className="block text-sm font-medium text-gray-300 hover:text-white transition">Sign In →</Link>
+          )}
         </div>
       )}
     </nav>
