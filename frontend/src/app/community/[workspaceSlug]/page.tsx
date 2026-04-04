@@ -74,7 +74,8 @@ export default function PublicWorkspacePage() {
   useEffect(() => {
     const loadWorkspace = async () => {
       try {
-        const response = await fetch(`/api/public/workspaces/${workspaceSlug}/`);
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://backend.openweave.dev/api';
+        const response = await fetch(`${apiBase}/public/workspaces/${workspaceSlug}/`);
         if (!response.ok) {
           if (response.status === 404) {
             setError('Workspace not found or not public');
