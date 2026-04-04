@@ -175,8 +175,6 @@ function TicketsPage() {
     Promise.all([api.getTicketsPaginated(ticketParams), api.getProjects(wsParams), membersPromise])
       .then(([resp, p, u]) => {
         if (cancelled) return; // Prevent stale response from overwriting
-        const projects_in_results = [...new Set((resp.results || []).map((t: any) => t.project))];
-        console.log('[TICKETS] Setting', resp.results?.length, 'tickets, projects:', projects_in_results);
         setTickets(resp.results || []); setTotalCount(resp.count || 0); setProjects(p); setWsUsers(u);
       })
       .catch((e: any) => { if (!cancelled) toast(e?.message || 'Failed to load data', 'error'); })
@@ -312,7 +310,15 @@ function TicketsPage() {
               <option value="HIGH">High</option>
               <option value="CRITICAL">Critical</option>
             </select>
-            <select value={filterProject} onChange={e => { hasUserSelectedProject.current = true; setFilterProject(e.target.value); setPage(1); }} className="px-4 py-3 min-h-[44px] border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-[#1a1a2e] text-white">
+            <select value={filterProject} onChange={e => {
+              hasUserSelectedProject.current = true;
+              const val = e.target.value;
+              // Navigate via URL to ensure clean state — prevents stale ticket rendering
+              const params = new URLSearchParams(window.location.search);
+              if (val) params.set('project', val); else params.delete('project');
+              params.set('page', '1');
+              router.push(`/private/${workspaceSlug}/tickets?${params.toString()}`);
+            }} className="px-4 py-3 min-h-[44px] border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-[#1a1a2e] text-white">
               <option value="">All projects</option>
               {projects.map(p => <option key={p.slug} value={p.slug}>{p.name}</option>)}
             </select>
