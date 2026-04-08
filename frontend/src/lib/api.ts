@@ -136,7 +136,7 @@ export interface Phase {
   project: string;
   name: string;
   description: string;
-  status: 'INACTIVE' | 'READY' | 'ACTIVE';
+  status: 'INACTIVE' | 'ACTIVE';
   position: number;
   started_at: string | null;
   created_at: string;

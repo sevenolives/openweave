@@ -279,7 +279,6 @@ class Phase(models.Model):
     """
     PHASE_STATUSES = [
         ('INACTIVE', 'Inactive'),
-        ('READY', 'Ready'),
         ('ACTIVE', 'Active'),
     ]
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='phases')
@@ -297,7 +296,7 @@ class Phase(models.Model):
         unique_together = ('project', 'name')
 
     def __str__(self):
-        icons = {'INACTIVE': '⬜', 'READY': '🟡', 'ACTIVE': '🟢'}
+        icons = {'INACTIVE': '⬜', 'ACTIVE': '🟢'}
         return f"{icons.get(self.status, '⬜')} {self.name} — {self.project.name}"
 
 
