@@ -136,10 +136,9 @@ export interface Phase {
   project: string;
   name: string;
   description: string;
-  status: 'UPCOMING' | 'ACTIVE' | 'COMPLETED';
+  status: 'INACTIVE' | 'READY' | 'ACTIVE';
   position: number;
   started_at: string | null;
-  completed_at: string | null;
   created_at: string;
   updated_at: string;
 }

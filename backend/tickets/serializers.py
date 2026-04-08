@@ -86,7 +86,7 @@ class PhaseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Phase
         fields = ['id', 'project', 'name', 'description', 'status', 'position',
-                  'started_at', 'completed_at', 'created_at', 'updated_at']
+                  'started_at', 'created_at', 'updated_at']
         read_only_fields = ['created_at', 'updated_at']
 
     def update(self, instance, validated_data):
@@ -94,24 +94,14 @@ class PhaseSerializer(serializers.ModelSerializer):
         if new_status == 'ACTIVE':
             if not validated_data.get('started_at') and not instance.started_at:
                 validated_data['started_at'] = timezone.now()
-            # Complete the old active phase
+            # Deactivate the old active phase
             old_active = instance.project.current_phase
             if old_active and old_active.id != instance.id:
-                old_active.status = 'COMPLETED'
-                if not old_active.completed_at:
-                    old_active.completed_at = timezone.now()
-                old_active.save(update_fields=['status', 'completed_at'])
+                old_active.status = 'INACTIVE'
+                old_active.save(update_fields=['status'])
             instance = super().update(instance, validated_data)
             instance.project.current_phase = instance
             instance.project.save(update_fields=['current_phase'])
-            return instance
-        elif new_status == 'COMPLETED':
-            if not validated_data.get('completed_at') and not instance.completed_at:
-                validated_data['completed_at'] = timezone.now()
-            instance = super().update(instance, validated_data)
-            if instance.project.current_phase_id == instance.id:
-                instance.project.current_phase = None
-                instance.project.save(update_fields=['current_phase'])
             return instance
         return super().update(instance, validated_data)
 

@@ -278,17 +278,16 @@ class Phase(models.Model):
     the project is in and what the goals are.
     """
     PHASE_STATUSES = [
-        ('UPCOMING', 'Upcoming'),
+        ('INACTIVE', 'Inactive'),
+        ('READY', 'Ready'),
         ('ACTIVE', 'Active'),
-        ('COMPLETED', 'Completed'),
     ]
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='phases')
     name = models.CharField(max_length=100, help_text="Phase name, e.g. 'MVP', 'Beta Launch'")
     description = models.TextField(blank=True, help_text="Goals and scope of this phase")
-    status = models.CharField(max_length=20, choices=PHASE_STATUSES, default='UPCOMING', help_text="Phase status")
+    status = models.CharField(max_length=20, choices=PHASE_STATUSES, default='INACTIVE', help_text="Phase status")
     position = models.PositiveIntegerField(default=0, help_text="Display order")
     started_at = models.DateTimeField(null=True, blank=True, help_text="When this phase started")
-    completed_at = models.DateTimeField(null=True, blank=True, help_text="When this phase was completed")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -298,7 +297,7 @@ class Phase(models.Model):
         unique_together = ('project', 'name')
 
     def __str__(self):
-        icons = {'UPCOMING': '⬜', 'ACTIVE': '🟢', 'COMPLETED': '✅'}
+        icons = {'INACTIVE': '⬜', 'READY': '🟡', 'ACTIVE': '🟢'}
         return f"{icons.get(self.status, '⬜')} {self.name} — {self.project.name}"
 
 

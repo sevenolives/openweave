@@ -334,10 +334,10 @@ export default function ProjectSettingsPage() {
               {phases.length === 0 ? (
                 <p className="text-sm text-gray-400 py-4 text-center">No phases yet. Add your first phase below.</p>
               ) : phases.map((phase, idx) => {
-                const statusColors = { UPCOMING: 'border-[#222233]', ACTIVE: 'border-indigo-500/30 bg-indigo-500/5', COMPLETED: 'border-green-500/30 bg-green-500/5' };
-                const badgeColors = { UPCOMING: 'bg-gray-800 text-gray-400', ACTIVE: 'bg-indigo-500/20 text-indigo-400', COMPLETED: 'bg-green-500/20 text-green-400' };
+                const statusColors = { INACTIVE: 'border-[#222233]', READY: 'border-yellow-500/30 bg-yellow-500/5', ACTIVE: 'border-indigo-500/30 bg-indigo-500/5' };
+                const badgeColors = { INACTIVE: 'bg-gray-800 text-gray-400', READY: 'bg-yellow-500/20 text-yellow-400', ACTIVE: 'bg-indigo-500/20 text-indigo-400' };
                 return (
-                <div key={phase.id} className={`rounded-xl border p-4 transition-all ${statusColors[phase.status] || statusColors.UPCOMING}`}>
+                <div key={phase.id} className={`rounded-xl border p-4 transition-all ${statusColors[phase.status] || statusColors.INACTIVE}`}>
                   {editingPhase === phase.id ? (
                     <div className="space-y-3">
                       <input value={editPhaseName} onChange={e => setEditPhaseName(e.target.value)} autoFocus
@@ -362,7 +362,7 @@ export default function ProjectSettingsPage() {
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium text-gray-400">#{idx + 1}</span>
                           <h4 className="font-semibold text-white">{phase.name}</h4>
-                          <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${badgeColors[phase.status] || badgeColors.UPCOMING}`}>{phase.status}</span>
+                          <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${badgeColors[phase.status] || badgeColors.INACTIVE}`}>{phase.status}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           {phase.status !== 'ACTIVE' && (

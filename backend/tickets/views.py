@@ -1795,7 +1795,7 @@ class PhaseViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         phase = serializer.save()
         # Auto-activate first phase in project
-        if phase.project.phases.count() == 1 and phase.status == 'UPCOMING':
+        if phase.project.phases.count() == 1 and phase.status == 'INACTIVE':
             phase.status = 'ACTIVE'
             phase.started_at = timezone.now()
             phase.save()

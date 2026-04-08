@@ -449,7 +449,7 @@ export default function TicketDetailPage() {
                         <option value="">No phase</option>
                         {phases.map(p => (
                           <option key={p.id} value={p.id}>
-                            {p.status === 'ACTIVE' ? '🟢' : p.status === 'COMPLETED' ? '✅' : '⬜'} {p.name}
+                            {p.status === 'ACTIVE' ? '🟢' : p.status === 'READY' ? '🟡' : '⬜'} {p.name}
                           </option>
                         ))}
                       </select>

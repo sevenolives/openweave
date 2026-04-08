@@ -330,7 +330,7 @@ function TicketsPage() {
               <option value="">All phases</option>
               {allPhases.map(p => (
                 <option key={p.id} value={p.id}>
-                  {p.status === 'ACTIVE' ? '🟢' : p.status === 'COMPLETED' ? '✅' : '⬜'} {p.name}
+                  {p.status === 'ACTIVE' ? '🟢' : p.status === 'READY' ? '🟡' : '⬜'} {p.name}
                 </option>
               ))}
             </select>
@@ -417,10 +417,10 @@ function TicketsPage() {
                         {ticket.phase_details && (
                           <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
                             ticket.phase_details.status === 'ACTIVE' ? 'bg-emerald-900/50 text-emerald-300' :
-                            ticket.phase_details.status === 'COMPLETED' ? 'bg-blue-900/50 text-blue-300' :
+                            ticket.phase_details.status === 'READY' ? 'bg-yellow-900/50 text-yellow-300' :
                             'bg-gray-800/50 text-gray-300'
                           }`}>
-                            {ticket.phase_details.status === 'ACTIVE' ? '🟢' : ticket.phase_details.status === 'COMPLETED' ? '✅' : '⬜'} {ticket.phase_details.name}
+                            {ticket.phase_details.status === 'ACTIVE' ? '🟢' : ticket.phase_details.status === 'READY' ? '🟡' : '⬜'} {ticket.phase_details.name}
                           </span>
                         )}
                       </div>
