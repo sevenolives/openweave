@@ -148,14 +148,15 @@ def is_workspace_owner(user, workspace):
 def user_has_project_access(user, project):
     """
     Check if a user has access to a project.
-    Workspace owners have implicit access. Project members have explicit access.
+    Workspace owners have implicit access. Approved project members have explicit access.
+    Unapproved members (pending bots) are denied.
     """
     if not user.is_authenticated or not project:
         return False
     if is_admin_or_owner(user, project.workspace):
         return True
     return WorkspaceMemberProject.objects.filter(
-        member__user=user, project=project
+        member__user=user, member__is_approved=True, project=project
     ).exists()
 
 
@@ -183,4 +184,9 @@ def project_access_q(user, prefix=''):
         workspace_field = 'workspace_id'
     
     owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
-    return Q(**{member_field: user}) | Q(**{workspace_field + '__in': owned_ws})
+    # Build approved-member field name
+    if prefix:
+        approved_field = f'{prefix}__workspace_member_projects__member__is_approved'
+    else:
+        approved_field = 'workspace_member_projects__member__is_approved'
+    return (Q(**{member_field: user}) & Q(**{approved_field: True})) | Q(**{workspace_field + '__in': owned_ws})

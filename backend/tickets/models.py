@@ -82,9 +82,11 @@ class WorkspaceMember(models.Model):
     Membership join table between Workspace and User.
     Everyone is a member. Owner is derived from Workspace.owner FK.
     Roles are decided at the project level (WorkspaceMemberProject.role).
+    Bot members require owner approval (is_approved=False until approved).
     """
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name='members')
     user = models.ForeignKey("User", on_delete=models.CASCADE, related_name='workspace_memberships')
+    is_approved = models.BooleanField(default=True, help_text='Whether this member has been approved by the workspace owner. Bots start as unapproved.')
     joined_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -95,29 +97,6 @@ class WorkspaceMember(models.Model):
         ordering = ['-joined_at']
         unique_together = ('workspace', 'user')
         ordering = ['joined_at']
-
-
-class WorkspaceInvite(models.Model):
-    """
-    Invite link for joining a workspace only.
-    """
-    workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name='invites')
-    project = models.ForeignKey('Project', on_delete=models.CASCADE, null=True, blank=True, related_name='workspace_invites',
-        help_text='Deprecated — use ProjectInvite instead')
-    token = models.UUIDField(unique=True, default=uuid.uuid4)
-    created_by = models.ForeignKey("User", on_delete=models.CASCADE, related_name='created_invites')
-    expires_at = models.DateTimeField(null=True, blank=True)
-    max_uses = models.PositiveIntegerField(null=True, blank=True)
-    use_count = models.PositiveIntegerField(default=0)
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Invite to {self.workspace.name} ({self.token})"
-
-    class Meta:
-        db_table = 'workspace_invites'
-        ordering = ['-created_at']
 
 
 class ProjectInvite(models.Model):

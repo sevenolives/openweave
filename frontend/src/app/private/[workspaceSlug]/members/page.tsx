@@ -46,15 +46,67 @@ export default function MembersPage() {
 
   // Merge owner + members, mark bots
   const botMap = Object.fromEntries(bots.map(b => [b.username, b]));
+  const memberMap = Object.fromEntries(members.map(m => [m.user?.id, m]));
+  const pendingMembers = members.filter(m => !m.is_approved);
+  const approvedMembers = members.filter(m => m.is_approved && m.user?.id !== owner?.id);
   const allMembers = [
-    ...(owner ? [{ user: owner, isOwner: true }] : []),
-    ...members.filter(m => m.user?.id !== owner?.id).map(m => ({ user: m.user, isOwner: false })),
+    ...(owner ? [{ user: owner, isOwner: true, memberId: null as number | null, isPending: false }] : []),
+    ...approvedMembers.map(m => ({ user: m.user, isOwner: false, memberId: m.id, isPending: false })),
   ];
 
   return (
     <Layout>
       <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto">
         <h1 className="text-2xl font-bold text-white mb-6">Members</h1>
+
+        {/* Pending approval section */}
+        {pendingMembers.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-sm font-semibold text-amber-400 mb-3 flex items-center gap-2">
+              <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
+              Pending Approval ({pendingMembers.length})
+            </h2>
+            <div className="space-y-2">
+              {pendingMembers.map(m => (
+                <div key={m.id} className="bg-[#111118] rounded-xl border border-amber-500/30 p-4 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white bg-amber-600 flex-shrink-0">
+                    {m.user?.username?.[0]?.toUpperCase() || '?'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-white truncate">{m.user?.name || m.user?.username}</span>
+                      {m.user?.name && <span className="text-xs text-gray-500 truncate">@{m.user?.username}</span>}
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300">PENDING</span>
+                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${m.user?.user_type === 'BOT' ? 'bg-purple-500/20 text-purple-300' : 'bg-indigo-500/20 text-indigo-300'}`}>{m.user?.user_type}</span>
+                    </div>
+                    {m.user?.description && <p className="text-xs text-gray-500 truncate mt-0.5">{m.user.description}</p>}
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <button onClick={async () => {
+                      try {
+                        await api.approveMember(m.id);
+                        toast('Member approved');
+                        loadData();
+                      } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
+                    }} className="px-3 py-1.5 text-xs font-medium text-green-400 bg-green-500/10 border border-green-500/20 rounded-lg hover:bg-green-500/20">
+                      Approve
+                    </button>
+                    <button onClick={async () => {
+                      if (!confirm(`Reject ${m.user?.username}? This will remove them.`)) return;
+                      try {
+                        await api.rejectMember(m.id);
+                        toast('Member rejected');
+                        loadData();
+                      } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
+                    }} className="px-3 py-1.5 text-xs font-medium text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg hover:bg-red-500/20">
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="space-y-2">
           {allMembers.map(({ user: m, isOwner }) => {

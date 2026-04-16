@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
-from tickets.models import Workspace, WorkspaceMember, WorkspaceInvite
+from tickets.models import Workspace, WorkspaceMember
 
 User = get_user_model()
 
@@ -10,7 +10,7 @@ class Command(BaseCommand):
     Seed master/reference data only — no transactional data (tickets, comments, projects).
     Idempotent — safe to run on every deploy.
     """
-    help = 'Create master data (default workspace, invite link, workspace memberships)'
+    help = 'Create master data (default workspace, workspace memberships)'
 
     def handle(self, *args, **options):
         self.stdout.write('Seeding master data...')
@@ -29,22 +29,14 @@ class Command(BaseCommand):
             defaults={'name': 'Default Workspace', 'owner': admin}
         )
         if created:
-            self.stdout.write(f'  ✓ Created workspace: {workspace.name}')
+            self.stdout.write(f'  Created workspace: {workspace.name}')
         else:
             self.stdout.write(f'  - Workspace exists: {workspace.name}')
-
-        # Do NOT auto-add users to workspace here.
-        # Users join workspaces via invite tokens only.
 
         # Remove owners from members table for ALL workspaces (cleanup)
         for ws in Workspace.objects.all():
             removed = WorkspaceMember.objects.filter(workspace=ws, user=ws.owner).delete()[0]
             if removed:
-                self.stdout.write(f'  ✓ Cleaned up owner from members table in {ws.name}')
-
-        # Ensure at least one invite link exists
-        if not WorkspaceInvite.objects.filter(workspace=workspace).exists():
-            WorkspaceInvite.objects.create(workspace=workspace, created_by=admin)
-            self.stdout.write('  ✓ Created default invite link')
+                self.stdout.write(f'  Cleaned up owner from members table in {ws.name}')
 
         self.stdout.write(self.style.SUCCESS('Master data seeded.'))

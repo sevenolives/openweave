@@ -5,7 +5,7 @@ from django.db import transaction
 from django.template.response import TemplateResponse
 from .models import (
     User, Project, Ticket, Comment, AuditLog, Workspace,
-    WorkspaceMember, WorkspaceMemberProject, WorkspaceInvite, BlogPost,
+    WorkspaceMember, WorkspaceMemberProject, BlogPost,
     TicketAttachment, MediaFile, Subscription, StatusDefinition,
     ProjectInvite, ProjectStatusPermission, CommunityRating, StateTemplate,
     TransitionException,
@@ -26,23 +26,30 @@ class WorkspaceAdmin(admin.ModelAdmin):
     member_count.short_description = 'Members'
 
 
+def approve_members(modeladmin, request, queryset):
+    updated = queryset.filter(is_approved=False).update(is_approved=True)
+    modeladmin.message_user(request, f"Approved {updated} member(s).", messages.SUCCESS)
+approve_members.short_description = "Approve selected members"
+
+def reject_members(modeladmin, request, queryset):
+    pending = queryset.filter(is_approved=False)
+    count = pending.count()
+    for member in pending:
+        user = member.user
+        member.delete()
+        if user.user_type == 'BOT' and not WorkspaceMember.objects.filter(user=user).exists():
+            user.delete()
+    modeladmin.message_user(request, f"Rejected and removed {count} pending member(s).", messages.SUCCESS)
+reject_members.short_description = "Reject and remove selected pending members"
+
 @admin.register(WorkspaceMember)
 class WorkspaceMemberAdmin(admin.ModelAdmin):
-    list_display = ('workspace', 'user', 'joined_at')
-    list_filter = ('joined_at',)
+    list_display = ('workspace', 'user', 'is_approved', 'joined_at')
+    list_filter = ('is_approved', 'joined_at')
     search_fields = ('workspace__name', 'user__username', 'user__email')
     list_select_related = ('workspace', 'user')
     list_per_page = 50
-
-
-@admin.register(WorkspaceInvite)
-class WorkspaceInviteAdmin(admin.ModelAdmin):
-    list_display = ('workspace', 'token', 'created_by', 'is_active', 'use_count', 'max_uses', 'expires_at', 'created_at')
-    list_filter = ('is_active', 'created_at')
-    search_fields = ('workspace__name', 'token')
-    list_select_related = ('workspace', 'created_by')
-    list_per_page = 50
-    readonly_fields = ('token', 'created_at')
+    actions = [approve_members, reject_members]
 
 
 def merge_users(modeladmin, request, queryset):
@@ -71,7 +78,7 @@ def merge_users(modeladmin, request, queryset):
                 MediaFile.objects.filter(uploaded_by=dup).update(uploaded_by=primary)
                 BlogPost.objects.filter(author=dup).update(author=primary)
                 ProjectInvite.objects.filter(created_by=dup).update(created_by=primary)
-                WorkspaceInvite.objects.filter(created_by=dup).update(created_by=primary)
+                # WorkspaceInvite removed
                 TransitionException.objects.filter(user=dup).update(user=primary)
                 TransitionException.objects.filter(created_by=dup).update(created_by=primary)
                 StateTemplate.objects.filter(created_by=dup).update(created_by=primary)

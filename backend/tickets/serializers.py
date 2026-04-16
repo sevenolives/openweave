@@ -3,7 +3,7 @@ from rest_framework import serializers
 from .permissions import is_admin_or_owner
 from .models import (
     User, Project, Ticket, Comment, AuditLog, Workspace, WorkspaceMember,
-    WorkspaceInvite, ProjectInvite, TicketAttachment, StatusDefinition,
+    ProjectInvite, TicketAttachment, StatusDefinition,
     BlogPost, Phase, ProjectStatusPermission, CommunityTemplate,
     WorkspaceMemberProject,
 )
@@ -204,27 +204,8 @@ class WorkspaceMemberSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = WorkspaceMember
-        fields = ['id', 'workspace', 'user', 'joined_at']
-        read_only_fields = ['id', 'user', 'joined_at']
-
-
-class WorkspaceInviteSerializer(serializers.ModelSerializer):
-    """Serializer for WorkspaceInvite model."""
-    workspace = serializers.SlugRelatedField(slug_field='slug', queryset=Workspace.objects.all())
-    project = serializers.SlugRelatedField(slug_field='slug', queryset=Project.objects.all(), required=False, allow_null=True)
-    project_name = serializers.CharField(source='project.name', read_only=True, default=None)
-
-    class Meta:
-        model = WorkspaceInvite
-        fields = ['id', 'workspace', 'project', 'project_name', 'token', 'created_by', 'expires_at', 'max_uses', 'use_count', 'is_active', 'created_at']
-        read_only_fields = ['id', 'token', 'created_by', 'use_count', 'created_at']
-        extra_kwargs = {
-            'token': {'help_text': 'Auto-generated UUID invite token.'},
-            'expires_at': {'help_text': 'Optional expiration datetime (ISO 8601).'},
-            'max_uses': {'help_text': 'Optional maximum number of uses. Null = unlimited.'},
-            'use_count': {'help_text': 'Number of times this invite has been used.'},
-            'is_active': {'help_text': 'Whether the invite is currently active.'},
-        }
+        fields = ['id', 'workspace', 'user', 'is_approved', 'joined_at']
+        read_only_fields = ['id', 'user', 'is_approved', 'joined_at']
 
 
 class ProjectInviteSerializer(serializers.ModelSerializer):
@@ -242,7 +223,8 @@ class ProjectInviteSerializer(serializers.ModelSerializer):
 
 class JoinRequestSerializer(serializers.Serializer):
     """Request serializer for the unified join endpoint."""
-    workspace_invite_token = serializers.UUIDField(required=False, help_text="The invite token UUID. Required for Cases 2-4.")
+    workspace_invite_token = serializers.UUIDField(required=False, help_text="Project invite token UUID. Required for human+workspace join (Case 2) and authenticated join (Case 4).")
+    workspace = serializers.CharField(required=False, help_text="Workspace slug. Bots can join directly with workspace slug (Case 3).")
     username = serializers.CharField(required=False, help_text="Username for new account. Required for Cases 1-3.")
     name = serializers.CharField(required=False, help_text="Display name for new account. Required for Cases 1-3.")
     password = serializers.CharField(required=False, write_only=True, help_text="Password for human users (Cases 1-2). Omit for bot users (Case 3).")

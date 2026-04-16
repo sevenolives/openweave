@@ -112,6 +112,7 @@ export interface WorkspaceMember {
   id: number;
   workspace: string;
   user: User;
+  is_approved: boolean;
   joined_at: string;
 }
 
@@ -685,6 +686,14 @@ class ApiClient {
 
   async removeWorkspaceMember(id: number): Promise<void> {
     await this.request(`/workspace-members/${id}/`, { method: 'DELETE' });
+  }
+
+  async approveMember(id: number): Promise<{ detail: string; member: WorkspaceMember }> {
+    return this.request<{ detail: string; member: WorkspaceMember }>(`/workspace-members/${id}/approve/`, { method: 'POST' });
+  }
+
+  async rejectMember(id: number): Promise<{ detail: string }> {
+    return this.request<{ detail: string }>(`/workspace-members/${id}/reject/`, { method: 'POST' });
   }
 
   // Billing

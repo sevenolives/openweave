@@ -13,7 +13,7 @@ from drf_spectacular.types import OpenApiTypes
 from rest_framework import serializers as drf_serializers
 from .models import (
     User, Project, Ticket, Comment, AuditLog, Workspace,
-    WorkspaceMember, WorkspaceInvite, ProjectInvite, TicketAttachment, StatusDefinition,
+    WorkspaceMember, ProjectInvite, TicketAttachment, StatusDefinition,
     BlogPost, Phase, ProjectStatusPermission, CommunityTemplate, CommunityRating,
     WorkspaceMemberProject,
 )
@@ -49,15 +49,41 @@ def _jwt_tokens_for_user(user):
 _error_detail = inline_serializer('ErrorDetail', fields={'detail': drf_serializers.CharField()})
 
 
+def _notify_owner_pending_bot(workspace, bot_user):
+    """Email workspace owner that a bot is requesting to join and needs approval."""
+    from django.core.mail import send_mail
+    from django.conf import settings
+    owner = workspace.owner
+    if not owner.email:
+        return
+    try:
+        send_mail(
+            subject=f'[OpenWeave] Bot "{bot_user.name}" wants to join {workspace.name}',
+            message=(
+                f'A new bot is requesting to join your workspace "{workspace.name}".\n\n'
+                f'Bot name: {bot_user.name}\n'
+                f'Username: @{bot_user.username}\n\n'
+                f'To approve or reject this request, go to your workspace members page '
+                f'or use the Django admin panel.\n\n'
+                f'Until approved, this bot cannot access any workspace data.'
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[owner.email],
+            fail_silently=True,
+        )
+    except Exception:
+        pass
+
+
 @extend_schema(tags=['auth'])
 class JoinView(APIView):
     """
     POST /api/auth/join/ — unified entry point for registration and workspace joining.
 
     Case 1: {username, name, password} → create HUMAN user, return JWT
-    Case 2: {username, name, password, workspace_invite_token} → create HUMAN + join workspace, return JWT + workspace
-    Case 3: {username, name, workspace_invite_token} → create BOT + join workspace, return {api_token, workspace, user}
-    Case 4: Authenticated user + {workspace_invite_token} → join existing user to workspace, return {workspace}
+    Case 2: {username, name, password, workspace_invite_token} → create HUMAN + join workspace via project invite, return JWT + workspace
+    Case 3: {username, name, workspace} → create BOT + request to join workspace (pending approval), return {api_token, workspace, user}
+    Case 4: Authenticated user + {workspace_invite_token} → join existing user to workspace via project invite, return {workspace}
     """
     permission_classes = [AllowAny]
     throttle_classes = [AuthRateThrottle]
@@ -65,17 +91,12 @@ class JoinView(APIView):
     @extend_schema(
         summary="Register or join a workspace",
         description=(
-            "Unified endpoint for user registration and workspace joining. Supports 4 cases:\n\n"
-            "**Case 1 — Register human (no workspace):** Send `{username, name, password}`. "
-            "Returns `{user, access, refresh}` (HTTP 201).\n\n"
-            "**Case 2 — Register human + join workspace:** Send `{username, name, password, workspace_invite_token}`. "
-            "Returns `{user, workspace, access, refresh}` (HTTP 201).\n\n"
-            "**Case 3 — Register bot + join workspace:** Send `{username, name, workspace_invite_token}` (no password). "
-            "Returns `{user, workspace, api_token}` (HTTP 201).\n\n"
-            "**Case 4 — Authenticated user joins workspace:** Send `{workspace_invite_token}` with a valid JWT. "
-            "Returns `{workspace}` (HTTP 200).\n\n"
-            "**Errors:** 400 for missing fields, username taken, expired/maxed invite, already a member. "
-            "404 for invalid invite token."
+            "Unified endpoint for user registration and workspace joining.\n\n"
+            "**Case 1 — Register human (no workspace):** `{username, name, password}` → JWT.\n\n"
+            "**Case 2 — Register human + join workspace:** `{username, name, password, workspace_invite_token}` → JWT + workspace.\n\n"
+            "**Case 3 — Register bot + join workspace:** `{username, name, workspace}` (no password, workspace slug). "
+            "Bot is created with pending approval. Owner is emailed. Returns `{api_token, workspace, user}`.\n\n"
+            "**Case 4 — Authenticated user joins workspace:** `{workspace_invite_token}` with valid JWT → `{workspace}`."
         ),
         request=JoinRequestSerializer,
         responses={
@@ -91,137 +112,64 @@ class JoinView(APIView):
                 request_only=True,
             ),
             OpenApiExample(
-                'Case 1: Response',
-                value={
-                    'user': {'id': 1, 'username': 'alice', 'email': '', 'name': 'Alice', 'user_type': 'HUMAN', 'skills': [], 'is_active': True},
-                    'access': 'eyJ...access_token',
-                    'refresh': 'eyJ...refresh_token',
-                },
-                response_only=True, status_codes=['201'],
-            ),
-            OpenApiExample(
-                'Case 2: Register human + join workspace',
-                value={'username': 'bob', 'name': 'Bob', 'password': 's3cret123', 'workspace_invite_token': 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'},
+                'Case 3: Register bot (workspace slug)',
+                value={'username': 'support-bot', 'name': 'Support Bot', 'workspace': 'acme'},
                 request_only=True,
             ),
             OpenApiExample(
-                'Case 2: Response',
-                value={
-                    'user': {'id': 2, 'username': 'bob', 'email': '', 'name': 'Bob', 'user_type': 'HUMAN', 'skills': [], 'is_active': True},
-                    'workspace': {'id': 1, 'name': 'Acme', 'slug': 'acme', 'owner': 1, 'member_count': 2, 'created_at': '2025-01-01T00:00:00Z'},
-                    'access': 'eyJ...access_token',
-                    'refresh': 'eyJ...refresh_token',
-                },
-                response_only=True, status_codes=['201'],
-            ),
-            OpenApiExample(
-                'Case 3: Register bot',
-                value={'username': 'support-bot', 'name': 'Support Bot', 'workspace_invite_token': 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'},
-                request_only=True,
-            ),
-            OpenApiExample(
-                'Case 3: Response',
+                'Case 3: Response (pending approval)',
                 value={
                     'api_token': 'abc123tokenkey',
-                    'workspace': {'id': 1, 'name': 'Acme', 'slug': 'acme', 'owner': 1, 'member_count': 3, 'created_at': '2025-01-01T00:00:00Z'},
-                    'user': {'id': 3, 'username': 'support-bot', 'email': '', 'name': 'Support Bot', 'user_type': 'BOT', 'skills': [], 'is_active': True},
+                    'workspace': {'slug': 'acme', 'name': 'Acme'},
+                    'user': {'id': 3, 'username': 'support-bot', 'name': 'Support Bot', 'user_type': 'BOT'},
+                    'pending_approval': True,
                 },
                 response_only=True, status_codes=['201'],
-            ),
-            OpenApiExample(
-                'Case 4: Join workspace (authed)',
-                value={'workspace_invite_token': 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'},
-                request_only=True,
-            ),
-            OpenApiExample(
-                'Case 4: Response',
-                value={'workspace': {'id': 1, 'name': 'Acme', 'slug': 'acme', 'owner': 1, 'member_count': 4, 'created_at': '2025-01-01T00:00:00Z'}},
-                response_only=True, status_codes=['200'],
-            ),
-            OpenApiExample(
-                'Error: username taken',
-                value={'detail': 'Username already taken.'},
-                response_only=True, status_codes=['400'],
-            ),
-            OpenApiExample(
-                'Error: invite expired',
-                value={'detail': 'Invite has expired.'},
-                response_only=True, status_codes=['400'],
-            ),
-            OpenApiExample(
-                'Error: invalid invite',
-                value={'detail': 'Invalid or inactive invite.'},
-                response_only=True, status_codes=['404'],
             ),
         ],
     )
     def post(self, request):
         invite_token = request.data.get('workspace_invite_token') or request.data.get('project_invite_token')
+        workspace_slug = request.data.get('workspace')
         username = request.data.get('username')
         email = request.data.get('email', '').strip()
         name = request.data.get('name')
         password = request.data.get('password')
         description = request.data.get('description', '')
 
-        invite = None
         project_invite = None
         if invite_token:
-            # Try project invite first, then workspace invite
             try:
                 project_invite = ProjectInvite.objects.select_related('project', 'project__workspace').get(token=invite_token, is_active=True)
             except (ProjectInvite.DoesNotExist, ValueError):
-                project_invite = None
-            if project_invite:
-                if project_invite.expires_at and project_invite.expires_at < timezone.now():
-                    return Response({'detail': 'Invite has expired.'}, status=status.HTTP_400_BAD_REQUEST)
-                if project_invite.max_uses and project_invite.use_count >= project_invite.max_uses:
-                    return Response({'detail': 'Invite has reached maximum uses.'}, status=status.HTTP_400_BAD_REQUEST)
-            else:
-                try:
-                    invite = WorkspaceInvite.objects.get(token=invite_token, is_active=True)
-                except (WorkspaceInvite.DoesNotExist, ValueError, Exception):
-                    return Response({'detail': 'Invalid or inactive invite.'}, status=status.HTTP_400_BAD_REQUEST)
-                if invite.expires_at and invite.expires_at < timezone.now():
-                    return Response({'detail': 'Invite has expired.'}, status=status.HTTP_400_BAD_REQUEST)
-                if invite.max_uses and invite.use_count >= invite.max_uses:
-                    return Response({'detail': 'Invite has reached maximum uses.'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'detail': 'Invalid or inactive invite.'}, status=status.HTTP_400_BAD_REQUEST)
+            if project_invite.expires_at and project_invite.expires_at < timezone.now():
+                return Response({'detail': 'Invite has expired.'}, status=status.HTTP_400_BAD_REQUEST)
+            if project_invite.max_uses and project_invite.use_count >= project_invite.max_uses:
+                return Response({'detail': 'Invite has reached maximum uses.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Case 4: Authenticated user joining
+        # Case 4: Authenticated user joining via project invite
         if request.user and request.user.is_authenticated:
             from .plan_limits import check_member_limit, sync_seat_count
-            if not invite and not project_invite:
-                return Response({'detail': 'An invite token is required.'}, status=status.HTTP_400_BAD_REQUEST)
+            if not project_invite:
+                return Response({'detail': 'A project invite token is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
-            if project_invite:
-                workspace = project_invite.project.workspace
-                # Add to workspace if not already member
-                if not WorkspaceMember.objects.filter(workspace=workspace, user=request.user).exists() and workspace.owner_id != request.user.id:
-                    check_member_limit(workspace)
-                    WorkspaceMember.objects.create(workspace=workspace, user=request.user)
-                    sync_seat_count(workspace, operation='add')
-                # Add to project
-                workspace_member = WorkspaceMember.objects.get(workspace=workspace, user=request.user)
-                WorkspaceMemberProject.objects.get_or_create(
-                    member=workspace_member, project=project_invite.project,
-                    defaults={'role': 'MEMBER'}
-                )
-                project_invite.use_count += 1
-                project_invite.save()
-                return Response({
-                    'workspace': WorkspaceSerializer(workspace).data,
-                    'project': ProjectSerializer(project_invite.project).data,
-                }, status=status.HTTP_200_OK)
-            else:
-                if invite.workspace.owner_id == request.user.id:
-                    return Response({'detail': 'You are the owner of this workspace.'}, status=status.HTTP_400_BAD_REQUEST)
-                if WorkspaceMember.objects.filter(workspace=invite.workspace, user=request.user).exists():
-                    return Response({'detail': 'Already a member of this workspace.'}, status=status.HTTP_400_BAD_REQUEST)
-                check_member_limit(invite.workspace)
-                WorkspaceMember.objects.create(workspace=invite.workspace, user=request.user)
-                sync_seat_count(invite.workspace, operation='add')
-                invite.use_count += 1
-                invite.save()
-                return Response({'workspace': WorkspaceSerializer(invite.workspace).data}, status=status.HTTP_200_OK)
+            workspace = project_invite.project.workspace
+            if not WorkspaceMember.objects.filter(workspace=workspace, user=request.user).exists() and workspace.owner_id != request.user.id:
+                check_member_limit(workspace)
+                WorkspaceMember.objects.create(workspace=workspace, user=request.user)
+                sync_seat_count(workspace, operation='add')
+            workspace_member = WorkspaceMember.objects.get(workspace=workspace, user=request.user)
+            WorkspaceMemberProject.objects.get_or_create(
+                member=workspace_member, project=project_invite.project,
+                defaults={'role': 'MEMBER'}
+            )
+            project_invite.use_count += 1
+            project_invite.save()
+            return Response({
+                'workspace': WorkspaceSerializer(workspace).data,
+                'project': ProjectSerializer(project_invite.project).data,
+            }, status=status.HTTP_200_OK)
 
         # Cases 1-3: Creating a new user
         if not name:
@@ -232,15 +180,12 @@ class JoinView(APIView):
 
         # Username handling
         if is_bot:
-            # Bots must choose a username
             if not username:
                 return Response({'detail': 'username is required for bot users.'}, status=status.HTTP_400_BAD_REQUEST)
-            # Sanitize: alphanumeric and hyphens only
             username = re.sub(r'[^a-z0-9]', '', username.lower())
             if not username:
                 return Response({'detail': 'Username must contain letters or numbers.'}, status=status.HTTP_400_BAD_REQUEST)
         else:
-            # Humans: auto-generate from email prefix
             if email:
                 username = re.sub(r'[^a-z0-9]', '', email.split('@')[0].lower())
             elif username:
@@ -256,8 +201,10 @@ class JoinView(APIView):
             while User.objects.filter(username=username).exists():
                 username = f'{base_username}{counter}'
                 counter += 1
-        if is_bot and not invite and not project_invite:
-            return Response({'detail': 'Bot users require an invite token.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Bots need either a project invite or a workspace slug
+        if is_bot and not project_invite and not workspace_slug:
+            return Response({'detail': 'Bot users require a workspace slug or project invite token.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Email required for human users
         if password and not email:
@@ -265,11 +212,19 @@ class JoinView(APIView):
         if email and User.objects.filter(email__iexact=email).exists():
             return Response({'detail': 'An account with this email already exists.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Resolve workspace for bot joining via slug
+        direct_workspace = None
+        if is_bot and workspace_slug and not project_invite:
+            try:
+                direct_workspace = Workspace.objects.select_related('owner').get(slug=workspace_slug)
+            except Workspace.DoesNotExist:
+                return Response({'detail': 'Workspace not found.'}, status=status.HTTP_404_NOT_FOUND)
+
         if password:
             user = User(username=username, email=email, name=name, user_type='HUMAN', description=description)
             user.set_password(password)
             user.save()
-            
+
             # Auto-send email verification OTP for new human users with email
             if user.email:
                 from .models import OTP
@@ -282,23 +237,24 @@ class JoinView(APIView):
                         message=f'Welcome to OpenWeave!\n\nYour email verification code is: {otp.otp_code}\n\nThis code expires in 15 minutes.',
                         from_email=settings.DEFAULT_FROM_EMAIL,
                         recipient_list=[user.email],
-                        fail_silently=True,  # Don't fail registration if email fails
+                        fail_silently=True,
                     )
                 except Exception:
-                    pass  # Don't fail registration if email verification fails
+                    pass
         else:
-            # Stamp workspace on bot user record
             bot_workspace = None
             if project_invite and project_invite.project.workspace:
                 bot_workspace = project_invite.project.workspace
-            elif invite and invite.workspace:
-                bot_workspace = invite.workspace
+            elif direct_workspace:
+                bot_workspace = direct_workspace
             user = User(username=username, name=name, user_type='BOT', description=description, created_in_workspace=bot_workspace)
             user.set_unusable_password()
             user.save()
 
         workspace_data = None
         project_data = None
+        pending_approval = False
+
         if project_invite:
             from .plan_limits import check_member_limit, sync_seat_count
             workspace = project_invite.project.workspace
@@ -316,24 +272,30 @@ class JoinView(APIView):
             project_invite.save()
             workspace_data = WorkspaceSerializer(workspace).data
             project_data = ProjectSerializer(project_invite.project).data
-        elif invite:
+        elif direct_workspace:
+            # Bot joining via workspace slug — pending approval
             from .plan_limits import check_member_limit, sync_seat_count
-            if WorkspaceMember.objects.filter(workspace=invite.workspace, user=user).exists():
+            existing = WorkspaceMember.objects.filter(workspace=direct_workspace, user=user).first()
+            if existing:
                 return Response({'detail': 'Already a member of this workspace.'}, status=status.HTTP_400_BAD_REQUEST)
-            check_member_limit(invite.workspace)
-            WorkspaceMember.objects.create(workspace=invite.workspace, user=user)
-            sync_seat_count(invite.workspace, operation='add')
-            invite.use_count += 1
-            invite.save()
-            workspace_data = WorkspaceSerializer(invite.workspace).data
+            check_member_limit(direct_workspace)
+            WorkspaceMember.objects.create(
+                workspace=direct_workspace, user=user, is_approved=False
+            )
+            sync_seat_count(direct_workspace, operation='add')
+            pending_approval = True
+            workspace_data = WorkspaceSerializer(direct_workspace).data
+
+            # Email workspace owner about pending approval
+            _notify_owner_pending_bot(direct_workspace, user)
 
         if is_bot:
-            # Case 3
             token, _ = Token.objects.get_or_create(user=user)
             resp = {
                 'api_token': token.key,
                 'workspace': workspace_data,
                 'user': UserSerializer(user).data,
+                'pending_approval': pending_approval,
             }
             if project_data:
                 resp['project'] = project_data
@@ -1293,8 +1255,6 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
         check_workspace_limit(self.request.user)
         with transaction.atomic():
             workspace = serializer.save(owner=self.request.user)
-            # Owner is on the workspace record — NOT in the members table
-            WorkspaceInvite.objects.create(workspace=workspace, created_by=self.request.user)
             # Create free subscription for new workspace
             Subscription.objects.create(workspace=workspace)
             # Seed default status definitions and transitions
@@ -1380,6 +1340,42 @@ class WorkspaceMemberViewSet(viewsets.ModelViewSet):
             # Owner always has full access
             if obj.workspace.owner != request.user and not is_admin_or_owner(request.user, obj.workspace):
                 self.permission_denied(request)
+
+    @extend_schema(
+        summary="Approve a pending member",
+        description="Approve a pending workspace member (e.g. a bot awaiting approval). Only workspace owner can approve.",
+        responses={200: OpenApiTypes.OBJECT, 400: _error_detail, 403: _error_detail},
+    )
+    @action(detail=True, methods=['post'], url_path='approve')
+    def approve(self, request, pk=None):
+        member = self.get_object()
+        if not is_admin_or_owner(request.user, member.workspace):
+            return Response({'detail': 'Only workspace owner can approve members.'}, status=status.HTTP_403_FORBIDDEN)
+        if member.is_approved:
+            return Response({'detail': 'Member is already approved.'}, status=status.HTTP_400_BAD_REQUEST)
+        member.is_approved = True
+        member.save(update_fields=['is_approved'])
+        return Response({'detail': f'{member.user.username} has been approved.', 'member': WorkspaceMemberSerializer(member).data})
+
+    @extend_schema(
+        summary="Reject a pending member",
+        description="Reject and remove a pending workspace member. Only workspace owner can reject.",
+        responses={200: OpenApiTypes.OBJECT, 400: _error_detail, 403: _error_detail},
+    )
+    @action(detail=True, methods=['post'], url_path='reject')
+    def reject(self, request, pk=None):
+        member = self.get_object()
+        if not is_admin_or_owner(request.user, member.workspace):
+            return Response({'detail': 'Only workspace owner can reject members.'}, status=status.HTTP_403_FORBIDDEN)
+        if member.is_approved:
+            return Response({'detail': 'Cannot reject an already-approved member. Use remove instead.'}, status=status.HTTP_400_BAD_REQUEST)
+        username = member.user.username
+        user = member.user
+        member.delete()
+        # Also delete the bot user if it has no other workspace memberships
+        if user.user_type == 'BOT' and not WorkspaceMember.objects.filter(user=user).exists():
+            user.delete()
+        return Response({'detail': f'{username} has been rejected and removed.'})
 
 
 @extend_schema(tags=['statuses'])
