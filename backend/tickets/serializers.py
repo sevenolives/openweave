@@ -5,7 +5,7 @@ from .models import (
     User, Project, Ticket, Comment, AuditLog, Workspace, WorkspaceMember,
     WorkspaceInvite, ProjectInvite, TicketAttachment, StatusDefinition,
     BlogPost, Phase, ProjectStatusPermission, CommunityTemplate,
-    WorkspaceMemberProject, StateTemplate, StateTemplateItem,
+    WorkspaceMemberProject,
 )
 
 
@@ -791,82 +791,6 @@ class BlogPostCreateSerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'slug', 'content', 'excerpt', 'author',
                   'featured_image_url', 'meta_title', 'meta_description', 'tags',
                   'is_published', 'published_at']
-
-
-class StateTemplateItemSerializer(serializers.ModelSerializer):
-    """Serializer for StateTemplateItem model."""
-    
-    class Meta:
-        model = StateTemplateItem
-        fields = ['id', 'name', 'key', 'color', 'order', 'is_default', 'allowed_from_keys']
-
-
-class StateTemplateSerializer(serializers.ModelSerializer):
-    """Serializer for StateTemplate model with nested items."""
-    items = StateTemplateItemSerializer(many=True, read_only=True)
-    workspace_name = serializers.CharField(source='workspace.name', read_only=True)
-    workspace_slug = serializers.CharField(source='workspace.slug', read_only=True)
-    item_count = serializers.SerializerMethodField()
-    state_flow_preview = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = StateTemplate
-        fields = ['id', 'name', 'description', 'icon', 'workspace', 'workspace_name', 
-                 'workspace_slug', 'is_published', 'sync_count', 'created_at', 'updated_at',
-                 'items', 'item_count', 'state_flow_preview']
-        read_only_fields = ['id', 'sync_count', 'created_at', 'updated_at', 'workspace_name', 
-                           'workspace_slug', 'item_count', 'state_flow_preview']
-
-    def validate_workspace(self, value):
-        """Accept workspace slug or ID."""
-        return value
-
-    def to_internal_value(self, data):
-        """Convert workspace slug to workspace object."""
-        if 'workspace' in data and isinstance(data['workspace'], str) and not data['workspace'].isdigit():
-            try:
-                data = data.copy()
-                data['workspace'] = Workspace.objects.get(slug=data['workspace']).id
-            except Workspace.DoesNotExist:
-                raise serializers.ValidationError({'workspace': f'Workspace "{data["workspace"]}" not found.'})
-        return super().to_internal_value(data)
-
-    def get_item_count(self, obj):
-        return obj.items.count()
-
-    def get_state_flow_preview(self, obj):
-        """Generate state flow preview like 'Open → Dev → Testing → Review → Completed'."""
-        items = obj.items.order_by('order')[:5]  # Show first 5 states
-        names = [item.name for item in items]
-        preview = ' → '.join(names)
-        if obj.items.count() > 5:
-            preview += ' → ...'
-        return preview
-
-
-class StateTemplateListSerializer(serializers.ModelSerializer):
-    """Lightweight serializer for template list view."""
-    workspace_name = serializers.CharField(source='workspace.name', read_only=True)
-    workspace_slug = serializers.CharField(source='workspace.slug', read_only=True)
-    item_count = serializers.SerializerMethodField()
-    state_flow_preview = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = StateTemplate
-        fields = ['id', 'name', 'description', 'icon', 'workspace_name', 'workspace_slug',
-                 'sync_count', 'item_count', 'state_flow_preview', 'created_at']
-        
-    def get_item_count(self, obj):
-        return obj.items.count()
-
-    def get_state_flow_preview(self, obj):
-        """Generate state flow preview like 'Open → Dev → Testing → Review → Completed'."""
-        items = obj.items.order_by('order')[:5]  # Show first 5 states
-        names = [item.name for item in items]
-        preview = ' → '.join(names)
-        if obj.items.count() > 5:
-            preview += ' → ...'
-        return preview
 
 
 # Auth uses vanilla SimpleJWT TokenObtainPairView (username + password)

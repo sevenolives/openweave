@@ -774,45 +774,6 @@ class ApiClient {
     await this.request<void>(`/users/${userId}/`, { method: 'DELETE' });
   }
 
-  // State Templates API
-  async getStateTemplates(params?: { page?: number; page_size?: number; search?: string; workspace?: string }): Promise<{ count: number; next: string | null; previous: string | null; results: StateTemplate[] }> {
-    const queryString = new URLSearchParams();
-    if (params?.page) queryString.append('page', params.page.toString());
-    if (params?.page_size) queryString.append('page_size', params.page_size.toString());
-    if (params?.search) queryString.append('search', params.search);
-    if (params?.workspace) queryString.append('workspace', params.workspace);
-    
-    return this.request<{ count: number; next: string | null; previous: string | null; results: StateTemplate[] }>(`/state-templates/${queryString.toString() ? '?' + queryString : ''}`);
-  }
-
-  async getStateTemplate(id: number): Promise<StateTemplateDetail> {
-    return this.request<StateTemplateDetail>(`/state-templates/${id}/`);
-  }
-
-  async createStateTemplate(data: { name: string; description?: string; icon?: string; workspace: string; is_published?: boolean }): Promise<StateTemplateDetail> {
-    return this.request<StateTemplateDetail>('/state-templates/', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async updateStateTemplate(id: number, data: Partial<{ name: string; description: string; icon: string; is_published: boolean }>): Promise<StateTemplateDetail> {
-    return this.request<StateTemplateDetail>(`/state-templates/${id}/`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async deleteStateTemplate(id: number): Promise<void> {
-    await this.request<void>(`/state-templates/${id}/`, { method: 'DELETE' });
-  }
-
-  async importStateTemplate(templateId: number, workspaceSlug: string): Promise<{ added: number; skipped: number; statuses: StatusDefinition[] }> {
-    return this.request<{ added: number; skipped: number; statuses: StatusDefinition[] }>(`/state-templates/${templateId}/import/`, {
-      method: 'POST',
-      body: JSON.stringify({ workspace: workspaceSlug }),
-    });
-  }
 }
 
 export const api = new ApiClient(API_BASE_URL);
@@ -849,33 +810,4 @@ export interface TransitionException {
   created_at: string;
 }
 
-export interface StateTemplate {
-  id: number;
-  name: string;
-  description: string;
-  icon: string;
-  workspace_name: string;
-  workspace_slug: string;
-  sync_count: number;
-  item_count: number;
-  state_flow_preview: string;
-  created_at: string;
-}
-
-export interface StateTemplateItem {
-  id: number;
-  name: string;
-  key: string;
-  color: string;
-  order: number;
-  is_default: boolean;
-  allowed_from_keys: string[];
-}
-
-export interface StateTemplateDetail extends StateTemplate {
-  workspace: number;
-  is_published: boolean;
-  updated_at: string;
-  items: StateTemplateItem[];
-}
 // build: 1773486565
