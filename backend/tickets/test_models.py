@@ -4,7 +4,7 @@ Test cases for ticket models.
 from django.test import TestCase
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
-from .models import User, Project, Ticket, Comment, AuditLog, ProjectAgent
+from .models import User, Project, Ticket, Comment, AuditLog
 
 
 class UserModelTest(TestCase):
@@ -326,57 +326,3 @@ class AuditLogModelTest(TestCase):
         self.assertEqual(str(audit_log), expected)
 
 
-class ProjectAgentModelTest(TestCase):
-    """Test cases for ProjectAgent model."""
-    
-    def setUp(self):
-        """Set up test data."""
-        self.agent = User.objects.create_user(
-            username='testuser',
-            email='test@example.com',
-            password='testpass123'
-        )
-        from .models import Workspace
-        self.workspace = Workspace.objects.create(
-            name='Test Workspace',
-            slug='test-workspace',
-            owner=self.agent
-        )
-        self.project = Project.objects.create(
-            name='Test Project',
-            about_text='A test project',
-            workspace=self.workspace
-        )
-    
-    def test_create_project_agent(self):
-        """Test creating a project-agent relationship."""
-        project_agent = ProjectAgent.objects.create(
-            project=self.project,
-            agent=self.agent
-        )
-        
-        self.assertEqual(project_agent.project, self.project)
-        self.assertEqual(project_agent.agent, self.agent)
-        self.assertIsNotNone(project_agent.joined_at)
-    
-    def test_project_agent_str(self):
-        """Test string representation of project-agent."""
-        project_agent = ProjectAgent.objects.create(
-            project=self.project,
-            agent=self.agent
-        )
-        # ProjectAgent uses default Django __str__ representation
-        self.assertTrue(str(project_agent).startswith('ProjectAgent object'))
-    
-    def test_unique_project_agent(self):
-        """Test that project-agent combination must be unique."""
-        ProjectAgent.objects.create(
-            project=self.project,
-            agent=self.agent
-        )
-        
-        with self.assertRaises(Exception):
-            ProjectAgent.objects.create(
-                project=self.project,
-                agent=self.agent
-            )

@@ -75,7 +75,7 @@ class ProjectAdmin(admin.ModelAdmin):
     readonly_fields = ('created_at', 'updated_at')
     
     def agent_count(self, obj):
-        return obj.agents.count()
+        return obj.workspace_member_projects.count()
     agent_count.short_description = 'Agents'
 
 

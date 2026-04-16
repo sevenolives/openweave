@@ -3,7 +3,7 @@ from rest_framework import serializers
 from .permissions import is_admin_or_owner
 from .models import (
     User, Project, Ticket, Comment, AuditLog, Workspace, WorkspaceMember,
-    WorkspaceInvite, ProjectInvite, TicketAttachment, StatusDefinition, ProjectAgent,
+    WorkspaceInvite, ProjectInvite, TicketAttachment, StatusDefinition,
     BlogPost, MediaFile, Phase, ProjectStatusPermission, CommunityTemplate,
     WorkspaceMemberProject, StateTemplate, StateTemplateItem,
 )
@@ -66,17 +66,6 @@ class WorkspaceMemberProjectSerializer(serializers.ModelSerializer):
         model = WorkspaceMemberProject
         fields = ['id', 'project', 'user', 'workspace', 'role', 'joined_at']
         read_only_fields = ['id', 'project', 'user', 'workspace', 'joined_at']
-
-
-class ProjectAgentSerializer(serializers.ModelSerializer):
-    """DEPRECATED: Serializer for ProjectAgent with role. Use WorkspaceMemberProjectSerializer instead."""
-    project = serializers.SlugRelatedField(slug_field='slug', queryset=Project.objects.all())
-    user = UserSimpleSerializer(source='agent', read_only=True)
-
-    class Meta:
-        model = ProjectAgent
-        fields = ['id', 'project', 'user', 'role', 'joined_at']
-        read_only_fields = ['id', 'project', 'user', 'joined_at']
 
 
 class PhaseSerializer(serializers.ModelSerializer):
@@ -464,9 +453,11 @@ class TicketSerializer(serializers.ModelSerializer):
             if request and (request.user.is_superuser or is_admin_or_owner(request.user, workspace)):
                 return value
             if project:
-                is_project_agent = project.agents.filter(id=value.id).exists()
+                is_project_member = WorkspaceMemberProject.objects.filter(
+                    project=project, member__user_id=value.id
+                ).exists()
                 is_workspace_owner = project.workspace and project.workspace.owner_id == value.id
-                if not is_project_agent and not is_workspace_owner:
+                if not is_project_member and not is_workspace_owner:
                     raise serializers.ValidationError(
                         "Assigned user must belong to the project."
                     )
@@ -562,8 +553,8 @@ class TicketSerializer(serializers.ModelSerializer):
                     if workspace and workspace.restrict_status_to_assigned:
                         if self.instance.assigned_to_id and self.instance.assigned_to_id != user.id:
                             is_ws_admin = is_admin_or_owner(user, workspace)
-                            is_proj_admin = self.instance.project and ProjectAgent.objects.filter(
-                                project=self.instance.project, user=user, role='ADMIN'
+                            is_proj_admin = self.instance.project and WorkspaceMemberProject.objects.filter(
+                                project=self.instance.project, member__user=user, role='ADMIN'
                             ).exists()
                             if not is_ws_admin and not is_proj_admin:
                                 raise serializers.ValidationError({

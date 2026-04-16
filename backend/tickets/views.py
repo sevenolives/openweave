@@ -12,7 +12,7 @@ from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiParamete
 from drf_spectacular.types import OpenApiTypes
 from rest_framework import serializers as drf_serializers
 from .models import (
-    User, Project, Ticket, Comment, AuditLog, ProjectAgent, Workspace,
+    User, Project, Ticket, Comment, AuditLog, Workspace,
     WorkspaceMember, WorkspaceInvite, ProjectInvite, TicketAttachment, StatusDefinition,
     BlogPost, MediaFile, Phase, ProjectStatusPermission, CommunityTemplate, CommunityRating,
     WorkspaceMemberProject, StateTemplate, StateTemplateItem,
@@ -22,7 +22,7 @@ from .serializers import (
     CommentSerializer, AuditLogSerializer,
     WorkspaceSerializer, WorkspaceMemberSerializer,
     ProjectInviteSerializer,
-    JoinRequestSerializer, TicketAttachmentSerializer, ProjectAgentSerializer,
+    JoinRequestSerializer, TicketAttachmentSerializer,
     StatusDefinitionSerializer, PhaseSerializer, ProjectStatusPermissionSerializer,
     CommunityTemplateSerializer,
     BlogPostListSerializer, BlogPostDetailSerializer, BlogPostCreateSerializer,
@@ -1734,37 +1734,6 @@ class WorkspaceMemberProjectViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         """Remove a user from a project."""
         super().perform_destroy(instance)
-
-
-@extend_schema(tags=['project-agents'])  
-class ProjectAgentViewSet(viewsets.ModelViewSet):
-    """DEPRECATED: Manage project agent memberships with roles. Use WorkspaceMemberProjectViewSet instead."""
-    queryset = ProjectAgent.objects.select_related('agent', 'project').all()
-    serializer_class = ProjectAgentSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    http_method_names = ['get', 'patch', 'head', 'options']
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['agent__username', 'agent__email', 'agent__name']
-    ordering_fields = ['agent__username', 'joined_at']
-    ordering = ['agent__username']
-
-    def get_queryset(self):
-        qs = ProjectAgent.objects.select_related('agent', 'project')
-        # Filter by project slug
-        project_slug = self.request.query_params.get('project')
-        if project_slug:
-            qs = qs.filter(project__slug__iexact=project_slug)
-        user = self.request.user
-        if user.is_superuser:
-            return qs.all()
-        # Filter to projects in workspaces the user belongs to
-        from django.db.models import Q
-        member_ws = WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True)
-        owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
-        ws_ids = set(list(member_ws) + list(owned_ws))
-        if not ws_ids:
-            return qs.none()
-        return qs.filter(project__workspace_id__in=ws_ids)
 
 
 @extend_schema(tags=['phases'])

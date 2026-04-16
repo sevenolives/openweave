@@ -4,7 +4,7 @@ Custom permission classes for Agent Desk RBAC.
 Workspace owner = root user. Has all admin privileges everywhere.
 """
 from rest_framework import permissions
-from .models import User, ProjectAgent, Workspace, WorkspaceMember, WorkspaceMemberProject
+from .models import User, Workspace, WorkspaceMember, WorkspaceMemberProject
 
 
 def is_admin_or_owner(user, workspace=None):
@@ -132,18 +132,11 @@ class IsProjectMember(permissions.BasePermission):
             return False
             
         # Check if user is a member of this project
-        return ProjectAgent.objects.filter(
+        return WorkspaceMemberProject.objects.filter(
             project=project,
-            agent=request.user
+            member__user=request.user
         ).exists()
 
-
-class CanManageProjectAgents(permissions.BasePermission):
-    """
-    Permission for managing project agents - admin or workspace owner.
-    """
-    def has_permission(self, request, view):
-        return is_admin_or_owner(request.user)
 
 def is_workspace_owner(user, workspace):
     """Check if user owns this workspace (not superuser, just owner)."""

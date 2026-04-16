@@ -160,7 +160,7 @@ class UserFilter(django_filters.FilterSet):
                 project = Project.objects.get(slug__iexact=value)
                 ws_id = project.workspace_id
                 return queryset.filter(
-                    Q(projectagent__project=project) |
+                    Q(workspace_memberships__project_memberships__project=project) |
                     Q(owned_workspaces__id=ws_id)
                 ).distinct()
             except Project.DoesNotExist:
@@ -202,7 +202,9 @@ class ProjectFilter(django_filters.FilterSet):
 
     def filter_by_agent(self, queryset, name, value):
         if value:
-            return queryset.filter(agents=value).distinct()
+            return queryset.filter(
+                workspace_member_projects__member__user=value
+            ).distinct()
         return queryset
 
 

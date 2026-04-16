@@ -8,7 +8,7 @@ from .views import (
     WorkspaceViewSet, WorkspaceMemberViewSet,
     ProjectInviteViewSet,
     TicketAttachmentViewSet, StatusDefinitionViewSet,
-    ProjectAgentViewSet, WorkspaceMemberProjectViewSet, PhaseViewSet, ProjectStatusPermissionViewSet,
+    WorkspaceMemberProjectViewSet, PhaseViewSet, ProjectStatusPermissionViewSet,
     CommunityTemplateViewSet, StateTemplateViewSet,
     JoinView, ForgotPasswordView, ResetPasswordView, SendVerificationView, VerifyEmailView,
     ProjectsDashboardView, BlogPostViewSet,
@@ -33,7 +33,6 @@ router.register(r'workspace-members', WorkspaceMemberViewSet)
 router.register(r'attachments', TicketAttachmentViewSet)
 router.register(r'status-definitions', StatusDefinitionViewSet)
 router.register(r'workspace-member-projects', WorkspaceMemberProjectViewSet)
-router.register(r'project-agents', ProjectAgentViewSet)  # DEPRECATED: use workspace-member-projects
 router.register(r'project-invites', ProjectInviteViewSet)
 router.register(r'project-status-permissions', ProjectStatusPermissionViewSet)
 router.register(r'phases', PhaseViewSet)

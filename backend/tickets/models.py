@@ -81,7 +81,7 @@ class WorkspaceMember(models.Model):
     """
     Membership join table between Workspace and User.
     Everyone is a member. Owner is derived from Workspace.owner FK.
-    Roles are decided at the project level (ProjectAgent.role).
+    Roles are decided at the project level (WorkspaceMemberProject.role).
     """
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name='members')
     user = models.ForeignKey("User", on_delete=models.CASCADE, related_name='workspace_memberships')
@@ -250,9 +250,6 @@ class Project(models.Model):
     logo = models.URLField(blank=True, null=True, help_text="Project logo URL")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
-    # Many-to-many relationship with agents through ProjectAgent
-    agents = models.ManyToManyField("User", through='ProjectAgent', blank=True)
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -303,7 +300,6 @@ class Phase(models.Model):
 class WorkspaceMemberProject(models.Model):
     """
     Project membership as detail of workspace membership.
-    Replaces ProjectAgent with proper FK to WorkspaceMember.
     """
     PROJECT_ROLES = [
         ('ADMIN', 'Admin'),
@@ -321,26 +317,6 @@ class WorkspaceMemberProject(models.Model):
 
     def __str__(self):
         return f"{self.member.user.username} → {self.project.name} ({self.role})"
-
-
-class ProjectAgent(models.Model):
-    """
-    DEPRECATED: Old join table for Project-Agent many-to-many relationship.
-    Kept for backward compatibility during migration. Use WorkspaceMemberProject instead.
-    """
-    PROJECT_ROLES = [
-        ('ADMIN', 'Admin'),
-        ('MEMBER', 'Member'),
-    ]
-    project = models.ForeignKey(Project, on_delete=models.CASCADE)
-    agent = models.ForeignKey("User", on_delete=models.CASCADE)
-    role = models.CharField(max_length=10, choices=PROJECT_ROLES, default='MEMBER')
-    can_approve_tickets = models.BooleanField(default=False, help_text="Deprecated — approval gates removed")
-    joined_at = models.DateTimeField(auto_now_add=True)
-    
-    class Meta:
-        db_table = 'project_agents'
-        unique_together = ('project', 'agent')
 
 
 class Ticket(models.Model):
@@ -568,21 +544,6 @@ def project_post_save(sender, instance, created, **kwargs):
         # For now, we'll skip audit logging for project creation in signals
         # and handle it in the API views instead
         pass
-
-
-@receiver(post_save, sender=ProjectAgent)
-def project_agent_post_save(sender, instance, created, **kwargs):
-    """Create audit log entry for project agent changes and trigger email notifications."""
-    if created:
-        AuditLog.objects.create(
-            entity_type='ProjectAgent',
-            entity_id=instance.pk,
-            action='CREATE',
-            performed_by=instance.agent,  # For now, assume agent added themselves
-            old_value=None,
-            new_value=serialize_model_for_audit(instance)
-        )
-        
 
 
 @receiver(post_delete, sender=Ticket)
