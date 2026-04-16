@@ -1,9 +1,14 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.contrib import messages
+from django.db import transaction
+from django.template.response import TemplateResponse
 from .models import (
     User, Project, Ticket, Comment, AuditLog, Workspace,
     WorkspaceMember, WorkspaceMemberProject, WorkspaceInvite, BlogPost,
     TicketAttachment, MediaFile, Subscription, StatusDefinition,
+    ProjectInvite, ProjectStatusPermission, CommunityRating, StateTemplate,
+    TransitionException,
 )
 
 
@@ -40,6 +45,94 @@ class WorkspaceInviteAdmin(admin.ModelAdmin):
     readonly_fields = ('token', 'created_at')
 
 
+def merge_users(modeladmin, request, queryset):
+    """
+    Admin action: merge duplicate users into one.
+    Keeps the oldest user (by date_joined) as the primary.
+    Reassigns all related objects from duplicates to the primary, then deletes duplicates.
+    """
+    if queryset.count() < 2:
+        modeladmin.message_user(request, "Select at least 2 users to merge.", messages.WARNING)
+        return
+
+    users = list(queryset.order_by('date_joined'))
+    primary = users[0]
+    duplicates = users[1:]
+
+    if request.POST.get('confirm_merge'):
+        with transaction.atomic():
+            for dup in duplicates:
+                # --- ForeignKey reassignments ---
+                Ticket.objects.filter(assigned_to=dup).update(assigned_to=primary)
+                Ticket.objects.filter(created_by=dup).update(created_by=primary)
+                Comment.objects.filter(author=dup).update(author=primary)
+                AuditLog.objects.filter(performed_by=dup).update(performed_by=primary)
+                TicketAttachment.objects.filter(uploaded_by=dup).update(uploaded_by=primary)
+                MediaFile.objects.filter(uploaded_by=dup).update(uploaded_by=primary)
+                BlogPost.objects.filter(author=dup).update(author=primary)
+                ProjectInvite.objects.filter(created_by=dup).update(created_by=primary)
+                WorkspaceInvite.objects.filter(created_by=dup).update(created_by=primary)
+                TransitionException.objects.filter(user=dup).update(user=primary)
+                TransitionException.objects.filter(created_by=dup).update(created_by=primary)
+                StateTemplate.objects.filter(created_by=dup).update(created_by=primary)
+                CommunityRating.objects.filter(user=dup).update(user=primary)
+
+                # --- Workspace ownership ---
+                for ws in Workspace.objects.filter(owner=dup):
+                    ws.owner = primary
+                    ws.save(update_fields=['owner'])
+
+                # --- WorkspaceMember (unique_together: workspace, user) ---
+                for wm in WorkspaceMember.objects.filter(user=dup):
+                    existing = WorkspaceMember.objects.filter(workspace=wm.workspace, user=primary).first()
+                    if existing:
+                        # Move project memberships from dup's WorkspaceMember to primary's
+                        for wmp in WorkspaceMemberProject.objects.filter(member=wm):
+                            if not WorkspaceMemberProject.objects.filter(member=existing, project=wmp.project).exists():
+                                wmp.member = existing
+                                wmp.save(update_fields=['member'])
+                            else:
+                                wmp.delete()
+                        wm.delete()
+                    else:
+                        wm.user = primary
+                        wm.save(update_fields=['user'])
+
+                # --- M2M: StatusDefinition.allowed_users ---
+                for sd in StatusDefinition.objects.filter(allowed_users=dup):
+                    sd.allowed_users.add(primary)
+                    sd.allowed_users.remove(dup)
+
+                # --- M2M: ProjectStatusPermission.allowed_users ---
+                for psp in ProjectStatusPermission.objects.filter(allowed_users=dup):
+                    psp.allowed_users.add(primary)
+                    psp.allowed_users.remove(dup)
+
+                dup.delete()
+
+        dup_names = ', '.join(f'{d.username} (#{d.id})' for d in duplicates)
+        modeladmin.message_user(
+            request,
+            f"Merged {dup_names} into {primary.username} (#{primary.id}).",
+            messages.SUCCESS,
+        )
+        return
+
+    # Show confirmation page
+    context = {
+        **modeladmin.admin_site.each_context(request),
+        'title': 'Confirm user merge',
+        'primary': primary,
+        'duplicates': duplicates,
+        'queryset': queryset,
+        'opts': modeladmin.model._meta,
+        'action_checkbox_name': admin.helpers.ACTION_CHECKBOX_NAME,
+    }
+    return TemplateResponse(request, 'admin/merge_users_confirmation.html', context)
+
+merge_users.short_description = "Merge selected users (keep oldest)"
+
+
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
     """
@@ -50,14 +143,15 @@ class CustomUserAdmin(UserAdmin):
     list_filter = ('user_type', 'role', 'is_active', 'date_joined')
     search_fields = ('username', 'email', 'name')
     list_per_page = 50
-    
+    actions = [merge_users]
+
     # Extend the default UserAdmin fieldsets
     fieldsets = UserAdmin.fieldsets + (
         ('User Info', {
             'fields': ('name', 'user_type', 'role', 'skills')
         }),
     )
-    
+
     add_fieldsets = UserAdmin.add_fieldsets + (
         ('User Info', {
             'fields': ('user_type', 'role', 'skills')
@@ -155,7 +249,7 @@ class AuditLogAdmin(admin.ModelAdmin):
         return super().get_queryset(request).select_related('performed_by')
 
 
-from .models import StatusDefinition, StatusTransition, TransitionException
+from .models import StatusTransition
 
 @admin.register(StatusDefinition)
 class StatusDefinitionAdmin(admin.ModelAdmin):

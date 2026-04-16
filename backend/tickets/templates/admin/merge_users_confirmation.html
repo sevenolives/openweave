@@ -1,0 +1,51 @@
+{% extends "admin/base_site.html" %}
+{% block title %}Confirm User Merge{% endblock %}
+{% block content %}
+<h2>Merge Users</h2>
+<p>The following users will be merged. The <strong>oldest account</strong> is kept as the primary. All data from the duplicates will be reassigned to the primary, then the duplicates will be deleted.</p>
+
+<table style="margin: 20px 0; border-collapse: collapse; width: 100%;">
+  <tr style="background: #417690; color: white;">
+    <th style="padding: 8px; text-align: left;">Role</th>
+    <th style="padding: 8px; text-align: left;">ID</th>
+    <th style="padding: 8px; text-align: left;">Username</th>
+    <th style="padding: 8px; text-align: left;">Name</th>
+    <th style="padding: 8px; text-align: left;">Email</th>
+    <th style="padding: 8px; text-align: left;">Type</th>
+    <th style="padding: 8px; text-align: left;">Joined</th>
+  </tr>
+  <tr style="background: #d4edda;">
+    <td style="padding: 8px;"><strong>KEEP</strong></td>
+    <td style="padding: 8px;">{{ primary.id }}</td>
+    <td style="padding: 8px;"><strong>{{ primary.username }}</strong></td>
+    <td style="padding: 8px;">{{ primary.name }}</td>
+    <td style="padding: 8px;">{{ primary.email }}</td>
+    <td style="padding: 8px;">{{ primary.user_type }}</td>
+    <td style="padding: 8px;">{{ primary.date_joined }}</td>
+  </tr>
+  {% for dup in duplicates %}
+  <tr style="background: #f8d7da;">
+    <td style="padding: 8px;">DELETE</td>
+    <td style="padding: 8px;">{{ dup.id }}</td>
+    <td style="padding: 8px;">{{ dup.username }}</td>
+    <td style="padding: 8px;">{{ dup.name }}</td>
+    <td style="padding: 8px;">{{ dup.email }}</td>
+    <td style="padding: 8px;">{{ dup.user_type }}</td>
+    <td style="padding: 8px;">{{ dup.date_joined }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<p><strong>This action cannot be undone.</strong> All tickets, comments, audit logs, workspace memberships, and other data from the duplicate accounts will be moved to <strong>{{ primary.username }}</strong>.</p>
+
+<form method="post" action="">
+  {% csrf_token %}
+  {% for user in queryset %}
+    <input type="hidden" name="{{ action_checkbox_name }}" value="{{ user.pk }}" />
+  {% endfor %}
+  <input type="hidden" name="action" value="merge_users" />
+  <input type="hidden" name="confirm_merge" value="1" />
+  <input type="submit" value="Confirm Merge" style="background: #ba2121; color: white; padding: 10px 20px; border: none; cursor: pointer; font-size: 14px;" />
+  <a href="{% url 'admin:tickets_user_changelist' %}" style="margin-left: 10px; padding: 10px 20px; background: #666; color: white; text-decoration: none;">Cancel</a>
+</form>
+{% endblock %}
