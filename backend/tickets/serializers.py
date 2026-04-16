@@ -3,7 +3,7 @@ from rest_framework import serializers
 from .permissions import is_admin_or_owner
 from .models import (
     User, Project, Ticket, Comment, AuditLog, Workspace, WorkspaceMember,
-    ProjectInvite, TicketAttachment, StatusDefinition,
+    TicketAttachment, StatusDefinition,
     BlogPost, Phase, ProjectStatusPermission, CommunityTemplate,
     WorkspaceMemberProject,
 )
@@ -208,26 +208,13 @@ class WorkspaceMemberSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'user', 'is_approved', 'joined_at']
 
 
-class ProjectInviteSerializer(serializers.ModelSerializer):
-    """Serializer for ProjectInvite model."""
-    project = serializers.SlugRelatedField(slug_field='slug', queryset=Project.objects.all())
-    project_name = serializers.CharField(source='project.name', read_only=True)
-    workspace_slug = serializers.CharField(source='project.workspace.slug', read_only=True)
-
-    class Meta:
-        model = ProjectInvite
-        fields = ['id', 'project', 'project_name', 'workspace_slug', 'token', 'created_by',
-                  'expires_at', 'max_uses', 'use_count', 'is_active', 'created_at']
-        read_only_fields = ['id', 'token', 'created_by', 'use_count', 'created_at']
-
-
 class JoinRequestSerializer(serializers.Serializer):
     """Request serializer for the unified join endpoint."""
-    workspace_invite_token = serializers.UUIDField(required=False, help_text="Project invite token UUID. Required for human+workspace join (Case 2) and authenticated join (Case 4).")
-    workspace = serializers.CharField(required=False, help_text="Workspace slug. Bots can join directly with workspace slug (Case 3).")
-    username = serializers.CharField(required=False, help_text="Username for new account. Required for Cases 1-3.")
-    name = serializers.CharField(required=False, help_text="Display name for new account. Required for Cases 1-3.")
-    password = serializers.CharField(required=False, write_only=True, help_text="Password for human users (Cases 1-2). Omit for bot users (Case 3).")
+    project = serializers.UUIDField(required=False, help_text="Project invite UUID. Used to join a specific project (and its workspace).")
+    workspace = serializers.CharField(required=False, help_text="Workspace slug. Bots can join directly with workspace slug.")
+    username = serializers.CharField(required=False, help_text="Username for new account.")
+    name = serializers.CharField(required=False, help_text="Display name for new account.")
+    password = serializers.CharField(required=False, write_only=True, help_text="Password for human users. Omit for bot users.")
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -248,7 +235,8 @@ class ProjectSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Project
-        fields = ['name', 'slug', 'about_text', 'process_text', 'workspace', 'is_public', 'created_at', 'updated_at', 'agent_ids', 'active_phase']
+        fields = ['name', 'slug', 'about_text', 'process_text', 'workspace', 'is_public', 'invite_uuid', 'created_at', 'updated_at', 'agent_ids', 'active_phase']
+        extra_kwargs = {'invite_uuid': {'read_only': True}}
         read_only_fields = ['created_at', 'updated_at']
 
     def create(self, validated_data):

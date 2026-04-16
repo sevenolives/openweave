@@ -13,7 +13,7 @@ from drf_spectacular.types import OpenApiTypes
 from rest_framework import serializers as drf_serializers
 from .models import (
     User, Project, Ticket, Comment, AuditLog, Workspace,
-    WorkspaceMember, ProjectInvite, TicketAttachment, StatusDefinition,
+    WorkspaceMember, TicketAttachment, StatusDefinition,
     BlogPost, Phase, ProjectStatusPermission, CommunityTemplate, CommunityRating,
     WorkspaceMemberProject,
 )
@@ -21,7 +21,6 @@ from .serializers import (
     UserSerializer, UserSimpleSerializer, ProjectSerializer, TicketSerializer,
     CommentSerializer, AuditLogSerializer,
     WorkspaceSerializer, WorkspaceMemberSerializer,
-    ProjectInviteSerializer,
     JoinRequestSerializer, TicketAttachmentSerializer,
     StatusDefinitionSerializer, PhaseSerializer, ProjectStatusPermissionSerializer,
     CommunityTemplateSerializer,
@@ -83,9 +82,10 @@ class JoinView(APIView):
     POST /api/auth/join/ — unified entry point for registration and workspace joining.
 
     Case 1: {username, name, password} → create HUMAN user, return JWT
-    Case 2: {username, name, password, workspace_invite_token} → create HUMAN + join workspace via project invite, return JWT + workspace
+    Case 2: {username, name, password, project} → create HUMAN + join project (pending approval), return JWT + workspace
     Case 3: {username, name, workspace} → create BOT + request to join workspace (pending approval), return {api_token, workspace, user}
-    Case 4: Authenticated user + {workspace_invite_token} → join existing user to workspace via project invite, return {workspace}
+       {username, name, project} → create BOT + join project (pending approval), return {api_token, workspace, user}
+    Case 4: Authenticated user + {project} → join existing user to project (pending approval), return {workspace}
     """
     permission_classes = [AllowAny]
     throttle_classes = [AuthRateThrottle]
@@ -95,10 +95,10 @@ class JoinView(APIView):
         description=(
             "Unified endpoint for user registration and workspace joining.\n\n"
             "**Case 1 — Register human (no workspace):** `{username, name, password}` → JWT.\n\n"
-            "**Case 2 — Register human + join workspace:** `{username, name, password, workspace_invite_token}` → JWT + workspace.\n\n"
-            "**Case 3 — Register bot + join workspace:** `{username, name, workspace}` (no password, workspace slug). "
-            "Bot is created with pending approval. Owner is emailed. Returns `{api_token, workspace, user}`.\n\n"
-            "**Case 4 — Authenticated user joins workspace:** `{workspace_invite_token}` with valid JWT → `{workspace}`."
+            "**Case 2 — Register human + join project:** `{username, name, password, project}` (project UUID) → JWT + workspace.\n\n"
+            "**Case 3 — Register bot + join:** `{username, name, workspace}` (workspace slug) or `{username, name, project}` (project UUID). "
+            "Member is created with pending approval. Owner is emailed. Returns `{api_token, workspace, user}`.\n\n"
+            "**Case 4 — Authenticated user joins project:** `{project}` (project UUID) with valid JWT → `{workspace}`."
         ),
         request=JoinRequestSerializer,
         responses={
@@ -114,24 +114,24 @@ class JoinView(APIView):
                 request_only=True,
             ),
             OpenApiExample(
+                'Case 2: Register human + join project',
+                value={'username': 'alice', 'name': 'Alice', 'password': 's3cret123', 'project': 'a3f8c1e2-7b4d-4e9a-b5c6-1234abcd5678'},
+                request_only=True,
+            ),
+            OpenApiExample(
                 'Case 3: Register bot (workspace slug)',
                 value={'username': 'support-bot', 'name': 'Support Bot', 'workspace': 'acme'},
                 request_only=True,
             ),
             OpenApiExample(
-                'Case 3: Response (pending approval)',
-                value={
-                    'api_token': 'abc123tokenkey',
-                    'workspace': {'slug': 'acme', 'name': 'Acme'},
-                    'user': {'id': 3, 'username': 'support-bot', 'name': 'Support Bot', 'user_type': 'BOT'},
-                    'pending_approval': True,
-                },
-                response_only=True, status_codes=['201'],
+                'Case 3: Register bot (project UUID)',
+                value={'username': 'support-bot', 'name': 'Support Bot', 'project': 'a3f8c1e2-7b4d-4e9a-b5c6-1234abcd5678'},
+                request_only=True,
             ),
         ],
     )
     def post(self, request):
-        invite_token = request.data.get('workspace_invite_token') or request.data.get('project_invite_token')
+        project_uuid = request.data.get('project') or request.data.get('workspace_invite_token') or request.data.get('project_invite_token')
         workspace_slug = request.data.get('workspace')
         username = request.data.get('username')
         email = request.data.get('email', '').strip()
@@ -139,24 +139,20 @@ class JoinView(APIView):
         password = request.data.get('password')
         description = request.data.get('description', '')
 
-        project_invite = None
-        if invite_token:
+        target_project = None
+        if project_uuid:
             try:
-                project_invite = ProjectInvite.objects.select_related('project', 'project__workspace').get(token=invite_token, is_active=True)
-            except (ProjectInvite.DoesNotExist, ValueError):
-                return Response({'detail': 'Invalid or inactive invite.'}, status=status.HTTP_400_BAD_REQUEST)
-            if project_invite.expires_at and project_invite.expires_at < timezone.now():
-                return Response({'detail': 'Invite has expired.'}, status=status.HTTP_400_BAD_REQUEST)
-            if project_invite.max_uses and project_invite.use_count >= project_invite.max_uses:
-                return Response({'detail': 'Invite has reached maximum uses.'}, status=status.HTTP_400_BAD_REQUEST)
+                target_project = Project.objects.select_related('workspace', 'workspace__owner').get(invite_uuid=project_uuid)
+            except (Project.DoesNotExist, ValueError):
+                return Response({'detail': 'Invalid project invite.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Case 4: Authenticated user joining via project invite
+        # Case 4: Authenticated user joining via project UUID
         if request.user and request.user.is_authenticated:
             from .plan_limits import check_member_limit, sync_seat_count
-            if not project_invite:
-                return Response({'detail': 'A project invite token is required.'}, status=status.HTTP_400_BAD_REQUEST)
+            if not target_project:
+                return Response({'detail': 'A project UUID is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
-            workspace = project_invite.project.workspace
+            workspace = target_project.workspace
             is_owner = workspace.owner_id == request.user.id
             member, created = WorkspaceMember.objects.get_or_create(
                 workspace=workspace, user=request.user,
@@ -167,14 +163,12 @@ class JoinView(APIView):
                 sync_seat_count(workspace, operation='add')
                 _notify_owner_pending_member(workspace, request.user)
             WorkspaceMemberProject.objects.get_or_create(
-                member=member, project=project_invite.project,
+                member=member, project=target_project,
                 defaults={'role': 'MEMBER'}
             )
-            project_invite.use_count += 1
-            project_invite.save()
             return Response({
                 'workspace': WorkspaceSerializer(workspace).data,
-                'project': ProjectSerializer(project_invite.project).data,
+                'project': ProjectSerializer(target_project).data,
                 'pending_approval': not member.is_approved,
             }, status=status.HTTP_200_OK)
 
@@ -209,9 +203,9 @@ class JoinView(APIView):
                 username = f'{base_username}{counter}'
                 counter += 1
 
-        # Bots need either a project invite or a workspace slug
-        if is_bot and not project_invite and not workspace_slug:
-            return Response({'detail': 'Bot users require a workspace slug or project invite token.'}, status=status.HTTP_400_BAD_REQUEST)
+        # Bots need either a project UUID or a workspace slug
+        if is_bot and not target_project and not workspace_slug:
+            return Response({'detail': 'Bot users require a workspace slug or project UUID.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Email required for human users
         if password and not email:
@@ -221,7 +215,7 @@ class JoinView(APIView):
 
         # Resolve workspace for bot joining via slug
         direct_workspace = None
-        if is_bot and workspace_slug and not project_invite:
+        if is_bot and workspace_slug and not target_project:
             try:
                 direct_workspace = Workspace.objects.select_related('owner').get(slug=workspace_slug)
             except Workspace.DoesNotExist:
@@ -250,8 +244,8 @@ class JoinView(APIView):
                     pass
         else:
             bot_workspace = None
-            if project_invite and project_invite.project.workspace:
-                bot_workspace = project_invite.project.workspace
+            if target_project and target_project.workspace:
+                bot_workspace = target_project.workspace
             elif direct_workspace:
                 bot_workspace = direct_workspace
             user = User(username=username, name=name, user_type='BOT', description=description, created_in_workspace=bot_workspace)
@@ -262,9 +256,9 @@ class JoinView(APIView):
         project_data = None
         pending_approval = False
 
-        if project_invite:
+        if target_project:
             from .plan_limits import check_member_limit, sync_seat_count
-            workspace = project_invite.project.workspace
+            workspace = target_project.workspace
             is_owner = workspace.owner_id == user.id
             workspace_member, created = WorkspaceMember.objects.get_or_create(
                 workspace=workspace, user=user,
@@ -276,13 +270,11 @@ class JoinView(APIView):
                 pending_approval = True
                 _notify_owner_pending_member(workspace, user)
             WorkspaceMemberProject.objects.get_or_create(
-                member=workspace_member, project=project_invite.project,
+                member=workspace_member, project=target_project,
                 defaults={'role': 'MEMBER'}
             )
-            project_invite.use_count += 1
-            project_invite.save()
             workspace_data = WorkspaceSerializer(workspace).data
-            project_data = ProjectSerializer(project_invite.project).data
+            project_data = ProjectSerializer(target_project).data
         elif direct_workspace:
             # Bot joining via workspace slug — pending approval
             from .plan_limits import check_member_limit, sync_seat_count
@@ -1780,29 +1772,6 @@ class PhaseViewSet(viewsets.ModelViewSet):
 
 
 @extend_schema(tags=['project-invites'])
-class ProjectInviteViewSet(viewsets.ModelViewSet):
-    """Manage project invite links. Creates secret tokens for joining a project + workspace."""
-    queryset = ProjectInvite.objects.select_related('project', 'project__workspace', 'created_by').all()
-    serializer_class = ProjectInviteSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [DjangoFilterBackend]
-    http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
-
-    def get_queryset(self):
-        qs = ProjectInvite.objects.select_related('project', 'project__workspace', 'created_by')
-        project_slug = self.request.query_params.get('project')
-        if project_slug:
-            qs = qs.filter(project__slug__iexact=project_slug)
-        user = self.request.user
-        if user.is_superuser:
-            return qs.all()
-        # Users only see invites for projects they have access to
-        return qs.filter(project_access_q(user, prefix='project')).distinct()
-
-    def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
-
-
 @extend_schema(tags=['project-status-permissions'])
 class ProjectStatusPermissionViewSet(viewsets.ModelViewSet):
     """Manage project-level status permission overrides."""

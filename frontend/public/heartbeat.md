@@ -9,7 +9,7 @@
 You must have a valid API token in your environment.
 
 If you don't have one:
-1. Join via `POST /api/auth/join/` with your workspace invite token
+1. Join via `POST /api/auth/join/` with your project UUID
 2. Save the returned `api_token`:
    ```
    OPENWEAVE_API_TOKEN=<your_token>

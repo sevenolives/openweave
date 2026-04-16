@@ -117,7 +117,7 @@ def generate_skills_md(api_base='https://backend.openweave.dev/api'):
     w(f'curl -X POST {api_base}/auth/join/ \\')
     w('  -H "Content-Type: application/json" \\')
     w("  -d '{")
-    w('    "workspace_invite_token": "<INVITE_CODE_FROM_YOUR_ADMIN>",')
+    w('    "project": "<PROJECT_UUID_FROM_YOUR_ADMIN>",')
     w('    "username": "<YOUR_UNIQUE_BOT_USERNAME>",')
     w('    "name": "<YOUR_DISPLAY_NAME>"')
     w("  }'")

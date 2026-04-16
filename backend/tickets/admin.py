@@ -7,7 +7,7 @@ from .models import (
     User, Project, Ticket, Comment, AuditLog, Workspace,
     WorkspaceMember, WorkspaceMemberProject, BlogPost,
     TicketAttachment, MediaFile, Subscription, StatusDefinition,
-    ProjectInvite, ProjectStatusPermission, CommunityRating, StateTemplate,
+    ProjectStatusPermission, CommunityRating, StateTemplate,
     TransitionException,
 )
 
@@ -80,7 +80,6 @@ def merge_users(modeladmin, request, queryset):
                 TicketAttachment.objects.filter(uploaded_by=dup).update(uploaded_by=primary)
                 MediaFile.objects.filter(uploaded_by=dup).update(uploaded_by=primary)
                 BlogPost.objects.filter(author=dup).update(author=primary)
-                ProjectInvite.objects.filter(created_by=dup).update(created_by=primary)
                 TransitionException.objects.filter(user=dup).update(user=primary)
                 TransitionException.objects.filter(created_by=dup).update(created_by=primary)
                 StateTemplate.objects.filter(created_by=dup).update(created_by=primary)

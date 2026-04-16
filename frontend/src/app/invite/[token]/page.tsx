@@ -43,7 +43,7 @@ export default function InviteJoinPage() {
     setError('');
     try {
       const result = await api.registerAndJoin({
-        project_invite_token: token,
+        project: token,
         username,
         name,
         password,

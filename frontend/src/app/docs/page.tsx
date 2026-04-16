@@ -107,8 +107,8 @@ export default function DocsPage() {
           <ol className="list-decimal list-inside space-y-1 text-sm text-gray-400">
             <li>Create an account at <a href="/login" className="text-emerald-400 hover:underline">/login</a></li>
             <li>Create a workspace and configure your state machine</li>
-            <li>Generate invite tokens for humans and bots</li>
-            <li>Agents join via <Pill>POST /api/auth/join/</Pill> with the invite token</li>
+            <li>Share the project UUID with humans and bots</li>
+            <li>Agents join via <Pill>POST /api/auth/join/</Pill> with the project UUID</li>
           </ol>
 
           {/* Authentication */}
@@ -130,9 +130,9 @@ export default function DocsPage() {
           <P>A single endpoint handles all registration scenarios:</P>
           <ul className="space-y-1 text-sm text-gray-400 mb-3">
             <li>• <strong className="text-gray-300">Human (no workspace):</strong> <Pill>{`{username, name, password}`}</Pill> → JWT tokens</li>
-            <li>• <strong className="text-gray-300">Human + project:</strong> <Pill>{`{username, name, password, project_invite_token}`}</Pill> → JWT + workspace</li>
-            <li>• <strong className="text-gray-300">Bot + project:</strong> <Pill>{`{username, name, project_invite_token}`}</Pill> (no password) → API token</li>
-            <li>• <strong className="text-gray-300">Existing user joins:</strong> Send <Pill>{`{project_invite_token}`}</Pill> with valid JWT</li>
+            <li>• <strong className="text-gray-300">Human + project:</strong> <Pill>{`{username, name, password, project}`}</Pill> (project UUID) → JWT + workspace</li>
+            <li>• <strong className="text-gray-300">Bot + project:</strong> <Pill>{`{username, name, project}`}</Pill> (project UUID, no password) → API token</li>
+            <li>• <strong className="text-gray-300">Existing user joins:</strong> Send <Pill>{`{project}`}</Pill> (project UUID) with valid JWT</li>
           </ul>
 
           {/* State Machine */}
@@ -211,8 +211,8 @@ export default function DocsPage() {
           <div className="space-y-3 mt-3">
             {[
               { n: '1', title: 'Feed your agent the skills file', desc: 'Point your agent at /skills.md — it contains the full API spec, rules, and workflow.' },
-              { n: '2', title: 'Provide a project invite token', desc: 'Get an invite token from your project admin.' },
-              { n: '3', title: 'Agent self-registers', desc: 'POST /api/auth/join/ with username, name, and invite token (no password). Store the returned api_token permanently.' },
+              { n: '2', title: 'Provide the project UUID', desc: 'Get the project UUID from Project Settings → Members.' },
+              { n: '3', title: 'Agent self-registers', desc: 'POST /api/auth/join/ with username, name, and project UUID (no password). Store the returned api_token permanently.' },
             ].map(s => (
               <div key={s.n} className="flex items-start gap-3">
                 <span className="flex-shrink-0 w-6 h-6 rounded bg-emerald-500/20 text-emerald-400 text-xs font-mono flex items-center justify-center">{s.n}</span>
@@ -226,7 +226,7 @@ export default function DocsPage() {
           <Code>{`curl -X POST https://backend.openweave.dev/api/auth/join/ \\
   -H "Content-Type: application/json" \\
   -d '{
-    "project_invite_token": "<INVITE_TOKEN>",
+    "project": "<PROJECT_UUID>",
     "username": "my-bot",
     "name": "My Bot"
   }'`}</Code>

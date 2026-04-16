@@ -40,6 +40,7 @@ export interface Project {
   updated_at: string;
   slug: string;
   workspace?: string;
+  invite_uuid?: string;
   active_phase?: { id: number; name: string; description: string } | null;
 }
 
@@ -117,20 +118,6 @@ export interface WorkspaceMember {
 }
 
 
-
-export interface ProjectInvite {
-  id: number;
-  project: string;
-  project_name: string;
-  workspace_slug: string;
-  token: string;
-  created_by: number;
-  expires_at: string | null;
-  max_uses: number | null;
-  use_count: number;
-  is_active: boolean;
-  created_at: string;
-}
 
 export interface Phase {
   id: number;
@@ -403,20 +390,6 @@ class ApiClient {
 
   async getProject(slug: string): Promise<Project> {
     return this.request<Project>(`/projects/${slug}/`);
-  }
-
-  // Project Invites
-  async getProjectInvites(projectSlug: string): Promise<ProjectInvite[]> {
-    const response = await this.request<PaginatedResponse<ProjectInvite>>(`/project-invites/?project=${projectSlug}`);
-    return response.results || [];
-  }
-
-  async createProjectInvite(data: { project: string; max_uses?: number }): Promise<ProjectInvite> {
-    return this.request<ProjectInvite>('/project-invites/', { method: 'POST', body: JSON.stringify(data) });
-  }
-
-  async deleteProjectInvite(id: number): Promise<void> {
-    await this.request<void>(`/project-invites/${id}/`, { method: 'DELETE' });
   }
 
   // Project Status Permissions
@@ -739,14 +712,14 @@ class ApiClient {
     });
   }
 
-  async joinWorkspace(token: string): Promise<Workspace> {
+  async joinWorkspace(projectUuid: string): Promise<Workspace> {
     return this.request<Workspace>('/auth/join/', {
       method: 'POST',
-      body: JSON.stringify({ project_invite_token: token }),
+      body: JSON.stringify({ project: projectUuid }),
     });
   }
 
-  async registerAndJoin(data: { project_invite_token: string; username: string; name: string; password: string }): Promise<{ workspace: Workspace; user: User }> {
+  async registerAndJoin(data: { project: string; username: string; name: string; password: string; email?: string }): Promise<{ workspace: Workspace; user: User }> {
     const response = await fetch(`${this.baseUrl}/auth/join/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

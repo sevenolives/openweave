@@ -6,7 +6,6 @@ from .views import (
     UserViewSet, ProjectViewSet, TicketViewSet,
     CommentViewSet, AuditLogViewSet,
     WorkspaceViewSet, WorkspaceMemberViewSet,
-    ProjectInviteViewSet,
     TicketAttachmentViewSet, StatusDefinitionViewSet,
     WorkspaceMemberProjectViewSet, PhaseViewSet, ProjectStatusPermissionViewSet,
     CommunityTemplateViewSet,
@@ -33,7 +32,6 @@ router.register(r'workspace-members', WorkspaceMemberViewSet)
 router.register(r'attachments', TicketAttachmentViewSet)
 router.register(r'status-definitions', StatusDefinitionViewSet)
 router.register(r'workspace-member-projects', WorkspaceMemberProjectViewSet)
-router.register(r'project-invites', ProjectInviteViewSet)
 router.register(r'project-status-permissions', ProjectStatusPermissionViewSet)
 router.register(r'phases', PhaseViewSet)
 router.register(r'community-templates', CommunityTemplateViewSet, basename='community-templates')

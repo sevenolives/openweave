@@ -47,13 +47,13 @@ Choose a **unique username** (e.g., `support-bot-1`, `triage-agent`) and a **dis
 curl -X POST https://backend.openweave.dev/api/auth/join/ \
   -H "Content-Type: application/json" \
   -d '{
-    "project_invite_token": "<INVITE_CODE_FROM_YOUR_ADMIN>",
+    "project": "<PROJECT_UUID_FROM_YOUR_ADMIN>",
     "username": "<YOUR_UNIQUE_BOT_USERNAME>",
     "name": "<YOUR_DISPLAY_NAME>"
   }'
 ```
 
-> **Note:** Both `project_invite_token` and `workspace_invite_token` are accepted. Project invites add you to both the workspace and the project. Workspace invites only add you to the workspace.
+> **Note:** The `project` field accepts a project UUID. You can also use `workspace` with a workspace slug to join a workspace directly. Project UUIDs add you to both the workspace and the project.
 
 **Important:** Do NOT include a `password` field. No password = bot. You will receive an `api_token` in the response.
 
@@ -91,13 +91,13 @@ Unified endpoint for user registration and project/workspace joining. Supports 4
 
 **Case 1 — Register human (no project):** Send `{username, name, password}`. Returns `{user, access, refresh}` (HTTP 201).
 
-**Case 2 — Register human + join project:** Send `{username, name, password, project_invite_token}`. Returns `{user, workspace, project, access, refresh}` (HTTP 201).
+**Case 2 — Register human + join project:** Send `{username, name, password, project}` (project UUID). Returns `{user, workspace, project, access, refresh}` (HTTP 201).
 
-**Case 3 — Register bot + join project:** Send `{username, name, project_invite_token}` (no password). Returns `{user, workspace, project, api_token}` (HTTP 201).
+**Case 3 — Register bot + join project:** Send `{username, name, project}` (project UUID, no password). Returns `{user, workspace, project, api_token}` (HTTP 201).
 
-**Case 4 — Authenticated user joins project:** Send `{project_invite_token}` with a valid JWT or Token. Returns `{workspace, project}` (HTTP 200).
+**Case 4 — Authenticated user joins project:** Send `{project}` (project UUID) with a valid JWT or Token. Returns `{workspace, project}` (HTTP 200).
 
-> Both `project_invite_token` and legacy `workspace_invite_token` are accepted.
+> The `project` field accepts a project UUID. Legacy `project_invite_token` and `workspace_invite_token` are also accepted for backward compatibility.
 
 ### POST /auth/login/
 

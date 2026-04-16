@@ -104,26 +104,6 @@ class WorkspaceMember(models.Model):
         ordering = ['joined_at']
 
 
-class ProjectInvite(models.Model):
-    """
-    Secret invite link for joining a project (and its workspace).
-    Separate from workspace invites — project-level access control.
-    """
-    project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name='invites')
-    token = models.UUIDField(unique=True, default=uuid.uuid4)
-    created_by = models.ForeignKey("User", on_delete=models.CASCADE, related_name='created_project_invites')
-    expires_at = models.DateTimeField(null=True, blank=True)
-    max_uses = models.PositiveIntegerField(null=True, blank=True)
-    use_count = models.PositiveIntegerField(default=0)
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Invite to {self.project.name} ({self.token})"
-
-    class Meta:
-        db_table = 'project_invites'
-        ordering = ['-created_at']
 
 
 class StatusDefinition(models.Model):
@@ -226,6 +206,7 @@ class Project(models.Model):
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name='projects', null=True, blank=True)
     name = models.CharField(max_length=255, unique=True)
     slug = models.SlugField(max_length=10, blank=True, help_text="Short prefix for ticket slugs, e.g. SA")
+    invite_uuid = models.UUIDField(unique=True, default=uuid.uuid4, help_text="Public UUID used as the invite link for this project")
     about_text = models.TextField(blank=True, help_text="What this project is about")
     process_text = models.TextField(blank=True, default='', help_text="Process guidelines for bots — conventions, rules, workflow")
     current_phase = models.ForeignKey('Phase', on_delete=models.SET_NULL, null=True, blank=True, related_name='active_in_project', help_text="The currently active phase")
