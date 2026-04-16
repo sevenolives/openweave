@@ -49,23 +49,25 @@ def _jwt_tokens_for_user(user):
 _error_detail = inline_serializer('ErrorDetail', fields={'detail': drf_serializers.CharField()})
 
 
-def _notify_owner_pending_bot(workspace, bot_user):
-    """Email workspace owner that a bot is requesting to join and needs approval."""
+def _notify_owner_pending_member(workspace, new_user):
+    """Email workspace owner that a user is requesting to join and needs approval."""
     from django.core.mail import send_mail
     from django.conf import settings
     owner = workspace.owner
     if not owner.email:
         return
+    user_type = 'bot' if new_user.user_type == 'BOT' else 'user'
     try:
         send_mail(
-            subject=f'[OpenWeave] Bot "{bot_user.name}" wants to join {workspace.name}',
+            subject=f'[OpenWeave] {new_user.name or new_user.username} wants to join {workspace.name}',
             message=(
-                f'A new bot is requesting to join your workspace "{workspace.name}".\n\n'
-                f'Bot name: {bot_user.name}\n'
-                f'Username: @{bot_user.username}\n\n'
+                f'A new {user_type} is requesting to join your workspace "{workspace.name}".\n\n'
+                f'Name: {new_user.name}\n'
+                f'Username: @{new_user.username}\n'
+                f'Type: {new_user.user_type}\n\n'
                 f'To approve or reject this request, go to your workspace members page '
                 f'or use the Django admin panel.\n\n'
-                f'Until approved, this bot cannot access any workspace data.'
+                f'Until approved, this {user_type} cannot access any workspace data.'
             ),
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[owner.email],
@@ -155,13 +157,17 @@ class JoinView(APIView):
                 return Response({'detail': 'A project invite token is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
             workspace = project_invite.project.workspace
-            if not WorkspaceMember.objects.filter(workspace=workspace, user=request.user).exists() and workspace.owner_id != request.user.id:
+            is_owner = workspace.owner_id == request.user.id
+            member, created = WorkspaceMember.objects.get_or_create(
+                workspace=workspace, user=request.user,
+                defaults={'is_approved': is_owner}
+            )
+            if created and not is_owner:
                 check_member_limit(workspace)
-                WorkspaceMember.objects.create(workspace=workspace, user=request.user)
                 sync_seat_count(workspace, operation='add')
-            workspace_member = WorkspaceMember.objects.get(workspace=workspace, user=request.user)
+                _notify_owner_pending_member(workspace, request.user)
             WorkspaceMemberProject.objects.get_or_create(
-                member=workspace_member, project=project_invite.project,
+                member=member, project=project_invite.project,
                 defaults={'role': 'MEMBER'}
             )
             project_invite.use_count += 1
@@ -169,6 +175,7 @@ class JoinView(APIView):
             return Response({
                 'workspace': WorkspaceSerializer(workspace).data,
                 'project': ProjectSerializer(project_invite.project).data,
+                'pending_approval': not member.is_approved,
             }, status=status.HTTP_200_OK)
 
         # Cases 1-3: Creating a new user
@@ -258,12 +265,16 @@ class JoinView(APIView):
         if project_invite:
             from .plan_limits import check_member_limit, sync_seat_count
             workspace = project_invite.project.workspace
+            is_owner = workspace.owner_id == user.id
             workspace_member, created = WorkspaceMember.objects.get_or_create(
-                workspace=workspace, user=user
+                workspace=workspace, user=user,
+                defaults={'is_approved': is_owner}
             )
-            if created and workspace.owner_id != user.id:
+            if created and not is_owner:
                 check_member_limit(workspace)
                 sync_seat_count(workspace, operation='add')
+                pending_approval = True
+                _notify_owner_pending_member(workspace, user)
             WorkspaceMemberProject.objects.get_or_create(
                 member=workspace_member, project=project_invite.project,
                 defaults={'role': 'MEMBER'}
@@ -287,7 +298,7 @@ class JoinView(APIView):
             workspace_data = WorkspaceSerializer(direct_workspace).data
 
             # Email workspace owner about pending approval
-            _notify_owner_pending_bot(direct_workspace, user)
+            _notify_owner_pending_member(direct_workspace, user)
 
         if is_bot:
             token, _ = Token.objects.get_or_create(user=user)
@@ -303,7 +314,7 @@ class JoinView(APIView):
 
         # Case 1 or 2
         tokens = _jwt_tokens_for_user(user)
-        response_data = {'user': UserSerializer(user).data, **tokens}
+        response_data = {'user': UserSerializer(user).data, 'pending_approval': pending_approval, **tokens}
         if workspace_data:
             response_data['workspace'] = workspace_data
         return Response(response_data, status=status.HTTP_201_CREATED)
