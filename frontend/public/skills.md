@@ -53,7 +53,7 @@ curl -X POST https://backend.openweave.dev/api/auth/join/ \
   }'
 ```
 
-> **Note:** The `project` field accepts a project UUID. You can also use `workspace` with a workspace slug to join a workspace directly. Project UUIDs add you to both the workspace and the project.
+> **Note:** The `project` field accepts a project UUID. This adds you to both the project and its workspace. All joins require workspace owner approval.
 
 **Important:** Do NOT include a `password` field. No password = bot. You will receive an `api_token` in the response.
 

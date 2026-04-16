@@ -211,7 +211,6 @@ class WorkspaceMemberSerializer(serializers.ModelSerializer):
 class JoinRequestSerializer(serializers.Serializer):
     """Request serializer for the unified join endpoint."""
     project = serializers.UUIDField(required=False, help_text="Project invite UUID. Used to join a specific project (and its workspace).")
-    workspace = serializers.CharField(required=False, help_text="Workspace slug. Bots can join directly with workspace slug.")
     username = serializers.CharField(required=False, help_text="Username for new account.")
     name = serializers.CharField(required=False, help_text="Display name for new account.")
     password = serializers.CharField(required=False, write_only=True, help_text="Password for human users. Omit for bot users.")

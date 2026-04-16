@@ -79,24 +79,23 @@ def _notify_owner_pending_member(workspace, new_user):
 @extend_schema(tags=['auth'])
 class JoinView(APIView):
     """
-    POST /api/auth/join/ — unified entry point for registration and workspace joining.
+    POST /api/auth/join/ — unified entry point for registration and project joining.
 
     Case 1: {username, name, password} → create HUMAN user, return JWT
     Case 2: {username, name, password, project} → create HUMAN + join project (pending approval), return JWT + workspace
-    Case 3: {username, name, workspace} → create BOT + request to join workspace (pending approval), return {api_token, workspace, user}
-       {username, name, project} → create BOT + join project (pending approval), return {api_token, workspace, user}
+    Case 3: {username, name, project} → create BOT + join project (pending approval), return {api_token, workspace, user}
     Case 4: Authenticated user + {project} → join existing user to project (pending approval), return {workspace}
     """
     permission_classes = [AllowAny]
     throttle_classes = [AuthRateThrottle]
 
     @extend_schema(
-        summary="Register or join a workspace",
+        summary="Register or join a project",
         description=(
-            "Unified endpoint for user registration and workspace joining.\n\n"
-            "**Case 1 — Register human (no workspace):** `{username, name, password}` → JWT.\n\n"
+            "Unified endpoint for user registration and project joining.\n\n"
+            "**Case 1 — Register human (no project):** `{username, name, password}` → JWT.\n\n"
             "**Case 2 — Register human + join project:** `{username, name, password, project}` (project UUID) → JWT + workspace.\n\n"
-            "**Case 3 — Register bot + join:** `{username, name, workspace}` (workspace slug) or `{username, name, project}` (project UUID). "
+            "**Case 3 — Register bot + join project:** `{username, name, project}` (project UUID, no password). "
             "Member is created with pending approval. Owner is emailed. Returns `{api_token, workspace, user}`.\n\n"
             "**Case 4 — Authenticated user joins project:** `{project}` (project UUID) with valid JWT → `{workspace}`."
         ),
@@ -119,12 +118,7 @@ class JoinView(APIView):
                 request_only=True,
             ),
             OpenApiExample(
-                'Case 3: Register bot (workspace slug)',
-                value={'username': 'support-bot', 'name': 'Support Bot', 'workspace': 'acme'},
-                request_only=True,
-            ),
-            OpenApiExample(
-                'Case 3: Register bot (project UUID)',
+                'Case 3: Register bot + join project',
                 value={'username': 'support-bot', 'name': 'Support Bot', 'project': 'a3f8c1e2-7b4d-4e9a-b5c6-1234abcd5678'},
                 request_only=True,
             ),
@@ -132,7 +126,6 @@ class JoinView(APIView):
     )
     def post(self, request):
         project_uuid = request.data.get('project')
-        workspace_slug = request.data.get('workspace')
         username = request.data.get('username')
         email = request.data.get('email', '').strip()
         name = request.data.get('name')
@@ -203,23 +196,15 @@ class JoinView(APIView):
                 username = f'{base_username}{counter}'
                 counter += 1
 
-        # Bots need either a project UUID or a workspace slug
-        if is_bot and not target_project and not workspace_slug:
-            return Response({'detail': 'Bot users require a workspace slug or project UUID.'}, status=status.HTTP_400_BAD_REQUEST)
+        # Bots need a project UUID
+        if is_bot and not target_project:
+            return Response({'detail': 'Bot users require a project UUID.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Email required for human users
         if password and not email:
             return Response({'detail': 'Email is required for human users.'}, status=status.HTTP_400_BAD_REQUEST)
         if email and User.objects.filter(email__iexact=email).exists():
             return Response({'detail': 'An account with this email already exists.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Resolve workspace for bot joining via slug
-        direct_workspace = None
-        if is_bot and workspace_slug and not target_project:
-            try:
-                direct_workspace = Workspace.objects.select_related('owner').get(slug=workspace_slug)
-            except Workspace.DoesNotExist:
-                return Response({'detail': 'Workspace not found.'}, status=status.HTTP_404_NOT_FOUND)
 
         if password:
             user = User(username=username, email=email, name=name, user_type='HUMAN', description=description)
@@ -243,11 +228,7 @@ class JoinView(APIView):
                 except Exception:
                     pass
         else:
-            bot_workspace = None
-            if target_project and target_project.workspace:
-                bot_workspace = target_project.workspace
-            elif direct_workspace:
-                bot_workspace = direct_workspace
+            bot_workspace = target_project.workspace if target_project and target_project.workspace else None
             user = User(username=username, name=name, user_type='BOT', description=description, created_in_workspace=bot_workspace)
             user.set_unusable_password()
             user.save()
@@ -275,22 +256,6 @@ class JoinView(APIView):
             )
             workspace_data = WorkspaceSerializer(workspace).data
             project_data = ProjectSerializer(target_project).data
-        elif direct_workspace:
-            # Bot joining via workspace slug — pending approval
-            from .plan_limits import check_member_limit, sync_seat_count
-            existing = WorkspaceMember.objects.filter(workspace=direct_workspace, user=user).first()
-            if existing:
-                return Response({'detail': 'Already a member of this workspace.'}, status=status.HTTP_400_BAD_REQUEST)
-            check_member_limit(direct_workspace)
-            WorkspaceMember.objects.create(
-                workspace=direct_workspace, user=user, is_approved=False
-            )
-            sync_seat_count(direct_workspace, operation='add')
-            pending_approval = True
-            workspace_data = WorkspaceSerializer(direct_workspace).data
-
-            # Email workspace owner about pending approval
-            _notify_owner_pending_member(direct_workspace, user)
 
         if is_bot:
             token, _ = Token.objects.get_or_create(user=user)
