@@ -981,10 +981,24 @@ class TicketAttachmentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = TicketAttachment.objects.select_related('uploaded_by', 'ticket')
         user = self.request.user
-        if user.is_superuser:
-            return qs.all()
-        # Non-admins only see attachments for tickets in projects they have access to
-        return qs.filter(project_access_q(user, prefix='ticket__project')).distinct()
+        if not user.is_superuser:
+            qs = qs.filter(project_access_q(user, prefix='ticket__project')).distinct()
+
+        # Filter by ticket slug (e.g. SA-1) or ticket ID
+        ticket_param = self.request.query_params.get('ticket')
+        if ticket_param:
+            if ticket_param.isdigit():
+                qs = qs.filter(ticket_id=int(ticket_param))
+            else:
+                parts = ticket_param.rsplit('-', 1)
+                if len(parts) == 2 and parts[1].isdigit():
+                    qs = qs.filter(
+                        ticket__project__slug__iexact=parts[0],
+                        ticket__ticket_number=int(parts[1])
+                    )
+                else:
+                    qs = qs.none()
+        return qs
 
     @extend_schema(
         summary="Upload attachment",
