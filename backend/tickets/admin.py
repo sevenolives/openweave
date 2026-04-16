@@ -55,7 +55,7 @@ class WorkspaceMemberAdmin(admin.ModelAdmin):
 def merge_users(modeladmin, request, queryset):
     """
     Admin action: merge duplicate users into one.
-    Keeps the oldest user (by date_joined) as the primary.
+    The admin chooses which user to keep via radio button on the confirmation page.
     Reassigns all related objects from duplicates to the primary, then deletes duplicates.
     """
     if queryset.count() < 2:
@@ -63,10 +63,14 @@ def merge_users(modeladmin, request, queryset):
         return
 
     users = list(queryset.order_by('date_joined'))
-    primary = users[0]
-    duplicates = users[1:]
 
     if request.POST.get('confirm_merge'):
+        primary_id = request.POST.get('primary_user_id')
+        if not primary_id:
+            modeladmin.message_user(request, "No primary user selected.", messages.ERROR)
+            return
+        primary = User.objects.get(pk=primary_id)
+        duplicates = [u for u in users if u.pk != primary.pk]
         with transaction.atomic():
             for dup in duplicates:
                 # --- ForeignKey reassignments ---
@@ -129,8 +133,7 @@ def merge_users(modeladmin, request, queryset):
     context = {
         **modeladmin.admin_site.each_context(request),
         'title': 'Confirm user merge',
-        'primary': primary,
-        'duplicates': duplicates,
+        'all_users': users,
         'queryset': queryset,
         'opts': modeladmin.model._meta,
         'action_checkbox_name': admin.helpers.ACTION_CHECKBOX_NAME,
