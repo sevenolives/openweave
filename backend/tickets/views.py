@@ -14,7 +14,7 @@ from rest_framework import serializers as drf_serializers
 from .models import (
     User, Project, Ticket, Comment, AuditLog, Workspace,
     WorkspaceMember, WorkspaceInvite, ProjectInvite, TicketAttachment, StatusDefinition,
-    BlogPost, MediaFile, Phase, ProjectStatusPermission, CommunityTemplate, CommunityRating,
+    BlogPost, Phase, ProjectStatusPermission, CommunityTemplate, CommunityRating,
     WorkspaceMemberProject, StateTemplate, StateTemplateItem,
 )
 from .serializers import (
@@ -26,7 +26,7 @@ from .serializers import (
     StatusDefinitionSerializer, PhaseSerializer, ProjectStatusPermissionSerializer,
     CommunityTemplateSerializer,
     BlogPostListSerializer, BlogPostDetailSerializer, BlogPostCreateSerializer,
-    MediaFileSerializer, WorkspaceMemberProjectSerializer,
+    WorkspaceMemberProjectSerializer,
     StateTemplateSerializer, StateTemplateListSerializer, StateTemplateItemSerializer,
 )
 from .throttles import AuthRateThrottle
@@ -1987,71 +1987,6 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         if self.action in ('create', 'update', 'partial_update'):
             return BlogPostCreateSerializer
         return BlogPostListSerializer
-
-
-class MediaFileViewSet(viewsets.ModelViewSet):
-    """Upload and manage media files (images, video, audio). Workspace-scoped."""
-    queryset = MediaFile.objects.all()
-    serializer_class = MediaFileSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    parser_classes = [parsers.MultiPartParser, parsers.FormParser]
-
-    # Max upload sizes
-    MAX_IMAGE_SIZE = 10 * 1024 * 1024   # 10 MB
-    MAX_VIDEO_SIZE = 100 * 1024 * 1024   # 100 MB
-    MAX_AUDIO_SIZE = 50 * 1024 * 1024    # 50 MB
-
-    def get_queryset(self):
-        qs = MediaFile.objects.select_related('uploaded_by', 'workspace', 'ticket')
-        workspace_slug = self.request.query_params.get('workspace')
-        if workspace_slug:
-            if workspace_slug.isdigit():
-                qs = qs.filter(Q(workspace__slug=workspace_slug) | Q(workspace_id=int(workspace_slug)))
-            else:
-                qs = qs.filter(workspace__slug=workspace_slug)
-        ticket = self.request.query_params.get('ticket')
-        if ticket:
-            qs = qs.filter(ticket_id=ticket)
-        media_type = self.request.query_params.get('media_type')
-        if media_type:
-            qs = qs.filter(media_type=media_type)
-        return qs
-
-    def perform_create(self, serializer):
-        f = self.request.FILES.get('file')
-        if not f:
-            raise ValidationError({'file': 'No file provided.'})
-
-        # Detect media type from content type
-        ct = f.content_type or ''
-        if ct.startswith('image/'):
-            media_type = 'image'
-            max_size = self.MAX_IMAGE_SIZE
-        elif ct.startswith('video/'):
-            media_type = 'video'
-            max_size = self.MAX_VIDEO_SIZE
-        elif ct.startswith('audio/'):
-            media_type = 'audio'
-            max_size = self.MAX_AUDIO_SIZE
-        else:
-            media_type = 'other'
-            max_size = self.MAX_VIDEO_SIZE
-
-        if f.size > max_size:
-            raise ValidationError({'file': f'File too large. Max {max_size // (1024*1024)} MB for {media_type}.'})
-
-        # Verify workspace membership
-        workspace_slug = self.request.data.get('workspace')
-        if not workspace_slug:
-            raise ValidationError({'workspace': 'Workspace is required.'})
-
-        serializer.save(
-            uploaded_by=self.request.user,
-            filename=f.name,
-            media_type=media_type,
-            content_type=ct,
-            size=f.size,
-        )
 
 
 @extend_schema(tags=['state-templates'])

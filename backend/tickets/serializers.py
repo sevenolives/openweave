@@ -4,7 +4,7 @@ from .permissions import is_admin_or_owner
 from .models import (
     User, Project, Ticket, Comment, AuditLog, Workspace, WorkspaceMember,
     WorkspaceInvite, ProjectInvite, TicketAttachment, StatusDefinition,
-    BlogPost, MediaFile, Phase, ProjectStatusPermission, CommunityTemplate,
+    BlogPost, Phase, ProjectStatusPermission, CommunityTemplate,
     WorkspaceMemberProject, StateTemplate, StateTemplateItem,
 )
 
@@ -791,26 +791,6 @@ class BlogPostCreateSerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'slug', 'content', 'excerpt', 'author',
                   'featured_image_url', 'meta_title', 'meta_description', 'tags',
                   'is_published', 'published_at']
-
-
-class MediaFileSerializer(serializers.ModelSerializer):
-    workspace = serializers.SlugRelatedField(slug_field='slug', queryset=Workspace.objects.all())
-    uploaded_by_username = serializers.CharField(source='uploaded_by.username', read_only=True)
-    url = serializers.SerializerMethodField()
-
-    class Meta:
-        model = MediaFile
-        fields = ['id', 'workspace', 'ticket', 'file', 'filename', 'media_type',
-                  'content_type', 'size', 'uploaded_by', 'uploaded_by_username',
-                  'url', 'created_at']
-        read_only_fields = ['id', 'filename', 'media_type', 'content_type', 'size',
-                           'uploaded_by', 'created_at']
-
-    def get_url(self, obj):
-        request = self.context.get('request')
-        if obj.file and request:
-            return request.build_absolute_uri(obj.file.url)
-        return None
 
 
 class StateTemplateItemSerializer(serializers.ModelSerializer):
