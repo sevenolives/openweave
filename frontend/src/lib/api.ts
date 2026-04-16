@@ -455,24 +455,24 @@ class ApiClient {
   }
 
   async getProjectAgents(projectSlug: string): Promise<User[]> {
-    const response = await this.request<PaginatedResponse<User>>(`/users/?project=${projectSlug}`);
-    return response.results || [];
+    const response = await this.request<PaginatedResponse<ProjectAgentMembership>>(`/workspace-member-projects/?project=${projectSlug}&page_size=100`);
+    return (response.results || []).map(m => m.user);
   }
 
   async getProjectAgentMemberships(projectSlug: string): Promise<ProjectAgentMembership[]> {
-    const response = await this.request<PaginatedResponse<ProjectAgentMembership>>(`/project-agents/?project=${projectSlug}`);
+    const response = await this.request<PaginatedResponse<ProjectAgentMembership>>(`/workspace-member-projects/?project=${projectSlug}&page_size=100`);
     return response.results || [];
   }
 
   async updateProjectAgentRole(membershipId: number, role: string): Promise<ProjectAgentMembership> {
-    return this.request<ProjectAgentMembership>(`/project-agents/${membershipId}/`, {
+    return this.request<ProjectAgentMembership>(`/workspace-member-projects/${membershipId}/`, {
       method: 'PATCH',
       body: JSON.stringify({ role }),
     });
   }
 
   async updateProjectAgent(membershipId: number, data: Partial<Pick<ProjectAgentMembership, 'role'>>): Promise<ProjectAgentMembership> {
-    return this.request<ProjectAgentMembership>(`/project-agents/${membershipId}/`, {
+    return this.request<ProjectAgentMembership>(`/workspace-member-projects/${membershipId}/`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     });

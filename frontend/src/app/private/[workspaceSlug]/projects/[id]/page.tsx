@@ -393,7 +393,7 @@ export default function ProjectSettingsPage() {
                         </div>
                       </div>
                       {phase.description && <p className="text-sm text-gray-400 mt-1">{phase.description}</p>}
-                      {phase.started_at && <p className="text-xs text-gray-400 mt-2">Started {new Date(phase.started_at).toLocaleDateString()}{phase.completed_at ? ` · Completed ${new Date(phase.completed_at).toLocaleDateString()}` : ''}</p>}
+                      {phase.started_at && <p className="text-xs text-gray-400 mt-2">Started {new Date(phase.started_at).toLocaleDateString()}</p>}
                     </div>
                   )}
                 </div>
