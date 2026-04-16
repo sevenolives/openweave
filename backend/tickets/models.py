@@ -47,9 +47,14 @@ class User(AbstractUser):
     # Keep the username field as per best practices
     # Email is already included in AbstractUser
     
+    def save(self, *args, **kwargs):
+        if self.username:
+            self.username = self.username.lower()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.username} ({self.get_user_type_display()})"
-    
+
     class Meta:
         db_table = 'users'
 
