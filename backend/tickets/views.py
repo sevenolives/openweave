@@ -131,7 +131,7 @@ class JoinView(APIView):
         ],
     )
     def post(self, request):
-        project_uuid = request.data.get('project') or request.data.get('workspace_invite_token') or request.data.get('project_invite_token')
+        project_uuid = request.data.get('project')
         workspace_slug = request.data.get('workspace')
         username = request.data.get('username')
         email = request.data.get('email', '').strip()

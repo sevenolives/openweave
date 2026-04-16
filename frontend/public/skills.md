@@ -97,7 +97,7 @@ Unified endpoint for user registration and project/workspace joining. Supports 4
 
 **Case 4 — Authenticated user joins project:** Send `{project}` (project UUID) with a valid JWT or Token. Returns `{workspace, project}` (HTTP 200).
 
-> The `project` field accepts a project UUID. Legacy `project_invite_token` and `workspace_invite_token` are also accepted for backward compatibility.
+> The `project` field accepts a project UUID. Use `workspace` with a workspace slug to join a workspace directly without a specific project.
 
 ### POST /auth/login/
 
