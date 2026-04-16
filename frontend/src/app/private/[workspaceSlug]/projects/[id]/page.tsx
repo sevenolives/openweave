@@ -215,8 +215,8 @@ export default function ProjectSettingsPage() {
                         {agent.username[0].toUpperCase()}
                       </span>
                       <div className="min-w-0">
-                        <div className="text-sm font-medium text-white truncate">{agent.username}</div>
-                        {agent.name && <div className="text-xs text-gray-500 truncate">{agent.name}</div>}
+                        <div className="text-sm font-medium text-white truncate">{agent.name || agent.username}</div>
+                        {agent.name && <div className="text-xs text-gray-500 truncate">@{agent.username}</div>}
                       </div>
                       <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold flex-shrink-0 ${agent.user_type === 'BOT' ? 'bg-purple-900/50 text-purple-300' : 'bg-indigo-900/50 text-indigo-300'}`}>
                         {agent.user_type}

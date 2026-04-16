@@ -76,6 +76,7 @@ export default function MembersPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-white truncate">{m.name || m.username}</span>
+                      {m.name && <span className="text-xs text-gray-500 truncate">@{m.username}</span>}
                       <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${isBot ? 'bg-purple-500/20 text-purple-300' : 'bg-indigo-500/20 text-indigo-300'}`}>{m.user_type}</span>
                       {isOwner && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300">OWNER</span>}
                     </div>
