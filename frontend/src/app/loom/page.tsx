@@ -207,29 +207,35 @@ const AGENT_TYPE_COLORS: Record<string, string> = {
   bot:    '#64748b',
 };
 
-const LANE_HEIGHT = 90;
+const LANE_HEIGHT = 80;
 const PADDING_TOP = 60;
-const PADDING_LEFT = 180;
-const PADDING_RIGHT = 60;
+const PADDING_RIGHT = 40;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function getPaddingLeft(svgWidth: number) {
+  if (svgWidth < 480) return 72;
+  if (svgWidth < 768) return 110;
+  return 180;
+}
 
 function getThreadY(lane: number) {
   return PADDING_TOP + lane * LANE_HEIGHT;
 }
 
 function getThreadX(progress: number, width: number) {
-  const usable = width - PADDING_LEFT - PADDING_RIGHT;
-  return PADDING_LEFT + progress * usable;
+  const pl = getPaddingLeft(width);
+  const usable = width - pl - PADDING_RIGHT;
+  return pl + progress * usable;
 }
 
 // Generate a slightly wavy bezier path for a thread
-function buildThreadPath(thread: Thread, svgWidth: number, totalLanes: number): string {
+function buildThreadPath(thread: Thread, svgWidth: number): string {
+  const pl = getPaddingLeft(svgWidth);
   const y = getThreadY(thread.yLane);
-  const startX = PADDING_LEFT;
+  const startX = pl;
   const endX = getThreadX(thread.health === 'idle' ? 0 : thread.progress, svgWidth);
 
-  // Add gentle wave based on lane to create the weave texture
   const waveAmp = 4;
   const waveFreq = thread.yLane % 2 === 0 ? 1 : -1;
   const cp1x = startX + (endX - startX) * 0.33;
@@ -322,9 +328,12 @@ function ThreadDetailPanel({ thread, onClose, onWhisper }: {
 
   return (
     <div
-      className="fixed right-0 top-0 h-full w-[420px] z-50 flex flex-col"
+      className="fixed z-50 flex flex-col
+        bottom-0 left-0 right-0 max-h-[80dvh] rounded-t-2xl
+        sm:bottom-auto sm:right-0 sm:top-0 sm:left-auto sm:w-[420px] sm:max-h-full sm:h-full sm:rounded-none"
       style={{
         background: 'linear-gradient(180deg, #0f0f1a 0%, #0a0a0f 100%)',
+        borderTop: '1px solid #222233',
         borderLeft: '1px solid #222233',
         boxShadow: '-20px 0 60px #00000080',
       }}
@@ -384,7 +393,7 @@ function ThreadDetailPanel({ thread, onClose, onWhisper }: {
       </div>
 
       {/* Tool call timeline */}
-      <div className="px-6 py-4 flex-1 overflow-y-auto">
+      <div className="px-6 py-4 flex-1 overflow-y-auto min-h-0">
         <div className="text-xs text-gray-500 uppercase tracking-wider mb-3">
           Tool Calls ({thread.toolCalls.length})
         </div>
@@ -452,7 +461,7 @@ function WhisperModal({ thread, onClose, onSend }: {
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <div
-        className="relative w-[480px] rounded-2xl p-6 z-10"
+        className="relative w-[calc(100vw-2rem)] sm:w-[480px] rounded-2xl p-6 z-10"
         style={{ background: '#0f0f1a', border: '1px solid #222233', boxShadow: '0 30px 80px #00000090' }}
       >
         <div className="flex items-center gap-3 mb-4">
@@ -559,7 +568,8 @@ function LoomCanvas({
 
         {/* Time grid lines */}
         {[0.25, 0.5, 0.75].map(t => {
-          const x = PADDING_LEFT + t * (dims.width - PADDING_LEFT - PADDING_RIGHT);
+          const pl = getPaddingLeft(dims.width);
+          const x = pl + t * (dims.width - pl - PADDING_RIGHT);
           return (
             <g key={t}>
               <line
@@ -588,10 +598,11 @@ function LoomCanvas({
 
         {/* Intersection markers */}
         {intersections.map((ix, i) => {
+          const pl = getPaddingLeft(dims.width);
           const tA = threads.find(t => t.id === ix.threadAId);
           const tB = threads.find(t => t.id === ix.threadBId);
           if (!tA || !tB) return null;
-          const x = PADDING_LEFT + ix.atX * (dims.width - PADDING_LEFT - PADDING_RIGHT);
+          const x = pl + ix.atX * (dims.width - pl - PADDING_RIGHT);
           const yA = getThreadY(tA.yLane);
           const yB = getThreadY(tB.yLane);
           const cx = x;
@@ -602,15 +613,18 @@ function LoomCanvas({
               <line x1={cx} y1={yA} x2={cx} y2={yB} stroke={color} strokeWidth={1} strokeDasharray="3,4" opacity={0.4} />
               <circle cx={cx} cy={yA} r={4} fill={color + '33'} stroke={color} strokeWidth={1.5} filter="url(#glow-intersection)" />
               <circle cx={cx} cy={yB} r={4} fill={color + '33'} stroke={color} strokeWidth={1.5} />
-              <text x={cx + 8} y={cy} fill={color} fontSize={9} fontFamily="Inter, sans-serif" opacity={0.7} dominantBaseline="middle">
-                {ix.type === 'dependency' ? 'waits for' : ix.type}
-              </text>
+              {dims.width >= 480 && (
+                <text x={cx + 8} y={cy} fill={color} fontSize={9} fontFamily="Inter, sans-serif" opacity={0.7} dominantBaseline="middle">
+                  {ix.type === 'dependency' ? 'waits for' : ix.type}
+                </text>
+              )}
             </g>
           );
         })}
 
         {/* Threads */}
         {threads.map(thread => {
+          const pl = getPaddingLeft(dims.width);
           const hc = HEALTH_COLORS[thread.health];
           const isSelected = selectedId === thread.id;
           const isHovered = hoveredId === thread.id;
@@ -618,10 +632,11 @@ function LoomCanvas({
           const opacity = isDimmed ? 0.2 : 1;
           const strokeWidth = isSelected || isHovered ? 2.5 : 1.8;
 
-          const activePath = buildThreadPath(thread, dims.width, threads.length);
+          const activePath = buildThreadPath(thread, dims.width);
           const ghostPath = buildGhostPath(thread, dims.width);
           const y = getThreadY(thread.yLane);
           const tipX = getThreadX(thread.health === 'idle' ? 0 : thread.progress, dims.width);
+          const isSmall = dims.width < 480;
 
           return (
             <g key={thread.id} style={{ opacity, transition: 'opacity 0.2s ease' }}>
@@ -681,7 +696,7 @@ function LoomCanvas({
 
               {/* Tool call dots */}
               {thread.toolCalls.map(tc => {
-                const tcX = PADDING_LEFT + tc.at * (dims.width - PADDING_LEFT - PADDING_RIGHT);
+                const tcX = pl + tc.at * (dims.width - pl - PADDING_RIGHT);
                 return (
                   <g key={tc.id} transform={`translate(${tcX}, ${y})`}>
                     <ToolCallDot tc={tc} color={hc.stroke} />
@@ -717,37 +732,39 @@ function LoomCanvas({
                 onMouseLeave={() => onHoverThread(null)}
               >
                 <rect
-                  x={4}
+                  x={2}
                   y={y - 14}
-                  width={PADDING_LEFT - 12}
+                  width={pl - 8}
                   height={28}
                   rx={6}
                   fill={isSelected || isHovered ? '#1a1a2e' : 'transparent'}
                   style={{ transition: 'fill 0.15s ease' }}
                 />
                 <text
-                  x={PADDING_LEFT - 14}
+                  x={pl - 10}
                   y={y - 4}
                   textAnchor="end"
                   fill={isSelected || isHovered ? '#e5e7eb' : '#6b7280'}
-                  fontSize={11}
+                  fontSize={isSmall ? 9 : 11}
                   fontWeight={isSelected || isHovered ? '600' : '400'}
                   fontFamily="Inter, sans-serif"
                   style={{ transition: 'fill 0.15s ease' }}
                 >
-                  {thread.agentName}
+                  {isSmall ? thread.agentName.slice(0, 4) : thread.agentName}
                 </text>
-                <text
-                  x={PADDING_LEFT - 14}
-                  y={y + 8}
-                  textAnchor="end"
-                  fill={isSelected || isHovered ? hc.stroke : '#374151'}
-                  fontSize={9}
-                  fontFamily="Inter, sans-serif"
-                  style={{ transition: 'fill 0.15s ease' }}
-                >
-                  {hc.label}
-                </text>
+                {!isSmall && (
+                  <text
+                    x={pl - 10}
+                    y={y + 8}
+                    textAnchor="end"
+                    fill={isSelected || isHovered ? hc.stroke : '#374151'}
+                    fontSize={9}
+                    fontFamily="Inter, sans-serif"
+                    style={{ transition: 'fill 0.15s ease' }}
+                  >
+                    {hc.label}
+                  </text>
+                )}
               </g>
             </g>
           );
@@ -773,48 +790,36 @@ function SystemHealthBar({ threads }: { threads: Thread[] }) {
   const active      = threads.filter(t => t.health === 'flowing' || t.health === 'slowing').length;
 
   return (
-    <div className="flex items-center gap-6 px-6 py-3 border-b border-[#1a1a2e] bg-[#0a0a0f]/80 backdrop-blur-sm">
+    <div className="flex items-center gap-3 sm:gap-6 px-4 sm:px-6 py-2 sm:py-3 border-b border-[#1a1a2e] bg-[#0a0a0f]/80 backdrop-blur-sm">
       {/* Health breakdown */}
-      <div className="flex items-center gap-1 flex-1">
+      <div className="flex items-center gap-1 flex-1 flex-wrap">
         {(Object.entries(counts) as [ThreadHealth, number][]).map(([health, count]) => {
           if (count === 0) return null;
           const hc = HEALTH_COLORS[health];
           return (
-            <div key={health} className="flex items-center gap-1.5 mr-3">
-              <div className={`w-2 h-2 rounded-full ${health === 'flowing' ? 'animate-pulse' : ''}`} style={{ backgroundColor: hc.stroke }} />
-              <span className="text-xs text-gray-500">{count} {hc.label.toLowerCase()}</span>
+            <div key={health} className="flex items-center gap-1 mr-2 sm:mr-3">
+              <div className={`w-2 h-2 rounded-full shrink-0 ${health === 'flowing' ? 'animate-pulse' : ''}`} style={{ backgroundColor: hc.stroke }} />
+              <span className="text-xs text-gray-500">{count} <span className="hidden sm:inline">{hc.label.toLowerCase()}</span></span>
             </div>
           );
         })}
       </div>
 
-      {/* Metrics */}
-      <div className="flex items-center gap-6 text-xs text-gray-500">
-        <div>
-          <span className="text-gray-300 font-medium">{active}</span> active
-        </div>
-        <div>
-          <span className="text-gray-300 font-medium">{formatTokens(totalTokens)}</span> tokens
-        </div>
-        <div>
-          <span className="text-gray-300 font-medium">{formatCost(totalCost)}</span> total cost
-        </div>
-        <div>
-          <span className="text-gray-300 font-medium">{total}</span> threads
-        </div>
+      {/* Metrics — hidden on very small screens */}
+      <div className="hidden sm:flex items-center gap-4 sm:gap-6 text-xs text-gray-500">
+        <div><span className="text-gray-300 font-medium">{active}</span> active</div>
+        <div><span className="text-gray-300 font-medium">{formatTokens(totalTokens)}</span> tokens</div>
+        <div><span className="text-gray-300 font-medium">{formatCost(totalCost)}</span> cost</div>
       </div>
 
       {/* Mini health bar */}
-      <div className="w-32 h-1.5 bg-[#1a1a2e] rounded-full overflow-hidden flex">
+      <div className="w-16 sm:w-32 h-1.5 bg-[#1a1a2e] rounded-full overflow-hidden flex shrink-0">
         {(Object.entries(counts) as [ThreadHealth, number][]).map(([health, count]) => {
           if (count === 0) return null;
           return (
             <div
               key={health}
-              style={{
-                width: `${(count / total) * 100}%`,
-                backgroundColor: HEALTH_COLORS[health].stroke,
-              }}
+              style={{ width: `${(count / total) * 100}%`, backgroundColor: HEALTH_COLORS[health].stroke }}
             />
           );
         })}
@@ -885,30 +890,29 @@ export default function LoomPage() {
       }}
     >
       {/* Topbar */}
-      <div className="flex items-center justify-between px-6 py-3 border-b border-[#1a1a2e] shrink-0">
-        <div className="flex items-center gap-3">
-          {/* Loom wordmark */}
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-[#1a1a2e] shrink-0 gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="shrink-0">
             <path d="M2 12 Q6 6 12 12 Q18 18 22 12" stroke="#6366f1" strokeWidth="2" fill="none" strokeLinecap="round" />
             <path d="M2 8 Q6 4 12 8 Q18 12 22 8" stroke="#22c55e" strokeWidth="1.5" fill="none" strokeLinecap="round" opacity="0.6" />
             <path d="M2 16 Q6 12 12 16 Q18 20 22 16" stroke="#f59e0b" strokeWidth="1.5" fill="none" strokeLinecap="round" opacity="0.4" />
           </svg>
           <span className="text-white font-semibold text-sm tracking-tight">Loom</span>
-          <span className="text-gray-700 text-xs">·</span>
-          <span className="text-gray-600 text-xs">Agent Activity</span>
+          <span className="text-gray-700 text-xs hidden sm:inline">·</span>
+          <span className="text-gray-600 text-xs hidden sm:inline">Agent Activity</span>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {whispers.length > 0 && (
-            <div className="text-xs text-indigo-400 border border-indigo-500/20 bg-indigo-500/10 rounded-full px-3 py-1">
-              {whispers.length} whisper{whispers.length !== 1 ? 's' : ''} sent
+            <div className="text-xs text-indigo-400 border border-indigo-500/20 bg-indigo-500/10 rounded-full px-2 sm:px-3 py-1">
+              {whispers.length} whisper{whispers.length !== 1 ? 's' : ''}
             </div>
           )}
           <div className="flex items-center gap-1.5 text-xs text-gray-600">
             <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-            Live
+            <span className="hidden sm:inline">Live</span>
           </div>
-          <div className="text-xs text-gray-700 border border-[#222233] rounded-lg px-3 py-1.5">
+          <div className="text-xs text-gray-700 border border-[#222233] rounded-lg px-2 sm:px-3 py-1.5 hidden sm:block">
             OpenWeave · demo-workspace
           </div>
         </div>
@@ -918,34 +922,29 @@ export default function LoomPage() {
       <SystemHealthBar threads={threads} />
 
       {/* Legend */}
-      <div className="flex items-center gap-6 px-6 py-2 border-b border-[#111118] shrink-0">
-        <span className="text-xs text-gray-700 uppercase tracking-wider">Key</span>
-        <div className="flex items-center gap-1.5 text-xs text-gray-600">
-          <svg width="20" height="8">
-            <line x1="0" y1="4" x2="20" y2="4" stroke="#22c55e" strokeWidth="2" />
-          </svg>
+      <div className="flex items-center gap-4 px-4 sm:px-6 py-2 border-b border-[#111118] shrink-0 overflow-x-auto">
+        <span className="text-xs text-gray-700 uppercase tracking-wider shrink-0">Key</span>
+        <div className="flex items-center gap-1.5 text-xs text-gray-600 shrink-0">
+          <svg width="20" height="8"><line x1="0" y1="4" x2="20" y2="4" stroke="#22c55e" strokeWidth="2" /></svg>
           Thread
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-gray-600">
-          <svg width="20" height="8">
-            <line x1="0" y1="4" x2="20" y2="4" stroke="#374151" strokeWidth="1.5" strokeDasharray="3,4" />
-          </svg>
-          Future path
+        <div className="flex items-center gap-1.5 text-xs text-gray-600 shrink-0">
+          <svg width="20" height="8"><line x1="0" y1="4" x2="20" y2="4" stroke="#374151" strokeWidth="1.5" strokeDasharray="3,4" /></svg>
+          <span className="hidden sm:inline">Future path</span>
+          <span className="sm:hidden">Future</span>
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-gray-600">
-          <svg width="10" height="10">
-            <circle cx="5" cy="5" r="4" fill="#22c55e22" stroke="#22c55e" strokeWidth="1.5" />
-          </svg>
+        <div className="flex items-center gap-1.5 text-xs text-gray-600 shrink-0">
+          <svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="#22c55e22" stroke="#22c55e" strokeWidth="1.5" /></svg>
           Tool call
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-gray-600">
+        <div className="hidden sm:flex items-center gap-1.5 text-xs text-gray-600 shrink-0">
           <svg width="10" height="10">
             <circle cx="5" cy="5" r="3" fill="#22c55e" opacity="0.9" />
             <circle cx="5" cy="5" r="1.5" fill="white" opacity="0.8" />
           </svg>
-          Current position
+          Position
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-gray-600">
+        <div className="hidden sm:flex items-center gap-1.5 text-xs text-gray-600 shrink-0">
           <svg width="20" height="10">
             <line x1="0" y1="5" x2="20" y2="5" stroke="#f59e0b" strokeWidth="1" strokeDasharray="3,4" opacity="0.5" />
             <circle cx="0" cy="5" r="3" fill="#f59e0b22" stroke="#f59e0b" strokeWidth="1" />
@@ -953,7 +952,7 @@ export default function LoomPage() {
           </svg>
           Dependency
         </div>
-        <div className="ml-auto text-xs text-gray-700">Click any thread to inspect · Whisper to inject context · Take the Wheel for full control</div>
+        <div className="ml-auto text-xs text-gray-700 hidden md:block shrink-0">Tap a thread to inspect</div>
       </div>
 
       {/* Main canvas */}
