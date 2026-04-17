@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type ThreadHealth = 'flowing' | 'slowing' | 'blocked' | 'completed' | 'idle';
+type TicketStatus = 'done' | 'active' | 'queued' | 'blocked';
 
 interface ToolCall {
   id: string;
@@ -14,13 +15,20 @@ interface ToolCall {
   at: number; // 0-1 position along thread
 }
 
+interface Ticket {
+  id: string;
+  title: string;
+  status: TicketStatus;
+  priority: 'high' | 'medium' | 'low';
+}
+
 interface Thread {
   id: string;
   agentName: string;
   agentType: 'claude' | 'gpt' | 'human' | 'bot';
   task: string;
   health: ThreadHealth;
-  progress: number;       // 0-1, how far through the task
+  progress: number;       // 0-1, how far through current task
   startedAt: string;
   tokens: number;
   costUsd: number;
@@ -28,18 +36,39 @@ interface Thread {
   toolCalls: ToolCall[];
   messages: number;
   lastAction: string;
-  yLane: number;          // vertical lane index
-  interactsWith?: string[]; // thread ids this one depends on
+  yLane: number;
+  interactsWith?: string[];
+  tickets: Ticket[];      // full queue for this agent in the phase
 }
 
 interface Intersection {
   threadAId: string;
   threadBId: string;
-  atX: number; // 0-1 along the timeline
+  atX: number;
   type: 'dependency' | 'conflict' | 'collaboration';
 }
 
+interface Phase {
+  name: string;
+  sprint: string;
+  goal: string;
+  totalTickets: number;
+  doneTickets: number;
+  daysLeft: number;
+  dueDate: string;
+}
+
 // ─── Mock Data ────────────────────────────────────────────────────────────────
+
+const MOCK_PHASE: Phase = {
+  name: 'Q2 Auth Overhaul',
+  sprint: 'Sprint 3 of 4',
+  goal: 'Complete compliance-grade auth rewrite, migrate all v1 endpoints to v2, and ship onboarding revamp',
+  totalTickets: 34,
+  doneTickets: 19,
+  daysLeft: 4,
+  dueDate: 'Apr 21',
+};
 
 const MOCK_THREADS: Thread[] = [
   {
@@ -57,6 +86,13 @@ const MOCK_THREADS: Thread[] = [
     lastAction: 'Writing unit tests for token rotation logic',
     yLane: 0,
     interactsWith: ['th-3'],
+    tickets: [
+      { id: 'OW-114', title: 'Audit session token storage for GDPR compliance', status: 'done', priority: 'high' },
+      { id: 'OW-115', title: 'Implement token rotation on re-auth events', status: 'done', priority: 'high' },
+      { id: 'OW-116', title: 'Refactor auth middleware (current)', status: 'active', priority: 'high' },
+      { id: 'OW-117', title: 'Write migration guide for client SDK consumers', status: 'queued', priority: 'medium' },
+      { id: 'OW-118', title: 'Remove legacy basic-auth fallback', status: 'queued', priority: 'low' },
+    ],
     toolCalls: [
       { id: 'tc-1', name: 'read_file', durationMs: 120, status: 'success', at: 0.1 },
       { id: 'tc-2', name: 'bash', durationMs: 890, status: 'success', at: 0.28 },
@@ -79,6 +115,14 @@ const MOCK_THREADS: Thread[] = [
     messages: 14,
     lastAction: 'Querying cohort data for March drop-off segment',
     yLane: 1,
+    tickets: [
+      { id: 'OW-101', title: 'Pull Q1 retention cohorts from warehouse', status: 'done', priority: 'high' },
+      { id: 'OW-102', title: 'Identify top drop-off events per segment', status: 'done', priority: 'high' },
+      { id: 'OW-103', title: 'Analyze Q1 churn patterns (current)', status: 'active', priority: 'high' },
+      { id: 'OW-104', title: 'Draft retention lever recommendations', status: 'queued', priority: 'medium' },
+      { id: 'OW-105', title: 'Produce exec summary slide deck', status: 'queued', priority: 'medium' },
+      { id: 'OW-106', title: 'Schedule review with product team', status: 'queued', priority: 'low' },
+    ],
     toolCalls: [
       { id: 'tc-6', name: 'web_search', durationMs: 2100, status: 'success', at: 0.12 },
       { id: 'tc-7', name: 'bash', durationMs: 450, status: 'success', at: 0.3 },
@@ -100,6 +144,12 @@ const MOCK_THREADS: Thread[] = [
     lastAction: 'Waiting for Atlas to finalize token schema before continuing',
     yLane: 2,
     interactsWith: ['th-1'],
+    tickets: [
+      { id: 'OW-120', title: 'Audit v1→v2 endpoint diff', status: 'done', priority: 'high' },
+      { id: 'OW-121', title: 'Update OpenAPI spec for /auth/* routes', status: 'active', priority: 'high' },
+      { id: 'OW-122', title: 'Write migration guide (blocked on OW-116)', status: 'blocked', priority: 'high' },
+      { id: 'OW-123', title: 'Update changelog and release notes', status: 'queued', priority: 'medium' },
+    ],
     toolCalls: [
       { id: 'tc-9',  name: 'read_file', durationMs: 95, status: 'success', at: 0.08 },
       { id: 'tc-10', name: 'web_fetch', durationMs: 1800, status: 'success', at: 0.22 },
@@ -120,6 +170,13 @@ const MOCK_THREADS: Thread[] = [
     messages: 31,
     lastAction: 'Completed — all 5 emails delivered to content team',
     yLane: 3,
+    tickets: [
+      { id: 'OW-130', title: 'Research onboarding email best practices', status: 'done', priority: 'medium' },
+      { id: 'OW-131', title: 'Draft welcome + activation emails', status: 'done', priority: 'high' },
+      { id: 'OW-132', title: 'Write 14-day drip sequence (5 emails)', status: 'done', priority: 'high' },
+      { id: 'OW-133', title: 'A/B variant for subject lines', status: 'done', priority: 'medium' },
+      { id: 'OW-134', title: 'Hand off to content team', status: 'done', priority: 'low' },
+    ],
     toolCalls: [
       { id: 'tc-12', name: 'web_search', durationMs: 1200, status: 'success', at: 0.15 },
       { id: 'tc-13', name: 'write_file', durationMs: 890, status: 'success', at: 0.35 },
@@ -142,6 +199,11 @@ const MOCK_THREADS: Thread[] = [
     messages: 4,
     lastAction: 'Blocked — missing GitHub API token in environment',
     yLane: 4,
+    tickets: [
+      { id: 'OW-140', title: 'Triage 47 open GitHub issues', status: 'blocked', priority: 'high' },
+      { id: 'OW-141', title: 'Close duplicate issues with standard reply', status: 'queued', priority: 'medium' },
+      { id: 'OW-142', title: 'Label all open issues by component', status: 'queued', priority: 'medium' },
+    ],
     toolCalls: [
       { id: 'tc-17', name: 'bash', durationMs: 230, status: 'error', at: 0.18 },
     ],
@@ -160,6 +222,10 @@ const MOCK_THREADS: Thread[] = [
     messages: 0,
     lastAction: 'Waiting for scheduled trigger',
     yLane: 5,
+    tickets: [
+      { id: 'OW-150', title: 'Nightly Stripe → ledger sync (scheduled)', status: 'queued', priority: 'medium' },
+      { id: 'OW-151', title: 'Flag revenue anomalies > 2σ', status: 'queued', priority: 'medium' },
+    ],
     toolCalls: [],
   },
   {
@@ -176,6 +242,14 @@ const MOCK_THREADS: Thread[] = [
     messages: 28,
     lastAction: 'Running migration tests against staging database',
     yLane: 6,
+    tickets: [
+      { id: 'OW-160', title: 'Audit all legacy PostgreSQL views', status: 'done', priority: 'high' },
+      { id: 'OW-161', title: 'Map views to Django ORM equivalents', status: 'done', priority: 'high' },
+      { id: 'OW-162', title: 'Write ORM models + migration files', status: 'done', priority: 'high' },
+      { id: 'OW-163', title: 'Run migration on staging + validate (current)', status: 'active', priority: 'high' },
+      { id: 'OW-164', title: 'Zero-downtime prod cutover plan', status: 'queued', priority: 'high' },
+      { id: 'OW-165', title: 'Deprecate legacy views + monitor', status: 'queued', priority: 'medium' },
+    ],
     toolCalls: [
       { id: 'tc-18', name: 'bash', durationMs: 3200, status: 'success', at: 0.1 },
       { id: 'tc-19', name: 'read_file', durationMs: 180, status: 'success', at: 0.22 },
@@ -357,11 +431,54 @@ function ThreadDetailPanel({ thread, onClose, onWhisper }: {
         </button>
       </div>
 
-      {/* Task */}
-      <div className="px-6 py-4 border-b border-[#1a1a2e]">
-        <div className="text-xs text-gray-500 uppercase tracking-wider mb-2">Current Task</div>
+      {/* Active task */}
+      <div className="px-6 py-3 border-b border-[#1a1a2e]">
+        <div className="text-xs text-gray-500 uppercase tracking-wider mb-2">Active Task</div>
         <p className="text-gray-200 text-sm leading-relaxed">{thread.task}</p>
-        <div className="mt-3 text-xs text-gray-400 italic">{thread.lastAction}</div>
+        <div className="mt-2 text-xs text-gray-400 italic">{thread.lastAction}</div>
+      </div>
+
+      {/* Ticket queue */}
+      <div className="px-6 py-3 border-b border-[#1a1a2e]">
+        {(() => {
+          const done = thread.tickets.filter(t => t.status === 'done').length;
+          const total = thread.tickets.length;
+          const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+          const TICKET_COLORS: Record<TicketStatus, { dot: string; text: string; label: string }> = {
+            done:    { dot: '#22c55e', text: 'text-gray-600 line-through', label: 'Done' },
+            active:  { dot: hc.stroke, text: 'text-gray-200 font-medium', label: 'Active' },
+            queued:  { dot: '#374151', text: 'text-gray-500', label: 'Queued' },
+            blocked: { dot: '#ef4444', text: 'text-red-400', label: 'Blocked' },
+          };
+          return (
+            <>
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs text-gray-500 uppercase tracking-wider">
+                  Queue <span className="text-gray-400 normal-case ml-1">{done}/{total} done</span>
+                </div>
+                <span className="text-xs font-semibold" style={{ color: hc.stroke }}>{pct}%</span>
+              </div>
+              <div className="h-1 bg-[#1a1a2e] rounded-full overflow-hidden mb-3">
+                <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: hc.stroke }} />
+              </div>
+              <div className="space-y-1.5">
+                {thread.tickets.map(ticket => {
+                  const tc = TICKET_COLORS[ticket.status];
+                  const priorityDot = ticket.priority === 'high' ? '#ef4444' : ticket.priority === 'medium' ? '#f59e0b' : '#374151';
+                  return (
+                    <div key={ticket.id} className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: tc.dot }} />
+                      <div className="flex-1 min-w-0">
+                        <span className={`text-xs ${tc.text} leading-snug`}>{ticket.title}</span>
+                      </div>
+                      <span className="text-xs text-gray-700 font-mono shrink-0">{ticket.id}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          );
+        })()}
       </div>
 
       {/* Metrics */}
@@ -725,51 +842,124 @@ function LoomCanvas({
               )}
 
               {/* Lane label (left) */}
-              <g
-                style={{ cursor: 'pointer' }}
-                onClick={() => onSelectThread(thread.id)}
-                onMouseEnter={() => onHoverThread(thread.id)}
-                onMouseLeave={() => onHoverThread(null)}
-              >
-                <rect
-                  x={2}
-                  y={y - 14}
-                  width={pl - 8}
-                  height={28}
-                  rx={6}
-                  fill={isSelected || isHovered ? '#1a1a2e' : 'transparent'}
-                  style={{ transition: 'fill 0.15s ease' }}
-                />
-                <text
-                  x={pl - 10}
-                  y={y - 4}
-                  textAnchor="end"
-                  fill={isSelected || isHovered ? '#e5e7eb' : '#6b7280'}
-                  fontSize={isSmall ? 9 : 11}
-                  fontWeight={isSelected || isHovered ? '600' : '400'}
-                  fontFamily="Inter, sans-serif"
-                  style={{ transition: 'fill 0.15s ease' }}
-                >
-                  {isSmall ? thread.agentName.slice(0, 4) : thread.agentName}
-                </text>
-                {!isSmall && (
-                  <text
-                    x={pl - 10}
-                    y={y + 8}
-                    textAnchor="end"
-                    fill={isSelected || isHovered ? hc.stroke : '#374151'}
-                    fontSize={9}
-                    fontFamily="Inter, sans-serif"
-                    style={{ transition: 'fill 0.15s ease' }}
+              {(() => {
+                const done = thread.tickets.filter(t => t.status === 'done').length;
+                const total = thread.tickets.length;
+                return (
+                  <g
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => onSelectThread(thread.id)}
+                    onMouseEnter={() => onHoverThread(thread.id)}
+                    onMouseLeave={() => onHoverThread(null)}
                   >
-                    {hc.label}
-                  </text>
-                )}
-              </g>
+                    <rect
+                      x={2}
+                      y={y - 16}
+                      width={pl - 8}
+                      height={32}
+                      rx={6}
+                      fill={isSelected || isHovered ? '#1a1a2e' : 'transparent'}
+                      style={{ transition: 'fill 0.15s ease' }}
+                    />
+                    <text
+                      x={pl - 10}
+                      y={y - 5}
+                      textAnchor="end"
+                      fill={isSelected || isHovered ? '#e5e7eb' : '#6b7280'}
+                      fontSize={isSmall ? 9 : 11}
+                      fontWeight={isSelected || isHovered ? '600' : '400'}
+                      fontFamily="Inter, sans-serif"
+                      style={{ transition: 'fill 0.15s ease' }}
+                    >
+                      {isSmall ? thread.agentName.slice(0, 4) : thread.agentName}
+                    </text>
+                    {!isSmall && (
+                      <text
+                        x={pl - 10}
+                        y={y + 8}
+                        textAnchor="end"
+                        fill={isSelected || isHovered ? '#9ca3af' : '#374151'}
+                        fontSize={9}
+                        fontFamily="Inter, sans-serif"
+                        style={{ transition: 'fill 0.15s ease' }}
+                      >
+                        {done}/{total}
+                      </text>
+                    )}
+                  </g>
+                );
+              })()}
             </g>
           );
         })}
       </svg>
+    </div>
+  );
+}
+
+// ─── Phase Goal Bar ───────────────────────────────────────────────────────────
+
+function PhaseGoalBar({ phase, threads }: { phase: Phase; threads: Thread[] }) {
+  const pct = Math.round((phase.doneTickets / phase.totalTickets) * 100);
+  const remaining = phase.totalTickets - phase.doneTickets;
+  const blockedCount = threads.filter(t => t.health === 'blocked').length;
+  const isAtRisk = blockedCount > 0 && phase.daysLeft <= 5;
+
+  return (
+    <div
+      className="px-4 sm:px-6 py-2.5 border-b shrink-0"
+      style={{ borderColor: isAtRisk ? '#7c2d1233' : '#1a1a2e', background: isAtRisk ? '#7c2d1208' : 'transparent' }}
+    >
+      <div className="flex items-center gap-3 sm:gap-6 flex-wrap sm:flex-nowrap">
+        {/* Phase name + sprint */}
+        <div className="flex items-center gap-2 shrink-0 min-w-0">
+          <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
+          <span className="text-white text-xs font-semibold truncate">{phase.name}</span>
+          <span className="text-gray-600 text-xs hidden sm:inline">·</span>
+          <span className="text-gray-600 text-xs hidden sm:inline">{phase.sprint}</span>
+        </div>
+
+        {/* Progress bar + pct */}
+        <div className="flex items-center gap-2 flex-1 min-w-[120px]">
+          <div className="flex-1 h-1.5 bg-[#1a1a2e] rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-700"
+              style={{
+                width: `${pct}%`,
+                background: isAtRisk
+                  ? 'linear-gradient(90deg, #6366f1, #f59e0b)'
+                  : 'linear-gradient(90deg, #6366f1, #22c55e)',
+              }}
+            />
+          </div>
+          <span className="text-xs font-semibold text-gray-300 shrink-0">{pct}%</span>
+        </div>
+
+        {/* Ticket counts */}
+        <div className="flex items-center gap-3 text-xs text-gray-500 shrink-0">
+          <span><span className="text-green-400 font-medium">{phase.doneTickets}</span> done</span>
+          <span className="text-gray-700">·</span>
+          <span><span className="text-gray-300 font-medium">{remaining}</span> left</span>
+          {blockedCount > 0 && (
+            <>
+              <span className="text-gray-700">·</span>
+              <span className="text-red-400 font-medium">{blockedCount} blocked</span>
+            </>
+          )}
+        </div>
+
+        {/* Deadline */}
+        <div
+          className={`flex items-center gap-1.5 text-xs shrink-0 ${isAtRisk ? 'text-amber-400' : 'text-gray-600'}`}
+        >
+          {isAtRisk && <span>⚠</span>}
+          <span>Due {phase.dueDate}</span>
+          <span className="text-gray-700">·</span>
+          <span className={`font-medium ${phase.daysLeft <= 2 ? 'text-red-400' : isAtRisk ? 'text-amber-400' : 'text-gray-400'}`}>
+            {phase.daysLeft}d left
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -860,6 +1050,7 @@ function TheRiver() {
 
 export default function LoomPage() {
   const [threads] = useState<Thread[]>(MOCK_THREADS);
+  const [phase] = useState<Phase>(MOCK_PHASE);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [whisperThread, setWhisperThread] = useState<Thread | null>(null);
@@ -917,6 +1108,9 @@ export default function LoomPage() {
           </div>
         </div>
       </div>
+
+      {/* Phase goal bar */}
+      <PhaseGoalBar phase={phase} threads={threads} />
 
       {/* System health bar */}
       <SystemHealthBar threads={threads} />
