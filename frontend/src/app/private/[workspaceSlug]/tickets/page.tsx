@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef, Suspense, useCallback } from 'react';
-import { useRouter, useSearchParams, useParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 
 import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
@@ -11,11 +11,15 @@ import { api, Ticket, Project, User, WorkspaceMember, ApiError, PaginatedRespons
 import { useWorkspace } from '@/hooks/useWorkspace';
 // Auth handled by (private) layout
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 25;
 
 const PRIORITY_COLORS: Record<string, string> = {
   LOW: 'bg-green-900/50 text-green-300', MEDIUM: 'bg-yellow-900/50 text-yellow-300',
   HIGH: 'bg-orange-900/50 text-orange-300', CRITICAL: 'bg-red-900/50 text-red-300',
+};
+
+const PRIORITY_BAR: Record<string, string> = {
+  LOW: 'bg-green-500/40', MEDIUM: 'bg-yellow-500/40', HIGH: 'bg-orange-500/60', CRITICAL: 'bg-red-500/80',
 };
 
 const COLOR_ACCENTS: Record<string, { accent: string; bg: string; badge: string }> = {
@@ -38,6 +42,19 @@ function statusBadge(statuses: StatusDefinition[], key: string): string {
   return sd ? colorFor(sd.color).badge : fallbackColor.badge;
 }
 
+function getDateLabel(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const ticketDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.floor((today.getTime() - ticketDay.getTime()) / 86400000);
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+  if (date.getFullYear() === now.getFullYear()) return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
 export default function TicketsPageWrapper() {
   return (
     <Suspense fallback={<Layout><div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-600 border-t-transparent"></div></div></Layout>}>
@@ -47,17 +64,19 @@ export default function TicketsPageWrapper() {
 }
 
 function TicketsPage() {
+  // Core data state
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [totalCount, setTotalCount] = useState(0);
-  const [page, setPage] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const p = parseInt(new URLSearchParams(window.location.search).get('page') || '', 10);
-      return p > 0 ? p : 1;
-    }
-    return 1;
-  });
+  const [hasMore, setHasMore] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [fetchingMore, setFetchingMore] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const nextPageRef = useRef(2);
+  const isFetchingRef = useRef(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
   const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(() => {
     if (typeof window !== 'undefined') return new URLSearchParams(window.location.search).get('search') || '';
     return '';
@@ -67,11 +86,11 @@ function TicketsPage() {
     return '';
   });
 
-  // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 400);
     return () => clearTimeout(timer);
   }, [search]);
+
   const [filterStatus, setFilterStatus] = useState(() => {
     if (typeof window !== 'undefined') return new URLSearchParams(window.location.search).get('status') || '';
     return '';
@@ -101,6 +120,11 @@ function TicketsPage() {
     return '';
   });
   const [allPhases, setAllPhases] = useState<Phase[]>([]);
+  const [statuses, setStatuses] = useState<StatusDefinition[]>([]);
+  const [wsUsers, setWsUsers] = useState<User[]>([]);
+  const [projectAgentsMap, setProjectAgentsMap] = useState<Record<string, User[]>>({});
+
+  // Create modal state
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -110,24 +134,16 @@ function TicketsPage() {
   const [newProject, setNewProject] = useState<string>('');
   const [newAssigned, setNewAssigned] = useState<string>('');
   const [newApproved, setNewApproved] = useState(false);
-  const [wsUsers, setWsUsers] = useState<User[]>([]);
   const [createProjectAgents, setCreateProjectAgents] = useState<User[]>([]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [deleteTarget, setDeleteTarget] = useState<Ticket | null>(null);
-  const [projectAgentsMap, setProjectAgentsMap] = useState<Record<string, User[]>>({});
-  const hasUserSelectedProject = useRef(!!filterProjectInit);
-  const [statuses, setStatuses] = useState<StatusDefinition[]>([]);
 
   const router = useRouter();
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
   const { currentWorkspace } = useWorkspace();
-  // Auth gated by (private) layout — component only mounts when logged in
 
-  // Filters are initialized from URL via useState initializers above
-
-  // Sync filters to URL so navigating back preserves context
+  // Sync filters to URL (no page number — scroll position is ephemeral)
   useEffect(() => {
     const basePath = `/private/${workspaceSlug}/tickets`;
     const params = new URLSearchParams();
@@ -137,10 +153,9 @@ function TicketsPage() {
     if (filterAssigned) params.set('assigned_to', filterAssigned);
     if (filterPhase) params.set('phase', filterPhase);
     if (debouncedSearch) params.set('search', debouncedSearch);
-    if (page > 1) params.set('page', String(page));
     const url = params.toString() ? `${basePath}?${params.toString()}` : basePath;
     window.history.replaceState(null, '', url);
-  }, [filterProject, filterStatus, filterPriority, filterAssigned, filterApproved, filterPhase, debouncedSearch, page, workspaceSlug]);
+  }, [filterProject, filterStatus, filterPriority, filterAssigned, filterApproved, filterPhase, debouncedSearch, workspaceSlug]);
 
   // Load status definitions
   useEffect(() => {
@@ -151,45 +166,110 @@ function TicketsPage() {
     }
   }, [currentWorkspace?.slug]);
 
-  // Load all phases for the workspace (for filter + badges)
+  // Load all phases for the workspace
   useEffect(() => {
     if (!currentWorkspace || projects.length === 0) return;
     Promise.all(projects.map(p => api.getPhases(p.slug).catch(() => [] as Phase[])))
       .then(results => setAllPhases(results.flat()));
   }, [currentWorkspace?.slug, projects.length]);
 
+  // Main fetch — fires when filters change, resets accumulated list
   useEffect(() => {
     if (!currentWorkspace) return;
     let cancelled = false;
-    setLoading(true);
-    setTickets([]); // Clear stale tickets immediately when filters change
-    const wsParams: Record<string, string> = { workspace: currentWorkspace.slug };
-    const ticketParams: Record<string, string> = { ...wsParams, page: String(page) };
-    if (filterProject) ticketParams.project = String(filterProject);
-    if (filterStatus) ticketParams.status = filterStatus;
-    if (filterPriority) ticketParams.priority = filterPriority;
-    if (filterAssigned) ticketParams.assigned_to = filterAssigned;
-    if (filterPhase) ticketParams.phase = filterPhase;
-    if (debouncedSearch) ticketParams.search = debouncedSearch;
-    const membersPromise: Promise<User[]> = api.getUsers({ workspace: currentWorkspace.slug });
-    Promise.all([api.getTicketsPaginated(ticketParams), api.getProjects(wsParams), membersPromise])
-      .then(([resp, p, u]) => {
-        if (cancelled) return; // Prevent stale response from overwriting
-        setTickets(resp.results || []); setTotalCount(resp.count || 0); setProjects(p); setWsUsers(u);
-      })
-      .catch((e: any) => { if (!cancelled) toast(e?.message || 'Failed to load data', 'error'); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [currentWorkspace?.slug, page, filterProject, filterStatus, filterPriority, filterAssigned, filterApproved, filterPhase, debouncedSearch]);
+    setTickets([]);
+    setHasMore(false);
+    setInitialLoading(true);
+    nextPageRef.current = 2;
+    isFetchingRef.current = false;
 
-  // Fetch project agents for all visible projects (for inline assign dropdown)
+    const params: Record<string, string> = { workspace: currentWorkspace.slug, page: '1', page_size: String(PAGE_SIZE) };
+    if (filterProject) params.project = filterProject;
+    if (filterStatus) params.status = filterStatus;
+    if (filterPriority) params.priority = filterPriority;
+    if (filterAssigned) params.assigned_to = filterAssigned;
+    if (filterPhase) params.phase = filterPhase;
+    if (debouncedSearch) params.search = debouncedSearch;
+
+    Promise.all([
+      api.getTicketsPaginated(params),
+      api.getProjects({ workspace: currentWorkspace.slug }),
+      api.getUsers({ workspace: currentWorkspace.slug }),
+    ]).then(([resp, p, u]) => {
+      if (cancelled) return;
+      setTickets(resp.results || []);
+      setTotalCount(resp.count || 0);
+      setHasMore(resp.next !== null);
+      setProjects(p);
+      setWsUsers(u);
+    }).catch((e: any) => {
+      if (!cancelled) toast(e?.message || 'Failed to load data', 'error');
+    }).finally(() => {
+      if (!cancelled) setInitialLoading(false);
+    });
+
+    return () => { cancelled = true; };
+  }, [currentWorkspace?.slug, filterProject, filterStatus, filterPriority, filterAssigned, filterPhase, debouncedSearch, reloadKey]);
+
+  // Fetch next page and append
+  const fetchMore = useCallback(async () => {
+    if (!currentWorkspace || !hasMore || isFetchingRef.current) return;
+    isFetchingRef.current = true;
+    setFetchingMore(true);
+
+    const params: Record<string, string> = {
+      workspace: currentWorkspace.slug,
+      page: String(nextPageRef.current),
+      page_size: String(PAGE_SIZE),
+    };
+    if (filterProject) params.project = filterProject;
+    if (filterStatus) params.status = filterStatus;
+    if (filterPriority) params.priority = filterPriority;
+    if (filterAssigned) params.assigned_to = filterAssigned;
+    if (filterPhase) params.phase = filterPhase;
+    if (debouncedSearch) params.search = debouncedSearch;
+
+    try {
+      const resp = await api.getTicketsPaginated(params);
+      setTickets(prev => [...prev, ...(resp.results || [])]);
+      setTotalCount(resp.count || 0);
+      setHasMore(resp.next !== null);
+      nextPageRef.current += 1;
+    } catch (e: any) {
+      toast(e?.message || 'Failed to load more', 'error');
+    } finally {
+      isFetchingRef.current = false;
+      setFetchingMore(false);
+    }
+  }, [currentWorkspace?.slug, hasMore, filterProject, filterStatus, filterPriority, filterAssigned, filterPhase, debouncedSearch]);
+
+  // IntersectionObserver — triggers fetchMore when sentinel enters viewport
   useEffect(() => {
-    const projectSlugs = [...new Set(tickets.map(t => t.project))];
-    projectSlugs.forEach(slug => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) fetchMore(); },
+      { rootMargin: '400px' }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [fetchMore]);
+
+  // Scroll-to-top button visibility
+  useEffect(() => {
+    const handle = () => setShowScrollTop(window.scrollY > 600);
+    window.addEventListener('scroll', handle, { passive: true });
+    return () => window.removeEventListener('scroll', handle);
+  }, []);
+
+  // Fetch project agents for visible tickets (for inline assign dropdown)
+  useEffect(() => {
+    const slugs = [...new Set(tickets.map(t => t.project))];
+    slugs.forEach(slug => {
       if (!projectAgentsMap[slug]) {
         api.getProjectAgents(slug).then(agents => {
           setProjectAgentsMap(prev => ({ ...prev, [slug]: agents }));
-        }).catch(() => { /* best-effort background fetch */ });
+        }).catch(() => {});
       }
     });
   }, [tickets]);
@@ -206,35 +286,23 @@ function TicketsPage() {
     }
   }, [newProject]);
 
-  // Group tickets by project (all filtering is backend-driven)
-  const grouped = useMemo(() => {
-    const groups: Record<string, { project: Project | null; tickets: Ticket[] }> = {};
+  // Build timeline: flat chronological list with date separators
+  const timelineItems = useMemo(() => {
+    type Item = { type: 'sep'; label: string } | { type: 'ticket'; ticket: Ticket };
+    const items: Item[] = [];
+    let lastLabel = '';
     for (const t of tickets) {
-      const pslug = t.project;
-      if (!groups[pslug]) {
-        groups[pslug] = { project: projects.find(p => p.slug === pslug) || null, tickets: [] };
+      const label = getDateLabel(t.created_at);
+      if (label !== lastLabel) {
+        items.push({ type: 'sep', label });
+        lastLabel = label;
       }
-      groups[pslug].tickets.push(t);
+      items.push({ type: 'ticket', ticket: t });
     }
-    return Object.values(groups).sort((a, b) => (a.project?.name || '').localeCompare(b.project?.name || ''));
-  }, [tickets, projects]);
+    return items;
+  }, [tickets]);
 
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-
-  const loadData = () => {
-    if (!currentWorkspace) return;
-    const wsParams: Record<string, string> = { workspace: currentWorkspace.slug };
-    const ticketParams: Record<string, string> = { ...wsParams, page: String(page) };
-    if (filterProject) ticketParams.project = filterProject;
-    if (filterStatus) ticketParams.status = filterStatus;
-    if (filterPriority) ticketParams.priority = filterPriority;
-    if (filterAssigned) ticketParams.assigned_to = filterAssigned;
-    if (filterPhase) ticketParams.phase = filterPhase;
-    if (debouncedSearch) ticketParams.search = debouncedSearch;
-    Promise.all([api.getTicketsPaginated(ticketParams), api.getProjects(wsParams)])
-      .then(([resp, p]) => { setTickets(resp.results || []); setTotalCount(resp.count || 0); setProjects(p); })
-      .catch((e: any) => toast(e?.message || 'Failed to load data', 'error'));
-  };
+  const resetAndReload = useCallback(() => setReloadKey(k => k + 1), []);
 
   const handleCreateTicket = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -251,12 +319,11 @@ function TicketsPage() {
       setShowCreate(false);
       setNewTitle(''); setNewDesc(''); setNewPriority('MEDIUM'); setNewTicketType('BUG'); setNewProject(''); setNewAssigned(''); setNewApproved(false);
       setFieldErrors({});
-      loadData();
+      resetAndReload();
     } catch (e: any) {
       setFieldErrors(parseFieldErrors(e));
       toast(e?.message || 'Failed to create ticket', 'error');
-    }
-    finally { setCreating(false); }
+    } finally { setCreating(false); }
   };
 
   const handleDelete = async () => {
@@ -265,7 +332,7 @@ function TicketsPage() {
       await api.deleteTicket(deleteTarget.ticket_slug);
       toast('Ticket deleted');
       setDeleteTarget(null);
-      loadData();
+      resetAndReload();
     } catch (e: any) { toast(e?.message || 'Failed to delete ticket', 'error'); }
   };
 
@@ -279,8 +346,11 @@ function TicketsPage() {
           <div>
             <h1 className="text-2xl font-bold text-white">All Tickets</h1>
             <p className="text-sm text-gray-400 mt-1">
-              {totalCount} ticket{totalCount !== 1 ? 's' : ''} across {grouped.length} project{grouped.length !== 1 ? 's' : ''}
-              {hasFilters && <span className="text-indigo-500"> (filtered)</span>}
+              {initialLoading
+                ? <span className="animate-pulse">Loading…</span>
+                : <>Showing {tickets.length} of {totalCount} ticket{totalCount !== 1 ? 's' : ''}</>
+              }
+              {hasFilters && <span className="text-indigo-500"> · filtered</span>}
             </p>
           </div>
           <button onClick={() => setShowCreate(true)} className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors">
@@ -289,14 +359,12 @@ function TicketsPage() {
           </button>
         </div>
 
-        {/* List View */}
-
         {/* Filters */}
         <div className="space-y-3 mb-6">
           <input
-            type="text" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
+            type="text" value={search} onChange={e => setSearch(e.target.value)}
             className="px-4 py-3 border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-full bg-[#1a1a2e] text-white placeholder-gray-500"
-            placeholder="Search tickets..."
+            placeholder="Search tickets…"
           />
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="px-4 py-3 min-h-[44px] border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-[#1a1a2e] text-white">
@@ -311,22 +379,19 @@ function TicketsPage() {
               <option value="CRITICAL">Critical</option>
             </select>
             <select value={filterProject} onChange={e => {
-              hasUserSelectedProject.current = true;
               const val = e.target.value;
-              // Full page navigation to ensure clean React state — SPA navigation leaves stale DOM
               const params = new URLSearchParams(window.location.search);
               if (val) params.set('project', val); else params.delete('project');
-              params.set('page', '1');
               window.location.href = `/private/${workspaceSlug}/tickets?${params.toString()}`;
             }} className="px-4 py-3 min-h-[44px] border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-[#1a1a2e] text-white">
               <option value="">All projects</option>
               {projects.map(p => <option key={p.slug} value={p.slug}>{p.name}</option>)}
             </select>
-            <select value={filterAssigned} onChange={e => { setFilterAssigned(e.target.value); setPage(1); }} className="px-4 py-3 min-h-[44px] border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-[#1a1a2e] text-white">
+            <select value={filterAssigned} onChange={e => setFilterAssigned(e.target.value)} className="px-4 py-3 min-h-[44px] border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-[#1a1a2e] text-white">
               <option value="">All users</option>
               {wsUsers.map(u => <option key={u.id} value={u.id}>{u.name || u.username}</option>)}
             </select>
-            <select value={filterPhase} onChange={e => { setFilterPhase(e.target.value); setPage(1); }} className="px-4 py-3 min-h-[44px] border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-[#1a1a2e] text-white">
+            <select value={filterPhase} onChange={e => setFilterPhase(e.target.value)} className="px-4 py-3 min-h-[44px] border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-[#1a1a2e] text-white">
               <option value="">All phases</option>
               {allPhases.map(p => (
                 <option key={p.id} value={p.id}>
@@ -342,9 +407,21 @@ function TicketsPage() {
           )}
         </div>
 
-        {loading ? (
-          <div className="space-y-4">
-            {[1,2].map(i => <div key={i} className="bg-[#111118] rounded-xl border border-[#222233] p-6 animate-pulse"><div className="h-5 bg-[#252540] rounded w-40 mb-4"></div><div className="h-12 bg-[#252540] rounded mb-2"></div><div className="h-12 bg-[#252540] rounded"></div></div>)}
+        {/* Timeline */}
+        {initialLoading ? (
+          <div className="space-y-2">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="bg-[#111118] rounded-xl border border-[#222233] p-4 animate-pulse">
+                <div className="flex gap-3">
+                  <div className="w-0.5 self-stretch bg-[#252540] rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 bg-[#252540] rounded w-20" />
+                    <div className="h-4 bg-[#252540] rounded w-64" />
+                    <div className="h-3 bg-[#252540] rounded w-40" />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : tickets.length === 0 ? (
           <div className="text-center py-20">
@@ -360,120 +437,136 @@ function TicketsPage() {
             )}
           </div>
         ) : (
-          <div className="space-y-6">
-            {grouped.map(({ project, tickets: groupTickets }) => (
-              <div key={project?.id || 0} className="bg-[#111118] rounded-xl border border-[#222233] overflow-hidden">
-                {/* Project header */}
+          <div className="space-y-1">
+            {timelineItems.map((item, idx) => {
+              if (item.type === 'sep') {
+                return (
+                  <div key={`sep-${item.label}-${idx}`} className="pt-5 pb-1 px-1 flex items-center gap-3">
+                    <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest whitespace-nowrap">{item.label}</span>
+                    <div className="flex-1 h-px bg-[#1e1e2e]" />
+                  </div>
+                );
+              }
+
+              const ticket = item.ticket;
+              const project = projects.find(p => p.slug === ticket.project);
+
+              return (
                 <div
-                  className="px-5 py-3 bg-[#0a0a0f] border-b border-[#222233] flex items-center justify-between cursor-pointer hover:bg-[#1a1a2e] transition-colors"
-                  onClick={() => project && router.push(`/private/${workspaceSlug}/projects/${project.slug}`)}
+                  key={ticket.ticket_slug}
+                  onClick={() => router.push(`/private/${workspaceSlug}/tickets/${ticket.ticket_slug}`)}
+                  className="flex items-stretch gap-0 bg-[#111118] border border-[#222233] rounded-xl hover:border-[#333355] cursor-pointer transition-colors overflow-hidden"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-indigo-500/10 rounded-lg flex items-center justify-center">
-                      <svg className="w-4 h-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                  {/* Priority accent bar */}
+                  <div className={`w-[3px] flex-shrink-0 ${PRIORITY_BAR[ticket.priority] || 'bg-gray-700'}`} />
+
+                  <div className="flex-1 min-w-0 px-4 py-3">
+                    {/* Top: project + slug */}
+                    <div className="flex items-center gap-2 mb-1">
+                      {project && (
+                        <span
+                          className="text-[10px] font-medium px-2 py-0.5 rounded bg-indigo-900/30 text-indigo-400 cursor-pointer hover:bg-indigo-900/50"
+                          onClick={e => { e.stopPropagation(); router.push(`/private/${workspaceSlug}/projects/${project.slug}`); }}
+                        >
+                          {project.name}
+                        </span>
+                      )}
+                      <span className="text-[10px] font-mono text-gray-600">{ticket.ticket_slug}</span>
+                      <span className="text-[10px] text-gray-600 ml-auto">
+                        {new Date(ticket.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
                     </div>
-                    <div>
-                      <h2 className="text-sm font-semibold text-white">{project?.name || 'Unknown Project'}</h2>
-                      <p className="text-xs text-gray-500">{groupTickets.length} ticket{groupTickets.length !== 1 ? 's' : ''}</p>
+
+                    {/* Title */}
+                    <p className="text-sm font-medium text-white leading-snug">{ticket.title}</p>
+                    {ticket.description && (
+                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{ticket.description}</p>
+                    )}
+
+                    {/* Badges */}
+                    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusBadge(statuses, ticket.status)}`}>
+                        {ticket.status.replace('_', ' ')}
+                      </span>
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-800 text-gray-300">
+                        {ticket.ticket_type === 'BUG' ? '🐛 Bug' : '✨ Feature'}
+                      </span>
+                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${PRIORITY_COLORS[ticket.priority]}`}>
+                        {ticket.priority}
+                      </span>
+                      {ticket.phase_details && (
+                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                          ticket.phase_details.status === 'ACTIVE' ? 'bg-emerald-900/50 text-emerald-300' : 'bg-gray-800/50 text-gray-300'
+                        }`}>
+                          {ticket.phase_details.status === 'ACTIVE' ? '🟢' : '⬜'} {ticket.phase_details.name}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Assignee + status dropdowns */}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-2" onClick={e => e.stopPropagation()}>
+                      <select
+                        value={ticket.assigned_to?.toString() || ''}
+                        onChange={async (e) => {
+                          const val = e.target.value;
+                          try {
+                            const updated = await api.updateTicket(ticket.ticket_slug, { assigned_to: val ? parseInt(val) : null });
+                            setTickets(prev => prev.map(t => t.ticket_slug === ticket.ticket_slug ? updated : t));
+                            toast('Assignment updated');
+                          } catch (err: any) { toast(err?.message || 'Failed to assign', 'error'); }
+                        }}
+                        className="text-xs sm:text-[11px] border border-[#222233] rounded px-2 py-1 sm:px-1.5 sm:py-0.5 bg-[#1a1a2e] text-gray-300 focus:ring-1 focus:ring-indigo-500 min-h-[36px] sm:min-h-[24px]"
+                      >
+                        <option value="">Unassigned</option>
+                        {(projectAgentsMap[ticket.project] || wsUsers).map(a => (
+                          <option key={a.id} value={String(a.id)}>{a.name || a.username}</option>
+                        ))}
+                      </select>
+                      <select
+                        value={ticket.status}
+                        onChange={async (e) => {
+                          try {
+                            const updated = await api.updateTicket(ticket.ticket_slug, { status: e.target.value as Ticket['status'] });
+                            setTickets(prev => prev.map(t => t.ticket_slug === ticket.ticket_slug ? updated : t));
+                            toast('Status updated');
+                          } catch (err: any) { toast(err?.message || 'Failed', 'error'); }
+                        }}
+                        className="text-xs sm:text-[11px] border border-[#222233] rounded px-2 py-1 sm:px-1.5 sm:py-0.5 bg-[#1a1a2e] text-gray-300 focus:ring-1 focus:ring-indigo-500 min-h-[36px] sm:min-h-[24px]"
+                      >
+                        {statuses.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+                      </select>
                     </div>
                   </div>
-                  <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+
+                  {/* Delete */}
+                  <div className="flex items-start pt-3 pr-3" onClick={e => e.stopPropagation()}>
+                    <button
+                      onClick={() => setDeleteTarget(ticket)}
+                      className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-900/10 transition-colors"
+                      title="Delete ticket"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                  </div>
                 </div>
-                
-                {/* Tickets list */}
-                <div className="divide-y divide-[#222233]">
-                  {groupTickets.map(ticket => (
-                    <div key={ticket.ticket_slug} onClick={() => router.push(`/private/${workspaceSlug}/tickets/${ticket.ticket_slug}`)} className="px-4 py-3 hover:bg-[#1a1a2e] cursor-pointer">
-                      {/* Title row with delete */}
-                      <div className="flex items-start gap-2">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-white leading-snug">
-                            <span className="text-[11px] text-gray-400 font-mono mr-1">{ticket.ticket_slug}</span>
-                            {ticket.title}
-                          </p>
-                          {ticket.description && (
-                            <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{ticket.description}</p>
-                          )}
-                        </div>
-                        <button
-                          onClick={e => { e.stopPropagation(); setDeleteTarget(ticket); }}
-                          className="inline-flex items-center justify-center w-8 h-8 min-w-[44px] min-h-[44px] rounded-lg text-red-400 hover:text-red-400 hover:bg-red-900/200/10 transition-colors flex-shrink-0 -mr-2 -mt-1"
-                          title="Delete ticket"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        </button>
-                      </div>
-                      {/* Badges row */}
-                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusBadge(statuses, ticket.status)}`}>
-                          {ticket.status.replace('_', ' ')}
-                        </span>
-                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-800 text-gray-300">
-                          {ticket.ticket_type === 'BUG' ? '🐛 Bug' : '✨ Feature'}
-                        </span>
-                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${PRIORITY_COLORS[ticket.priority]}`}>
-                          {ticket.priority}
-                        </span>
-                        {ticket.phase_details && (
-                          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                            ticket.phase_details.status === 'ACTIVE' ? 'bg-emerald-900/50 text-emerald-300' :
-                            'bg-gray-800/50 text-gray-300'
-                          }`}>
-                            {ticket.phase_details.status === 'ACTIVE' ? '🟢' : '⬜'} {ticket.phase_details.name}
-                          </span>
-                        )}
-                      </div>
-                      {/* Assignee + Status row */}
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-2" onClick={e => e.stopPropagation()}>
-                        <select
-                          value={ticket.assigned_to?.toString() || ''}
-                          onChange={async (e) => {
-                            const val = e.target.value;
-                            try {
-                              const updated = await api.updateTicket(ticket.ticket_slug, { assigned_to: val ? parseInt(val) : null });
-                              setTickets(prev => prev.map(t => t.ticket_slug === ticket.ticket_slug ? updated : t));
-                              toast('Assignment updated');
-                            } catch (err: any) { toast(err?.message || 'Failed to assign', 'error'); }
-                          }}
-                          className="text-xs sm:text-[11px] border border-[#222233] rounded px-2 py-1 sm:px-1.5 sm:py-0.5 bg-[#1a1a2e] text-gray-300 focus:ring-1 focus:ring-indigo-500 min-h-[36px] sm:min-h-[24px]"
-                        >
-                          <option value="">Unassigned</option>
-                          {(projectAgentsMap[ticket.project] || wsUsers).map(a => (
-                            <option key={a.id} value={String(a.id)}>{a.name || a.username}</option>
-                          ))}
-                        </select>
-                        <select
-                          value={ticket.status}
-                          onChange={async (e) => {
-                            try {
-                              const updated = await api.updateTicket(ticket.ticket_slug, { status: e.target.value as Ticket['status'] });
-                              setTickets(prev => prev.map(t => t.ticket_slug === ticket.ticket_slug ? updated : t));
-                              toast('Status updated');
-                            } catch (err: any) { toast(err?.message || 'Failed', 'error'); }
-                          }}
-                          className="text-xs sm:text-[11px] border border-[#222233] rounded px-2 py-1 sm:px-1.5 sm:py-0.5 bg-[#1a1a2e] text-gray-300 focus:ring-1 focus:ring-indigo-500 min-h-[36px] sm:min-h-[24px]"
-                        >
-                          {statuses.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
-                        </select>
-                        <span className="text-[10px] text-gray-400 hidden sm:inline">{new Date(ticket.created_at).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
-        {/* Pagination */}
-        {!loading && (
-          <div className="flex items-center justify-between mt-6 px-1">
-            <p className="text-sm text-gray-400">Page {page} of {totalPages} · {totalCount} ticket{totalCount !== 1 ? 's' : ''}</p>
-            <div className="flex gap-2">
-              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-4 py-2 text-sm font-medium border border-[#222233] rounded-lg hover:bg-[#1a1a2e] text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed">Previous</button>
-              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="px-4 py-2 text-sm font-medium border border-[#222233] rounded-lg hover:bg-[#1a1a2e] text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
-            </div>
+        {/* Infinite scroll sentinel */}
+        <div ref={sentinelRef} className="h-1" />
+
+        {/* Fetching more spinner */}
+        {fetchingMore && (
+          <div className="flex justify-center py-6">
+            <div className="animate-spin rounded-full h-5 w-5 border-2 border-indigo-600 border-t-transparent" />
           </div>
+        )}
+
+        {/* End of history */}
+        {!hasMore && !initialLoading && tickets.length > 0 && (
+          <p className="text-center text-xs text-gray-700 py-6 tracking-wide">— beginning of history —</p>
         )}
 
         {/* Create Ticket Modal */}
@@ -533,6 +626,17 @@ function TicketsPage() {
           onConfirm={handleDelete}
           onCancel={() => setDeleteTarget(null)}
         />
+
+        {/* Scroll to top */}
+        {showScrollTop && (
+          <button
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="fixed bottom-24 right-6 w-10 h-10 bg-[#111118] border border-[#222233] text-gray-400 rounded-full shadow-lg flex items-center justify-center hover:text-white hover:border-indigo-500 transition-all z-40"
+            title="Back to top"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
+          </button>
+        )}
 
         {/* Mobile FAB */}
         <button onClick={() => setShowCreate(true)} className="sm:hidden fixed bottom-20 right-6 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-700 active:scale-95 transition-all z-40">
