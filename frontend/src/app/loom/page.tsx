@@ -213,20 +213,24 @@ const MOCK_THREADS: Thread[] = [
     agentName: 'Dex',
     agentType: 'bot',
     task: 'Nightly: sync Stripe invoices → internal ledger, flag anomalies',
-    health: 'idle',
-    progress: 0.0,
-    startedAt: 'Scheduled 02:00 UTC',
-    tokens: 0,
-    costUsd: 0,
-    contextPct: 0,
-    messages: 0,
-    lastAction: 'Waiting for scheduled trigger',
+    health: 'blocked',
+    progress: 0.08,
+    startedAt: '3 hr ago',
+    tokens: 4100,
+    costUsd: 0.03,
+    contextPct: 5,
+    messages: 2,
+    lastAction: 'Blocked — Stripe API key revoked, 3 tasks cannot proceed',
     yLane: 5,
     tickets: [
-      { id: 'OW-150', title: 'Nightly Stripe → ledger sync (scheduled)', status: 'queued', priority: 'medium' },
-      { id: 'OW-151', title: 'Flag revenue anomalies > 2σ', status: 'queued', priority: 'medium' },
+      { id: 'OW-150', title: 'Nightly Stripe → ledger sync', status: 'blocked', priority: 'high' },
+      { id: 'OW-151', title: 'Reconcile failed charges from Apr 14–16', status: 'blocked', priority: 'high' },
+      { id: 'OW-152', title: 'Flag revenue anomalies > 2σ and draft alert', status: 'blocked', priority: 'medium' },
+      { id: 'OW-153', title: 'Archive previous month ledger snapshot', status: 'queued', priority: 'low' },
     ],
-    toolCalls: [],
+    toolCalls: [
+      { id: 'tc-dex-1', name: 'bash', durationMs: 410, status: 'error', at: 0.08 },
+    ],
   },
   {
     id: 'th-7',
@@ -461,10 +465,24 @@ function ThreadDetailPanel({ thread, onClose, onWhisper }: {
               <div className="h-1 bg-[#1a1a2e] rounded-full overflow-hidden mb-3">
                 <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: hc.stroke }} />
               </div>
+              {/* Multi-blocked callout */}
+              {(() => {
+                const blockedTickets = thread.tickets.filter(t => t.status === 'blocked');
+                if (blockedTickets.length > 1) {
+                  return (
+                    <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-red-500/8 border border-red-500/20">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" className="shrink-0">
+                        <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
+                      <span className="text-xs text-red-400 font-medium">{blockedTickets.length} tickets blocked — needs attention</span>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
               <div className="space-y-1.5">
                 {thread.tickets.map(ticket => {
                   const tc = TICKET_COLORS[ticket.status];
-                  const priorityDot = ticket.priority === 'high' ? '#ef4444' : ticket.priority === 'medium' ? '#f59e0b' : '#374151';
                   return (
                     <div key={ticket.id} className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: tc.dot }} />
