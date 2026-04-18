@@ -64,6 +64,15 @@ interface Phase {
   dueDate: string;
 }
 
+// ─── Snapshot types ───────────────────────────────────────────────────────────
+
+interface SnapshotDef {
+  label: string;
+  shortLabel: string;
+  phase: Phase;
+  threadOverrides: Record<string, Partial<Thread>>;
+}
+
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
 const MOCK_PHASE: Phase = {
@@ -367,6 +376,111 @@ const MOCK_INTERSECTIONS: Intersection[] = [
 
 function getThreadTickets(threadId: string): Ticket[] {
   return MOCK_TICKETS.filter(t => t.contributors.some(c => c.threadId === threadId));
+}
+
+// Past snapshots — each defines phase state + per-thread overrides at that moment
+const PAST_SNAPSHOTS: SnapshotDef[] = [
+  {
+    label: 'Sprint Start',
+    shortLabel: 'Apr 7',
+    phase: {
+      name: 'Q2 Auth Overhaul',
+      sprint: 'Sprint 3 of 4',
+      goal: 'Complete compliance-grade auth rewrite, migrate all v1 endpoints to v2, and ship onboarding revamp',
+      totalTickets: 34,
+      doneTickets: 2,
+      daysLeft: 14,
+      dueDate: 'Apr 21',
+    },
+    threadOverrides: {
+      'th-1': { health: 'flowing', progress: 0.12, lastAction: 'Starting auth middleware audit', tokens: 6200, costUsd: 0.05, contextPct: 8, messages: 3 },
+      'th-2': { health: 'idle', progress: 0, lastAction: 'Waiting for data access setup', tokens: 0, costUsd: 0, contextPct: 0, messages: 0 },
+      'th-3': { health: 'flowing', progress: 0.08, lastAction: 'Reviewing existing v2 endpoint docs', tokens: 3100, costUsd: 0.02, contextPct: 4, messages: 2 },
+      'th-4': { health: 'flowing', progress: 0.25, lastAction: 'Researching email drip best practices', tokens: 14200, costUsd: 0.11, contextPct: 18, messages: 7 },
+      'th-5': { health: 'flowing', progress: 0.06, lastAction: 'Beginning GitHub issue triage pass', tokens: 2100, costUsd: 0.02, contextPct: 3, messages: 1 },
+      'th-6': { health: 'flowing', progress: 0.85, lastAction: 'Nightly sync completed — 0 anomalies', tokens: 3800, costUsd: 0.03, contextPct: 5, messages: 2 },
+      'th-7': { health: 'idle', progress: 0, lastAction: 'Not yet started', tokens: 0, costUsd: 0, contextPct: 0, messages: 0 },
+    },
+  },
+  {
+    label: 'Mid-sprint',
+    shortLabel: 'Apr 12',
+    phase: {
+      name: 'Q2 Auth Overhaul',
+      sprint: 'Sprint 3 of 4',
+      goal: 'Complete compliance-grade auth rewrite, migrate all v1 endpoints to v2, and ship onboarding revamp',
+      totalTickets: 34,
+      doneTickets: 9,
+      daysLeft: 9,
+      dueDate: 'Apr 21',
+    },
+    threadOverrides: {
+      'th-1': { health: 'flowing', progress: 0.48, lastAction: 'Implementing JWT rotation — phase 2', tokens: 28400, costUsd: 0.22, contextPct: 36, messages: 14 },
+      'th-2': { health: 'flowing', progress: 0.3, lastAction: 'Querying March cohort drop-off', tokens: 18200, costUsd: 0.14, contextPct: 22, messages: 9 },
+      'th-3': { health: 'slowing', progress: 0.2, lastAction: 'Waiting on Atlas JWT schema', tokens: 9100, costUsd: 0.07, contextPct: 11, messages: 5 },
+      'th-4': { health: 'flowing', progress: 0.7, lastAction: 'Drafting emails 3 and 4 of 5', tokens: 41600, costUsd: 0.34, contextPct: 0, messages: 21 },
+      'th-5': { health: 'flowing', progress: 0.12, lastAction: 'Labeled 18 of 47 issues', tokens: 5200, costUsd: 0.04, contextPct: 7, messages: 3 },
+      'th-6': { health: 'flowing', progress: 0.4, lastAction: 'Syncing Apr 12 invoices, no anomalies', tokens: 3900, costUsd: 0.03, contextPct: 5, messages: 2 },
+      'th-7': { health: 'flowing', progress: 0.28, lastAction: 'Auditing legacy view dependencies', tokens: 22100, costUsd: 0.18, contextPct: 28, messages: 11 },
+    },
+  },
+  {
+    label: 'Yesterday',
+    shortLabel: 'Apr 17',
+    phase: {
+      name: 'Q2 Auth Overhaul',
+      sprint: 'Sprint 3 of 4',
+      goal: 'Complete compliance-grade auth rewrite, migrate all v1 endpoints to v2, and ship onboarding revamp',
+      totalTickets: 34,
+      doneTickets: 17,
+      daysLeft: 5,
+      dueDate: 'Apr 21',
+    },
+    threadOverrides: {
+      'th-1': { health: 'flowing', progress: 0.62, lastAction: 'Writing compliance test coverage', tokens: 41800, costUsd: 0.33, contextPct: 53, messages: 20 },
+      'th-2': { health: 'flowing', progress: 0.38, lastAction: 'Cross-referencing cohort segments', tokens: 27400, costUsd: 0.21, contextPct: 33, messages: 12 },
+      'th-3': { health: 'slowing', progress: 0.25, lastAction: 'Atlas schema still in flux — holding', tokens: 14800, costUsd: 0.11, contextPct: 18, messages: 7 },
+      'th-4': { health: 'completed', progress: 1.0, lastAction: 'All 5 emails delivered to content team', tokens: 62100, costUsd: 0.52, contextPct: 0, messages: 31 },
+      'th-5': { health: 'blocked', progress: 0.18, lastAction: 'Blocked — GitHub API token missing', tokens: 9200, costUsd: 0.07, contextPct: 11, messages: 4 },
+      'th-6': { health: 'slowing', progress: 0.05, lastAction: 'Stripe API returning 401s — investigating', tokens: 3200, costUsd: 0.02, contextPct: 4, messages: 2 },
+      'th-7': { health: 'flowing', progress: 0.45, lastAction: 'Migrating accounts_view to Django ORM', tokens: 52100, costUsd: 0.44, contextPct: 58, messages: 21 },
+    },
+  },
+  {
+    label: '6h ago',
+    shortLabel: '6h ago',
+    phase: {
+      name: 'Q2 Auth Overhaul',
+      sprint: 'Sprint 3 of 4',
+      goal: 'Complete compliance-grade auth rewrite, migrate all v1 endpoints to v2, and ship onboarding revamp',
+      totalTickets: 34,
+      doneTickets: 18,
+      daysLeft: 4,
+      dueDate: 'Apr 21',
+    },
+    threadOverrides: {
+      'th-1': { health: 'flowing', progress: 0.68, lastAction: 'Finalizing token rotation test suite', tokens: 44900, costUsd: 0.36, contextPct: 57, messages: 21 },
+      'th-2': { health: 'flowing', progress: 0.42, lastAction: 'Building retention lever model', tokens: 29600, costUsd: 0.23, contextPct: 36, messages: 13 },
+      'th-3': { health: 'slowing', progress: 0.28, lastAction: 'Partially updated — waiting on token schema', tokens: 16200, costUsd: 0.12, contextPct: 20, messages: 8 },
+      'th-4': { health: 'completed', progress: 1.0, lastAction: 'All 5 emails delivered to content team', tokens: 62100, costUsd: 0.52, contextPct: 0, messages: 31 },
+      'th-5': { health: 'blocked', progress: 0.18, lastAction: 'Blocked — GitHub API token missing', tokens: 9200, costUsd: 0.07, contextPct: 11, messages: 4 },
+      'th-6': { health: 'blocked', progress: 0.08, lastAction: 'Blocked — Stripe API key revoked', tokens: 3800, costUsd: 0.03, contextPct: 5, messages: 2 },
+      'th-7': { health: 'flowing', progress: 0.52, lastAction: 'Running migration rollback tests', tokens: 64200, costUsd: 0.55, contextPct: 66, messages: 25 },
+    },
+  },
+];
+
+// LIVE_IDX = past snapshots length means "now / live"
+const LIVE_IDX = PAST_SNAPSHOTS.length;
+
+function applySnapshot(idx: number): { threads: Thread[]; phase: Phase } {
+  if (idx === LIVE_IDX) return { threads: MOCK_THREADS, phase: MOCK_PHASE };
+  const snap = PAST_SNAPSHOTS[idx];
+  const threads = MOCK_THREADS.map(t => ({
+    ...t,
+    ...(snap.threadOverrides[t.id] ?? {}),
+  }));
+  return { threads, phase: snap.phase };
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -750,6 +864,72 @@ function WhisperModal({ thread, onClose, onSend }: {
             Send Whisper
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Time Scrubber ────────────────────────────────────────────────────────────
+
+function TimeScrubber({ idx, onChange }: { idx: number; onChange: (i: number) => void }) {
+  const isLive = idx === LIVE_IDX;
+  const ticks = [...PAST_SNAPSHOTS.map((s, i) => ({ label: s.shortLabel, full: s.label, i })), { label: 'Now', full: 'Live', i: LIVE_IDX }];
+
+  return (
+    <div className="border-t border-[#1a1a2e] bg-[#06060c] px-4 sm:px-6 py-2 shrink-0">
+      <div className="flex items-center gap-3">
+        <span className="text-xs text-gray-700 uppercase tracking-wider shrink-0 hidden sm:block">Timeline</span>
+
+        {/* Tick row */}
+        <div className="flex items-center gap-1 flex-1 relative">
+          {/* Connecting line */}
+          <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px bg-[#1a1a2e]" />
+
+          {ticks.map(tick => {
+            const active = tick.i === idx;
+            const isPast = tick.i < idx || (tick.i === LIVE_IDX && !isLive);
+            return (
+              <button
+                key={tick.i}
+                onClick={() => onChange(tick.i)}
+                className="relative flex flex-col items-center gap-1 flex-1 group"
+                title={tick.full}
+              >
+                {/* Dot */}
+                <div
+                  className={`w-2.5 h-2.5 rounded-full border z-10 transition-all duration-150 ${
+                    active
+                      ? tick.i === LIVE_IDX
+                        ? 'bg-green-500 border-green-500 scale-110'
+                        : 'bg-amber-400 border-amber-400 scale-110'
+                      : 'bg-[#06060c] border-[#333355] group-hover:border-gray-500'
+                  }`}
+                />
+                {/* Label */}
+                <span
+                  className={`text-[10px] leading-none transition-colors duration-150 ${
+                    active
+                      ? tick.i === LIVE_IDX ? 'text-green-400 font-semibold' : 'text-amber-400 font-semibold'
+                      : 'text-gray-700 group-hover:text-gray-500'
+                  }`}
+                >
+                  {tick.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* "→ Live" pill when in past */}
+        {!isLive && (
+          <button
+            onClick={() => onChange(LIVE_IDX)}
+            className="shrink-0 flex items-center gap-1 text-xs text-green-400 border border-green-500/30 bg-green-500/8 rounded-full px-2.5 py-1 hover:bg-green-500/15 transition-all"
+          >
+            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+            Live
+          </button>
+        )}
       </div>
     </div>
   );
@@ -1191,8 +1371,9 @@ function TheRiver() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function LoomPage() {
-  const [threads] = useState<Thread[]>(MOCK_THREADS);
-  const [phase] = useState<Phase>(MOCK_PHASE);
+  const [snapshotIdx, setSnapshotIdx] = useState<number>(LIVE_IDX);
+  const isLive = snapshotIdx === LIVE_IDX;
+  const { threads, phase } = applySnapshot(snapshotIdx);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [whisperThread, setWhisperThread] = useState<Thread | null>(null);
@@ -1241,10 +1422,19 @@ export default function LoomPage() {
               {whispers.length} whisper{whispers.length !== 1 ? 's' : ''}
             </div>
           )}
-          <div className="flex items-center gap-1.5 text-xs text-gray-600">
-            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-            <span className="hidden sm:inline">Live</span>
-          </div>
+          {isLive ? (
+            <div className="flex items-center gap-1.5 text-xs text-gray-600">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+              <span className="hidden sm:inline">Live</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 text-xs text-amber-500 border border-amber-500/20 bg-amber-500/8 rounded-full px-2 py-0.5">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="shrink-0">
+                <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 .49-4.5" />
+              </svg>
+              <span>{PAST_SNAPSHOTS[snapshotIdx]?.shortLabel}</span>
+            </div>
+          )}
           <div className="text-xs text-gray-700 border border-[#222233] rounded-lg px-2 sm:px-3 py-1.5 hidden sm:block">
             OpenWeave · demo-workspace
           </div>
@@ -1292,7 +1482,11 @@ export default function LoomPage() {
       </div>
 
       {/* Main canvas */}
-      <div className="flex-1 overflow-hidden relative">
+      <div className="flex-1 overflow-hidden relative" style={!isLive ? { opacity: 0.85 } : undefined}>
+        {/* Past-mode amber top border */}
+        {!isLive && (
+          <div className="absolute top-0 left-0 right-0 h-[2px] z-10" style={{ background: 'linear-gradient(90deg, transparent, #f59e0b66, transparent)' }} />
+        )}
         <LoomCanvas
           threads={threads}
           intersections={MOCK_INTERSECTIONS}
@@ -1309,6 +1503,9 @@ export default function LoomPage() {
           </div>
         )}
       </div>
+
+      {/* Time Scrubber */}
+      <TimeScrubber idx={snapshotIdx} onChange={setSnapshotIdx} />
 
       {/* The River */}
       <TheRiver />
