@@ -15,11 +15,18 @@ interface ToolCall {
   at: number; // 0-1 position along thread
 }
 
+interface TicketContribution {
+  threadId: string;
+  role: string;         // e.g. 'implementing' | 'reviewing' | 'documenting' | 'testing' | 'scheduled'
+  status: TicketStatus; // this agent's status on this ticket
+}
+
 interface Ticket {
   id: string;
   title: string;
-  status: TicketStatus;
   priority: 'high' | 'medium' | 'low';
+  overallStatus: TicketStatus;   // the ticket's overall status (blocked if any contributor is blocked)
+  contributors: TicketContribution[];
 }
 
 interface Thread {
@@ -38,7 +45,6 @@ interface Thread {
   lastAction: string;
   yLane: number;
   interactsWith?: string[];
-  tickets: Ticket[];      // full queue for this agent in the phase
 }
 
 interface Intersection {
@@ -86,13 +92,6 @@ const MOCK_THREADS: Thread[] = [
     lastAction: 'Writing unit tests for token rotation logic',
     yLane: 0,
     interactsWith: ['th-3'],
-    tickets: [
-      { id: 'OW-114', title: 'Audit session token storage for GDPR compliance', status: 'done', priority: 'high' },
-      { id: 'OW-115', title: 'Implement token rotation on re-auth events', status: 'done', priority: 'high' },
-      { id: 'OW-116', title: 'Refactor auth middleware (current)', status: 'active', priority: 'high' },
-      { id: 'OW-117', title: 'Write migration guide for client SDK consumers', status: 'queued', priority: 'medium' },
-      { id: 'OW-118', title: 'Remove legacy basic-auth fallback', status: 'queued', priority: 'low' },
-    ],
     toolCalls: [
       { id: 'tc-1', name: 'read_file', durationMs: 120, status: 'success', at: 0.1 },
       { id: 'tc-2', name: 'bash', durationMs: 890, status: 'success', at: 0.28 },
@@ -115,14 +114,6 @@ const MOCK_THREADS: Thread[] = [
     messages: 14,
     lastAction: 'Querying cohort data for March drop-off segment',
     yLane: 1,
-    tickets: [
-      { id: 'OW-101', title: 'Pull Q1 retention cohorts from warehouse', status: 'done', priority: 'high' },
-      { id: 'OW-102', title: 'Identify top drop-off events per segment', status: 'done', priority: 'high' },
-      { id: 'OW-103', title: 'Analyze Q1 churn patterns (current)', status: 'active', priority: 'high' },
-      { id: 'OW-104', title: 'Draft retention lever recommendations', status: 'queued', priority: 'medium' },
-      { id: 'OW-105', title: 'Produce exec summary slide deck', status: 'queued', priority: 'medium' },
-      { id: 'OW-106', title: 'Schedule review with product team', status: 'queued', priority: 'low' },
-    ],
     toolCalls: [
       { id: 'tc-6', name: 'web_search', durationMs: 2100, status: 'success', at: 0.12 },
       { id: 'tc-7', name: 'bash', durationMs: 450, status: 'success', at: 0.3 },
@@ -144,12 +135,6 @@ const MOCK_THREADS: Thread[] = [
     lastAction: 'Waiting for Atlas to finalize token schema before continuing',
     yLane: 2,
     interactsWith: ['th-1'],
-    tickets: [
-      { id: 'OW-120', title: 'Audit v1→v2 endpoint diff', status: 'done', priority: 'high' },
-      { id: 'OW-121', title: 'Update OpenAPI spec for /auth/* routes', status: 'active', priority: 'high' },
-      { id: 'OW-122', title: 'Write migration guide (blocked on OW-116)', status: 'blocked', priority: 'high' },
-      { id: 'OW-123', title: 'Update changelog and release notes', status: 'queued', priority: 'medium' },
-    ],
     toolCalls: [
       { id: 'tc-9',  name: 'read_file', durationMs: 95, status: 'success', at: 0.08 },
       { id: 'tc-10', name: 'web_fetch', durationMs: 1800, status: 'success', at: 0.22 },
@@ -170,13 +155,6 @@ const MOCK_THREADS: Thread[] = [
     messages: 31,
     lastAction: 'Completed — all 5 emails delivered to content team',
     yLane: 3,
-    tickets: [
-      { id: 'OW-130', title: 'Research onboarding email best practices', status: 'done', priority: 'medium' },
-      { id: 'OW-131', title: 'Draft welcome + activation emails', status: 'done', priority: 'high' },
-      { id: 'OW-132', title: 'Write 14-day drip sequence (5 emails)', status: 'done', priority: 'high' },
-      { id: 'OW-133', title: 'A/B variant for subject lines', status: 'done', priority: 'medium' },
-      { id: 'OW-134', title: 'Hand off to content team', status: 'done', priority: 'low' },
-    ],
     toolCalls: [
       { id: 'tc-12', name: 'web_search', durationMs: 1200, status: 'success', at: 0.15 },
       { id: 'tc-13', name: 'write_file', durationMs: 890, status: 'success', at: 0.35 },
@@ -199,11 +177,6 @@ const MOCK_THREADS: Thread[] = [
     messages: 4,
     lastAction: 'Blocked — missing GitHub API token in environment',
     yLane: 4,
-    tickets: [
-      { id: 'OW-140', title: 'Triage 47 open GitHub issues', status: 'blocked', priority: 'high' },
-      { id: 'OW-141', title: 'Close duplicate issues with standard reply', status: 'queued', priority: 'medium' },
-      { id: 'OW-142', title: 'Label all open issues by component', status: 'queued', priority: 'medium' },
-    ],
     toolCalls: [
       { id: 'tc-17', name: 'bash', durationMs: 230, status: 'error', at: 0.18 },
     ],
@@ -222,12 +195,6 @@ const MOCK_THREADS: Thread[] = [
     messages: 2,
     lastAction: 'Blocked — Stripe API key revoked, 3 tasks cannot proceed',
     yLane: 5,
-    tickets: [
-      { id: 'OW-150', title: 'Nightly Stripe → ledger sync', status: 'blocked', priority: 'high' },
-      { id: 'OW-151', title: 'Reconcile failed charges from Apr 14–16', status: 'blocked', priority: 'high' },
-      { id: 'OW-152', title: 'Flag revenue anomalies > 2σ and draft alert', status: 'blocked', priority: 'medium' },
-      { id: 'OW-153', title: 'Archive previous month ledger snapshot', status: 'queued', priority: 'low' },
-    ],
     toolCalls: [
       { id: 'tc-dex-1', name: 'bash', durationMs: 410, status: 'error', at: 0.08 },
     ],
@@ -246,14 +213,6 @@ const MOCK_THREADS: Thread[] = [
     messages: 28,
     lastAction: 'Running migration tests against staging database',
     yLane: 6,
-    tickets: [
-      { id: 'OW-160', title: 'Audit all legacy PostgreSQL views', status: 'done', priority: 'high' },
-      { id: 'OW-161', title: 'Map views to Django ORM equivalents', status: 'done', priority: 'high' },
-      { id: 'OW-162', title: 'Write ORM models + migration files', status: 'done', priority: 'high' },
-      { id: 'OW-163', title: 'Run migration on staging + validate (current)', status: 'active', priority: 'high' },
-      { id: 'OW-164', title: 'Zero-downtime prod cutover plan', status: 'queued', priority: 'high' },
-      { id: 'OW-165', title: 'Deprecate legacy views + monitor', status: 'queued', priority: 'medium' },
-    ],
     toolCalls: [
       { id: 'tc-18', name: 'bash', durationMs: 3200, status: 'success', at: 0.1 },
       { id: 'tc-19', name: 'read_file', durationMs: 180, status: 'success', at: 0.22 },
@@ -264,9 +223,151 @@ const MOCK_THREADS: Thread[] = [
   },
 ];
 
-const MOCK_INTERSECTIONS: Intersection[] = [
-  { threadAId: 'th-1', threadBId: 'th-3', atX: 0.55, type: 'dependency' },
+const MOCK_TICKETS: Ticket[] = [
+  {
+    id: 'OW-116',
+    title: 'Refactor auth middleware for compliance',
+    priority: 'high',
+    overallStatus: 'active',
+    contributors: [
+      { threadId: 'th-1', role: 'implementing', status: 'active' },
+      { threadId: 'th-3', role: 'documenting', status: 'blocked' },
+      { threadId: 'th-5', role: 'reviewing', status: 'queued' },
+    ],
+  },
+  {
+    id: 'OW-117',
+    title: 'Write SDK migration guide for v1→v2',
+    priority: 'high',
+    overallStatus: 'active',
+    contributors: [
+      { threadId: 'th-3', role: 'writing', status: 'active' },
+      { threadId: 'th-1', role: 'reviewing', status: 'queued' },
+    ],
+  },
+  {
+    id: 'OW-103',
+    title: 'Q1 churn analysis and retention levers',
+    priority: 'high',
+    overallStatus: 'active',
+    contributors: [
+      { threadId: 'th-2', role: 'analyzing', status: 'active' },
+      { threadId: 'th-4', role: 'presenting', status: 'queued' },
+    ],
+  },
+  {
+    id: 'OW-163',
+    title: 'Migrate PostgreSQL views to Django ORM on staging',
+    priority: 'high',
+    overallStatus: 'active',
+    contributors: [
+      { threadId: 'th-7', role: 'implementing', status: 'active' },
+      { threadId: 'th-1', role: 'reviewing', status: 'queued' },
+    ],
+  },
+  {
+    id: 'OW-114',
+    title: 'Audit session token storage for GDPR',
+    priority: 'high',
+    overallStatus: 'done',
+    contributors: [
+      { threadId: 'th-1', role: 'implementing', status: 'done' },
+      { threadId: 'th-5', role: 'reviewing', status: 'done' },
+    ],
+  },
+  {
+    id: 'OW-130',
+    title: 'Research onboarding email best practices',
+    priority: 'medium',
+    overallStatus: 'done',
+    contributors: [
+      { threadId: 'th-4', role: 'researching', status: 'done' },
+      { threadId: 'th-2', role: 'reviewing', status: 'done' },
+    ],
+  },
+  {
+    id: 'OW-132',
+    title: 'Write 14-day drip sequence (5 emails)',
+    priority: 'high',
+    overallStatus: 'done',
+    contributors: [
+      { threadId: 'th-4', role: 'writing', status: 'done' },
+    ],
+  },
+  {
+    id: 'OW-150',
+    title: 'Nightly Stripe → ledger sync',
+    priority: 'high',
+    overallStatus: 'blocked',
+    contributors: [
+      { threadId: 'th-6', role: 'running', status: 'blocked' },
+    ],
+  },
+  {
+    id: 'OW-151',
+    title: 'Reconcile failed charges Apr 14–16',
+    priority: 'high',
+    overallStatus: 'blocked',
+    contributors: [
+      { threadId: 'th-6', role: 'running', status: 'blocked' },
+      { threadId: 'th-2', role: 'validating', status: 'queued' },
+    ],
+  },
+  {
+    id: 'OW-152',
+    title: 'Flag revenue anomalies > 2σ and draft alert',
+    priority: 'medium',
+    overallStatus: 'blocked',
+    contributors: [
+      { threadId: 'th-6', role: 'running', status: 'blocked' },
+    ],
+  },
+  {
+    id: 'OW-140',
+    title: 'Triage 47 open GitHub issues',
+    priority: 'high',
+    overallStatus: 'blocked',
+    contributors: [
+      { threadId: 'th-5', role: 'triaging', status: 'blocked' },
+    ],
+  },
+  {
+    id: 'OW-160',
+    title: 'Audit all legacy PostgreSQL views',
+    priority: 'high',
+    overallStatus: 'done',
+    contributors: [
+      { threadId: 'th-7', role: 'auditing', status: 'done' },
+      { threadId: 'th-1', role: 'reviewing', status: 'done' },
+    ],
+  },
+  {
+    id: 'OW-161',
+    title: 'Map views to Django ORM equivalents',
+    priority: 'high',
+    overallStatus: 'done',
+    contributors: [
+      { threadId: 'th-7', role: 'implementing', status: 'done' },
+    ],
+  },
 ];
+
+const MOCK_INTERSECTIONS: Intersection[] = [
+  // OW-116: Atlas (th-1) + Sage (th-3) — Atlas implementing, Sage waiting
+  { threadAId: 'th-1', threadBId: 'th-3', atX: 0.55, type: 'dependency' },
+  // OW-117: Sage (th-3) + Atlas (th-1) — Sage writing, Atlas reviewing after
+  { threadAId: 'th-3', threadBId: 'th-1', atX: 0.85, type: 'collaboration' },
+  // OW-163: Nova (th-7) + Atlas (th-1) — Nova staging, Atlas reviewing before prod
+  { threadAId: 'th-7', threadBId: 'th-1', atX: 0.75, type: 'dependency' },
+  // OW-103: Iris (th-2) + Orion (th-4) — Iris analysis feeds Orion's exec summary
+  { threadAId: 'th-2', threadBId: 'th-4', atX: 0.7, type: 'collaboration' },
+  // OW-151: Dex (th-6) + Iris (th-2) — Iris validates once Dex unblocks
+  { threadAId: 'th-6', threadBId: 'th-2', atX: 0.3, type: 'dependency' },
+];
+
+function getThreadTickets(threadId: string): Ticket[] {
+  return MOCK_TICKETS.filter(t => t.contributors.some(c => c.threadId === threadId));
+}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -445,8 +546,9 @@ function ThreadDetailPanel({ thread, onClose, onWhisper }: {
       {/* Ticket queue */}
       <div className="px-6 py-3 border-b border-[#1a1a2e]">
         {(() => {
-          const done = thread.tickets.filter(t => t.status === 'done').length;
-          const total = thread.tickets.length;
+          const agentTickets = getThreadTickets(thread.id);
+          const done = agentTickets.filter(t => t.contributors.find(c => c.threadId === thread.id)?.status === 'done').length;
+          const total = agentTickets.length;
           const pct = total > 0 ? Math.round((done / total) * 100) : 0;
           const TICKET_COLORS: Record<TicketStatus, { dot: string; text: string; label: string }> = {
             done:    { dot: '#22c55e', text: 'text-gray-600 line-through', label: 'Done' },
@@ -458,7 +560,7 @@ function ThreadDetailPanel({ thread, onClose, onWhisper }: {
             <>
               <div className="flex items-center justify-between mb-2">
                 <div className="text-xs text-gray-500 uppercase tracking-wider">
-                  Queue <span className="text-gray-400 normal-case ml-1">{done}/{total} done</span>
+                  Shared Work <span className="text-gray-400 normal-case ml-1">{done}/{total} done</span>
                 </div>
                 <span className="text-xs font-semibold" style={{ color: hc.stroke }}>{pct}%</span>
               </div>
@@ -467,7 +569,7 @@ function ThreadDetailPanel({ thread, onClose, onWhisper }: {
               </div>
               {/* Multi-blocked callout */}
               {(() => {
-                const blockedTickets = thread.tickets.filter(t => t.status === 'blocked');
+                const blockedTickets = agentTickets.filter(t => t.contributors.find(c => c.threadId === thread.id)?.status === 'blocked');
                 if (blockedTickets.length > 1) {
                   return (
                     <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-red-500/8 border border-red-500/20">
@@ -481,15 +583,36 @@ function ThreadDetailPanel({ thread, onClose, onWhisper }: {
                 return null;
               })()}
               <div className="space-y-1.5">
-                {thread.tickets.map(ticket => {
-                  const tc = TICKET_COLORS[ticket.status];
+                {agentTickets.map(ticket => {
+                  const myContrib = ticket.contributors.find(c => c.threadId === thread.id)!;
+                  const others = ticket.contributors.filter(c => c.threadId !== thread.id);
+                  const tc = TICKET_COLORS[myContrib.status];
                   return (
-                    <div key={ticket.id} className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: tc.dot }} />
-                      <div className="flex-1 min-w-0">
-                        <span className={`text-xs ${tc.text} leading-snug`}>{ticket.title}</span>
+                    <div key={ticket.id} className="mb-3">
+                      <div className="flex items-start gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: tc.dot }} />
+                        <div className="flex-1 min-w-0">
+                          <span className={`text-xs ${tc.text} leading-snug`}>{ticket.title}</span>
+                          <div className="text-xs mt-0.5" style={{ color: color + 'aa' }}>
+                            {myContrib.role}
+                          </div>
+                        </div>
+                        <span className="text-xs text-gray-700 font-mono shrink-0">{ticket.id}</span>
                       </div>
-                      <span className="text-xs text-gray-700 font-mono shrink-0">{ticket.id}</span>
+                      {others.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-1.5 ml-3.5">
+                          {others.map(o => {
+                            const oThread = MOCK_THREADS.find(t => t.id === o.threadId);
+                            const oColor = AGENT_TYPE_COLORS[oThread?.agentType ?? 'bot'];
+                            const oDot = o.status === 'done' ? '#22c55e' : o.status === 'blocked' ? '#ef4444' : o.status === 'active' ? oColor : '#374151';
+                            return (
+                              <span key={o.threadId} className="text-xs px-1.5 py-0.5 rounded border" style={{ borderColor: oDot + '40', color: oDot, backgroundColor: oDot + '10' }}>
+                                {oThread?.agentName} · {o.role}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -861,8 +984,9 @@ function LoomCanvas({
 
               {/* Lane label (left) */}
               {(() => {
-                const done = thread.tickets.filter(t => t.status === 'done').length;
-                const total = thread.tickets.length;
+                const agentTickets = getThreadTickets(thread.id);
+                const done = agentTickets.filter(t => t.contributors.find(c => c.threadId === thread.id)?.status === 'done').length;
+                const total = agentTickets.length;
                 return (
                   <g
                     style={{ cursor: 'pointer' }}
