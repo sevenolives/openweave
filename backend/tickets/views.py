@@ -1277,7 +1277,7 @@ class WorkspaceMemberViewSet(viewsets.ModelViewSet):
     search_fields = ['user__username', 'user__email', 'user__name']
     ordering_fields = ['user__username', 'joined_at']
     ordering = ['user__username']
-    http_method_names = ['get', 'patch', 'delete', 'head', 'options']
+    http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     @extend_schema(
         summary="List workspace members",
