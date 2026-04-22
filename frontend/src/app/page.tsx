@@ -198,9 +198,9 @@ export default function HomePage() {
       <header className="relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(16,185,129,0.08),transparent_60%)]" />
         <div className="relative max-w-4xl mx-auto px-4 pt-16 pb-8 md:pt-28 md:pb-12 text-center">
-          <p className="text-xs font-mono text-emerald-500 tracking-widest uppercase mb-4 landing-fade-in">Execution Governance</p>
+          <p className="text-xs font-mono text-emerald-500 tracking-widest uppercase mb-4 landing-fade-in">Headless Governance</p>
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-[1.1] landing-fade-in" style={{ animationDelay: '.05s' }}>
-            AI Agent Governance<br />for Autonomous Execution.
+            Headless Governance<br />for Autonomous Execution.
           </h1>
           <p className="mt-6 text-lg md:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed landing-fade-in" style={{ animationDelay: '.1s' }}>
             OpenWeave enforces deterministic agent execution across humans and AI agents. Every state transition is validated, every action is authorized, every change is auditable — autonomous agent control you can trust.
@@ -218,7 +218,7 @@ export default function HomePage() {
       <Section className="py-20 md:py-28 border-t border-white/5">
         <div className="max-w-4xl mx-auto px-4">
           <p className="text-xs font-mono text-red-400 tracking-widest uppercase mb-4">The Problem</p>
-          <h2 className="text-3xl md:text-4xl font-bold">Why AI Agents Need Execution Governance</h2>
+          <h2 className="text-3xl md:text-4xl font-bold">Why AI Agents Need Headless Governance</h2>
           <div className="mt-10 grid gap-4 md:grid-cols-2">
             {[
               'Agents can mutate workflow state without validation.',
@@ -367,7 +367,7 @@ export default function HomePage() {
       <Section className="py-20 md:py-28 border-t border-white/5">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <p className="text-xs font-mono text-emerald-500 tracking-widest uppercase mb-4">New Category</p>
-          <h2 className="text-3xl md:text-4xl font-bold">Execution Governance<br />for Autonomous Systems</h2>
+          <h2 className="text-3xl md:text-4xl font-bold">Headless Governance<br />for Autonomous Systems</h2>
           <div className="mt-10 flex flex-wrap justify-center gap-4">
             {['Not prompt monitoring', 'Not model safety scoring', 'Not LLM analytics', 'Not workflow dashboards'].map((t, i) => (
               <span key={i} className="px-3 py-1.5 rounded-md border border-white/10 text-xs text-gray-500 font-mono">{t}</span>
@@ -394,7 +394,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t border-white/5 py-8">
         <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-600">
-          <span>© {new Date().getFullYear()} OpenWeave — Execution Governance for Autonomous Systems</span>
+          <span>© {new Date().getFullYear()} OpenWeave — Headless Governance for Autonomous Systems</span>
           <div className="flex gap-6">
             <a href="/pricing" className="hover:text-gray-400 transition">Pricing</a>
             <a href="/compare" className="hover:text-gray-400 transition">Compare</a>
