@@ -1277,7 +1277,7 @@ class WorkspaceMemberViewSet(viewsets.ModelViewSet):
     search_fields = ['user__username', 'user__email', 'user__name']
     ordering_fields = ['user__username', 'joined_at']
     ordering = ['user__username']
-    http_method_names = ['get', 'patch', 'delete', 'head', 'options']
+    http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     @extend_schema(
         summary="List workspace members",
@@ -2064,50 +2064,3 @@ def public_workspace(request, workspace_slug):
     })
 
 
-@api_view(['GET', 'POST'])
-@permission_classes([permissions.IsAuthenticated])
-def admin_cleanup_orphan_users(request):
-    """Admin-only: list/delete users not in any workspace."""
-    if not request.user.is_superuser:
-        return Response({'detail': 'Superuser required'}, status=status.HTTP_403_FORBIDDEN)
-    
-    from tickets.models import WorkspaceMember, Workspace
-    from django.contrib.auth import get_user_model
-    User = get_user_model()
-    
-    member_ids = set(WorkspaceMember.objects.values_list('user_id', flat=True))
-    owner_ids = set(Workspace.objects.values_list('owner_id', flat=True))
-    protected_ids = member_ids | owner_ids
-    
-    # Workspace details
-    workspaces = []
-    for ws in Workspace.objects.all():
-        members = list(WorkspaceMember.objects.filter(workspace=ws).select_related('user').values_list('user__id', 'user__username', 'user__user_type'))
-        workspaces.append({
-            'name': ws.name, 'slug': ws.slug, 'owner_id': ws.owner_id,
-            'owner_username': ws.owner.username if ws.owner else None,
-            'members': [{'id': m[0], 'username': m[1], 'type': m[2]} for m in members]
-        })
-    
-    orphans = User.objects.exclude(id__in=protected_ids).exclude(is_superuser=True).order_by('id')
-    orphan_list = [{'id': u.id, 'username': u.username, 'user_type': u.user_type, 'name': u.name} for u in orphans]
-    
-    protected = User.objects.filter(id__in=protected_ids).order_by('id')
-    protected_list = [{'id': u.id, 'username': u.username, 'user_type': u.user_type, 'name': u.name, 'is_superuser': u.is_superuser} for u in protected]
-    
-    result = {
-        'total_users': User.objects.count(),
-        'workspaces': workspaces,
-        'orphans': orphan_list,
-        'orphan_count': len(orphan_list),
-        'protected': protected_list,
-        'protected_count': len(protected_list),
-    }
-    
-    if request.method == 'POST':
-        count = orphans.count()
-        orphans.delete()
-        result['deleted'] = count
-        result['message'] = f'Deleted {count} orphan users'
-    
-    return Response(result)
