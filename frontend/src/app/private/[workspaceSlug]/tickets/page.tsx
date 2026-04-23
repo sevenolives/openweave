@@ -119,10 +119,6 @@ function TicketsPage() {
     if (typeof window !== 'undefined') return new URLSearchParams(window.location.search).get('phase') || '';
     return '';
   });
-  const [filterTags, setFilterTags] = useState(() => {
-    if (typeof window !== 'undefined') return new URLSearchParams(window.location.search).get('tags') || '';
-    return '';
-  });
   const [allPhases, setAllPhases] = useState<Phase[]>([]);
   const [statuses, setStatuses] = useState<StatusDefinition[]>([]);
   const [wsUsers, setWsUsers] = useState<User[]>([]);
@@ -156,11 +152,10 @@ function TicketsPage() {
     if (filterPriority) params.set('priority', filterPriority);
     if (filterAssigned) params.set('assigned_to', filterAssigned);
     if (filterPhase) params.set('phase', filterPhase);
-    if (filterTags) params.set('tags', filterTags);
     if (debouncedSearch) params.set('search', debouncedSearch);
     const url = params.toString() ? `${basePath}?${params.toString()}` : basePath;
     window.history.replaceState(null, '', url);
-  }, [filterProject, filterStatus, filterPriority, filterAssigned, filterApproved, filterPhase, filterTags, debouncedSearch, workspaceSlug]);
+  }, [filterProject, filterStatus, filterPriority, filterAssigned, filterApproved, filterPhase, debouncedSearch, workspaceSlug]);
 
   // Load status definitions
   useEffect(() => {
@@ -194,7 +189,6 @@ function TicketsPage() {
     if (filterPriority) params.priority = filterPriority;
     if (filterAssigned) params.assigned_to = filterAssigned;
     if (filterPhase) params.phase = filterPhase;
-    if (filterTags) params.tags = filterTags;
     if (debouncedSearch) params.search = debouncedSearch;
 
     Promise.all([
@@ -215,7 +209,7 @@ function TicketsPage() {
     });
 
     return () => { cancelled = true; };
-  }, [currentWorkspace?.slug, filterProject, filterStatus, filterPriority, filterAssigned, filterPhase, filterTags, debouncedSearch, reloadKey]);
+  }, [currentWorkspace?.slug, filterProject, filterStatus, filterPriority, filterAssigned, filterPhase, debouncedSearch, reloadKey]);
 
   // Fetch next page and append
   const fetchMore = useCallback(async () => {
@@ -233,7 +227,6 @@ function TicketsPage() {
     if (filterPriority) params.priority = filterPriority;
     if (filterAssigned) params.assigned_to = filterAssigned;
     if (filterPhase) params.phase = filterPhase;
-    if (filterTags) params.tags = filterTags;
     if (debouncedSearch) params.search = debouncedSearch;
 
     try {
@@ -248,7 +241,7 @@ function TicketsPage() {
       isFetchingRef.current = false;
       setFetchingMore(false);
     }
-  }, [currentWorkspace?.slug, hasMore, filterProject, filterStatus, filterPriority, filterAssigned, filterPhase, filterTags, debouncedSearch]);
+  }, [currentWorkspace?.slug, hasMore, filterProject, filterStatus, filterPriority, filterAssigned, filterPhase, debouncedSearch]);
 
   // IntersectionObserver — triggers fetchMore when sentinel enters viewport
   useEffect(() => {
@@ -343,7 +336,7 @@ function TicketsPage() {
     } catch (e: any) { toast(e?.message || 'Failed to delete ticket', 'error'); }
   };
 
-  const hasFilters = search || filterStatus || filterPriority || filterProject || filterAssigned || filterApproved || filterPhase || filterTags;
+  const hasFilters = search || filterStatus || filterPriority || filterProject || filterAssigned || filterApproved || filterPhase;
 
   return (
     <Layout>
@@ -373,7 +366,7 @@ function TicketsPage() {
             className="px-4 py-3 border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-full bg-[#1a1a2e] text-white placeholder-gray-500"
             placeholder="Search tickets…"
           />
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="px-4 py-3 min-h-[44px] border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-[#1a1a2e] text-white">
               <option value="">All statuses</option>
               {statuses.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
@@ -406,14 +399,9 @@ function TicketsPage() {
                 </option>
               ))}
             </select>
-            <input
-              type="text" value={filterTags} onChange={e => setFilterTags(e.target.value)}
-              className="px-4 py-3 border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-[#1a1a2e] text-white placeholder-gray-500"
-              placeholder="Tags (comma-separated)"
-            />
           </div>
           {hasFilters && (
-            <button onClick={() => { setSearch(''); setFilterStatus(''); setFilterPriority(''); setFilterProject(''); setFilterAssigned(''); setFilterApproved(''); setFilterPhase(''); setFilterTags(''); }} className="px-4 py-3 text-sm text-gray-500 hover:text-gray-300 min-h-[44px] rounded-xl hover:bg-[#1a1a2e] transition-colors">
+            <button onClick={() => { setSearch(''); setFilterStatus(''); setFilterPriority(''); setFilterProject(''); setFilterAssigned(''); setFilterApproved(''); setFilterPhase(''); }} className="px-4 py-3 text-sm text-gray-500 hover:text-gray-300 min-h-[44px] rounded-xl hover:bg-[#1a1a2e] transition-colors">
               Clear filters
             </button>
           )}
@@ -423,18 +411,13 @@ function TicketsPage() {
         {initialLoading ? (
           <div className="space-y-2">
             {[1, 2, 3, 4].map(i => (
-              <div key={i} className="bg-[#111118] rounded-xl border border-[#1e1e2e] p-4 animate-pulse flex items-stretch overflow-hidden">
-                <div className="w-1 flex-shrink-0 bg-[#252540] rounded-full mr-4" />
-                <div className="flex-1 space-y-2.5">
-                  <div className="flex gap-2">
-                    <div className="h-4 bg-[#252540] rounded w-20" />
-                    <div className="h-4 bg-[#252540] rounded w-16" />
-                  </div>
-                  <div className="h-4 bg-[#252540] rounded w-72" />
-                  <div className="h-3 bg-[#252540] rounded w-48" />
-                  <div className="flex gap-2">
-                    <div className="h-4 bg-[#252540] rounded-full w-14" />
-                    <div className="h-4 bg-[#252540] rounded-full w-10" />
+              <div key={i} className="bg-[#111118] rounded-xl border border-[#222233] p-4 animate-pulse">
+                <div className="flex gap-3">
+                  <div className="w-0.5 self-stretch bg-[#252540] rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 bg-[#252540] rounded w-20" />
+                    <div className="h-4 bg-[#252540] rounded w-64" />
+                    <div className="h-3 bg-[#252540] rounded w-40" />
                   </div>
                 </div>
               </div>
@@ -454,11 +437,11 @@ function TicketsPage() {
             )}
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-1">
             {timelineItems.map((item, idx) => {
               if (item.type === 'sep') {
                 return (
-                  <div key={`sep-${item.label}-${idx}`} className="pt-6 pb-1 px-1 flex items-center gap-3">
+                  <div key={`sep-${item.label}-${idx}`} className="pt-5 pb-1 px-1 flex items-center gap-3">
                     <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest whitespace-nowrap">{item.label}</span>
                     <div className="flex-1 h-px bg-[#1e1e2e]" />
                   </div>
@@ -472,66 +455,56 @@ function TicketsPage() {
                 <div
                   key={ticket.ticket_slug}
                   onClick={() => router.push(`/private/${workspaceSlug}/tickets/${ticket.ticket_slug}`)}
-                  className="group flex flex-col sm:flex-row bg-[#111118] border border-[#1e1e2e] rounded-xl hover:border-[#2d2d50] hover:bg-[#12121e] cursor-pointer transition-all overflow-hidden"
+                  className="flex items-stretch gap-0 bg-[#111118] border border-[#222233] rounded-xl hover:border-[#333355] cursor-pointer transition-colors overflow-hidden"
                 >
-                  {/* Priority accent bar — horizontal on mobile, vertical on desktop */}
-                  <div className={`h-1 w-full sm:h-auto sm:w-1 flex-shrink-0 ${PRIORITY_BAR[ticket.priority] || 'bg-gray-700'}`} />
+                  {/* Priority accent bar */}
+                  <div className={`w-[3px] flex-shrink-0 ${PRIORITY_BAR[ticket.priority] || 'bg-gray-700'}`} />
 
-                  {/* Main content */}
-                  <div className="flex-1 min-w-0 px-4 py-3.5">
-                    {/* Row 1: project + slug + type badge + time */}
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <div className="flex-1 min-w-0 px-4 py-3">
+                    {/* Top: project + slug */}
+                    <div className="flex items-center gap-2 mb-1">
                       {project && (
                         <span
-                          className="text-[10px] font-semibold px-2 py-0.5 rounded bg-indigo-900/40 text-indigo-400 hover:bg-indigo-900/60 transition-colors"
+                          className="text-[10px] font-medium px-2 py-0.5 rounded bg-indigo-900/30 text-indigo-400 cursor-pointer hover:bg-indigo-900/50"
                           onClick={e => { e.stopPropagation(); router.push(`/private/${workspaceSlug}/projects/${project.slug}`); }}
                         >
                           {project.name}
                         </span>
                       )}
                       <span className="text-[10px] font-mono text-gray-600">{ticket.ticket_slug}</span>
-                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
-                        ticket.ticket_type === 'BUG' ? 'bg-orange-900/30 text-orange-400' : 'bg-violet-900/30 text-violet-400'
-                      }`}>
-                        {ticket.ticket_type === 'BUG' ? '🐛 Bug' : '✨ Feature'}
-                      </span>
-                      <span className="ml-auto text-[10px] text-gray-600">
+                      <span className="text-[10px] text-gray-600 ml-auto">
                         {new Date(ticket.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
 
-                    {/* Row 2: Title */}
-                    <p className="text-sm font-semibold text-white leading-snug">{ticket.title}</p>
-
-                    {/* Row 3: Description */}
+                    {/* Title */}
+                    <p className="text-sm font-medium text-white leading-snug">{ticket.title}</p>
                     {ticket.description && (
                       <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{ticket.description}</p>
                     )}
 
-                    {/* Row 4: Status + priority + phase + tags */}
-                    <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
+                    {/* Badges */}
+                    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                       <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusBadge(statuses, ticket.status)}`}>
-                        {ticket.status.replace(/_/g, ' ')}
+                        {ticket.status.replace('_', ' ')}
+                      </span>
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-800 text-gray-300">
+                        {ticket.ticket_type === 'BUG' ? '🐛 Bug' : '✨ Feature'}
                       </span>
                       <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${PRIORITY_COLORS[ticket.priority]}`}>
                         {ticket.priority}
                       </span>
                       {ticket.phase_details && (
                         <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                          ticket.phase_details.status === 'ACTIVE' ? 'bg-emerald-900/40 text-emerald-400' : 'bg-gray-800/40 text-gray-500'
+                          ticket.phase_details.status === 'ACTIVE' ? 'bg-emerald-900/50 text-emerald-300' : 'bg-gray-800/50 text-gray-300'
                         }`}>
-                          {ticket.phase_details.status === 'ACTIVE' ? '● ' : '○ '}{ticket.phase_details.name}
+                          {ticket.phase_details.status === 'ACTIVE' ? '🟢' : '⬜'} {ticket.phase_details.name}
                         </span>
                       )}
-                      {ticket.tags && ticket.tags.map(tag => (
-                        <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-800/60 text-gray-400 border border-gray-700/40">
-                          #{tag}
-                        </span>
-                      ))}
                     </div>
 
-                    {/* Mobile controls — visible only on small screens */}
-                    <div className="flex items-center gap-2 mt-3 sm:hidden" onClick={e => e.stopPropagation()}>
+                    {/* Assignee + status dropdowns */}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-2" onClick={e => e.stopPropagation()}>
                       <select
                         value={ticket.assigned_to?.toString() || ''}
                         onChange={async (e) => {
@@ -542,7 +515,7 @@ function TicketsPage() {
                             toast('Assignment updated');
                           } catch (err: any) { toast(err?.message || 'Failed to assign', 'error'); }
                         }}
-                        className="flex-1 text-xs border border-[#252535] rounded-lg px-2 py-2 bg-[#0d0d1a] text-gray-300 focus:ring-1 focus:ring-indigo-500 min-h-[36px]"
+                        className="text-xs sm:text-[11px] border border-[#222233] rounded px-2 py-1 sm:px-1.5 sm:py-0.5 bg-[#1a1a2e] text-gray-300 focus:ring-1 focus:ring-indigo-500 min-h-[36px] sm:min-h-[24px]"
                       >
                         <option value="">Unassigned</option>
                         {(projectAgentsMap[ticket.project] || wsUsers).map(a => (
@@ -558,66 +531,22 @@ function TicketsPage() {
                             toast('Status updated');
                           } catch (err: any) { toast(err?.message || 'Failed', 'error'); }
                         }}
-                        className="flex-1 text-xs border border-[#252535] rounded-lg px-2 py-2 bg-[#0d0d1a] text-gray-300 focus:ring-1 focus:ring-indigo-500 min-h-[36px]"
+                        className="text-xs sm:text-[11px] border border-[#222233] rounded px-2 py-1 sm:px-1.5 sm:py-0.5 bg-[#1a1a2e] text-gray-300 focus:ring-1 focus:ring-indigo-500 min-h-[36px] sm:min-h-[24px]"
                       >
                         {statuses.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
                       </select>
-                      <button
-                        onClick={() => setDeleteTarget(ticket)}
-                        className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-900/10 transition-colors"
-                        title="Delete ticket"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                      </button>
                     </div>
                   </div>
 
-                  {/* Right panel: desktop controls only */}
-                  <div
-                    className="hidden sm:flex flex-col gap-2 px-3 py-3.5 border-l border-[#1e1e2e] min-w-[150px] justify-between"
-                    onClick={e => e.stopPropagation()}
-                  >
-                    <div className="flex flex-col gap-1.5">
-                      <select
-                        value={ticket.assigned_to?.toString() || ''}
-                        onChange={async (e) => {
-                          const val = e.target.value;
-                          try {
-                            const updated = await api.updateTicket(ticket.ticket_slug, { assigned_to: val ? parseInt(val) : null });
-                            setTickets(prev => prev.map(t => t.ticket_slug === ticket.ticket_slug ? updated : t));
-                            toast('Assignment updated');
-                          } catch (err: any) { toast(err?.message || 'Failed to assign', 'error'); }
-                        }}
-                        className="text-[11px] border border-[#252535] rounded-lg px-2 py-1.5 bg-[#0d0d1a] text-gray-300 focus:ring-1 focus:ring-indigo-500 w-full"
-                      >
-                        <option value="">Unassigned</option>
-                        {(projectAgentsMap[ticket.project] || wsUsers).map(a => (
-                          <option key={a.id} value={String(a.id)}>{a.name || a.username}</option>
-                        ))}
-                      </select>
-                      <select
-                        value={ticket.status}
-                        onChange={async (e) => {
-                          try {
-                            const updated = await api.updateTicket(ticket.ticket_slug, { status: e.target.value as Ticket['status'] });
-                            setTickets(prev => prev.map(t => t.ticket_slug === ticket.ticket_slug ? updated : t));
-                            toast('Status updated');
-                          } catch (err: any) { toast(err?.message || 'Failed', 'error'); }
-                        }}
-                        className="text-[11px] border border-[#252535] rounded-lg px-2 py-1.5 bg-[#0d0d1a] text-gray-300 focus:ring-1 focus:ring-indigo-500 w-full"
-                      >
-                        {statuses.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
-                      </select>
-                    </div>
-                    <div className="flex justify-end">
-                      <button
-                        onClick={() => setDeleteTarget(ticket)}
-                        className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-700 hover:text-red-400 hover:bg-red-900/10 transition-colors opacity-0 group-hover:opacity-100"
-                        title="Delete ticket"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                      </button>
-                    </div>
+                  {/* Delete */}
+                  <div className="flex items-start pt-3 pr-3" onClick={e => e.stopPropagation()}>
+                    <button
+                      onClick={() => setDeleteTarget(ticket)}
+                      className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-900/10 transition-colors"
+                      title="Delete ticket"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
                   </div>
                 </div>
               );
