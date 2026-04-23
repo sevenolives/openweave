@@ -64,6 +64,8 @@ export interface Ticket {
   closed_at: string | null;
   phase: number | null;
   phase_details: { id: number; name: string; status: string } | null;
+  tags: string[];
+  tag_refs: string[];
 }
 
 export interface TicketAttachment {
