@@ -30,7 +30,7 @@ from .serializers import (
 from .throttles import AuthRateThrottle
 from .permissions import (
     IsAdminAgent, IsAdminOrReadOnly, IsAdminOrOwner, is_admin_or_owner,
-    user_has_project_access, project_access_q,
+    user_has_project_access, project_access_q, is_project_admin,
 )
 from .filters import (
     TicketFilter, UserFilter, ProjectFilter, CommentFilter, AuditLogFilter,
@@ -1108,7 +1108,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     def partial_update(self, request, *args, **kwargs):
         obj = self.get_object()
         workspace = obj.ticket.project.workspace if obj.ticket and obj.ticket.project else None
-        if not is_admin_or_owner(request.user, workspace) and obj.author != request.user:
+        if not is_admin_or_owner(request.user, workspace) and not is_project_admin(request.user, obj.ticket.project) and obj.author != request.user:
             return Response({'detail': 'You can only edit your own comments.'}, status=status.HTTP_403_FORBIDDEN)
         return super().partial_update(request, *args, **kwargs)
 
@@ -1116,7 +1116,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         obj = self.get_object()
         workspace = obj.ticket.project.workspace if obj.ticket and obj.ticket.project else None
-        if not is_admin_or_owner(request.user, workspace) and obj.author != request.user:
+        if not is_admin_or_owner(request.user, workspace) and not is_project_admin(request.user, obj.ticket.project) and obj.author != request.user:
             return Response({'detail': 'You can only delete your own comments.'}, status=status.HTTP_403_FORBIDDEN)
         return super().destroy(request, *args, **kwargs)
 

@@ -138,6 +138,15 @@ class IsProjectMember(permissions.BasePermission):
         ).exists()
 
 
+def is_project_admin(user, project):
+    """Check if user is a project-level admin (WorkspaceMemberProject.role == 'ADMIN')."""
+    if not user.is_authenticated or not project:
+        return False
+    return WorkspaceMemberProject.objects.filter(
+        project=project, member__user=user, role='ADMIN'
+    ).exists()
+
+
 def is_workspace_owner(user, workspace):
     """Check if user owns this workspace (not superuser, just owner)."""
     if not user.is_authenticated or not workspace:

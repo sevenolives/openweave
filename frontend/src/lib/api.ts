@@ -27,6 +27,7 @@ export interface User {
   description: string;
   is_active: boolean;
   email_verified: boolean;
+  role?: 'ADMIN' | 'MEMBER';
   token?: string; // Bot token, only returned for bots endpoint
 }
 
@@ -522,6 +523,17 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify(comment),
     });
+  }
+
+  async updateComment(id: number, data: { body: string }): Promise<Comment> {
+    return this.request<Comment>(`/comments/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteComment(id: number): Promise<void> {
+    await this.request(`/comments/${id}/`, { method: "DELETE" });
   }
 
   // Attachments

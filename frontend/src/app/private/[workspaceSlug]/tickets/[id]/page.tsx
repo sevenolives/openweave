@@ -53,6 +53,10 @@ export default function TicketDetailPage() {
   const [tab, setTab] = useState<'comments' | 'activity'>('comments');
   const [statuses, setStatuses] = useState<StatusDefinition[]>([]);
   const [phases, setPhases] = useState<Phase[]>([]);
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+  const [editingCommentBody, setEditingCommentBody] = useState("");
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [showDeleteComment, setShowDeleteComment] = useState<number | null>(null);
 
   const router = useRouter();
   const params = useParams<{ workspaceSlug: string; id: string }>();
@@ -134,6 +138,38 @@ export default function TicketDetailPage() {
       toast('Comment added');
     } catch (e: any) { toast(e?.message || 'Failed to add comment', 'error'); }
     finally { setSubmitting(false); }
+  };
+
+  const canEditComment = (comment: Comment) => user?.id === comment.author;
+  const canDeleteComment = (comment: Comment) =>
+    user?.id === comment.author ||
+    currentWorkspace?.owner === user?.id ||
+    user?.role === "ADMIN";
+
+  const handleEditComment = async (comment: Comment) => {
+    if (!editingCommentBody.trim()) return;
+    setCommentSubmitting(true);
+    try {
+      const updated = await api.updateComment(comment.id, { body: editingCommentBody.trim() });
+      setComments(comments.map(c => c.id === comment.id ? updated : c));
+      setEditingCommentId(null);
+      toast("Comment updated");
+    } catch (e: any) {
+      toast(e?.message || "Failed to update comment", "error");
+    } finally {
+      setCommentSubmitting(false);
+    }
+  };
+
+  const handleDeleteComment = async (id: number) => {
+    try {
+      await api.deleteComment(id);
+      setComments(comments.filter(c => c.id !== id));
+      setShowDeleteComment(null);
+      toast("Comment deleted");
+    } catch (e: any) {
+      toast(e?.message || "Failed to delete comment", "error");
+    }
   };
 
   const handleDelete = async () => {
@@ -267,8 +303,55 @@ export default function TicketDetailPage() {
                                 <span className="font-medium text-sm text-white">{comment.author_details.username}</span>
                                 <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${comment.author_details.user_type === 'BOT' ? 'bg-purple-900/50 text-purple-300' : 'bg-indigo-900/50 text-indigo-300'}`}>{comment.author_details.user_type}</span>
                                 <span className="text-xs text-gray-400">{new Date(comment.created_at).toLocaleString()}</span>
+                                <div className="flex-1" />
+                                {canEditComment(comment) && editingCommentId !== comment.id && (
+                                  <button
+                                    onClick={() => { setEditingCommentId(comment.id); setEditingCommentBody(comment.body); }}
+                                    className="text-xs text-gray-500 hover:text-indigo-400 transition-colors px-1"
+                                    title="Edit comment"
+                                  >
+                                    Edit
+                                  </button>
+                                )}
+                                {canDeleteComment(comment) && (
+                                  <button
+                                    onClick={() => setShowDeleteComment(comment.id)}
+                                    className="text-xs text-gray-500 hover:text-red-400 transition-colors px-1"
+                                    title="Delete comment"
+                                  >
+                                    Delete
+                                  </button>
+                                )}
                               </div>
-                              <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap"><MentionText text={comment.body} /></p>
+                              {editingCommentId === comment.id ? (
+                                <div className="mt-1">
+                                  <textarea
+                                    className="w-full bg-gray-800 text-gray-200 rounded-lg px-3 py-2 text-sm border border-gray-600 focus:border-indigo-500 focus:outline-none resize-none"
+                                    rows={3}
+                                    value={editingCommentBody}
+                                    onChange={e => setEditingCommentBody(e.target.value)}
+                                    disabled={commentSubmitting}
+                                  />
+                                  <div className="flex gap-2 mt-2">
+                                    <button
+                                      onClick={() => handleEditComment(comment)}
+                                      disabled={commentSubmitting || !editingCommentBody.trim()}
+                                      className="px-3 py-1 bg-indigo-600 text-white rounded text-xs font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                      {commentSubmitting ? "Saving…" : "Save"}
+                                    </button>
+                                    <button
+                                      onClick={() => setEditingCommentId(null)}
+                                      disabled={commentSubmitting}
+                                      className="px-3 py-1 bg-gray-700 text-gray-300 rounded text-xs font-medium hover:bg-gray-600"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap"><MentionText text={comment.body} /></p>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -507,6 +590,13 @@ export default function TicketDetailPage() {
         )}
 
         <ConfirmDialog open={showDelete} title="Delete Ticket" message="Are you sure you want to delete this ticket? This action cannot be undone." onConfirm={handleDelete} onCancel={() => setShowDelete(false)} />
+        <ConfirmDialog
+          open={showDeleteComment !== null}
+          title="Delete comment?"
+          message="This action cannot be undone."
+          onConfirm={() => showDeleteComment !== null && handleDeleteComment(showDeleteComment)}
+          onCancel={() => setShowDeleteComment(null)}
+        />
       </div>
     </Layout>
   );
