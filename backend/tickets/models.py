@@ -284,6 +284,20 @@ class WorkspaceMemberProject(models.Model):
         return f"{self.member.user.username} → {self.project.name} ({self.role})"
 
 
+class Tag(models.Model):
+    """Global tag for categorising tickets."""
+    name = models.CharField(max_length=100, unique=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    metadata = models.JSONField(blank=True, default=dict, help_text='Extensible metadata (category, severity, etc)')
+
+    class Meta:
+        db_table = 'tags'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
 class Ticket(models.Model):
     """
     A unit of work assigned to exactly one agent at a time.
@@ -326,6 +340,9 @@ class Ticket(models.Model):
         related_name='assigned_tickets'
     )
     
+    tags = models.JSONField(blank=True, default=list, help_text="List of tag strings (e.g., ['oauth', 'security'])")
+    tag_refs = models.ManyToManyField('Tag', blank=True, related_name='tickets', help_text='Denormalized M2M for querying/stats')
+
     created_by = models.ForeignKey("User", on_delete=models.CASCADE, related_name='created_tickets')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

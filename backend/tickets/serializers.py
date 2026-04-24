@@ -388,7 +388,8 @@ class TicketSerializer(serializers.ModelSerializer):
             'project', 'project_name', 'ticket_slug', 'title', 'description',
             'status', 'priority', 'ticket_type', 'assigned_to', 'assigned_to_details',
             'created_by', 'created_by_details', 'created_at', 'updated_at',
-            'resolved_at', 'closed_at', 'attachments', 'phase', 'phase_details'
+            'resolved_at', 'closed_at', 'attachments', 'phase', 'phase_details',
+            'tags', 'tag_refs',
         ]
         read_only_fields = ['created_by', 'created_at', 'updated_at', 'resolved_at', 'closed_at', 'ticket_slug']
         extra_kwargs = {
