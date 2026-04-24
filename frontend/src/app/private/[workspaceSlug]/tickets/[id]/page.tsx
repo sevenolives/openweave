@@ -57,6 +57,9 @@ export default function TicketDetailPage() {
   const [editingCommentBody, setEditingCommentBody] = useState("");
   const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [showDeleteComment, setShowDeleteComment] = useState<number | null>(null);
+  const [commentsNext, setCommentsNext] = useState<string | null>(null);
+  const [commentsCount, setCommentsCount] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const router = useRouter();
   const params = useParams<{ workspaceSlug: string; id: string }>();
@@ -75,8 +78,15 @@ export default function TicketDetailPage() {
   const fetchData = async () => {
     try {
       const t = await api.getTicket(ticketId);
-      const [c, att] = await Promise.all([api.getComments({ ticket: t.ticket_slug }), api.getAttachments({ ticket: t.ticket_slug })]);
-      setTicket(t); setComments(c); setAttachments(att);
+      const [cp, att] = await Promise.all([
+        api.getCommentsPaginated({ ticket: t.ticket_slug, ordering: "created_at", page_size: "20" }),
+        api.getAttachments({ ticket: t.ticket_slug }),
+      ]);
+      setTicket(t);
+      setComments(cp.results);
+      setCommentsNext(cp.next);
+      setCommentsCount(cp.count);
+      setAttachments(att);
       // Fetch project agents for assignment dropdowns (t.project is now the slug)
       try {
         const pAgents = await api.getProjectAgents(t.project);
@@ -134,10 +144,25 @@ export default function TicketDetailPage() {
     try {
       const comment = await api.createComment({ ticket: ticket.ticket_slug as any, body: newComment.trim() });
       setComments([...comments, comment]);
+      setCommentsCount(prev => prev + 1);
       setNewComment('');
       toast('Comment added');
     } catch (e: any) { toast(e?.message || 'Failed to add comment', 'error'); }
     finally { setSubmitting(false); }
+  };
+
+  const handleLoadMore = async () => {
+    if (!commentsNext || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const page = await api.fetchUrl<import("@/lib/api").PaginatedResponse<Comment>>(commentsNext);
+      setComments(prev => [...prev, ...page.results]);
+      setCommentsNext(page.next);
+    } catch (e: any) {
+      toast(e?.message || "Failed to load more comments", "error");
+    } finally {
+      setLoadingMore(false);
+    }
   };
 
   const canEditComment = (comment: Comment) => user?.id === comment.author;
@@ -280,7 +305,7 @@ export default function TicketDetailPage() {
               <div className="bg-[#111118] rounded-xl border border-[#222233]">
                 <div className="flex border-b border-[#222233]">
                   <button onClick={() => setTab('comments')} className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${tab === 'comments' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-300'}`}>
-                    Comments ({comments.length})
+                    Comments ({commentsCount || comments.length})
                   </button>
                   <button onClick={() => setTab('activity')} className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${tab === 'activity' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-300'}`}>
                     Activity
@@ -355,6 +380,17 @@ export default function TicketDetailPage() {
                             </div>
                           </div>
                         ))}
+                        {commentsNext && (
+                          <div className="flex justify-center pt-2 pb-1">
+                            <button
+                              onClick={handleLoadMore}
+                              disabled={loadingMore}
+                              className="px-4 py-2 text-sm text-indigo-400 hover:text-indigo-300 border border-gray-700 hover:border-indigo-500 rounded-lg transition-colors disabled:opacity-50"
+                            >
+                              {loadingMore ? "Loading…" : `Load more (${Math.max(0, commentsCount - comments.length)} remaining)`}
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       <form onSubmit={handleComment}>

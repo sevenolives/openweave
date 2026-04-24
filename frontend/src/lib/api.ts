@@ -518,6 +518,18 @@ class ApiClient {
     return this.request<PaginatedResponse<Comment>>(`/comments/${query}`);
   }
 
+  async fetchUrl<T>(fullUrl: string): Promise<T> {
+    const token = tokenStorage.getAccessToken();
+    const response = await fetch(fullUrl, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+    });
+    if (!response.ok) throw new Error(`Request failed: ${response.status}`);
+    return response.json() as Promise<T>;
+  }
+
   async createComment(comment: Partial<Comment>): Promise<Comment> {
     return this.request<Comment>('/comments/', {
       method: 'POST',
