@@ -875,6 +875,7 @@ class TicketViewSet(viewsets.ModelViewSet):
             OpenApiParameter(name='priority', description='Filter by priority (LOW, MEDIUM, HIGH, CRITICAL)', type=str),
             OpenApiParameter(name='assigned_to', description='Filter by assigned user ID', type=int),
             OpenApiParameter(name='search', description='Search in title, description, assigned_to username, project name', type=str),
+            OpenApiParameter(name='ordering', description='Order results by field. Prefix with - for descending. Allowed: id, title, status, priority, created_at, updated_at. Default: -created_at', type=str),
         ],
     )
     def list(self, request, *args, **kwargs):

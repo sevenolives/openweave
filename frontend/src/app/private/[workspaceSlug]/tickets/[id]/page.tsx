@@ -7,7 +7,7 @@ import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import FormField, { parseFieldErrors, inputClass, selectClass } from '@/components/FormField';
 import { useAuth } from '@/hooks/useAuth';
-import { api, resolveMediaUrl, Ticket, Comment, User, TicketAttachment, ApiError, StatusDefinition, Phase } from '@/lib/api';
+import { api, resolveMediaUrl, Ticket, Comment, User, TicketAttachment, ApiError, StatusDefinition, Phase, timeAgo } from '@/lib/api';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import MentionText from '@/components/MentionText';
 import MentionInput from '@/components/MentionInput';
@@ -79,7 +79,7 @@ export default function TicketDetailPage() {
     try {
       const t = await api.getTicket(ticketId);
       const [cp, att] = await Promise.all([
-        api.getCommentsPaginated({ ticket: t.ticket_slug, ordering: "created_at", page_size: "20" }),
+        api.getCommentsPaginated({ ticket: t.ticket_slug, ordering: "-created_at", page_size: "20" }),
         api.getAttachments({ ticket: t.ticket_slug }),
       ]);
       setTicket(t);
@@ -143,7 +143,7 @@ export default function TicketDetailPage() {
     setSubmitting(true);
     try {
       const comment = await api.createComment({ ticket: ticket.ticket_slug as any, body: newComment.trim() });
-      setComments([...comments, comment]);
+      setComments([comment, ...comments]);
       setCommentsCount(prev => prev + 1);
       setNewComment('');
       toast('Comment added');
@@ -227,7 +227,7 @@ export default function TicketDetailPage() {
                       <input type="text" value={editTitle} onChange={e => setEditTitle(e.target.value)} className={inputClass(fieldErrors.title)} />
                     </FormField>
                     <FormField label="Description" error={fieldErrors.description}>
-                      <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} className={`${inputClass(fieldErrors.description)} resize-none`} rows={4} />
+                      <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} className={`${inputClass(fieldErrors.description)} resize-y min-h-[12rem]`} rows={8} />
                     </FormField>
                     <div className="grid grid-cols-2 gap-4">
                       <FormField label="Status" error={fieldErrors.status}>
@@ -327,7 +327,7 @@ export default function TicketDetailPage() {
                               <div className="flex items-center gap-2 mb-1 flex-wrap">
                                 <span className="font-medium text-sm text-white">{comment.author_details.username}</span>
                                 <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${comment.author_details.user_type === 'BOT' ? 'bg-purple-900/50 text-purple-300' : 'bg-indigo-900/50 text-indigo-300'}`}>{comment.author_details.user_type}</span>
-                                <span className="text-xs text-gray-400">{new Date(comment.created_at).toLocaleString()}</span>
+                                <span className="text-xs text-gray-400" title={new Date(comment.created_at).toLocaleString()}>{timeAgo(comment.created_at)}</span>
                                 <div className="flex-1" />
                                 {canEditComment(comment) && editingCommentId !== comment.id && (
                                   <button

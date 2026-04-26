@@ -183,7 +183,7 @@ function TicketsPage() {
     nextPageRef.current = 2;
     isFetchingRef.current = false;
 
-    const params: Record<string, string> = { workspace: currentWorkspace.slug, page: '1', page_size: String(PAGE_SIZE) };
+    const params: Record<string, string> = { workspace: currentWorkspace.slug, page: '1', page_size: String(PAGE_SIZE), ordering: 'created_at' };
     if (filterProject) params.project = filterProject;
     if (filterStatus) params.status = filterStatus;
     if (filterPriority) params.priority = filterPriority;
@@ -221,6 +221,7 @@ function TicketsPage() {
       workspace: currentWorkspace.slug,
       page: String(nextPageRef.current),
       page_size: String(PAGE_SIZE),
+      ordering: 'created_at',
     };
     if (filterProject) params.project = filterProject;
     if (filterStatus) params.status = filterStatus;
