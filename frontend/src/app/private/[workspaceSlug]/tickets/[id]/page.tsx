@@ -79,7 +79,7 @@ export default function TicketDetailPage() {
     try {
       const t = await api.getTicket(ticketId);
       const [cp, att] = await Promise.all([
-        api.getCommentsPaginated({ ticket: t.ticket_slug, ordering: "created_at", page_size: "20" }),
+        api.getCommentsPaginated({ ticket: t.ticket_slug, ordering: "-created_at", page_size: "20" }),
         api.getAttachments({ ticket: t.ticket_slug }),
       ]);
       setTicket(t);
@@ -143,7 +143,7 @@ export default function TicketDetailPage() {
     setSubmitting(true);
     try {
       const comment = await api.createComment({ ticket: ticket.ticket_slug as any, body: newComment.trim() });
-      setComments([...comments, comment]);
+      setComments([comment, ...comments]);
       setCommentsCount(prev => prev + 1);
       setNewComment('');
       toast('Comment added');
@@ -315,7 +315,19 @@ export default function TicketDetailPage() {
                 <div className="p-5">
                   {tab === 'comments' ? (
                     <>
-                      <div className="space-y-4 mb-6">
+                      <form onSubmit={handleComment} className="mb-6">
+                        <div className="border-2 border-[#222233] rounded-xl focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent transition-all">
+                          <MentionInput value={newComment} onChange={setNewComment} members={projectAgents} disabled={submitting} />
+                          <div className="flex justify-between items-center px-3 py-2.5 bg-[#0a0a0f] border-t border-[#222233] rounded-b-xl">
+                            <span className="text-xs text-gray-400">{newComment.length > 0 ? `${newComment.length} chars` : ''}</span>
+                            <button type="submit" disabled={submitting || !newComment.trim()} className="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors">
+                              {submitting ? 'Sending…' : 'Add Comment'}
+                            </button>
+                          </div>
+                        </div>
+                      </form>
+
+                      <div className="space-y-4">
                         {comments.length === 0 ? (
                           <p className="text-gray-500 text-center py-6 text-sm">No comments yet — be the first!</p>
                         ) : comments.map(comment => (
@@ -392,18 +404,6 @@ export default function TicketDetailPage() {
                           </div>
                         )}
                       </div>
-
-                      <form onSubmit={handleComment}>
-                        <div className="border-2 border-[#222233] rounded-xl focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent transition-all">
-                          <MentionInput value={newComment} onChange={setNewComment} members={projectAgents} disabled={submitting} />
-                          <div className="flex justify-between items-center px-3 py-2.5 bg-[#0a0a0f] border-t border-[#222233] rounded-b-xl">
-                            <span className="text-xs text-gray-400">{newComment.length > 0 ? `${newComment.length} chars` : ''}</span>
-                            <button type="submit" disabled={submitting || !newComment.trim()} className="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors">
-                              {submitting ? 'Sending…' : 'Add Comment'}
-                            </button>
-                          </div>
-                        </div>
-                      </form>
                     </>
                   ) : (
                     <div className="space-y-3">
