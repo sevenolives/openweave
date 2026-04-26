@@ -79,7 +79,7 @@ export default function TicketDetailPage() {
     try {
       const t = await api.getTicket(ticketId);
       const [cp, att] = await Promise.all([
-        api.getCommentsPaginated({ ticket: t.ticket_slug, ordering: "-created_at", page_size: "20" }),
+        api.getCommentsPaginated({ ticket: t.ticket_slug, ordering: "created_at", page_size: "20" }),
         api.getAttachments({ ticket: t.ticket_slug }),
       ]);
       setTicket(t);
@@ -143,7 +143,7 @@ export default function TicketDetailPage() {
     setSubmitting(true);
     try {
       const comment = await api.createComment({ ticket: ticket.ticket_slug as any, body: newComment.trim() });
-      setComments([comment, ...comments]);
+      setComments([...comments, comment]);
       setCommentsCount(prev => prev + 1);
       setNewComment('');
       toast('Comment added');
