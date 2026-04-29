@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
 
-export default function VerifyEmailPage() {
+function VerifyEmailForm() {
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [sendingCode, setSendingCode] = useState(false);
@@ -13,15 +13,17 @@ export default function VerifyEmailPage() {
   const [success, setSuccess] = useState(false);
   const { isLoggedIn, isLoading, user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get('redirect');
 
   useEffect(() => {
     if (isLoading) return; // Wait for auth to load
     if (!isLoggedIn) {
       router.push('/login');
     } else if (user?.email_verified) {
-      router.push('/private/workspaces');
+      router.push(redirect || '/private/workspaces');
     }
-  }, [isLoading, isLoggedIn, user, router]);
+  }, [isLoading, isLoggedIn, user, router, redirect]);
 
   const handleSendCode = async () => {
     setSendingCode(true);
@@ -67,9 +69,9 @@ export default function VerifyEmailPage() {
       
       if (response.ok) {
         setSuccess(true);
-        // Refresh user data
         setTimeout(() => {
-          window.location.reload(); // Force refresh to update auth state
+          const destination = redirect || '/private/workspaces';
+          window.location.href = destination;
         }, 2000);
       } else {
         setError(data.detail || 'Failed to verify email');
@@ -82,8 +84,8 @@ export default function VerifyEmailPage() {
   };
 
   const handleSkip = () => {
-    // Mark as skipped via query param — layout checks this
-    router.push('/private/workspaces?skip_verify=1');
+    const destination = redirect ? `${redirect}?skip_verify=1` : '/private/workspaces?skip_verify=1';
+    router.push(destination);
   };
 
   if (isLoading || !isLoggedIn || !user) {
@@ -183,5 +185,13 @@ export default function VerifyEmailPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-600 border-t-transparent" /></div>}>
+      <VerifyEmailForm />
+    </Suspense>
   );
 }

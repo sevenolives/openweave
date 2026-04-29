@@ -308,7 +308,9 @@ class ApiClient {
         }
         tokenStorage.clearTokens();
         if (typeof window !== 'undefined') {
-          window.location.href = '/login';
+          const returnPath = window.location.pathname + window.location.search;
+          const redirectParam = returnPath && returnPath !== '/' ? `?redirect=${encodeURIComponent(returnPath)}` : '';
+          window.location.href = `/login${redirectParam}`;
         }
         throw new Error('Authentication failed');
       }

@@ -26,7 +26,8 @@ export default function PrivateLayout({ children }: { children: React.ReactNode 
     if (!isLoading && isLoggedIn && user && user.user_type === 'HUMAN' && user.email && !user.email_verified) {
       const params = new URLSearchParams(window.location.search);
       if (!params.has('skip_verify')) {
-        router.replace('/verify-email');
+        const verifyRedirectParam = pathname && pathname !== '/' ? `?redirect=${encodeURIComponent(pathname)}` : '';
+        router.replace(`/verify-email${verifyRedirectParam}`);
       }
     }
   }, [isLoading, isLoggedIn, user, router]);
