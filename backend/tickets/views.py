@@ -980,7 +980,7 @@ class TicketAttachmentViewSet(viewsets.ModelViewSet):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_queryset(self):
-        qs = TicketAttachment.objects.select_related('uploaded_by', 'ticket')
+        qs = TicketAttachment.objects.select_related('uploaded_by', 'ticket', 'comment')
         user = self.request.user
         if not user.is_superuser:
             qs = qs.filter(project_access_q(user, prefix='ticket__project')).distinct()
@@ -999,6 +999,12 @@ class TicketAttachmentViewSet(viewsets.ModelViewSet):
                     )
                 else:
                     qs = qs.none()
+
+        # Filter by comment ID
+        comment_param = self.request.query_params.get('comment')
+        if comment_param and comment_param.isdigit():
+            qs = qs.filter(comment_id=int(comment_param))
+
         return qs
 
     @extend_schema(
@@ -1027,22 +1033,9 @@ class TicketAttachmentViewSet(viewsets.ModelViewSet):
             logger.exception("Attachment upload failed")
             raise
 
-    @extend_schema(summary="List attachments", description="List attachments. Filter by ?ticket={slug_or_id}.")
+    @extend_schema(summary="List attachments", description="List attachments. Filter by ?ticket={slug_or_id} and/or ?comment={id}.")
     def list(self, request, *args, **kwargs):
-        ticket_ref = request.query_params.get('ticket')
-        if ticket_ref:
-            if ticket_ref.isdigit():
-                self.queryset = self.get_queryset().filter(ticket_id=int(ticket_ref))
-            else:
-                # Try ticket slug like OW-22
-                parts = ticket_ref.rsplit('-', 1)
-                if len(parts) == 2 and parts[1].isdigit():
-                    self.queryset = self.get_queryset().filter(
-                        ticket__project__slug__iexact=parts[0],
-                        ticket__ticket_number=int(parts[1])
-                    )
-                else:
-                    self.queryset = self.get_queryset().none()
+        # Filtering is handled in get_queryset; just delegate.
         return super().list(request, *args, **kwargs)
 
     def destroy(self, request, *args, **kwargs):

@@ -88,6 +88,7 @@ export interface Ticket {
 export interface TicketAttachment {
   id: number;
   ticket: number;
+  comment: number | null;
   file: string;
   filename: string;
   url: string;
@@ -573,12 +574,13 @@ class ApiClient {
     return response.results || [];
   }
 
-  async uploadAttachment(ticketId: number | string, file: File): Promise<TicketAttachment> {
+  async uploadAttachment(ticketId: number | string, file: File, commentId?: number): Promise<TicketAttachment> {
     const url = `${this.baseUrl}/attachments/`;
     const token = tokenStorage.getAccessToken();
     const formData = new FormData();
     formData.append('file', file);
     formData.append('ticket', String(ticketId));
+    if (commentId != null) formData.append('comment', String(commentId));
     const response = await fetch(url, {
       method: 'POST',
       headers: { ...(token && { Authorization: `Bearer ${token}` }) },

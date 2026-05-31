@@ -60,6 +60,7 @@ export default function TicketDetailPage() {
   const [commentsNext, setCommentsNext] = useState<string | null>(null);
   const [commentsCount, setCommentsCount] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [pendingCommentFile, setPendingCommentFile] = useState<File | null>(null);
 
   const router = useRouter();
   const params = useParams<{ workspaceSlug: string; id: string }>();
@@ -146,6 +147,16 @@ export default function TicketDetailPage() {
       setComments([comment, ...comments]);
       setCommentsCount(prev => prev + 1);
       setNewComment('');
+      if (pendingCommentFile) {
+        const file = pendingCommentFile;
+        setPendingCommentFile(null);
+        try {
+          const att = await api.uploadAttachment(ticket.ticket_slug, file, comment.id);
+          setAttachments(prev => [att, ...prev]);
+        } catch (uploadErr: any) {
+          toast(uploadErr?.message || 'Comment added but file upload failed', 'error');
+        }
+      }
       toast('Comment added');
     } catch (e: any) { toast(e?.message || 'Failed to add comment', 'error'); }
     finally { setSubmitting(false); }
@@ -318,8 +329,16 @@ export default function TicketDetailPage() {
                       <form onSubmit={handleComment} className="mb-6">
                         <div className="border-2 border-[#222233] rounded-xl focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent transition-all">
                           <MentionInput value={newComment} onChange={setNewComment} members={projectAgents} disabled={submitting} />
-                          <div className="flex justify-between items-center px-3 py-2.5 bg-[#0a0a0f] border-t border-[#222233] rounded-b-xl">
-                            <span className="text-xs text-gray-400">{newComment.length > 0 ? `${newComment.length} chars` : ''}</span>
+                          <div className="flex justify-between items-center px-3 py-2.5 bg-[#0a0a0f] border-t border-[#222233] rounded-b-xl gap-2">
+                            <label className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-indigo-400 cursor-pointer transition-colors" title="Attach a file to this comment">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+                              {pendingCommentFile ? <span className="text-indigo-400 truncate max-w-[160px]">{pendingCommentFile.name}</span> : 'Attach'}
+                              <input type="file" className="hidden" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.csv,.xls,.xlsx,.zip" disabled={submitting} onChange={(e) => setPendingCommentFile(e.target.files?.[0] ?? null)} />
+                            </label>
+                            {pendingCommentFile && (
+                              <button type="button" onClick={() => setPendingCommentFile(null)} className="text-xs text-gray-500 hover:text-red-400 transition-colors">Remove</button>
+                            )}
+                            <span className="flex-1 text-xs text-gray-400 text-right">{newComment.length > 0 ? `${newComment.length} chars` : ''}</span>
                             <button type="submit" disabled={submitting || !newComment.trim()} className="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors">
                               {submitting ? 'Sending…' : 'Add Comment'}
                             </button>
@@ -387,7 +406,41 @@ export default function TicketDetailPage() {
                                   </div>
                                 </div>
                               ) : (
-                                <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap"><MentionText text={comment.body} /></p>
+                                <>
+                                  <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap"><MentionText text={comment.body} /></p>
+                                  {attachments.filter(a => a.comment === comment.id).length > 0 && (
+                                    <div className="mt-2 space-y-1.5">
+                                      {attachments.filter(a => a.comment === comment.id).map(att => {
+                                        const name = (att.filename || '').toLowerCase();
+                                        const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(name);
+                                        const mediaUrl = resolveMediaUrl(att.url);
+                                        return (
+                                          <div key={att.id} className="rounded-lg bg-[#1a1a2e] group overflow-hidden">
+                                            {isImage && (
+                                              <a href={mediaUrl} target="_blank" rel="noopener noreferrer">
+                                                <img src={mediaUrl} alt={att.filename} className="max-h-48 max-w-full object-contain bg-[#0a0a0f] rounded-t-lg" />
+                                              </a>
+                                            )}
+                                            <div className="flex items-center gap-2 px-2.5 py-1.5">
+                                              <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+                                              <a href={mediaUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-400 hover:text-indigo-300 truncate flex-1">{att.filename}</a>
+                                              <button
+                                                onClick={async () => {
+                                                  try { await api.deleteAttachment(att.id); setAttachments(prev => prev.filter(a => a.id !== att.id)); toast('Attachment deleted'); }
+                                                  catch (err: any) { toast(err?.message || 'Delete failed', 'error'); }
+                                                }}
+                                                className="opacity-0 group-hover:opacity-100 p-1 rounded text-gray-400 hover:text-red-400 transition-all"
+                                                title="Delete"
+                                              >
+                                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                              </button>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                </>
                               )}
                             </div>
                           </div>
@@ -439,7 +492,7 @@ export default function TicketDetailPage() {
               {/* Attachments */}
               <div className="bg-[#111118] rounded-xl border border-[#222233]">
                 <div className="px-5 py-3 border-b border-[#222233] flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-gray-200">Attachments ({attachments.length})</h3>
+                  <h3 className="text-sm font-semibold text-gray-200">Attachments ({attachments.filter(a => !a.comment).length})</h3>
                   <label className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors ${uploading ? 'bg-[#1a1a2e] text-gray-500' : 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-900/200/20'}`}>
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
                     {uploading ? 'Uploading…' : 'Upload'}
@@ -457,11 +510,11 @@ export default function TicketDetailPage() {
                   </label>
                 </div>
                 <div className="p-5">
-                  {attachments.length === 0 ? (
+                  {attachments.filter(a => !a.comment).length === 0 ? (
                     <p className="text-gray-500 text-center py-4 text-sm">No attachments yet</p>
                   ) : (
                     <div className="space-y-2">
-                      {attachments.map(att => {
+                      {attachments.filter(a => !a.comment).map(att => {
                         const name = (att.filename || '').toLowerCase();
                         const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(name);
                         const isVideo = /\.(mp4|webm|mov|avi|mkv)$/i.test(name);

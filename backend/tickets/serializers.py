@@ -321,12 +321,16 @@ class TicketSlugOrPKField(serializers.Field):
 class TicketAttachmentSerializer(serializers.ModelSerializer):
     """Serializer for TicketAttachment model."""
     ticket = TicketSlugOrPKField()
+    comment = serializers.PrimaryKeyRelatedField(
+        queryset=Comment.objects.all(),
+        required=False, allow_null=True,
+    )
     uploaded_by_details = UserSimpleSerializer(source='uploaded_by', read_only=True)
     url = serializers.SerializerMethodField()
 
     class Meta:
         model = TicketAttachment
-        fields = ['id', 'ticket', 'file', 'filename', 'url', 'uploaded_by', 'uploaded_by_details', 'created_at']
+        fields = ['id', 'ticket', 'comment', 'file', 'filename', 'url', 'uploaded_by', 'uploaded_by_details', 'created_at']
         read_only_fields = ['uploaded_by', 'filename', 'created_at']
 
     def get_url(self, obj):

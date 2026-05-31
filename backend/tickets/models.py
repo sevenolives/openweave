@@ -385,15 +385,23 @@ class Ticket(models.Model):
 
 class TicketAttachment(models.Model):
     """
-    A file attached to a ticket.
+    A file attached to a ticket body or a comment on a ticket.
+    If `comment` is set, the attachment belongs to that comment.
+    Otherwise it belongs directly to the ticket body.
     """
     ticket = models.ForeignKey('Ticket', on_delete=models.CASCADE, related_name='attachments')
+    comment = models.ForeignKey(
+        'Comment', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='attachments', help_text="If set, attachment belongs to this comment."
+    )
     file = models.FileField(upload_to='ticket_attachments/%Y/%m/')
     filename = models.CharField(max_length=255, help_text="Original filename")
     uploaded_by = models.ForeignKey('User', on_delete=models.CASCADE, related_name='uploaded_attachments')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
+        if self.comment_id:
+            return f"{self.filename} on Comment #{self.comment_id}"
         return f"{self.filename} on Ticket #{self.ticket_id}"
 
     class Meta:
