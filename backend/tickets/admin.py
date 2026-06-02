@@ -267,6 +267,16 @@ class CommentAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('ticket', 'author')
 
+    def save_formset(self, request, form, formset, change):
+        instances = formset.save(commit=False)
+        for instance in instances:
+            if isinstance(instance, TicketAttachment) and not instance.ticket_id:
+                instance.ticket = formset.instance.ticket
+            instance.save()
+        formset.save_m2m()
+        for obj in formset.deleted_objects:
+            obj.delete()
+
 
 @admin.register(LogEntry)
 class LogEntryAdmin(admin.ModelAdmin):
