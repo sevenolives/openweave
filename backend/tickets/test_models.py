@@ -4,7 +4,10 @@ Test cases for ticket models.
 from django.test import TestCase
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
-from .models import User, Project, Ticket, Comment, AuditLog
+import json
+from django.contrib.admin.models import LogEntry, ADDITION
+from django.contrib.contenttypes.models import ContentType
+from .models import User, Project, Ticket, Comment
 
 
 class UserModelTest(TestCase):
@@ -285,44 +288,46 @@ class CommentModelTest(TestCase):
 
 
 class AuditLogModelTest(TestCase):
-    """Test cases for AuditLog model."""
-    
+    """Test cases for audit logging via Django LogEntry."""
+
     def setUp(self):
-        """Set up test data."""
         self.agent = User.objects.create_user(
             username='testuser',
             email='test@example.com',
             password='testpass123'
         )
-    
+
     def test_create_audit_log(self):
-        """Test creating an audit log entry."""
-        audit_log = AuditLog.objects.create(
-            entity_type='Ticket',
-            entity_id=1,
-            action='CREATE',
-            performed_by=self.agent,
-            old_value={'status': None},
-            new_value={'status': 'OPEN'}
+        """Test creating a log entry via LogEntry."""
+        ct = ContentType.objects.get_for_model(User)
+        entry = LogEntry.objects.log_action(
+            user_id=self.agent.pk,
+            content_type_id=ct.pk,
+            object_id=self.agent.pk,
+            object_repr=str(self.agent)[:200],
+            action_flag=ADDITION,
+            change_message=json.dumps({'old_value': None, 'new_value': {'username': 'testuser'}}),
         )
-        
-        self.assertEqual(audit_log.entity_type, 'Ticket')
-        self.assertEqual(audit_log.entity_id, 1)
-        self.assertEqual(audit_log.action, 'CREATE')
-        self.assertEqual(audit_log.performed_by, self.agent)
-        self.assertIsNotNone(audit_log.timestamp)
-    
-    def test_audit_log_str(self):
-        """Test string representation of audit log."""
-        audit_log = AuditLog.objects.create(
-            entity_type='Ticket',
-            entity_id=1,
-            action='CREATE',
-            performed_by=self.agent,
-            old_value={},
-            new_value={'status': 'OPEN'}
+        self.assertEqual(entry.user, self.agent)
+        self.assertEqual(entry.content_type, ct)
+        self.assertEqual(int(entry.object_id), self.agent.pk)
+        self.assertEqual(entry.action_flag, ADDITION)
+        self.assertIsNotNone(entry.action_time)
+
+    def test_audit_log_change_message(self):
+        """Test that change_message stores old/new values as JSON."""
+        ct = ContentType.objects.get_for_model(User)
+        payload = {'old_value': {'status': 'open'}, 'new_value': {'status': 'closed'}}
+        entry = LogEntry.objects.log_action(
+            user_id=self.agent.pk,
+            content_type_id=ct.pk,
+            object_id=self.agent.pk,
+            object_repr=str(self.agent)[:200],
+            action_flag=ADDITION,
+            change_message=json.dumps(payload),
         )
-        expected = f"CREATE Ticket#1 by testuser"
-        self.assertEqual(str(audit_log), expected)
+        parsed = json.loads(entry.change_message)
+        self.assertEqual(parsed['old_value'], {'status': 'open'})
+        self.assertEqual(parsed['new_value'], {'status': 'closed'})
 
 

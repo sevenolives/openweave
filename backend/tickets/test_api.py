@@ -7,7 +7,7 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import User, Project, Ticket, Comment, AuditLog, Workspace, WorkspaceMember
+from .models import User, Project, Ticket, Comment, Workspace, WorkspaceMember
 
 
 class BaseAPITestCase(TestCase):

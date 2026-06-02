@@ -3,12 +3,15 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib import messages
 from django.db import transaction
 from django.template.response import TemplateResponse
+from django.utils.translation import gettext as _
+from django.contrib.admin.models import LogEntry, ADDITION, CHANGE, DELETION
+from django.contrib.contenttypes.models import ContentType
 from .models import (
-    User, Project, Ticket, Comment, AuditLog, Workspace,
+    User, Project, Ticket, Comment, Workspace,
     WorkspaceMember, WorkspaceMemberProject, BlogPost,
     TicketAttachment, MediaFile, Subscription, StatusDefinition,
-    ProjectStatusPermission, CommunityRating, StateTemplate,
-    TransitionException,
+    ProjectStatusPermission, CommunityRating, StateTemplate, StateTemplateItem,
+    TransitionException, Phase, Tag, OTP, CommunityTemplate,
 )
 
 
@@ -76,7 +79,7 @@ def merge_users(modeladmin, request, queryset):
                 Ticket.objects.filter(assigned_to=dup).update(assigned_to=primary)
                 Ticket.objects.filter(created_by=dup).update(created_by=primary)
                 Comment.objects.filter(author=dup).update(author=primary)
-                AuditLog.objects.filter(performed_by=dup).update(performed_by=primary)
+                LogEntry.objects.filter(user=dup).update(user=primary)
                 TicketAttachment.objects.filter(uploaded_by=dup).update(uploaded_by=primary)
                 MediaFile.objects.filter(uploaded_by=dup).update(uploaded_by=primary)
                 BlogPost.objects.filter(author=dup).update(author=primary)
@@ -208,6 +211,34 @@ class TicketAdmin(admin.ModelAdmin):
             'project', 'assigned_to', 'created_by'
         )
 
+    def history_view(self, request, object_id, extra_context=None):
+        ticket_ct = ContentType.objects.get_for_model(Ticket)
+        audit_entries = LogEntry.objects.filter(
+            content_type=ticket_ct, object_id=str(object_id)
+        ).select_related('user').order_by('-action_time')
+        context = {
+            **self.admin_site.each_context(request),
+            'title': _('Change history: Ticket #%s') % object_id,
+            'audit_entries': audit_entries,
+            'object_id': object_id,
+            'opts': self.model._meta,
+            'preserved_filters': self.get_preserved_filters(request),
+            **(extra_context or {}),
+        }
+        return TemplateResponse(
+            request,
+            'admin/tickets/ticket/history.html',
+            context,
+        )
+
+
+class TicketAttachmentInline(admin.TabularInline):
+    model = TicketAttachment
+    fields = ('filename', 'file', 'uploaded_by', 'created_at')
+    readonly_fields = ('created_at',)
+    extra = 0
+    fk_name = 'comment'
+
 
 @admin.register(Comment)
 class CommentAdmin(admin.ModelAdmin):
@@ -218,36 +249,38 @@ class CommentAdmin(admin.ModelAdmin):
     list_select_related = ('ticket', 'author')
     list_per_page = 50
     readonly_fields = ('created_at', 'updated_at')
-    
+    inlines = [TicketAttachmentInline]
+
     def body_preview(self, obj):
         return obj.body[:100] + '...' if len(obj.body) > 100 else obj.body
     body_preview.short_description = 'Body Preview'
-    
+
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('ticket', 'author')
 
 
-@admin.register(AuditLog)
-class AuditLogAdmin(admin.ModelAdmin):
-    """Admin for AuditLog model."""
-    list_display = ('id', 'entity_type', 'entity_id', 'action', 'performed_by', 'timestamp')
-    list_filter = ('entity_type', 'action', 'timestamp')
-    search_fields = ('entity_type', 'action', 'performed_by__username')
-    list_select_related = ('performed_by',)
+@admin.register(LogEntry)
+class LogEntryAdmin(admin.ModelAdmin):
+    """Read-only admin view for Django's built-in audit trail."""
+    list_display = ('action_time', 'user', 'content_type', 'object_repr', 'action_flag_display')
+    list_filter = ('action_flag', 'content_type', 'action_time')
+    search_fields = ('object_repr', 'user__username')
+    list_select_related = ('user', 'content_type')
     list_per_page = 50
-    readonly_fields = ('entity_type', 'entity_id', 'action', 'performed_by', 'old_value', 'new_value', 'timestamp')
-    
+    readonly_fields = ('action_time', 'user', 'content_type', 'object_id', 'object_repr', 'action_flag', 'change_message')
+
+    def action_flag_display(self, obj):
+        return {ADDITION: 'CREATE', CHANGE: 'UPDATE', DELETION: 'DELETE'}.get(obj.action_flag, str(obj.action_flag))
+    action_flag_display.short_description = 'Action'
+
     def has_add_permission(self, request):
         return False
-    
+
     def has_change_permission(self, request, obj=None):
         return False
-    
+
     def has_delete_permission(self, request, obj=None):
         return False
-    
-    def get_queryset(self, request):
-        return super().get_queryset(request).select_related('performed_by')
 
 
 from .models import StatusTransition
@@ -318,5 +351,70 @@ class WorkspaceMemberProjectAdmin(admin.ModelAdmin):
     raw_id_fields = ['member', 'project']
 
 
-# Deprecated: CommunityTemplate, CommunityRating, StateTemplate, StateTemplateItem
-# Tables exist in DB but are not used. Community features use live workspace data.
+@admin.register(Phase)
+class PhaseAdmin(admin.ModelAdmin):
+    list_display = ['name', 'project', 'status', 'position', 'started_at', 'created_at']
+    list_filter = ['status', 'created_at']
+    search_fields = ['name', 'project__name']
+    list_select_related = ('project',)
+    readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
+    list_display = ['name', 'created_at']
+    search_fields = ['name']
+    readonly_fields = ['created_at']
+
+
+@admin.register(ProjectStatusPermission)
+class ProjectStatusPermissionAdmin(admin.ModelAdmin):
+    list_display = ['project', 'status_definition']
+    list_select_related = ('project', 'status_definition')
+    search_fields = ['project__name', 'status_definition__label']
+
+
+@admin.register(OTP)
+class OTPAdmin(admin.ModelAdmin):
+    list_display = ['email', 'purpose', 'used', 'created_at', 'expires_at']
+    list_filter = ['purpose', 'used']
+    search_fields = ['email']
+    readonly_fields = ['created_at']
+
+    def has_add_permission(self, request):
+        return False
+
+
+@admin.register(CommunityTemplate)
+class CommunityTemplateAdmin(admin.ModelAdmin):
+    list_display = ['name', 'slug', 'workspace', 'is_published', 'avg_rating', 'sync_count', 'created_at']
+    list_filter = ['is_published']
+    search_fields = ['name', 'slug', 'workspace__name']
+    list_select_related = ('workspace',)
+    readonly_fields = ['rating_sum', 'rating_count', 'sync_count', 'created_at', 'updated_at']
+
+
+@admin.register(CommunityRating)
+class CommunityRatingAdmin(admin.ModelAdmin):
+    list_display = ['user', 'template', 'score', 'created_at']
+    list_filter = ['score']
+    list_select_related = ('user', 'template')
+    search_fields = ['user__username', 'template__name']
+    readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(StateTemplate)
+class StateTemplateAdmin(admin.ModelAdmin):
+    list_display = ['name', 'workspace', 'is_published', 'sync_count', 'created_at']
+    list_filter = ['is_published']
+    search_fields = ['name', 'workspace__name']
+    list_select_related = ('workspace', 'created_by')
+    readonly_fields = ['sync_count', 'created_at', 'updated_at']
+
+
+@admin.register(StateTemplateItem)
+class StateTemplateItemAdmin(admin.ModelAdmin):
+    list_display = ['name', 'key', 'template', 'order', 'is_default', 'color']
+    list_filter = ['is_default']
+    search_fields = ['name', 'key', 'template__name']
+    list_select_related = ('template',)

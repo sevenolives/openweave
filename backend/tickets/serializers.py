@@ -1,8 +1,10 @@
 from django.utils import timezone
 from rest_framework import serializers
 from .permissions import is_admin_or_owner
+import json
+from django.contrib.admin.models import LogEntry, ADDITION, CHANGE, DELETION
 from .models import (
-    User, Project, Ticket, Comment, AuditLog, Workspace, WorkspaceMember,
+    User, Project, Ticket, Comment, Workspace, WorkspaceMember,
     TicketAttachment, StatusDefinition,
     BlogPost, Phase, ProjectStatusPermission, CommunityTemplate,
     WorkspaceMemberProject,
@@ -579,25 +581,32 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class AuditLogSerializer(serializers.ModelSerializer):
-    """Serializer for AuditLog model."""
-    performed_by_details = UserSimpleSerializer(source='performed_by', read_only=True)
+    """Native serializer for Django's LogEntry audit trail."""
+    action_time = serializers.DateTimeField(read_only=True)
+    user = UserSimpleSerializer(read_only=True)
+    content_type = serializers.SerializerMethodField()
+    object_id = serializers.CharField(read_only=True)
+    object_repr = serializers.CharField(read_only=True)
+    action = serializers.SerializerMethodField()
+    changes = serializers.SerializerMethodField()
 
     class Meta:
-        model = AuditLog
-        fields = [
-            'id', 'entity_type', 'entity_id', 'action',
-            'performed_by', 'performed_by_details',
-            'old_value', 'new_value', 'timestamp'
-        ]
-        read_only_fields = ['timestamp']
-        extra_kwargs = {
-            'entity_type': {'help_text': 'Type of entity (Ticket, Project, etc.).'},
-            'entity_id': {'help_text': 'ID of the affected entity.'},
-            'action': {'help_text': 'CREATE, UPDATE, DELETE, or STATUS_CHANGE.'},
-            'performed_by': {'help_text': 'User ID who performed the action.'},
-            'old_value': {'help_text': 'Previous values (JSON object).'},
-            'new_value': {'help_text': 'New values (JSON object).'},
-        }
+        model = LogEntry
+        fields = ['id', 'action_time', 'user', 'content_type', 'object_id', 'object_repr', 'action', 'changes']
+
+    def get_content_type(self, obj):
+        if obj.content_type:
+            return {'app': obj.content_type.app_label, 'model': obj.content_type.model}
+        return None
+
+    def get_action(self, obj):
+        return {ADDITION: 'CREATE', CHANGE: 'UPDATE', DELETION: 'DELETE'}.get(obj.action_flag, str(obj.action_flag))
+
+    def get_changes(self, obj):
+        try:
+            return json.loads(obj.change_message)
+        except (json.JSONDecodeError, TypeError):
+            return obj.change_message or None
 
 class AllowedFromKeyField(serializers.Field):
     """Accept and return status keys for allowed_from M2M."""

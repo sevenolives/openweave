@@ -427,121 +427,55 @@ class Comment(models.Model):
         ordering = ['created_at']
 
 
-class AuditLog(models.Model):
-    """
-    Audit trail for all changes to entities.
-    """
-    entity_type = models.CharField(max_length=50)  # e.g., 'Ticket', 'Project', 'Comment'
-    entity_id = models.PositiveIntegerField()
-    action = models.CharField(max_length=50)  # e.g., 'CREATE', 'UPDATE', 'DELETE'
-    performed_by = models.ForeignKey("User", on_delete=models.CASCADE)
-    old_value = models.JSONField(null=True, blank=True)
-    new_value = models.JSONField(null=True, blank=True)
-    timestamp = models.DateTimeField(auto_now_add=True)
-    
-    def __str__(self):
-        return f"{self.action} {self.entity_type}#{self.entity_id} by {self.performed_by.username}"
-    
-    class Meta:
-        db_table = 'audit_logs'
-        ordering = ['-timestamp']
-        indexes = [
-            models.Index(fields=['entity_type', 'entity_id'], name='idx_audit_entity'),
-        ]
-
-
-# Signal handlers for audit logging
+# Signal handlers for audit logging via Django's built-in LogEntry
 from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
 from django.forms.models import model_to_dict
 from django.core.serializers.json import DjangoJSONEncoder
+from django.contrib.admin.models import LogEntry, ADDITION, CHANGE, DELETION
+from django.contrib.contenttypes.models import ContentType
 import json
 
 
-def serialize_model_for_audit(instance):
-    """
-    Serialize model instance for audit logging, handling datetime and other non-JSON types.
-    """
+def _serialize_for_log(instance):
     data = model_to_dict(instance)
-    # Convert the data to JSON and back to handle datetime serialization
-    json_string = json.dumps(data, cls=DjangoJSONEncoder)
-    return json.loads(json_string)
+    return json.loads(json.dumps(data, cls=DjangoJSONEncoder))
+
+
+def _log_entry(user, obj, action_flag, old_value=None, new_value=None):
+    LogEntry.objects.log_action(
+        user_id=user.pk,
+        content_type_id=ContentType.objects.get_for_model(obj).pk,
+        object_id=obj.pk,
+        object_repr=str(obj)[:200],
+        action_flag=action_flag,
+        change_message=json.dumps({'old_value': old_value, 'new_value': new_value}),
+    )
 
 
 @receiver(pre_save, sender=Ticket)
 def ticket_pre_save(sender, instance, **kwargs):
-    """Store old values before save for audit logging."""
     if instance.pk:
-        instance._old_values = serialize_model_for_audit(Ticket.objects.get(pk=instance.pk))
+        instance._old_values = _serialize_for_log(Ticket.objects.get(pk=instance.pk))
     else:
         instance._old_values = None
 
 
 @receiver(post_save, sender=Ticket)
 def ticket_post_save(sender, instance, created, **kwargs):
-    """Create audit log entry for ticket changes and trigger email notifications."""
-    
-    if hasattr(instance, '_state') and hasattr(instance._state, 'adding') and instance._state.adding:
-        # This is a new instance
-        AuditLog.objects.create(
-            entity_type='Ticket',
-            entity_id=instance.pk,
-            action='CREATE',
-            performed_by=instance.created_by,
-            old_value=None,
-            new_value=serialize_model_for_audit(instance)
-        )
+    if created:
+        _log_entry(instance.created_by, instance, ADDITION, new_value=_serialize_for_log(instance))
     elif hasattr(instance, '_old_values') and instance._old_values is not None:
-        # This is an update
-        old_values = instance._old_values
-        new_values = serialize_model_for_audit(instance)
-        
-        # Determine who performed the action (for now, use created_by, in real app this would come from request)
         performer = getattr(instance, '_performed_by', instance.created_by)
-        
-        AuditLog.objects.create(
-            entity_type='Ticket',
-            entity_id=instance.pk,
-            action='UPDATE',
-            performed_by=performer,
-            old_value=old_values,
-            new_value=new_values
-        )
-        
+        _log_entry(performer, instance, CHANGE,
+                   old_value=instance._old_values,
+                   new_value=_serialize_for_log(instance))
 
 
 @receiver(post_save, sender=Comment)
 def comment_post_save(sender, instance, created, **kwargs):
-    """Create audit log entry for comment changes and trigger email notifications."""
     if created:
-        AuditLog.objects.create(
-            entity_type='Comment',
-            entity_id=instance.pk,
-            action='CREATE',
-            performed_by=instance.author,
-            old_value=None,
-            new_value=serialize_model_for_audit(instance)
-        )
-        
-
-
-@receiver(post_save, sender=Project)
-def project_post_save(sender, instance, created, **kwargs):
-    """Create audit log entry for project changes."""
-    if created:
-        # For new projects, we need to get the performer from somewhere
-        # In a real app, this would come from the request context
-        # For now, we'll skip audit logging for project creation in signals
-        # and handle it in the API views instead
-        pass
-
-
-@receiver(post_delete, sender=Ticket)
-def ticket_post_delete(sender, instance, **kwargs):
-    """Create audit log entry for ticket deletion."""
-    # Note: In a real app, we'd need to get the performer from request context
-    # For now, we'll skip this and handle deletion audit in API views
-    pass
+        _log_entry(instance.author, instance, ADDITION, new_value=_serialize_for_log(instance))
 
 
 class Subscription(models.Model):

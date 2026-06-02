@@ -3,7 +3,9 @@ Filters for API endpoints to enable search and filtering capabilities.
 """
 import django_filters
 from django.db.models import Q
-from .models import Ticket, User, Project, Comment, AuditLog, WorkspaceMember, Workspace
+from django.contrib.admin.models import LogEntry, ADDITION, CHANGE, DELETION
+from django.contrib.contenttypes.models import ContentType
+from .models import Ticket, User, Project, Comment, WorkspaceMember, Workspace
 
 
 def _workspace_q(value, prefix=''):
@@ -279,40 +281,28 @@ class CommentFilter(django_filters.FilterSet):
 
 
 class AuditLogFilter(django_filters.FilterSet):
-    """
-    FilterSet for AuditLog model.
-    """
-    entity_type = django_filters.ChoiceFilter(
-        choices=[
-            ('Ticket', 'Ticket'),
-            ('Project', 'Project'),
-            ('Comment', 'Comment'),
-            ('Agent', 'Agent'),
-        ],
-        field_name='entity_type'
-    )
-    
-    entity_id = django_filters.NumberFilter(field_name='entity_id')
-    
-    action = django_filters.CharFilter(field_name='action', lookup_expr='icontains')
-    
-    performed_by = django_filters.ModelChoiceFilter(
-        queryset=User.objects.filter(is_active=True),
-        field_name='performed_by'
-    )
-    
-    timestamp_after = django_filters.DateTimeFilter(
-        field_name='timestamp',
-        lookup_expr='gte'
-    )
-    timestamp_before = django_filters.DateTimeFilter(
-        field_name='timestamp',
-        lookup_expr='lte'
-    )
+    """FilterSet for Django LogEntry."""
+    model = django_filters.CharFilter(method='filter_model', label='Model name (e.g. ticket, project)')
+    object_id = django_filters.CharFilter(field_name='object_id')
+    action = django_filters.CharFilter(method='filter_action', label='Action: CREATE, UPDATE, DELETE')
+    user = django_filters.ModelChoiceFilter(queryset=User.objects.filter(is_active=True), field_name='user')
+    after = django_filters.DateTimeFilter(field_name='action_time', lookup_expr='gte')
+    before = django_filters.DateTimeFilter(field_name='action_time', lookup_expr='lte')
+
+    def filter_model(self, queryset, name, value):
+        try:
+            ct = ContentType.objects.get(model=value.lower())
+            return queryset.filter(content_type=ct)
+        except ContentType.DoesNotExist:
+            return queryset.none()
+
+    def filter_action(self, queryset, name, value):
+        flag = {'CREATE': ADDITION, 'UPDATE': CHANGE, 'DELETE': DELETION}.get(value.upper())
+        return queryset.filter(action_flag=flag) if flag else queryset
 
     class Meta:
-        model = AuditLog
-        fields = ['entity_type', 'entity_id', 'action', 'performed_by']
+        model = LogEntry
+        fields = ['model', 'object_id', 'action', 'user']
 
 
 class WorkspaceMemberFilter(django_filters.FilterSet):

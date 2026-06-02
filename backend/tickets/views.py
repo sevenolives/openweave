@@ -11,8 +11,10 @@ from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiParameter, inline_serializer
 from drf_spectacular.types import OpenApiTypes
 from rest_framework import serializers as drf_serializers
+from django.contrib.admin.models import LogEntry, ADDITION, CHANGE, DELETION
+from django.contrib.contenttypes.models import ContentType
 from .models import (
-    User, Project, Ticket, Comment, AuditLog, Workspace,
+    User, Project, Ticket, Comment, Workspace,
     WorkspaceMember, TicketAttachment, StatusDefinition,
     BlogPost, Phase, ProjectStatusPermission, CommunityTemplate, CommunityRating,
     WorkspaceMemberProject,
@@ -803,13 +805,14 @@ class ProjectViewSet(viewsets.ModelViewSet):
         check_project_limit(workspace)
         with transaction.atomic():
             project = serializer.save()
-            AuditLog.objects.create(
-                entity_type='Project',
-                entity_id=project.id,
-                action='CREATE',
-                performed_by=self.request.user,
-                old_value=None,
-                new_value={'name': project.name, 'about_text': project.about_text}
+            import json
+            LogEntry.objects.log_action(
+                user_id=self.request.user.pk,
+                content_type_id=ContentType.objects.get_for_model(project).pk,
+                object_id=project.pk,
+                object_repr=str(project)[:200],
+                action_flag=ADDITION,
+                change_message=json.dumps({'old_value': None, 'new_value': {'name': project.name, 'about_text': project.about_text}}),
             )
 
 
@@ -1125,49 +1128,56 @@ class CommentViewSet(viewsets.ModelViewSet):
 
 @extend_schema(tags=['audit'])
 class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
-    """Read-only audit trail."""
-    queryset = AuditLog.objects.all()
+    """
+    Read-only audit trail backed by Django's built-in LogEntry.
+
+    Each entry records who did what to which object and when.
+    The `changes` field contains `{old_value, new_value}` for API-originated
+    writes, or Django's standard change list for admin-originated writes.
+    """
+    queryset = LogEntry.objects.all()
     serializer_class = AuditLogSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_class = AuditLogFilter
-    ordering_fields = ['timestamp']
-    ordering = ['-timestamp']
+    ordering_fields = ['action_time']
+    ordering = ['-action_time']
 
     def get_queryset(self):
-        qs = AuditLog.objects.select_related('performed_by')
+        qs = LogEntry.objects.select_related('user', 'content_type')
         user = self.request.user
         if user.is_superuser:
             return qs.all()
-        # Filter audit logs to entities in workspaces user belongs to
         from django.db.models import Q
         member_ws = WorkspaceMember.objects.filter(user=user).values_list('workspace_id', flat=True)
         owned_ws = Workspace.objects.filter(owner=user).values_list('id', flat=True)
         ws_ids = set(list(member_ws) + list(owned_ws))
         if not ws_ids:
-            return qs.none()
-        # Use subqueries instead of materializing IDs into Python lists
+            return qs.filter(user=user)
+        ticket_ct = ContentType.objects.get_for_model(Ticket)
+        project_ct = ContentType.objects.get_for_model(Project)
+        workspace_ct = ContentType.objects.get_for_model(Workspace)
         return qs.filter(
-            Q(entity_type='Project', entity_id__in=Project.objects.filter(workspace_id__in=ws_ids).values('id')) |
-            Q(entity_type='Ticket', entity_id__in=Ticket.objects.filter(project__workspace_id__in=ws_ids).values('id')) |
-            Q(entity_type='Workspace', entity_id__in=ws_ids) |
-            Q(performed_by=user)
+            Q(content_type=ticket_ct, object_id__in=Ticket.objects.filter(project__workspace_id__in=ws_ids).values_list('id', flat=True)) |
+            Q(content_type=project_ct, object_id__in=Project.objects.filter(workspace_id__in=ws_ids).values_list('id', flat=True)) |
+            Q(content_type=workspace_ct, object_id__in=ws_ids) |
+            Q(user=user)
         )
 
     @extend_schema(
-        summary="List audit logs",
-        description="List audit log entries. Filterable by entity_type, entity_id, action, performed_by.",
+        summary="List audit log entries",
+        description="Returns the full audit trail visible to the requesting user. Superusers see all entries.",
         parameters=[
-            OpenApiParameter(name='entity_type', description='Filter by entity type (Ticket, Project, etc.)', type=str),
-            OpenApiParameter(name='entity_id', description='Filter by entity ID', type=int),
-            OpenApiParameter(name='action', description='Filter by action (CREATE, UPDATE, DELETE, STATUS_CHANGE)', type=str),
-            OpenApiParameter(name='performed_by', description='Filter by user ID', type=int),
+            OpenApiParameter(name='model', description='Filter by model name, e.g. ticket, project, comment', type=str),
+            OpenApiParameter(name='object_id', description='Filter by object ID', type=str),
+            OpenApiParameter(name='action', description='Filter by action: CREATE, UPDATE, or DELETE', type=str),
+            OpenApiParameter(name='user', description='Filter by user ID', type=int),
         ],
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
-    @extend_schema(summary="Get audit log entry", description="Retrieve a single audit log entry.")
+    @extend_schema(summary="Get audit log entry", description="Retrieve a single audit log entry by ID.")
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
