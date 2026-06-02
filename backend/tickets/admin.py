@@ -192,7 +192,8 @@ class TicketAdmin(admin.ModelAdmin):
     list_select_related = ('project', 'assigned_to', 'created_by')
     list_per_page = 50
     readonly_fields = ('created_at', 'updated_at', 'resolved_at', 'closed_at')
-    
+    inlines = [TicketAttachmentTicketInline]
+
     fieldsets = (
         ('Basic Info', {
             'fields': ('project', 'title', 'description')
@@ -238,6 +239,14 @@ class TicketAttachmentInline(admin.TabularInline):
     readonly_fields = ('created_at',)
     extra = 0
     fk_name = 'comment'
+
+
+class TicketAttachmentTicketInline(admin.TabularInline):
+    model = TicketAttachment
+    fields = ('comment', 'filename', 'file', 'uploaded_by', 'created_at')
+    readonly_fields = ('created_at',)
+    extra = 0
+    fk_name = 'ticket'
 
 
 @admin.register(Comment)
@@ -306,10 +315,10 @@ class TransitionExceptionAdmin(admin.ModelAdmin):
 
 @admin.register(TicketAttachment)
 class TicketAttachmentAdmin(admin.ModelAdmin):
-    list_display = ['id', 'ticket', 'filename', 'uploaded_by', 'created_at']
+    list_display = ['id', 'ticket', 'comment', 'filename', 'uploaded_by', 'created_at']
     list_filter = ['created_at']
     search_fields = ['filename', 'ticket__title', 'uploaded_by__username']
-    list_select_related = ('ticket', 'uploaded_by')
+    list_select_related = ('ticket', 'comment', 'uploaded_by')
     list_per_page = 50
     readonly_fields = ['created_at']
 
