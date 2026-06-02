@@ -399,6 +399,25 @@ class ApiClient {
     return tokens;
   }
 
+  // OTP email auth
+  async otpRequest(email: string): Promise<{ detail: string; is_new_account: boolean }> {
+    return this.request('/auth/otp/request/', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  async otpVerify(email: string, otp: string): Promise<AuthTokens> {
+    const result = await this.request<AuthTokens>('/auth/otp/verify/', {
+      method: 'POST',
+      body: JSON.stringify({ email, otp }),
+    });
+    if (result.access) {
+      tokenStorage.setTokens(result);
+    }
+    return result;
+  }
+
   // Projects
   async getProjectsPaginated(params?: Record<string, string>): Promise<PaginatedResponse<Project>> {
     const query = params ? '?' + new URLSearchParams(params).toString() : '';

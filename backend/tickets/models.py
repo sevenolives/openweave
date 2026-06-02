@@ -443,10 +443,10 @@ def _serialize_for_log(instance):
 
 
 def _log_entry(user, obj, action_flag, old_value=None, new_value=None):
-    LogEntry.objects.log_action(
+    LogEntry.objects.create(
         user_id=user.pk,
         content_type_id=ContentType.objects.get_for_model(obj).pk,
-        object_id=obj.pk,
+        object_id=str(obj.pk),
         object_repr=str(obj)[:200],
         action_flag=action_flag,
         change_message=json.dumps({'old_value': old_value, 'new_value': new_value}),
