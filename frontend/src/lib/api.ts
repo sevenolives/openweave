@@ -687,6 +687,10 @@ class ApiClient {
     });
   }
 
+  async deleteMyAccount(): Promise<void> {
+    return this.request<void>('/users/me/', { method: 'DELETE' });
+  }
+
   // Workspaces
   async getWorkspaces(): Promise<Workspace[]> {
     const response = await this.request<PaginatedResponse<Workspace>>('/workspaces/');
