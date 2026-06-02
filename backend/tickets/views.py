@@ -806,10 +806,10 @@ class ProjectViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             project = serializer.save()
             import json
-            LogEntry.objects.log_action(
+            LogEntry.objects.create(
                 user_id=self.request.user.pk,
                 content_type_id=ContentType.objects.get_for_model(project).pk,
-                object_id=project.pk,
+                object_id=str(project.pk),
                 object_repr=str(project)[:200],
                 action_flag=ADDITION,
                 change_message=json.dumps({'old_value': None, 'new_value': {'name': project.name, 'about_text': project.about_text}}),

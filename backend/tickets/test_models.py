@@ -300,10 +300,10 @@ class AuditLogModelTest(TestCase):
     def test_create_audit_log(self):
         """Test creating a log entry via LogEntry."""
         ct = ContentType.objects.get_for_model(User)
-        entry = LogEntry.objects.log_action(
+        entry = LogEntry.objects.create(
             user_id=self.agent.pk,
             content_type_id=ct.pk,
-            object_id=self.agent.pk,
+            object_id=str(self.agent.pk),
             object_repr=str(self.agent)[:200],
             action_flag=ADDITION,
             change_message=json.dumps({'old_value': None, 'new_value': {'username': 'testuser'}}),
@@ -318,10 +318,10 @@ class AuditLogModelTest(TestCase):
         """Test that change_message stores old/new values as JSON."""
         ct = ContentType.objects.get_for_model(User)
         payload = {'old_value': {'status': 'open'}, 'new_value': {'status': 'closed'}}
-        entry = LogEntry.objects.log_action(
+        entry = LogEntry.objects.create(
             user_id=self.agent.pk,
             content_type_id=ct.pk,
-            object_id=self.agent.pk,
+            object_id=str(self.agent.pk),
             object_repr=str(self.agent)[:200],
             action_flag=ADDITION,
             change_message=json.dumps(payload),
