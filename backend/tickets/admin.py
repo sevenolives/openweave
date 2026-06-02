@@ -178,13 +178,29 @@ class ProjectAdmin(admin.ModelAdmin):
 
 
 
+class TicketAttachmentInline(admin.TabularInline):
+    model = TicketAttachment
+    fields = ('filename', 'file', 'uploaded_by', 'created_at')
+    readonly_fields = ('created_at',)
+    extra = 0
+    fk_name = 'comment'
+
+
+class TicketAttachmentTicketInline(admin.TabularInline):
+    model = TicketAttachment
+    fields = ('comment', 'filename', 'file', 'uploaded_by', 'created_at')
+    readonly_fields = ('created_at',)
+    extra = 0
+    fk_name = 'ticket'
+
+
 @admin.register(Ticket)
 class TicketAdmin(admin.ModelAdmin):
     """
     Admin for Ticket model.
     """
     list_display = (
-        'id', 'title', 'project', 'status', 'priority', 
+        'id', 'title', 'project', 'status', 'priority',
         'assigned_to', 'created_by', 'created_at'
     )
     list_filter = ('status', 'priority', 'created_at', 'project')
@@ -231,22 +247,6 @@ class TicketAdmin(admin.ModelAdmin):
             'admin/tickets/ticket/history.html',
             context,
         )
-
-
-class TicketAttachmentInline(admin.TabularInline):
-    model = TicketAttachment
-    fields = ('filename', 'file', 'uploaded_by', 'created_at')
-    readonly_fields = ('created_at',)
-    extra = 0
-    fk_name = 'comment'
-
-
-class TicketAttachmentTicketInline(admin.TabularInline):
-    model = TicketAttachment
-    fields = ('comment', 'filename', 'file', 'uploaded_by', 'created_at')
-    readonly_fields = ('created_at',)
-    extra = 0
-    fk_name = 'ticket'
 
 
 @admin.register(Comment)
