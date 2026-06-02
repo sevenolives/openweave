@@ -290,7 +290,7 @@ export default function TicketDetailPage() {
                       </div>
                     </div>
 
-                    <p className="text-gray-400 text-sm leading-relaxed mb-5">{ticket.description || 'No description provided.'}</p>
+                    <p className="text-gray-400 text-sm leading-relaxed mb-5 whitespace-pre-wrap">{ticket.description || 'No description provided.'}</p>
 
                     {/* Quick status change */}
                     <div>
