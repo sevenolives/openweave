@@ -9,7 +9,7 @@ from .views import (
     TicketAttachmentViewSet, StatusDefinitionViewSet,
     WorkspaceMemberProjectViewSet, PhaseViewSet, ProjectStatusPermissionViewSet,
     CommunityTemplateViewSet,
-    JoinView, ForgotPasswordView, ResetPasswordView, SendVerificationView, VerifyEmailView,
+    JoinView, OTPRequestView, OTPVerifyView,
     ProjectsDashboardView, BlogPostViewSet,
     public_workspace, public_workspaces_list,
 )
@@ -61,12 +61,10 @@ RefreshView = extend_schema(
 
 urlpatterns = [
     path('auth/join/', JoinView.as_view(), name='join'),
+    path('auth/otp/request/', OTPRequestView.as_view(), name='otp-request'),
+    path('auth/otp/verify/', OTPVerifyView.as_view(), name='otp-verify'),
     path('auth/login/', LoginView.as_view(), name='token_obtain_pair'),
     path('auth/token/refresh/', RefreshView.as_view(), name='token_refresh'),
-    path('auth/forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
-    path('auth/reset-password/', ResetPasswordView.as_view(), name='reset-password'),
-    path('auth/send-verification/', SendVerificationView.as_view(), name='send-verification'),
-    path('auth/verify-email/', VerifyEmailView.as_view(), name='verify-email'),
     path('projects-dashboard/', ProjectsDashboardView.as_view(), name='projects-dashboard'),
     path('billing/checkout/', CreateCheckoutSessionView.as_view(), name='billing-checkout'),
     path('billing/webhook/', StripeWebhookView.as_view(), name='billing-webhook'),
