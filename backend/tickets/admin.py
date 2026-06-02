@@ -192,7 +192,8 @@ class TicketAdmin(admin.ModelAdmin):
     list_select_related = ('project', 'assigned_to', 'created_by')
     list_per_page = 50
     readonly_fields = ('created_at', 'updated_at', 'resolved_at', 'closed_at')
-    
+    inlines = [TicketAttachmentTicketInline]
+
     fieldsets = (
         ('Basic Info', {
             'fields': ('project', 'title', 'description')
@@ -240,6 +241,14 @@ class TicketAttachmentInline(admin.TabularInline):
     fk_name = 'comment'
 
 
+class TicketAttachmentTicketInline(admin.TabularInline):
+    model = TicketAttachment
+    fields = ('comment', 'filename', 'file', 'uploaded_by', 'created_at')
+    readonly_fields = ('created_at',)
+    extra = 0
+    fk_name = 'ticket'
+
+
 @admin.register(Comment)
 class CommentAdmin(admin.ModelAdmin):
     """Admin for Comment model."""
@@ -257,6 +266,16 @@ class CommentAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('ticket', 'author')
+
+    def save_formset(self, request, form, formset, change):
+        instances = formset.save(commit=False)
+        for instance in instances:
+            if isinstance(instance, TicketAttachment) and not instance.ticket_id:
+                instance.ticket = formset.instance.ticket
+            instance.save()
+        formset.save_m2m()
+        for obj in formset.deleted_objects:
+            obj.delete()
 
 
 @admin.register(LogEntry)
@@ -306,10 +325,10 @@ class TransitionExceptionAdmin(admin.ModelAdmin):
 
 @admin.register(TicketAttachment)
 class TicketAttachmentAdmin(admin.ModelAdmin):
-    list_display = ['id', 'ticket', 'filename', 'uploaded_by', 'created_at']
+    list_display = ['id', 'ticket', 'comment', 'filename', 'uploaded_by', 'created_at']
     list_filter = ['created_at']
     search_fields = ['filename', 'ticket__title', 'uploaded_by__username']
-    list_select_related = ('ticket', 'uploaded_by')
+    list_select_related = ('ticket', 'comment', 'uploaded_by')
     list_per_page = 50
     readonly_fields = ['created_at']
 
