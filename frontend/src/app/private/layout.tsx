@@ -39,7 +39,7 @@ export default function PrivateLayout({ children }: { children: React.ReactNode 
       // Skip if user needs email verification first
       if (user && user.user_type === 'HUMAN' && user.email && !user.email_verified) return;
       // Only redirect if on a workspace-specific page (not already on workspaces)
-      if (pathname !== '/private/workspaces' && !pathname.startsWith('/private/workspaces')) {
+      if (pathname !== '/private/workspaces' && !pathname.startsWith('/private/workspaces') && pathname !== '/private/settings') {
         router.replace('/private/workspaces');
       }
     }
