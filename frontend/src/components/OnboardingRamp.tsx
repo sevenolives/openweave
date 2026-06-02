@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { useToast } from '@/components/Toast';
 import { api } from '@/lib/api';
@@ -10,10 +11,12 @@ type Step = 'workspace' | 'project' | 'done';
 
 export default function OnboardingRamp({ onComplete }: { onComplete?: () => void }) {
   const { workspaces, refreshWorkspaces, setCurrentWorkspace } = useWorkspace();
+  const { user, logout } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
 
   const [step, setStep] = useState<Step>('workspace');
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [wsName, setWsName] = useState('');
   const [wsSlug, setWsSlug] = useState('');
   const [projName, setProjName] = useState('');
@@ -70,6 +73,40 @@ export default function OnboardingRamp({ onComplete }: { onComplete?: () => void
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-4">
+      {/* User menu — top right */}
+      <div className="fixed top-4 right-4 z-50">
+        <button
+          onClick={() => setUserMenuOpen(!userMenuOpen)}
+          className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#111118] border border-[#222233] hover:bg-[#1a1a2e] transition-colors"
+        >
+          <div className="w-7 h-7 bg-indigo-500/20 rounded-full flex items-center justify-center text-xs font-bold text-indigo-400">
+            {(user?.name?.[0] || user?.username?.[0] || '?').toUpperCase()}
+          </div>
+          <span className="text-sm text-gray-300 hidden sm:inline">{user?.name || user?.username}</span>
+          <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+        </button>
+        {userMenuOpen && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
+            <div className="absolute right-0 top-full mt-1 w-52 bg-[#111118] border border-[#222233] rounded-xl shadow-lg z-50 py-1">
+              <div className="px-4 py-2 border-b border-[#222233]">
+                <p className="text-sm font-medium text-white truncate">{user?.name || user?.username}</p>
+                <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+              </div>
+              <button onClick={() => { setUserMenuOpen(false); router.push('/private/settings'); }} className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-[#1a1a2e] flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                Account Settings
+              </button>
+              <hr className="my-1 border-[#222233]" />
+              <button onClick={() => { setUserMenuOpen(false); logout(); router.push('/login'); }} className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-900/10 flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                Sign Out
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+
       <div className="w-full max-w-lg">
         {/* Progress indicator */}
         <div className="flex items-center justify-center gap-2 mb-8">
