@@ -74,6 +74,7 @@ export default function OnboardingRamp({ onComplete }: { onComplete?: () => void
   };
 
   return (
+    <>
     <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-4">
       {/* User menu — top right */}
       <div className="fixed top-4 right-4 z-50">
@@ -227,5 +228,6 @@ export default function OnboardingRamp({ onComplete }: { onComplete?: () => void
     </div>
 
     {accountSettingsOpen && <AccountSettingsModal onClose={() => setAccountSettingsOpen(false)} />}
+    </>
   );
 }

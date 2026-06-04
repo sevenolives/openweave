@@ -90,6 +90,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const handleLogout = () => { logout(); router.push('/login'); };
 
   return (
+    <>
     <div className="h-screen bg-[#0a0a0f] flex overflow-hidden">
       {/* Mobile overlay */}
       {sidebarOpen && (
@@ -270,5 +271,6 @@ export default function Layout({ children }: { children: ReactNode }) {
     </div>
 
     {accountSettingsOpen && <AccountSettingsModal onClose={() => setAccountSettingsOpen(false)} />}
+    </>
   );
 }
