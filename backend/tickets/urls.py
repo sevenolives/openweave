@@ -7,7 +7,7 @@ from .views import (
     CommentViewSet, AuditLogViewSet,
     WorkspaceViewSet, WorkspaceMemberViewSet,
     TicketAttachmentViewSet, StatusDefinitionViewSet,
-    WorkspaceMemberProjectViewSet, PhaseViewSet, ProjectStatusPermissionViewSet,
+    WorkspaceMemberProjectViewSet, EpicViewSet, ProjectStatusPermissionViewSet,
     CommunityTemplateViewSet,
     JoinView, OTPRequestView, OTPVerifyView,
     ProjectsDashboardView, BlogPostViewSet,
@@ -32,7 +32,7 @@ router.register(r'attachments', TicketAttachmentViewSet)
 router.register(r'status-definitions', StatusDefinitionViewSet)
 router.register(r'workspace-member-projects', WorkspaceMemberProjectViewSet)
 router.register(r'project-status-permissions', ProjectStatusPermissionViewSet)
-router.register(r'phases', PhaseViewSet)
+router.register(r'epics', EpicViewSet)
 router.register(r'community-templates', CommunityTemplateViewSet, basename='community-templates')
 router.register(r'blog', BlogPostViewSet, basename='blog')
 

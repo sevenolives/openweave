@@ -7,7 +7,7 @@ import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import FormField, { parseFieldErrors, inputClass, selectClass } from '@/components/FormField';
 import { useAuth } from '@/hooks/useAuth';
-import { api, resolveMediaUrl, Ticket, Comment, User, TicketAttachment, ApiError, StatusDefinition, Phase, timeAgo } from '@/lib/api';
+import { api, resolveMediaUrl, Ticket, Comment, User, TicketAttachment, ApiError, StatusDefinition, Epic, timeAgo } from '@/lib/api';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import MentionText from '@/components/MentionText';
 import MentionInput from '@/components/MentionInput';
@@ -52,7 +52,7 @@ export default function TicketDetailPage() {
   const [uploading, setUploading] = useState(false);
   const [tab, setTab] = useState<'comments' | 'activity'>('comments');
   const [statuses, setStatuses] = useState<StatusDefinition[]>([]);
-  const [phases, setPhases] = useState<Phase[]>([]);
+  const [epics, setEpics] = useState<Epic[]>([]);
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [editingCommentBody, setEditingCommentBody] = useState("");
   const [commentSubmitting, setCommentSubmitting] = useState(false);
@@ -96,11 +96,11 @@ export default function TicketDetailPage() {
         console.error('Failed to load project agents:', err);
         setAgents([]); setProjectAgents([]);
       }
-      // Fetch phases for the ticket's project
+      // Fetch epics for the ticket's project
       try {
-        const ph = await api.getPhases(t.project);
-        setPhases(ph);
-      } catch { setPhases([]); }
+        const ep = await api.getEpics(t.project);
+        setEpics(ep);
+      } catch { setEpics([]); }
       setEditTitle(t.title); setEditDesc(t.description); setEditStatus(t.status);
       setEditPriority(t.priority); setEditTicketType(t.ticket_type); setEditAssigned(t.assigned_to?.toString() || '');
     } catch (e: any) { toast(e?.message || 'Failed to load ticket', 'error'); }
@@ -604,24 +604,24 @@ export default function TicketDetailPage() {
                     <dd><button onClick={() => router.push(`/private/${workspaceSlug}/projects/${ticket.project}`)} className="text-sm text-indigo-400 hover:text-indigo-300 font-medium">{ticket.project_name}</button></dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-medium text-gray-400 mb-1">Phase</dt>
+                    <dt className="text-xs font-medium text-gray-400 mb-1">Epic</dt>
                     <dd>
                       <select
-                        value={ticket.phase ?? ''}
+                        value={ticket.epic ?? ''}
                         onChange={async (e) => {
                           const val = e.target.value;
                           try {
-                            const updated = await api.updateTicket(ticket.ticket_slug, { phase: val ? parseInt(val) : null } as any);
+                            const updated = await api.updateTicket(ticket.ticket_slug, { epic: val ? parseInt(val) : null } as any);
                             setTicket(updated);
-                            toast('Phase updated');
-                          } catch (err: any) { toast(err?.message || 'Failed to update phase', 'error'); }
+                            toast('Epic updated');
+                          } catch (err: any) { toast(err?.message || 'Failed to update epic', 'error'); }
                         }}
                         className="w-full px-3 py-2 border border-[#222233] rounded-lg text-sm bg-[#1a1a2e] text-white focus:ring-2 focus:ring-indigo-500"
                       >
-                        <option value="">No phase</option>
-                        {phases.map(p => (
-                          <option key={p.id} value={p.id}>
-                            {p.status === 'ACTIVE' ? '🟢' : '⬜'} {p.name}
+                        <option value="">No epic</option>
+                        {epics.map(ep => (
+                          <option key={ep.id} value={ep.id}>
+                            {ep.status === 'ACTIVE' ? '🟢' : '⬜'} {ep.name}
                           </option>
                         ))}
                       </select>

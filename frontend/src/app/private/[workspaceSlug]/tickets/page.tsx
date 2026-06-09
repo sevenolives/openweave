@@ -7,7 +7,7 @@ import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import FormField, { parseFieldErrors, inputClass, selectClass } from '@/components/FormField';
-import { api, Ticket, Project, User, WorkspaceMember, ApiError, PaginatedResponse, StatusDefinition, Phase } from '@/lib/api';
+import { api, Ticket, Project, User, WorkspaceMember, ApiError, PaginatedResponse, StatusDefinition, Epic } from '@/lib/api';
 import { useWorkspace } from '@/hooks/useWorkspace';
 // Auth handled by (private) layout
 
@@ -115,11 +115,11 @@ function TicketsPage() {
     if (typeof window !== 'undefined') return new URLSearchParams(window.location.search).get('approved') || '';
     return '';
   });
-  const [filterPhase, setFilterPhase] = useState(() => {
-    if (typeof window !== 'undefined') return new URLSearchParams(window.location.search).get('phase') || '';
+  const [filterEpic, setFilterEpic] = useState(() => {
+    if (typeof window !== 'undefined') return new URLSearchParams(window.location.search).get('epic') || '';
     return '';
   });
-  const [allPhases, setAllPhases] = useState<Phase[]>([]);
+  const [allEpics, setAllEpics] = useState<Epic[]>([]);
   const [statuses, setStatuses] = useState<StatusDefinition[]>([]);
   const [wsUsers, setWsUsers] = useState<User[]>([]);
   const [projectAgentsMap, setProjectAgentsMap] = useState<Record<string, User[]>>({});
@@ -151,11 +151,11 @@ function TicketsPage() {
     if (filterStatus) params.set('status', filterStatus);
     if (filterPriority) params.set('priority', filterPriority);
     if (filterAssigned) params.set('assigned_to', filterAssigned);
-    if (filterPhase) params.set('phase', filterPhase);
+    if (filterEpic) params.set('epic', filterEpic);
     if (debouncedSearch) params.set('search', debouncedSearch);
     const url = params.toString() ? `${basePath}?${params.toString()}` : basePath;
     window.history.replaceState(null, '', url);
-  }, [filterProject, filterStatus, filterPriority, filterAssigned, filterApproved, filterPhase, debouncedSearch, workspaceSlug]);
+  }, [filterProject, filterStatus, filterPriority, filterAssigned, filterApproved, filterEpic, debouncedSearch, workspaceSlug]);
 
   // Load status definitions
   useEffect(() => {
@@ -166,11 +166,11 @@ function TicketsPage() {
     }
   }, [currentWorkspace?.slug]);
 
-  // Load all phases for the workspace
+  // Load all epics for the workspace
   useEffect(() => {
     if (!currentWorkspace || projects.length === 0) return;
-    Promise.all(projects.map(p => api.getPhases(p.slug).catch(() => [] as Phase[])))
-      .then(results => setAllPhases(results.flat()));
+    Promise.all(projects.map(p => api.getEpics(p.slug).catch(() => [] as Epic[])))
+      .then(results => setAllEpics(results.flat()));
   }, [currentWorkspace?.slug, projects.length]);
 
   // Main fetch — fires when filters change, resets accumulated list
@@ -188,7 +188,7 @@ function TicketsPage() {
     if (filterStatus) params.status = filterStatus;
     if (filterPriority) params.priority = filterPriority;
     if (filterAssigned) params.assigned_to = filterAssigned;
-    if (filterPhase) params.phase = filterPhase;
+    if (filterEpic) params.epic = filterEpic;
     if (debouncedSearch) params.search = debouncedSearch;
 
     Promise.all([
@@ -209,7 +209,7 @@ function TicketsPage() {
     });
 
     return () => { cancelled = true; };
-  }, [currentWorkspace?.slug, filterProject, filterStatus, filterPriority, filterAssigned, filterPhase, debouncedSearch, reloadKey]);
+  }, [currentWorkspace?.slug, filterProject, filterStatus, filterPriority, filterAssigned, filterEpic, debouncedSearch, reloadKey]);
 
   // Fetch next page and append
   const fetchMore = useCallback(async () => {
@@ -227,7 +227,7 @@ function TicketsPage() {
     if (filterStatus) params.status = filterStatus;
     if (filterPriority) params.priority = filterPriority;
     if (filterAssigned) params.assigned_to = filterAssigned;
-    if (filterPhase) params.phase = filterPhase;
+    if (filterEpic) params.epic = filterEpic;
     if (debouncedSearch) params.search = debouncedSearch;
 
     try {
@@ -242,7 +242,7 @@ function TicketsPage() {
       isFetchingRef.current = false;
       setFetchingMore(false);
     }
-  }, [currentWorkspace?.slug, hasMore, filterProject, filterStatus, filterPriority, filterAssigned, filterPhase, debouncedSearch]);
+  }, [currentWorkspace?.slug, hasMore, filterProject, filterStatus, filterPriority, filterAssigned, filterEpic, debouncedSearch]);
 
   // IntersectionObserver — triggers fetchMore when sentinel enters viewport
   useEffect(() => {
@@ -337,7 +337,7 @@ function TicketsPage() {
     } catch (e: any) { toast(e?.message || 'Failed to delete ticket', 'error'); }
   };
 
-  const hasFilters = search || filterStatus || filterPriority || filterProject || filterAssigned || filterApproved || filterPhase;
+  const hasFilters = search || filterStatus || filterPriority || filterProject || filterAssigned || filterApproved || filterEpic;
 
   return (
     <Layout>
@@ -392,17 +392,17 @@ function TicketsPage() {
               <option value="">All users</option>
               {wsUsers.map(u => <option key={u.id} value={u.id}>{u.name || u.username}</option>)}
             </select>
-            <select value={filterPhase} onChange={e => setFilterPhase(e.target.value)} className="px-4 py-3 min-h-[44px] border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-[#1a1a2e] text-white">
-              <option value="">All phases</option>
-              {allPhases.map(p => (
-                <option key={p.id} value={p.id}>
-                  {p.status === 'ACTIVE' ? '🟢' : '⬜'} {p.name}
+            <select value={filterEpic} onChange={e => setFilterEpic(e.target.value)} className="px-4 py-3 min-h-[44px] border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-[#1a1a2e] text-white">
+              <option value="">All epics</option>
+              {allEpics.map(e => (
+                <option key={e.id} value={e.id}>
+                  {e.status === 'ACTIVE' ? '🟢' : '⬜'} {e.name}
                 </option>
               ))}
             </select>
           </div>
           {hasFilters && (
-            <button onClick={() => { setSearch(''); setFilterStatus(''); setFilterPriority(''); setFilterProject(''); setFilterAssigned(''); setFilterApproved(''); setFilterPhase(''); }} className="px-4 py-3 text-sm text-gray-500 hover:text-gray-300 min-h-[44px] rounded-xl hover:bg-[#1a1a2e] transition-colors">
+            <button onClick={() => { setSearch(''); setFilterStatus(''); setFilterPriority(''); setFilterProject(''); setFilterAssigned(''); setFilterApproved(''); setFilterEpic(''); }} className="px-4 py-3 text-sm text-gray-500 hover:text-gray-300 min-h-[44px] rounded-xl hover:bg-[#1a1a2e] transition-colors">
               Clear filters
             </button>
           )}
@@ -495,11 +495,11 @@ function TicketsPage() {
                       <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${PRIORITY_COLORS[ticket.priority]}`}>
                         {ticket.priority}
                       </span>
-                      {ticket.phase_details && (
+                      {ticket.epic_details && (
                         <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                          ticket.phase_details.status === 'ACTIVE' ? 'bg-emerald-900/50 text-emerald-300' : 'bg-gray-800/50 text-gray-300'
+                          ticket.epic_details.status === 'ACTIVE' ? 'bg-emerald-900/50 text-emerald-300' : 'bg-gray-800/50 text-gray-300'
                         }`}>
-                          {ticket.phase_details.status === 'ACTIVE' ? '🟢' : '⬜'} {ticket.phase_details.name}
+                          {ticket.epic_details.status === 'ACTIVE' ? '🟢' : '⬜'} {ticket.epic_details.name}
                         </span>
                       )}
                     </div>

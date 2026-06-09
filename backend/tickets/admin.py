@@ -11,7 +11,7 @@ from .models import (
     WorkspaceMember, WorkspaceMemberProject, BlogPost,
     TicketAttachment, MediaFile, Subscription, StatusDefinition,
     ProjectStatusPermission, CommunityRating, StateTemplate, StateTemplateItem,
-    TransitionException, Phase, Tag, OTP, CommunityTemplate,
+    TransitionException, Epic, Tag, OTP, CommunityTemplate,
 )
 
 
@@ -370,8 +370,8 @@ class WorkspaceMemberProjectAdmin(admin.ModelAdmin):
     raw_id_fields = ['member', 'project']
 
 
-@admin.register(Phase)
-class PhaseAdmin(admin.ModelAdmin):
+@admin.register(Epic)
+class EpicAdmin(admin.ModelAdmin):
     list_display = ['name', 'project', 'status', 'position', 'started_at', 'created_at']
     list_filter = ['status', 'created_at']
     search_fields = ['name', 'project__name']
