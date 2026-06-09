@@ -6,7 +6,7 @@ from django.contrib.admin.models import LogEntry, ADDITION, CHANGE, DELETION
 from .models import (
     User, Project, Ticket, Comment, Workspace, WorkspaceMember,
     TicketAttachment, StatusDefinition,
-    BlogPost, Phase, ProjectStatusPermission, CommunityTemplate,
+    BlogPost, Epic, ProjectStatusPermission, CommunityTemplate,
     WorkspaceMemberProject,
 )
 
@@ -70,12 +70,12 @@ class WorkspaceMemberProjectSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'project', 'user', 'workspace', 'joined_at']
 
 
-class PhaseSerializer(serializers.ModelSerializer):
-    """Serializer for project phases."""
+class EpicSerializer(serializers.ModelSerializer):
+    """Serializer for project epics."""
     project = serializers.SlugRelatedField(slug_field='slug', queryset=Project.objects.all())
 
     class Meta:
-        model = Phase
+        model = Epic
         fields = ['id', 'project', 'name', 'description', 'status', 'position',
                   'started_at', 'created_at', 'updated_at']
         read_only_fields = ['created_at', 'updated_at']
@@ -85,14 +85,14 @@ class PhaseSerializer(serializers.ModelSerializer):
         if new_status == 'ACTIVE':
             if not validated_data.get('started_at') and not instance.started_at:
                 validated_data['started_at'] = timezone.now()
-            # Deactivate the old active phase
-            old_active = instance.project.current_phase
+            # Deactivate the old active epic
+            old_active = instance.project.current_epic
             if old_active and old_active.id != instance.id:
                 old_active.status = 'INACTIVE'
                 old_active.save(update_fields=['status'])
             instance = super().update(instance, validated_data)
-            instance.project.current_phase = instance
-            instance.project.save(update_fields=['current_phase'])
+            instance.project.current_epic = instance
+            instance.project.save(update_fields=['current_epic'])
             return instance
         return super().update(instance, validated_data)
 
@@ -232,11 +232,11 @@ class ProjectSerializer(serializers.ModelSerializer):
         required=False,
         help_text="List of user IDs to assign as project agents.",
     )
-    active_phase = serializers.SerializerMethodField(help_text="Currently active phase, if any.")
+    active_epic = serializers.SerializerMethodField(help_text="Currently active epic, if any.")
 
     class Meta:
         model = Project
-        fields = ['name', 'slug', 'about_text', 'process_text', 'workspace', 'is_public', 'invite_uuid', 'created_at', 'updated_at', 'agent_ids', 'active_phase']
+        fields = ['name', 'slug', 'about_text', 'process_text', 'workspace', 'is_public', 'invite_uuid', 'created_at', 'updated_at', 'agent_ids', 'active_epic']
         extra_kwargs = {'invite_uuid': {'read_only': True}}
         read_only_fields = ['created_at', 'updated_at']
 
@@ -287,10 +287,10 @@ class ProjectSerializer(serializers.ModelSerializer):
                 WorkspaceMemberProject.objects.filter(project=instance).delete()
         return instance
 
-    def get_active_phase(self, obj):
-        phase = obj.current_phase
-        if phase:
-            return {'id': phase.id, 'name': phase.name, 'description': phase.description, 'status': phase.status}
+    def get_active_epic(self, obj):
+        epic = obj.current_epic
+        if epic:
+            return {'id': epic.id, 'name': epic.name, 'description': epic.description, 'status': epic.status}
         return None
 
 
@@ -361,8 +361,8 @@ class UserSlugField(serializers.Field):
             raise serializers.ValidationError(f'User "{data}" not found.')
 
 
-class PhaseDetailsField(serializers.RelatedField):
-    """Read-only field returning phase id, name, status."""
+class EpicDetailsField(serializers.RelatedField):
+    """Read-only field returning epic id, name, status."""
     def to_representation(self, value):
         if value is None:
             return None
@@ -382,11 +382,11 @@ class TicketSerializer(serializers.ModelSerializer):
     project_name = serializers.CharField(source='project.name', read_only=True, help_text="Name of the project.")
     ticket_slug = serializers.CharField(read_only=True, help_text="Project-scoped ticket slug, e.g. SA-1.")
     attachments = TicketAttachmentSerializer(many=True, read_only=True)
-    phase = serializers.PrimaryKeyRelatedField(
-        queryset=Phase.objects.all(), required=False, allow_null=True,
-        help_text='Phase ID (must belong to the same project as the ticket).',
+    epic = serializers.PrimaryKeyRelatedField(
+        queryset=Epic.objects.all(), required=False, allow_null=True,
+        help_text='Epic ID (must belong to the same project as the ticket).',
     )
-    phase_details = PhaseDetailsField(source='phase', read_only=True)
+    epic_details = EpicDetailsField(source='epic', read_only=True)
 
     class Meta:
         model = Ticket
@@ -394,7 +394,7 @@ class TicketSerializer(serializers.ModelSerializer):
             'project', 'project_name', 'ticket_slug', 'title', 'description',
             'status', 'priority', 'ticket_type', 'assigned_to', 'assigned_to_details',
             'created_by', 'created_by_details', 'created_at', 'updated_at',
-            'resolved_at', 'closed_at', 'attachments', 'phase', 'phase_details',
+            'resolved_at', 'closed_at', 'attachments', 'epic', 'epic_details',
             'tags', 'tag_refs',
         ]
         read_only_fields = ['created_by', 'created_at', 'updated_at', 'resolved_at', 'closed_at', 'ticket_slug']
@@ -460,23 +460,23 @@ class TicketSerializer(serializers.ModelSerializer):
                 )
         return value
 
-    def validate_phase(self, value):
-        """Validate phase belongs to the same project as the ticket."""
+    def validate_epic(self, value):
+        """Validate epic belongs to the same project as the ticket."""
         if value is not None:
             project = self._resolve_project()
             if project and value.project_id != project.id:
                 raise serializers.ValidationError(
-                    "Phase must belong to the same project as the ticket."
+                    "Epic must belong to the same project as the ticket."
                 )
         return value
 
     def validate(self, data):
         """Validate status transitions using gate-based permissions on StatusDefinition."""
-        # Cross-check phase + project on create (when both are in data)
-        if 'phase' in data and data['phase'] is not None and 'project' in data:
-            if data['phase'].project_id != data['project'].id:
+        # Cross-check epic + project on create (when both are in data)
+        if 'epic' in data and data['epic'] is not None and 'project' in data:
+            if data['epic'].project_id != data['project'].id:
                 raise serializers.ValidationError({
-                    'phase': 'Phase must belong to the same project as the ticket.'
+                    'epic': 'Epic must belong to the same project as the ticket.'
                 })
         request = self.context.get('request')
         if request and self.instance and 'status' in data:

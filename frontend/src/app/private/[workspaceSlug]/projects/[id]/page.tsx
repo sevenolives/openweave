@@ -6,7 +6,7 @@ import Layout from '@/components/Layout';
 import { useToast } from '@/components/Toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useWorkspace } from '@/hooks/useWorkspace';
-import { api, Project, User, ProjectAgentMembership, Phase, StatusDefinition, ProjectStatusPermission } from '@/lib/api';
+import { api, Project, User, ProjectAgentMembership, Epic, StatusDefinition, ProjectStatusPermission } from '@/lib/api';
 
 export default function ProjectSettingsPage() {
   const [project, setProject] = useState<Project | null>(null);
@@ -22,16 +22,16 @@ export default function ProjectSettingsPage() {
   const [agentMemberships, setAgentMemberships] = useState<ProjectAgentMembership[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [memberSaving, setMemberSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'general' | 'members' | 'phases' | 'permissions'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'members' | 'epics' | 'permissions'>('general');
   const [statuses, setStatuses] = useState<StatusDefinition[]>([]);
   const [statusPerms, setStatusPerms] = useState<ProjectStatusPermission[]>([]);
-  const [phases, setPhases] = useState<Phase[]>([]);
-  const [newPhaseName, setNewPhaseName] = useState('');
-  const [newPhaseDesc, setNewPhaseDesc] = useState('');
-  const [addingPhase, setAddingPhase] = useState(false);
-  const [editingPhase, setEditingPhase] = useState<number | null>(null);
-  const [editPhaseName, setEditPhaseName] = useState('');
-  const [editPhaseDesc, setEditPhaseDesc] = useState('');
+  const [epics, setEpics] = useState<Epic[]>([]);
+  const [newEpicName, setNewEpicName] = useState('');
+  const [newEpicDesc, setNewEpicDesc] = useState('');
+  const [addingEpic, setAddingEpic] = useState(false);
+  const [editingEpic, setEditingEpic] = useState<number | null>(null);
+  const [editEpicName, setEditEpicName] = useState('');
+  const [editEpicDesc, setEditEpicDesc] = useState('');
 
   const router = useRouter();
   const params = useParams<{ workspaceSlug: string; id: string }>();
@@ -44,15 +44,15 @@ export default function ProjectSettingsPage() {
 
   const fetchData = async () => {
     try {
-      const [p, agents, ticketResp, memberships, ph, perms] = await Promise.all([
+      const [p, agents, ticketResp, memberships, ep, perms] = await Promise.all([
         api.getProject(projectSlug), api.getProjectAgents(projectSlug),
         api.getTicketsPaginated({ project: projectSlug }),
         api.getProjectAgentMemberships(projectSlug),
-        api.getPhases(projectSlug),
+        api.getEpics(projectSlug),
         api.getProjectStatusPermissions(projectSlug),
       ]);
       setHasTickets((ticketResp.count || 0) > 0);
-      setProject(p); setProjectAgents(agents); setAgentMemberships(memberships); setPhases(ph); setStatusPerms(perms);
+      setProject(p); setProjectAgents(agents); setAgentMemberships(memberships); setEpics(ep); setStatusPerms(perms);
       // Load workspace statuses
       if (p.workspace) {
         api.getStatusDefinitions(String(p.workspace)).then(setStatuses).catch((err: any) => {
@@ -137,9 +137,9 @@ export default function ProjectSettingsPage() {
 
         {/* Tabs */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 bg-[#0a0a0f] rounded-xl p-1 mb-6">
-          {(['general', 'members', 'phases', 'permissions'] as const).map(tab => (
+          {(['general', 'members', 'epics', 'permissions'] as const).map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} className={`px-2 py-2.5 rounded-lg text-sm font-medium transition-colors text-center ${activeTab === tab ? 'bg-[#111118] text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}>
-              {tab === 'general' ? '⚙️ General' : tab === 'members' ? '👥 Members' : tab === 'phases' ? '📋 Phases' : '🔒 Permissions'}
+              {tab === 'general' ? '⚙️ General' : tab === 'members' ? '👥 Members' : tab === 'epics' ? '📋 Epics' : '🔒 Permissions'}
             </button>
           ))}
         </div>
@@ -284,40 +284,40 @@ export default function ProjectSettingsPage() {
             )}
           </div>}
 
-          {/* Phases */}
-          {activeTab === 'phases' && <div className="bg-[#111118] rounded-xl border border-[#222233] p-6">
+          {/* Epics */}
+          {activeTab === 'epics' && <div className="bg-[#111118] rounded-xl border border-[#222233] p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-lg font-semibold text-white">Phases</h3>
-                <p className="text-sm text-gray-500 mt-0.5">Define project phases so bots and team members know what stage the project is in</p>
+                <h3 className="text-lg font-semibold text-white">Epics</h3>
+                <p className="text-sm text-gray-500 mt-0.5">Define project epics so bots and team members know what stage the project is in. Only one epic can be active at a time.</p>
               </div>
             </div>
 
-            {/* Phase list */}
+            {/* Epic list */}
             <div className="space-y-3 mb-6">
-              {phases.length === 0 ? (
-                <p className="text-sm text-gray-400 py-4 text-center">No phases yet. Add your first phase below.</p>
-              ) : phases.map((phase, idx) => {
+              {epics.length === 0 ? (
+                <p className="text-sm text-gray-400 py-4 text-center">No epics yet. Add your first epic below.</p>
+              ) : epics.map((epic, idx) => {
                 const statusColors = { INACTIVE: 'border-[#222233]', ACTIVE: 'border-indigo-500/30 bg-indigo-500/5' };
                 const badgeColors = { INACTIVE: 'bg-gray-800 text-gray-400', ACTIVE: 'bg-indigo-500/20 text-indigo-400' };
                 return (
-                <div key={phase.id} className={`rounded-xl border p-4 transition-all ${statusColors[phase.status] || statusColors.INACTIVE}`}>
-                  {editingPhase === phase.id ? (
+                <div key={epic.id} className={`rounded-xl border p-4 transition-all ${statusColors[epic.status] || statusColors.INACTIVE}`}>
+                  {editingEpic === epic.id ? (
                     <div className="space-y-3">
-                      <input value={editPhaseName} onChange={e => setEditPhaseName(e.target.value)} autoFocus
-                        className="w-full px-4 py-3 border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-[#1a1a2e] text-white placeholder-gray-500" placeholder="Phase name" />
-                      <textarea value={editPhaseDesc} onChange={e => setEditPhaseDesc(e.target.value)}
-                        className="w-full px-4 py-3 border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 resize-none bg-[#1a1a2e] text-white placeholder-gray-500" rows={4} placeholder="Goals and scope of this phase..." />
+                      <input value={editEpicName} onChange={e => setEditEpicName(e.target.value)} autoFocus
+                        className="w-full px-4 py-3 border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-[#1a1a2e] text-white placeholder-gray-500" placeholder="Epic name" />
+                      <textarea value={editEpicDesc} onChange={e => setEditEpicDesc(e.target.value)}
+                        className="w-full px-4 py-3 border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 resize-none bg-[#1a1a2e] text-white placeholder-gray-500" rows={4} placeholder="Goals and scope of this epic..." />
                       <div className="flex gap-2">
                         <button onClick={async () => {
                           try {
-                            await api.updatePhase(phase.id, { name: editPhaseName, description: editPhaseDesc });
-                            setEditingPhase(null);
-                            const ph = await api.getPhases(projectSlug); setPhases(ph);
-                            toast('Phase updated');
+                            await api.updateEpic(epic.id, { name: editEpicName, description: editEpicDesc });
+                            setEditingEpic(null);
+                            const ep = await api.getEpics(projectSlug); setEpics(ep);
+                            toast('Epic updated');
                           } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
                         }} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700">Save</button>
-                        <button onClick={() => setEditingPhase(null)} className="px-4 py-2 border border-[#222233] rounded-lg text-sm text-gray-400 hover:bg-[#1a1a2e]">Cancel</button>
+                        <button onClick={() => setEditingEpic(null)} className="px-4 py-2 border border-[#222233] rounded-lg text-sm text-gray-400 hover:bg-[#1a1a2e]">Cancel</button>
                       </div>
                     </div>
                   ) : (
@@ -325,39 +325,39 @@ export default function ProjectSettingsPage() {
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium text-gray-400">#{idx + 1}</span>
-                          <h4 className="font-semibold text-white">{phase.name}</h4>
-                          <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${badgeColors[phase.status] || badgeColors.INACTIVE}`}>{phase.status === 'ACTIVE' ? 'Active' : 'Inactive'}</span>
+                          <h4 className="font-semibold text-white">{epic.name}</h4>
+                          <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${badgeColors[epic.status] || badgeColors.INACTIVE}`}>{epic.status === 'ACTIVE' ? 'Active' : 'Inactive'}</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          {phase.status !== 'ACTIVE' && (
+                          {epic.status !== 'ACTIVE' && (
                             <button onClick={async () => {
                               try {
-                                await api.updatePhase(phase.id, { status: 'ACTIVE' });
-                                const ph = await api.getPhases(projectSlug); setPhases(ph);
-                                toast('Phase activated');
+                                await api.updateEpic(epic.id, { status: 'ACTIVE' });
+                                const ep = await api.getEpics(projectSlug); setEpics(ep);
+                                toast('Epic activated');
                               } catch (err: any) { toast(err?.message || 'Failed', 'error'); }
                             }} className="px-3 py-1.5 text-xs font-medium text-indigo-400 hover:bg-indigo-900/20 rounded-lg">
                               Set Active
                             </button>
                           )}
-                          <button onClick={() => { setEditingPhase(phase.id); setEditPhaseName(phase.name || ''); setEditPhaseDesc(phase.description || ''); }}
+                          <button onClick={() => { setEditingEpic(epic.id); setEditEpicName(epic.name || ''); setEditEpicDesc(epic.description || ''); }}
                             className="p-1.5 text-gray-400 hover:text-gray-300 hover:bg-[#1a1a2e] rounded-lg">
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                           </button>
                           <button onClick={async () => {
-                            if (!confirm(`Delete phase "${phase.name}"?`)) return;
+                            if (!confirm(`Delete epic "${epic.name}"?`)) return;
                             try {
-                              await api.deletePhase(phase.id);
-                              const ph = await api.getPhases(projectSlug); setPhases(ph);
-                              toast('Phase deleted');
+                              await api.deleteEpic(epic.id);
+                              const ep = await api.getEpics(projectSlug); setEpics(ep);
+                              toast('Epic deleted');
                             } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
                           }} className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-900/200/10 rounded-lg">
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                           </button>
                         </div>
                       </div>
-                      {phase.description && <p className="text-sm text-gray-400 mt-1">{phase.description}</p>}
-                      {phase.started_at && <p className="text-xs text-gray-400 mt-2">Started {new Date(phase.started_at).toLocaleDateString()}</p>}
+                      {epic.description && <p className="text-sm text-gray-400 mt-1">{epic.description}</p>}
+                      {epic.started_at && <p className="text-xs text-gray-400 mt-2">Started {new Date(epic.started_at).toLocaleDateString()}</p>}
                     </div>
                   )}
                 </div>
@@ -365,27 +365,27 @@ export default function ProjectSettingsPage() {
               })}
             </div>
 
-            {/* Add new phase */}
+            {/* Add new epic */}
             <div className="border border-dashed border-[#222233] rounded-xl p-4">
-              <h4 className="text-sm font-medium text-gray-300 mb-3">Add Phase</h4>
+              <h4 className="text-sm font-medium text-gray-300 mb-3">Add Epic</h4>
               <div className="space-y-3">
-                <input value={newPhaseName} onChange={e => setNewPhaseName(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-[#222233] rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 bg-[#1a1a2e] text-white placeholder-gray-500" placeholder="Phase name (e.g. MVP, Beta Launch, V2)" />
-                <textarea value={newPhaseDesc} onChange={e => setNewPhaseDesc(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-[#222233] rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 bg-[#1a1a2e] text-white placeholder-gray-500 resize-none" rows={3} placeholder="Goals, scope, and success criteria for this phase..." />
+                <input value={newEpicName} onChange={e => setNewEpicName(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-[#222233] rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 bg-[#1a1a2e] text-white placeholder-gray-500" placeholder="Epic name (e.g. MVP, Beta Launch, V2)" />
+                <textarea value={newEpicDesc} onChange={e => setNewEpicDesc(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-[#222233] rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 bg-[#1a1a2e] text-white placeholder-gray-500 resize-none" rows={3} placeholder="Goals, scope, and success criteria for this epic..." />
                 <button onClick={async () => {
-                  if (!newPhaseName.trim()) return;
-                  setAddingPhase(true);
+                  if (!newEpicName.trim()) return;
+                  setAddingEpic(true);
                   try {
-                    await api.createPhase({ project: projectSlug, name: newPhaseName.trim(), description: newPhaseDesc.trim(), position: phases.length });
-                    setNewPhaseName(''); setNewPhaseDesc('');
-                    const ph = await api.getPhases(projectSlug); setPhases(ph);
-                    toast('Phase added');
+                    await api.createEpic({ project: projectSlug, name: newEpicName.trim(), description: newEpicDesc.trim(), position: epics.length });
+                    setNewEpicName(''); setNewEpicDesc('');
+                    const ep = await api.getEpics(projectSlug); setEpics(ep);
+                    toast('Epic added');
                   } catch (e: any) { toast(e?.message || 'Failed', 'error'); }
-                  finally { setAddingPhase(false); }
-                }} disabled={!newPhaseName.trim() || addingPhase}
+                  finally { setAddingEpic(false); }
+                }} disabled={!newEpicName.trim() || addingEpic}
                   className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors">
-                  {addingPhase ? 'Adding…' : 'Add Phase'}
+                  {addingEpic ? 'Adding…' : 'Add Epic'}
                 </button>
               </div>
             </div>

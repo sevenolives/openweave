@@ -28,14 +28,17 @@ class User(AbstractUser):
         ('NONE', 'No Notifications'),
     ]
     
+    # Override AbstractUser.email to enforce uniqueness (nulls allowed for bots without email)
+    email = models.EmailField(verbose_name='email address', max_length=254, blank=True, null=True, unique=True)
+
     name = models.CharField(max_length=255)
     user_type = models.CharField(max_length=10, choices=USER_TYPES, default='HUMAN')
     role = models.CharField(max_length=10, choices=ROLES, default='MEMBER')
     skills = models.JSONField(default=list, blank=True, help_text="List of skill tags")
     description = models.TextField(blank=True, default='', help_text="What this user/bot can do")
     notification_preference = models.CharField(
-        max_length=10, 
-        choices=NOTIFICATION_PREFERENCES, 
+        max_length=10,
+        choices=NOTIFICATION_PREFERENCES,
         default='ALL',
         help_text="Email notification preference level"
     )
@@ -43,13 +46,17 @@ class User(AbstractUser):
     email_verified = models.BooleanField(default=False, help_text="Whether the user's email has been verified")
     created_in_workspace = models.ForeignKey('Workspace', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='created_bots', help_text='Workspace where this bot was created (bots only)')
-    
+
     # Keep the username field as per best practices
-    # Email is already included in AbstractUser
-    
+
     def save(self, *args, **kwargs):
         if self.username:
             self.username = self.username.lower()
+        # Normalize email to lowercase; store None instead of empty string so null unique index works
+        if self.email:
+            self.email = self.email.strip().lower()
+        else:
+            self.email = None
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -209,7 +216,7 @@ class Project(models.Model):
     invite_uuid = models.UUIDField(unique=True, default=uuid.uuid4, help_text="Public UUID used as the invite link for this project")
     about_text = models.TextField(blank=True, help_text="What this project is about")
     process_text = models.TextField(blank=True, default='', help_text="Process guidelines for bots — conventions, rules, workflow")
-    current_phase = models.ForeignKey('Phase', on_delete=models.SET_NULL, null=True, blank=True, related_name='active_in_project', help_text="The currently active phase")
+    current_epic = models.ForeignKey('Epic', on_delete=models.SET_NULL, null=True, blank=True, related_name='active_in_project', help_text="The currently active epic")
     is_public = models.BooleanField(default=False, help_text="Whether this project is visible on the public community profile")
     url = models.URLField(blank=True, null=True, help_text="Project website URL")
     logo = models.URLField(blank=True, null=True, help_text="Project logo URL")
@@ -234,26 +241,26 @@ class Project(models.Model):
         ordering = ['name']
 
 
-class Phase(models.Model):
+class Epic(models.Model):
     """
-    A phase within a project. Helps bots and humans understand what stage
-    the project is in and what the goals are.
+    An epic within a project. Helps bots and humans understand what stage
+    the project is in and what the goals are. Only one epic can be active at a time.
     """
-    PHASE_STATUSES = [
+    EPIC_STATUSES = [
         ('INACTIVE', 'Inactive'),
         ('ACTIVE', 'Active'),
     ]
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='phases')
-    name = models.CharField(max_length=100, help_text="Phase name, e.g. 'MVP', 'Beta Launch'")
-    description = models.TextField(blank=True, help_text="Goals and scope of this phase")
-    status = models.CharField(max_length=20, choices=PHASE_STATUSES, default='INACTIVE', help_text="Phase status")
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='epics')
+    name = models.CharField(max_length=100, help_text="Epic name, e.g. 'MVP', 'Beta Launch'")
+    description = models.TextField(blank=True, help_text="Goals and scope of this epic")
+    status = models.CharField(max_length=20, choices=EPIC_STATUSES, default='INACTIVE', help_text="Epic status")
     position = models.PositiveIntegerField(default=0, help_text="Display order")
-    started_at = models.DateTimeField(null=True, blank=True, help_text="When this phase started")
+    started_at = models.DateTimeField(null=True, blank=True, help_text="When this epic started")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'phases'
+        db_table = 'epics'
         ordering = ['position']
         unique_together = ('project', 'name')
 
@@ -328,8 +335,8 @@ class Ticket(models.Model):
     ticket_type = models.CharField(max_length=20, choices=TICKET_TYPE_CHOICES, default='BUG')
     approved_status = models.CharField(max_length=20, default='UNAPPROVED', help_text="Deprecated — approval gates removed")
     
-    # Phase association
-    phase = models.ForeignKey('Phase', on_delete=models.SET_NULL, null=True, blank=True, related_name='tickets')
+    # Epic association
+    epic = models.ForeignKey('Epic', on_delete=models.SET_NULL, null=True, blank=True, related_name='tickets')
     
     # Assignment - one agent or null
     assigned_to = models.ForeignKey(

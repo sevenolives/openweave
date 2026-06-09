@@ -58,7 +58,7 @@ export interface Project {
   slug: string;
   workspace?: string;
   invite_uuid?: string;
-  active_phase?: { id: number; name: string; description: string } | null;
+  active_epic?: { id: number; name: string; description: string } | null;
 }
 
 export interface Ticket {
@@ -79,8 +79,8 @@ export interface Ticket {
   updated_at: string;
   resolved_at: string | null;
   closed_at: string | null;
-  phase: number | null;
-  phase_details: { id: number; name: string; status: string } | null;
+  epic: number | null;
+  epic_details: { id: number; name: string; status: string } | null;
   tags: string[];
   tag_refs: string[];
 }
@@ -139,7 +139,7 @@ export interface WorkspaceMember {
 
 
 
-export interface Phase {
+export interface Epic {
   id: number;
   project: string;
   name: string;
@@ -451,22 +451,22 @@ class ApiClient {
     await this.request<void>(`/project-status-permissions/${id}/`, { method: 'DELETE' });
   }
 
-  // Phases
-  async getPhases(projectSlug: string): Promise<Phase[]> {
-    const response = await this.request<PaginatedResponse<Phase>>(`/phases/?project=${projectSlug}`);
+  // Epics
+  async getEpics(projectSlug: string): Promise<Epic[]> {
+    const response = await this.request<PaginatedResponse<Epic>>(`/epics/?project=${projectSlug}`);
     return response.results || [];
   }
 
-  async createPhase(data: Partial<Phase>): Promise<Phase> {
-    return this.request<Phase>('/phases/', { method: 'POST', body: JSON.stringify(data) });
+  async createEpic(data: Partial<Epic>): Promise<Epic> {
+    return this.request<Epic>('/epics/', { method: 'POST', body: JSON.stringify(data) });
   }
 
-  async updatePhase(id: number, data: Partial<Phase>): Promise<Phase> {
-    return this.request<Phase>(`/phases/${id}/`, { method: 'PATCH', body: JSON.stringify(data) });
+  async updateEpic(id: number, data: Partial<Epic>): Promise<Epic> {
+    return this.request<Epic>(`/epics/${id}/`, { method: 'PATCH', body: JSON.stringify(data) });
   }
 
-  async deletePhase(id: number): Promise<void> {
-    await this.request<void>(`/phases/${id}/`, { method: 'DELETE' });
+  async deleteEpic(id: number): Promise<void> {
+    await this.request<void>(`/epics/${id}/`, { method: 'DELETE' });
   }
 
   async getProjectAgents(projectSlug: string): Promise<User[]> {

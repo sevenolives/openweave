@@ -16,7 +16,7 @@ from django.contrib.contenttypes.models import ContentType
 from .models import (
     User, Project, Ticket, Comment, Workspace,
     WorkspaceMember, TicketAttachment, StatusDefinition,
-    BlogPost, Phase, ProjectStatusPermission, CommunityTemplate, CommunityRating,
+    BlogPost, Epic, ProjectStatusPermission, CommunityTemplate, CommunityRating,
     WorkspaceMemberProject,
 )
 from .serializers import (
@@ -24,7 +24,7 @@ from .serializers import (
     CommentSerializer, AuditLogSerializer,
     WorkspaceSerializer, WorkspaceMemberSerializer,
     JoinRequestSerializer, TicketAttachmentSerializer,
-    StatusDefinitionSerializer, PhaseSerializer, ProjectStatusPermissionSerializer,
+    StatusDefinitionSerializer, EpicSerializer, ProjectStatusPermissionSerializer,
     CommunityTemplateSerializer,
     BlogPostListSerializer, BlogPostDetailSerializer, BlogPostCreateSerializer,
     WorkspaceMemberProjectSerializer,
@@ -182,13 +182,8 @@ class JoinView(APIView):
             if not username:
                 return Response({'detail': 'Username must contain letters or numbers.'}, status=status.HTTP_400_BAD_REQUEST)
         else:
-            if email:
-                username = re.sub(r'[^a-z0-9]', '', email.split('@')[0].lower())
-            elif username:
-                username = re.sub(r'[^a-z0-9]', '', username.lower())
-            else:
-                import uuid as _uuid
-                username = f'user{_uuid.uuid4().hex[:8]}'
+            import uuid as _uuid
+            username = _uuid.uuid4().hex[:12]
 
         # Ensure unique: append numeric ID if collision
         if User.objects.filter(username=username).exists():
@@ -323,13 +318,9 @@ class OTPRequestView(APIView):
 
         if is_new:
             import uuid as _uuid
-            import re
-            base = re.sub(r'[^a-z0-9]', '', email.split('@')[0].lower()) or f'user{_uuid.uuid4().hex[:8]}'
-            username = base
-            counter = 1
+            username = _uuid.uuid4().hex[:12]
             while User.objects.filter(username=username).exists():
-                username = f'{base}{counter}'
-                counter += 1
+                username = _uuid.uuid4().hex[:12]
             user = User(username=username, email=email, name='', user_type='HUMAN')
             user.set_unusable_password()
             user.save()
@@ -392,6 +383,16 @@ class OTPVerifyView(APIView):
             user = User.objects.get(email__iexact=email, user_type='HUMAN')
         except User.DoesNotExist:
             return Response({'detail': 'No account found for this email.'}, status=status.HTTP_404_NOT_FOUND)
+        except User.MultipleObjectsReturned:
+            # Duplicate accounts with same email — pick the most recently joined verified one, or just the newest
+            user = (
+                User.objects.filter(email__iexact=email, user_type='HUMAN', email_verified=True)
+                .order_by('-date_joined').first()
+                or User.objects.filter(email__iexact=email, user_type='HUMAN')
+                .order_by('-date_joined').first()
+            )
+            if not user:
+                return Response({'detail': 'No account found for this email.'}, status=status.HTTP_404_NOT_FOUND)
 
         # Accept either login or register OTP (new accounts go through register)
         otp = (
@@ -838,7 +839,12 @@ class TicketViewSet(viewsets.ModelViewSet):
         if not user_has_project_access(self.request.user, project):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("You must be a member of this project to create tickets in it.")
-        serializer.save(created_by=self.request.user)
+        # Auto-assign the active epic if none specified
+        epic = serializer.validated_data.get('epic')
+        if epic is None and project and project.current_epic_id:
+            serializer.save(created_by=self.request.user, epic=project.current_epic)
+        else:
+            serializer.save(created_by=self.request.user)
 
     def get_permissions(self):
         if self.action == 'destroy':
@@ -1620,18 +1626,18 @@ class WorkspaceMemberProjectViewSet(viewsets.ModelViewSet):
         super().perform_destroy(instance)
 
 
-@extend_schema(tags=['phases'])
-class PhaseViewSet(viewsets.ModelViewSet):
-    """CRUD for project phases. Bots read phases to understand project context."""
-    queryset = Phase.objects.select_related('project').all()
-    serializer_class = PhaseSerializer
+@extend_schema(tags=['epics'])
+class EpicViewSet(viewsets.ModelViewSet):
+    """CRUD for project epics. Bots read epics to understand project context. Only one epic can be active at a time."""
+    queryset = Epic.objects.select_related('project').all()
+    serializer_class = EpicSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     ordering_fields = ['position', 'created_at']
     ordering = ['position']
 
     def get_queryset(self):
-        qs = Phase.objects.select_related('project')
+        qs = Epic.objects.select_related('project')
         # Filter by project slug
         project_slug = self.request.query_params.get('project')
         if project_slug:
@@ -1639,22 +1645,22 @@ class PhaseViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.is_superuser:
             return qs.all()
-        # Only show phases for projects the user has access to
+        # Only show epics for projects the user has access to
         return qs.filter(project_access_q(user, prefix='project')).distinct()
 
     def create(self, request, *args, **kwargs):
-        """Override create to auto-activate first phase and set FK."""
+        """Override create to auto-activate first epic and set FK."""
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        phase = serializer.save()
-        # Auto-activate first phase in project
-        if phase.project.phases.count() == 1 and phase.status == 'INACTIVE':
-            phase.status = 'ACTIVE'
-            phase.started_at = timezone.now()
-            phase.save()
-            phase.project.current_phase = phase
-            phase.project.save(update_fields=['current_phase'])
-        return Response(self.get_serializer(phase).data, status=status.HTTP_201_CREATED)
+        epic = serializer.save()
+        # Auto-activate first epic in project
+        if epic.project.epics.count() == 1 and epic.status == 'INACTIVE':
+            epic.status = 'ACTIVE'
+            epic.started_at = timezone.now()
+            epic.save()
+            epic.project.current_epic = epic
+            epic.project.save(update_fields=['current_epic'])
+        return Response(self.get_serializer(epic).data, status=status.HTTP_201_CREATED)
 
 
 @extend_schema(tags=['project-invites'])
