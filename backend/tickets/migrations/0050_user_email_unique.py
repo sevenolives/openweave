@@ -4,7 +4,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tickets', '0049_dedup_emails'),
+        ('tickets', '0049b_nullify_empty_emails'),
     ]
 
     operations = [
