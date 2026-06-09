@@ -1,4 +1,5 @@
 import os
+import uuid
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from django.db.models import Q
@@ -14,32 +15,24 @@ class Command(BaseCommand):
     help = 'Create a superuser if one does not exist'
 
     def handle(self, *args, **options):
-        # Get credentials from environment or use defaults
         username = os.environ.get('SUPERUSER_USERNAME', 'admin')
-        email = os.environ.get('SUPERUSER_EMAIL', 'digvijay@sevenolives.com')
-        password = os.environ.get('SUPERUSER_PASSWORD')
+        email = os.environ.get('SUPERUSER_EMAIL') or os.environ.get('DJANGO_ROOT_USER_EMAIL')
+        password = os.environ.get('SUPERUSER_PASSWORD') or os.environ.get('DJANGO_ROOT_USER_PASSWORD')
+
         if not password:
             self.stderr.write("SUPERUSER_PASSWORD env var is required")
             return
 
-        # Check if a user with this email or username already exists
-        existing_user = User.objects.filter(
-            Q(email=email) | Q(username=username)
-        ).first()
+        # Find existing superuser by username only (never steal another user's email)
+        existing_user = User.objects.filter(username=username).first()
 
         if existing_user:
-            # Update existing user to make sure they're a superuser
             existing_user.is_staff = True
             existing_user.is_superuser = True
             existing_user.user_type = 'HUMAN'
             existing_user.role = 'ADMIN'
-            
-            # Update email and username if they're different
-            if existing_user.email != email:
+            if email and existing_user.email != email:
                 existing_user.email = email
-            if existing_user.username != username:
-                existing_user.username = username
-                
             existing_user.save()
             self.stdout.write(
                 self.style.SUCCESS(
@@ -47,14 +40,12 @@ class Command(BaseCommand):
                 )
             )
         else:
-            # Create new superuser with pk=1
             User.objects.create_superuser(
-                id=1,
                 username=username,
-                email=email,
+                email=email or f'{username}@openweave.dev',
                 password=password,
                 user_type='HUMAN',
-                role='ADMIN'
+                role='ADMIN',
             )
             self.stdout.write(
                 self.style.SUCCESS(
