@@ -394,6 +394,7 @@ function TicketsPage() {
               const val = e.target.value;
               const params = new URLSearchParams(window.location.search);
               if (val) params.set('project', val); else params.delete('project');
+              params.delete('epic'); // clear epic filter when project changes
               window.location.href = `/private/${workspaceSlug}/tickets?${params.toString()}`;
             }} className="px-4 py-3 min-h-[44px] border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-[#1a1a2e] text-white">
               <option value="">All projects</option>
@@ -405,7 +406,7 @@ function TicketsPage() {
             </select>
             <select value={filterEpic} onChange={e => setFilterEpic(e.target.value)} className="px-4 py-3 min-h-[44px] border border-[#222233] rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 bg-[#1a1a2e] text-white">
               <option value="">All epics</option>
-              {allEpics.map(e => (
+              {(filterProject ? allEpics.filter(e => e.project === filterProject) : allEpics).map(e => (
                 <option key={e.id} value={e.id}>
                   {e.status === 'ACTIVE' ? '🟢' : '⬜'} {e.name}
                 </option>
@@ -617,18 +618,16 @@ function TicketsPage() {
                     {createProjectAgents.map(u => <option key={u.id} value={String(u.id)}>{u.username} ({u.user_type})</option>)}
                   </select>
                 </FormField>
-                {createProjectEpics.length > 0 && (
-                  <FormField label="Epic" error={fieldErrors.epic}>
-                    <select value={newEpic} onChange={e => setNewEpic(e.target.value)} className={selectClass(fieldErrors.epic)}>
-                      <option value="">No epic</option>
-                      {createProjectEpics.map(ep => (
-                        <option key={ep.id} value={String(ep.id)}>
-                          {ep.status === 'ACTIVE' ? '🟢' : '⬜'} {ep.name}
-                        </option>
-                      ))}
-                    </select>
-                  </FormField>
-                )}
+                <FormField label="Epic" error={fieldErrors.epic}>
+                  <select value={newEpic} onChange={e => setNewEpic(e.target.value)} className={selectClass(fieldErrors.epic)} disabled={!newProject}>
+                    <option value="">{newProject ? 'No epic' : 'Select a project first'}</option>
+                    {createProjectEpics.map(ep => (
+                      <option key={ep.id} value={String(ep.id)}>
+                        {ep.status === 'ACTIVE' ? '🟢' : '⬜'} {ep.name}
+                      </option>
+                    ))}
+                  </select>
+                </FormField>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={newApproved} onChange={e => setNewApproved(e.target.checked)} className="w-5 h-5 rounded border-[#222233] text-indigo-400 bg-[#1a1a2e] focus:ring-indigo-500" />
                   <span className="text-sm text-gray-300">Pre-approve this ticket</span>
