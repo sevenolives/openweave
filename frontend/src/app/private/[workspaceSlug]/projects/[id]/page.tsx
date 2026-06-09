@@ -356,7 +356,7 @@ export default function ProjectSettingsPage() {
                           </button>
                         </div>
                       </div>
-                      {epic.description && <p className="text-sm text-gray-400 mt-1">{epic.description}</p>}
+                      {epic.description && <p className="text-sm text-gray-400 mt-1 whitespace-pre-wrap">{epic.description}</p>}
                       {epic.started_at && <p className="text-xs text-gray-400 mt-2">Started {new Date(epic.started_at).toLocaleDateString()}</p>}
                     </div>
                   )}
