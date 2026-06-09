@@ -1,63 +1,50 @@
 import os
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
-from django.db.models import Q
 
 User = get_user_model()
 
 
 class Command(BaseCommand):
     """
-    Create superuser command that's idempotent (safe to run multiple times).
-    Follows best practices from BEST_PRACTICES.md.
+    Idempotent superuser sync — always targets pk=1.
+    Reads ADMIN_SUPERUSER_EMAIL and ADMIN_SUPERUSER_PASSWORD from env.
     """
-    help = 'Create a superuser if one does not exist'
+    help = 'Create or sync the superuser at pk=1'
 
     def handle(self, *args, **options):
-        # Get credentials from environment or use defaults
-        username = os.environ.get('SUPERUSER_USERNAME', 'admin')
-        email = os.environ.get('SUPERUSER_EMAIL', 'digvijay@sevenolives.com')
-        password = os.environ.get('SUPERUSER_PASSWORD')
+        email = os.environ.get('ADMIN_SUPERUSER_EMAIL')
+        password = os.environ.get('ADMIN_SUPERUSER_PASSWORD')
+
         if not password:
-            self.stderr.write("SUPERUSER_PASSWORD env var is required")
+            self.stderr.write("ADMIN_SUPERUSER_PASSWORD env var is required")
+            return
+        if not email:
+            self.stderr.write("ADMIN_SUPERUSER_EMAIL env var is required")
             return
 
-        # Check if a user with this email or username already exists
-        existing_user = User.objects.filter(
-            Q(email=email) | Q(username=username)
-        ).first()
+        user = User.objects.filter(pk=1).first()
 
-        if existing_user:
-            # Update existing user to make sure they're a superuser
-            existing_user.is_staff = True
-            existing_user.is_superuser = True
-            existing_user.user_type = 'HUMAN'
-            existing_user.role = 'ADMIN'
-            
-            # Update email and username if they're different
-            if existing_user.email != email:
-                existing_user.email = email
-            if existing_user.username != username:
-                existing_user.username = username
-                
-            existing_user.save()
-            self.stdout.write(
-                self.style.SUCCESS(
-                    f'Updated existing user "{existing_user.username}" as superuser'
-                )
-            )
+        if user:
+            user.email = email
+            user.is_staff = True
+            user.is_superuser = True
+            user.user_type = 'HUMAN'
+            user.role = 'ADMIN'
+            user.set_password(password)
+            user.save()
+            self.stdout.write(self.style.SUCCESS(
+                f'Synced superuser pk=1 ("{user.username}", {email})'
+            ))
         else:
-            # Create new superuser with pk=1
             User.objects.create_superuser(
                 id=1,
-                username=username,
+                username=email.split('@')[0],
                 email=email,
                 password=password,
                 user_type='HUMAN',
-                role='ADMIN'
+                role='ADMIN',
             )
-            self.stdout.write(
-                self.style.SUCCESS(
-                    f'Superuser "{username}" created successfully'
-                )
-            )
+            self.stdout.write(self.style.SUCCESS(
+                f'Created superuser pk=1 ({email})'
+            ))
