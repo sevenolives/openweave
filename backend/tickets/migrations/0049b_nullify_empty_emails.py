@@ -1,4 +1,4 @@
-from django.db import migrations
+from django.db import migrations, models
 
 
 def nullify_empty_emails(apps, schema_editor):
@@ -19,5 +19,17 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        # Step 1: make the column nullable first (currently NOT NULL at DB level)
+        migrations.AlterField(
+            model_name='user',
+            name='email',
+            field=models.EmailField(
+                verbose_name='email address',
+                max_length=254,
+                blank=True,
+                null=True,
+            ),
+        ),
+        # Step 2: now that NULL is allowed, convert empty strings to NULL
         migrations.RunPython(nullify_empty_emails, migrations.RunPython.noop),
     ]
