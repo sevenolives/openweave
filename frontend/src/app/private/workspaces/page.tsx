@@ -25,6 +25,12 @@ export default function WorkspacesPage() {
     return <OnboardingRamp onComplete={() => refreshWorkspaces()} />;
   }
 
+  // If user already has a workspace, go straight to projects
+  if (!wsLoading && currentWorkspace) {
+    router.replace(`/private/${currentWorkspace.slug}/projects`);
+    return null;
+  }
+
   // Show ramp when explicitly requested (for creating additional workspaces)
   if (showRamp) {
     return <OnboardingRamp onComplete={() => { setShowRamp(false); refreshWorkspaces(); }} />;
