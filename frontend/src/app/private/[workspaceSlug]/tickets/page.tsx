@@ -135,6 +135,8 @@ function TicketsPage() {
   const [newAssigned, setNewAssigned] = useState<string>('');
   const [newApproved, setNewApproved] = useState(false);
   const [createProjectAgents, setCreateProjectAgents] = useState<User[]>([]);
+  const [createProjectEpics, setCreateProjectEpics] = useState<Epic[]>([]);
+  const [newEpic, setNewEpic] = useState<string>('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [deleteTarget, setDeleteTarget] = useState<Ticket | null>(null);
 
@@ -275,15 +277,23 @@ function TicketsPage() {
     });
   }, [tickets]);
 
-  // Fetch project agents when create modal project selection changes
+  // Fetch project agents + epics when create modal project selection changes
   useEffect(() => {
     if (newProject) {
       api.getProjectAgents(newProject).then(setCreateProjectAgents).catch((err: any) => {
         toast(err?.detail || err?.message || 'Failed to load project agents', 'error');
         setCreateProjectAgents([]);
       });
+      api.getEpics(newProject).then(epics => {
+        setCreateProjectEpics(epics);
+        // Pre-select the active epic
+        const active = epics.find(ep => ep.status === 'ACTIVE');
+        setNewEpic(active ? String(active.id) : '');
+      }).catch(() => { setCreateProjectEpics([]); setNewEpic(''); });
     } else {
       setCreateProjectAgents([]);
+      setCreateProjectEpics([]);
+      setNewEpic('');
     }
   }, [newProject]);
 
@@ -315,10 +325,11 @@ function TicketsPage() {
         project: newProject, title: newTitle, description: newDesc,
         priority: newPriority as any, ticket_type: newTicketType as any,
         ...(newAssigned ? { assigned_to: parseInt(newAssigned) } : {}),
+        ...(newEpic ? { epic: parseInt(newEpic) } : {}),
       });
       toast('Ticket created');
       setShowCreate(false);
-      setNewTitle(''); setNewDesc(''); setNewPriority('MEDIUM'); setNewTicketType('BUG'); setNewProject(''); setNewAssigned(''); setNewApproved(false);
+      setNewTitle(''); setNewDesc(''); setNewPriority('MEDIUM'); setNewTicketType('BUG'); setNewProject(''); setNewAssigned(''); setNewApproved(false); setNewEpic('');
       setFieldErrors({});
       resetAndReload();
     } catch (e: any) {
@@ -606,6 +617,18 @@ function TicketsPage() {
                     {createProjectAgents.map(u => <option key={u.id} value={String(u.id)}>{u.username} ({u.user_type})</option>)}
                   </select>
                 </FormField>
+                {createProjectEpics.length > 0 && (
+                  <FormField label="Epic" error={fieldErrors.epic}>
+                    <select value={newEpic} onChange={e => setNewEpic(e.target.value)} className={selectClass(fieldErrors.epic)}>
+                      <option value="">No epic</option>
+                      {createProjectEpics.map(ep => (
+                        <option key={ep.id} value={String(ep.id)}>
+                          {ep.status === 'ACTIVE' ? '🟢' : '⬜'} {ep.name}
+                        </option>
+                      ))}
+                    </select>
+                  </FormField>
+                )}
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={newApproved} onChange={e => setNewApproved(e.target.checked)} className="w-5 h-5 rounded border-[#222233] text-indigo-400 bg-[#1a1a2e] focus:ring-indigo-500" />
                   <span className="text-sm text-gray-300">Pre-approve this ticket</span>
