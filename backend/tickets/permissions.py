@@ -1,5 +1,5 @@
 """
-Custom permission classes for Agent Desk RBAC.
+Custom permission classes for OpenWeave RBAC.
 
 Workspace owner = root user. Has all admin privileges everywhere.
 """

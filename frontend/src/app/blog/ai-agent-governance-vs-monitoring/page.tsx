@@ -1,4 +1,6 @@
 import { Metadata } from 'next';
+import PublicNav from '@/components/PublicNav';
+import PublicFooter from '@/components/PublicFooter';
 
 export const metadata: Metadata = {
   title: 'AI Agent Governance vs Monitoring: Why Both Matter | OpenWeave',
@@ -16,7 +18,10 @@ export const metadata: Metadata = {
 
 export default function BlogPost() {
   return (
-    <article className="max-w-4xl mx-auto px-6 py-12">
+    <div className="min-h-screen bg-gray-950 text-gray-100">
+      <PublicNav />
+      <main>
+        <article className="max-w-4xl mx-auto px-6 py-12">
       <header className="mb-12">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">
           AI Agent Governance vs Monitoring: Why Both Matter
@@ -69,6 +74,10 @@ export default function BlogPost() {
           </a>
         </div>
       </div>
-    </article>
+        </article>
+      </main>
+
+      <PublicFooter />
+    </div>
   );
 }

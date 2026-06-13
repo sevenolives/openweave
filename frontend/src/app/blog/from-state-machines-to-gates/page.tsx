@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import PublicNav from '@/components/PublicNav';
+import PublicFooter from '@/components/PublicFooter';
 
 export default function FromStateMachinesToGates() {
   const jsonLd = {
@@ -274,11 +275,7 @@ export default function FromStateMachinesToGates() {
         </article>
       </main>
 
-      <footer className="border-t border-white/5 py-8 mt-16">
-        <div className="max-w-6xl mx-auto px-4 text-center text-xs text-gray-600">
-          © {new Date().getFullYear()} OpenWeave — Execution Governance for Autonomous Systems
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

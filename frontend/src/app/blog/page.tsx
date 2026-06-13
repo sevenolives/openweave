@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import PublicNav from '@/components/PublicNav';
+import PublicFooter from '@/components/PublicFooter';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://backend.openweave.dev/api';
 
@@ -99,11 +100,7 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
         )}
       </main>
 
-      <footer className="border-t border-white/5 py-8">
-        <div className="max-w-6xl mx-auto px-4 text-center text-xs text-gray-600">
-          © {new Date().getFullYear()} OpenWeave — Execution Governance for Autonomous Systems
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

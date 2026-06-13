@@ -744,7 +744,7 @@ export default function StateMachinePage() {
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <span>Quick actions:</span>
               <button onClick={exportConfig} style={{ ...btnStyle, fontSize: 11, padding: '6px 12px', minHeight: 'auto', background: '#374151' }}>↓ Export</button>
-              <input ref={importRef} type="file" accept=".json" onChange={importConfig} style={{ display: 'none' }} />
+              <input ref={importRef} type="file" accept=".json" onChange={importConfig} style={{ display: 'none' }} suppressHydrationWarning />
               <button onClick={() => importRef.current?.click()} style={{ ...btnStyle, fontSize: 11, padding: '6px 12px', minHeight: 'auto', background: '#374151' }}>↑ Import</button>
             </div>
             <div style={{ display: 'flex', gap: 16, fontSize: 10, flexWrap: 'wrap', marginTop: 4 }}>

@@ -13,6 +13,7 @@ import {
 import dagre from 'dagre';
 import '@xyflow/react/dist/style.css';
 import PublicNav from '@/components/PublicNav';
+import PublicFooter from '@/components/PublicFooter';
 
 /* ------------------------------------------------------------------ */
 /*  State Machine (reused from /state-machine)                         */
@@ -306,10 +307,7 @@ export default function DemoPage() {
         </div>
       </div>
 
-      {/* Footer */}
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '24px', textAlign: 'center' }}>
-        <p style={{ fontSize: 12, color: '#4b5563' }}>© {new Date().getFullYear()} OpenWeave — Execution Governance for Autonomous Systems</p>
-      </div>
+      <PublicFooter />
     </div>
   );
 }
