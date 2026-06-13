@@ -133,7 +133,7 @@ function TicketsPage() {
   const [newTicketType, setNewTicketType] = useState('BUG');
   const [newProject, setNewProject] = useState<string>('');
   const [newAssigned, setNewAssigned] = useState<string>('');
-  const [newApproved, setNewApproved] = useState(false);
+
   const [createProjectAgents, setCreateProjectAgents] = useState<User[]>([]);
   const [createProjectEpics, setCreateProjectEpics] = useState<Epic[]>([]);
   const [newEpic, setNewEpic] = useState<string>('');
@@ -329,7 +329,7 @@ function TicketsPage() {
       });
       toast('Ticket created');
       setShowCreate(false);
-      setNewTitle(''); setNewDesc(''); setNewPriority('MEDIUM'); setNewTicketType('BUG'); setNewProject(''); setNewAssigned(''); setNewApproved(false); setNewEpic('');
+      setNewTitle(''); setNewDesc(''); setNewPriority('MEDIUM'); setNewTicketType('BUG'); setNewProject(''); setNewAssigned(''); setNewEpic('');
       setFieldErrors({});
       resetAndReload();
     } catch (e: any) {
@@ -628,11 +628,7 @@ function TicketsPage() {
                     ))}
                   </select>
                 </FormField>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={newApproved} onChange={e => setNewApproved(e.target.checked)} className="w-5 h-5 rounded border-[#222233] text-indigo-400 bg-[#1a1a2e] focus:ring-indigo-500" />
-                  <span className="text-sm text-gray-300">Pre-approve this ticket</span>
-                </label>
-                <div className="flex gap-3 pt-2">
+<div className="flex gap-3 pt-2">
                   <button type="button" onClick={() => setShowCreate(false)} className="flex-1 px-4 py-3 border border-[#222233] rounded-xl text-sm font-medium text-gray-300 hover:bg-[#1a1a2e]">Cancel</button>
                   <button type="submit" disabled={creating || !newTitle.trim() || !newProject} className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-700 disabled:cursor-not-allowed">{creating ? 'Creating…' : 'Create Ticket'}</button>
                 </div>
