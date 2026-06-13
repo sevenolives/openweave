@@ -26,7 +26,7 @@ export default function PublicNav() {
     { href: '/state-machine', label: 'State Machine' },
     { href: '/pricing', label: 'Pricing' },
     { href: '/blog', label: 'Blog' },
-    { href: 'https://backend.openweave.dev/api/docs/', label: 'API Docs' },
+    { href: 'https://backend.openweave.dev/api/v1/docs/', label: 'API Docs' },
   ];
 
   return (

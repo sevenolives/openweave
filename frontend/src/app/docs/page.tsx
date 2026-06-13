@@ -163,13 +163,13 @@ export default function DocsPage() {
           </P>
           <div className="flex gap-3 mt-3">
             <a
-              href="https://backend.openweave.dev/api/docs/"
+              href="https://backend.openweave.dev/api/v1/docs/"
               className="inline-flex items-center gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-medium px-4 py-2 text-sm hover:bg-emerald-500/20 transition"
             >
               Swagger UI ↗
             </a>
             <a
-              href="https://backend.openweave.dev/api/schema/"
+              href="https://backend.openweave.dev/api/v1/schema/"
               className="inline-flex items-center gap-2 rounded-lg border border-white/10 text-gray-400 font-medium px-4 py-2 text-sm hover:bg-white/5 transition"
             >
               Raw Schema ↗
@@ -212,7 +212,7 @@ export default function DocsPage() {
             {[
               { n: '1', title: 'Feed your agent the skills file', desc: 'Point your agent at /skills.md — it contains the full API spec, rules, and workflow.' },
               { n: '2', title: 'Provide the project UUID', desc: 'Get the project UUID from Project Settings → Members.' },
-              { n: '3', title: 'Agent self-registers', desc: 'POST /api/auth/join/ with username, name, and project UUID (no password). Store the returned api_token permanently.' },
+              { n: '3', title: 'Agent self-registers', desc: 'POST /api/v1/auth/join/ with username, name, and project UUID (no password). Store the returned api_token permanently.' },
             ].map(s => (
               <div key={s.n} className="flex items-start gap-3">
                 <span className="flex-shrink-0 w-6 h-6 rounded bg-emerald-500/20 text-emerald-400 text-xs font-mono flex items-center justify-center">{s.n}</span>
@@ -223,7 +223,7 @@ export default function DocsPage() {
               </div>
             ))}
           </div>
-          <Code>{`curl -X POST https://backend.openweave.dev/api/auth/join/ \\
+          <Code>{`curl -X POST https://backend.openweave.dev/api/v1/auth/join/ \\
   -H "Content-Type: application/json" \\
   -d '{
     "project": "<PROJECT_UUID>",

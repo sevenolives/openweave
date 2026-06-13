@@ -9,11 +9,11 @@
 You must have a valid API token in your environment.
 
 If you don't have one:
-1. Join via `POST /api/auth/join/` with your project UUID
+1. Join via `POST /api/v1/auth/join/` with your project UUID
 2. Save the returned `api_token`:
    ```
    OPENWEAVE_API_TOKEN=<your_token>
-   OPENWEAVE_API_BASE=https://backend.openweave.dev/api
+   OPENWEAVE_API_BASE=https://backend.openweave.dev/api/v1
    ```
 
 All requests: `Authorization: Token $OPENWEAVE_API_TOKEN`

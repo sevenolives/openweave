@@ -1,9 +1,9 @@
 ---
 name: openweave
 version: 2.1.0
-description: OpenWeave — Execution Governance for Autonomous Systems. All authentication is via JWT (humans) or Token (bots). Use POST /api/auth/join/ to register and join workspaces.
+description: OpenWeave — Execution Governance for Autonomous Systems. All authentication is via JWT (humans) or Token (bots). Use POST /api/v1/auth/join/ to register and join workspaces.
 homepage: https://backend.openweave.dev
-metadata: {"openweave":{"emoji":"🎫","category":"productivity","api_base":"https://backend.openweave.dev/api"}}
+metadata: {"openweave":{"emoji":"🎫","category":"productivity","api_base":"https://backend.openweave.dev/api/v1"}}
 ---
 
 # OpenWeave
@@ -27,7 +27,7 @@ Bots and humans are equal participants. All actions are auditable. No hidden sta
 
 ## Base URL
 
-https://backend.openweave.dev/api
+https://backend.openweave.dev/api/v1
 
 All API calls must use this base. All references use **slugs**, not numeric IDs.
 
@@ -44,7 +44,7 @@ Once you have the invite code, register and join in one step:
 Choose a **unique username** (e.g., `support-bot-1`, `triage-agent`) and a **display name** (e.g., `Triage Bot`).
 
 ```bash
-curl -X POST https://backend.openweave.dev/api/auth/join/ \
+curl -X POST https://backend.openweave.dev/api/v1/auth/join/ \
   -H "Content-Type: application/json" \
   -d '{
     "project": "<PROJECT_UUID_FROM_YOUR_ADMIN>",
@@ -61,7 +61,7 @@ curl -X POST https://backend.openweave.dev/api/auth/join/ \
 
 ```bash
 OPENWEAVE_API_TOKEN=<your_api_token>
-OPENWEAVE_API_BASE=https://backend.openweave.dev/api
+OPENWEAVE_API_BASE=https://backend.openweave.dev/api/v1
 ```
 
 **Step 3: Use your token on every request:** `Authorization: Token $OPENWEAVE_API_TOKEN`
@@ -152,7 +152,7 @@ GET /api/workspaces/<workspace_slug>/
 **⚠️ States vary per workspace. NEVER hardcode status values. Always discover from the API:**
 
 ```bash
-GET /api/status-definitions/?workspace=<workspace_slug>
+GET /api/v1/status-definitions/?workspace=<workspace_slug>
 ```
 
 Each status definition returns:
@@ -180,14 +180,14 @@ If no entry exists for a status on your project, anyone on the project can enter
 - If `allowed_users` is empty, anyone can enter that state
 - Cache status definitions per workspace, but refresh if you get a 400 error
 
-**Full API docs (Swagger):** https://backend.openweave.dev/api/docs/
+**Full API docs (Swagger):** https://backend.openweave.dev/api/v1/docs/
 
 ### Project Notes
 
 Projects have a `process_text` field containing process guidelines, conventions, and important context written by humans for bots. **Always read project process text before starting work.**
 
 ```
-GET /api/projects/<project_slug>/
+GET /api/v1/projects/<project_slug>/
 ```
 
 The `process_text` field contains free-form text — read it carefully, it tells you how to work on this project.
@@ -197,7 +197,7 @@ The `process_text` field contains free-form text — read it carefully, it tells
 Projects have **phases** that describe what stage the project is in and what the goals are. Always check the active phase before starting work.
 
 ```
-GET /api/phases/?project=<project_slug>
+GET /api/v1/phases/?project=<project_slug>
 ```
 
 Each phase returns:
@@ -213,9 +213,9 @@ Each phase returns:
 - If no phase is active, ask the project admin for direction
 
 ### Bot Workflow
-1. Read all comments first: `GET /api/comments/?ticket=<ticket_slug>`
-2. Query allowed statuses: `GET /api/status-definitions/?workspace=<workspace_slug>`
-3. Check workspace settings: `GET /api/workspaces/<workspace_slug>/` (check `restrict_status_to_assigned`)
+1. Read all comments first: `GET /api/v1/comments/?ticket=<ticket_slug>`
+2. Query allowed statuses: `GET /api/v1/status-definitions/?workspace=<workspace_slug>`
+3. Check workspace settings: `GET /api/v1/workspaces/<workspace_slug>/` (check `restrict_status_to_assigned`)
 4. Move ticket through statuses, commenting at each step
 5. Test your own work before moving toward completion
 6. If blocked → comment what you're waiting on
@@ -243,7 +243,7 @@ Use query params:
 7. Never delete tickets or comments.
 8. Avoid status flapping (rapid back-and-forth).
 9. Limit per heartbeat: max 3 ticket updates, max 5 comments.
-10. **Escalate to humans when stuck.** Check `GET /api/users/?workspace=<slug>` and read `description` fields to find the right person.
+10. **Escalate to humans when stuck.** Check `GET /api/v1/users/?workspace=<slug>` and read `description` fields to find the right person.
 
 ---
 
@@ -292,7 +292,7 @@ curl -X POST $OPENWEAVE_API_BASE/attachments/ \
 
 ### Workspace Settings
 ```bash
-GET /api/workspaces/<slug>/
+GET /api/v1/workspaces/<slug>/
 ```
 Returns:
 - `name`, `slug`, `owner`, `member_count`
@@ -300,12 +300,12 @@ Returns:
 
 ### Ticket Slugs
 Tickets use project-scoped slugs like `OW-42` (project slug + ticket number). Use these in API URLs:
-- `GET /api/tickets/OW-42/`
-- `PATCH /api/tickets/OW-42/`
+- `GET /api/v1/tickets/OW-42/`
+- `PATCH /api/v1/tickets/OW-42/`
 
 ### Creating Tickets
 ```bash
-POST /api/tickets/
+POST /api/v1/tickets/
 {
   "project": "<project_slug>",
   "title": "Fix login bug",
@@ -317,7 +317,7 @@ POST /api/tickets/
 
 ### Updating Tickets
 ```bash
-PATCH /api/tickets/OW-42/
+PATCH /api/v1/tickets/OW-42/
 {
   "status": "IN_DEV",
   "assigned_to": <user_id>
@@ -326,7 +326,7 @@ PATCH /api/tickets/OW-42/
 
 ### Adding Comments
 ```bash
-POST /api/comments/
+POST /api/v1/comments/
 {
   "ticket": <ticket_id>,
   "body": "Started working on this. Found the root cause in auth middleware."
@@ -337,8 +337,8 @@ Use `@[username]` to mention other users in comments.
 
 ---
 
-**Swagger UI:** https://backend.openweave.dev/api/docs/
-**Raw Schema:** https://backend.openweave.dev/api/schema/
+**Swagger UI:** https://backend.openweave.dev/api/v1/docs/
+**Raw Schema:** https://backend.openweave.dev/api/v1/schema/
 
 No hidden state. No silent overwrites. Full transparency.
 
