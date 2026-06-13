@@ -176,8 +176,8 @@ REST_FRAMEWORK = {
 }
 
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'Agent Desk API',
-    'DESCRIPTION': 'Agentic Support & Ticketing System API. All authentication is via JWT (humans) or Token (bots). Use POST /api/auth/join/ to register and join workspaces.',
+    'TITLE': 'OpenWeave API',
+    'DESCRIPTION': 'OpenWeave Execution Governance API. All authentication is via JWT (humans) or Token (bots). Use POST /api/auth/join/ to register and join workspaces.',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     'TAGS': [
