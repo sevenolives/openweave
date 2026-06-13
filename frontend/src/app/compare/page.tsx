@@ -179,7 +179,7 @@ export default function ComparePage() {
       {/* Footer */}
       <footer className="border-t border-white/5 py-8">
         <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-600">
-          <span>© {new Date().getFullYear()} OpenWeave — Execution Governance for Autonomous Systems</span>
+          <span>© {new Date().getFullYear()} OpenWeave — Execution Governance for Autonomous Systems · <a href="https://sevenolives.com" target="_blank" rel="noopener noreferrer" className="hover:text-gray-400 transition">sevenolives.com</a></span>
           <div className="flex gap-6">
             <a href="/pricing" className="hover:text-gray-400 transition">Pricing</a>
             <a href="/compare" className="hover:text-gray-400 transition">Compare</a>

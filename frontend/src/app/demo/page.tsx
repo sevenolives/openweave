@@ -308,7 +308,7 @@ export default function DemoPage() {
 
       {/* Footer */}
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '24px', textAlign: 'center' }}>
-        <p style={{ fontSize: 12, color: '#4b5563' }}>© {new Date().getFullYear()} OpenWeave — Execution Governance for Autonomous Systems</p>
+        <p style={{ fontSize: 12, color: '#4b5563' }}>© {new Date().getFullYear()} OpenWeave — Execution Governance for Autonomous Systems · <a href="https://sevenolives.com" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>sevenolives.com</a></p>
       </div>
     </div>
   );
