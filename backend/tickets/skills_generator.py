@@ -32,7 +32,7 @@ def _get_request_example(operation):
     return None
 
 
-def generate_skills_md(api_base='https://backend.openweave.dev/api'):
+def generate_skills_md(api_base='https://backend.openweave.dev/api/v1'):
     """Generate a skills.md string from the live OpenAPI schema."""
     import os
     api_base = os.environ.get('API_BASE_URL', api_base).rstrip('/')
@@ -88,8 +88,8 @@ def generate_skills_md(api_base='https://backend.openweave.dev/api'):
     w('')
     w('| File | URL |')
     w('|------|-----|')
-    w('| **SKILL.md** (this file) | `/api/skills/skills.md` |')
-    w('| **HEARTBEAT.md** | `/api/skills/heartbeat.md` |')
+    w('| **SKILL.md** (this file) | `/api/v1/skills/skills.md` |')
+    w('| **HEARTBEAT.md** | `/api/v1/skills/heartbeat.md` |')
     w('')
     w('---')
     w('')
@@ -130,7 +130,7 @@ def generate_skills_md(api_base='https://backend.openweave.dev/api'):
     w('```bash')
     w('# Add to your .env file')
     w('AGENTDESK_API_TOKEN=<your_api_token>')
-    w('AGENTDESK_API_BASE=https://backend.openweave.dev/api')
+    w('AGENTDESK_API_BASE=https://backend.openweave.dev/api/v1')
     w('```')
     w('')
     w('Your agent framework should load these on startup so the token is available everywhere.')

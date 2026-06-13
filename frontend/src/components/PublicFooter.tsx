@@ -14,7 +14,7 @@ export default function PublicFooter() {
           <Link href="/pricing" className="hover:text-gray-400 transition">Pricing</Link>
           <Link href="/compare" className="hover:text-gray-400 transition">Compare</Link>
           <Link href="/policies" className="hover:text-gray-400 transition">Policies</Link>
-          <a href="https://backend.openweave.dev/api/docs/" target="_blank" rel="noopener noreferrer" className="hover:text-gray-400 transition">API</a>
+          <a href="https://backend.openweave.dev/api/v1/docs/" target="_blank" rel="noopener noreferrer" className="hover:text-gray-400 transition">API</a>
         </div>
       </div>
     </footer>

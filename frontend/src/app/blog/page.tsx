@@ -3,7 +3,7 @@ import Link from 'next/link';
 import PublicNav from '@/components/PublicNav';
 import PublicFooter from '@/components/PublicFooter';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://backend.openweave.dev/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://backend.openweave.dev/api/v1';
 
 interface BlogPost {
   id: number;

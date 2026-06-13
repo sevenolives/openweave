@@ -60,7 +60,7 @@ export default function PublicWorkspacePage() {
   useEffect(() => {
     const loadWorkspace = async () => {
       try {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://backend.openweave.dev/api';
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://backend.openweave.dev/api/v1';
         const response = await fetch(`${apiBase}/public/workspaces/${workspaceSlug}/`);
         if (!response.ok) {
           if (response.status === 404) {
@@ -131,7 +131,7 @@ export default function PublicWorkspacePage() {
     setApplyingSync(true);
     try {
       const token = tokenStorage.getAccessToken();
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://backend.openweave.dev/api'}/status-definitions/sync-from/`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://backend.openweave.dev/api/v1'}/status-definitions/sync-from/`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ workspace: targetSlug, source_workspace: data.workspace.slug, mode }),

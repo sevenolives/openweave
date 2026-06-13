@@ -32,7 +32,7 @@ def heartbeat_md_view(request):
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('tickets.urls')),
+    path('api/v1/', include('tickets.urls')),
 ]
 
 # Serve media files in all environments (Railway doesn't have nginx)
@@ -50,16 +50,16 @@ urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 urlpatterns += [
     
     # API Documentation
-    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
-    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
-    path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    path('api/v1/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/v1/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/v1/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 
     # Skills document (generated from schema)
-    path('api/build-info/', lambda r: JsonResponse({
+    path('api/v1/build-info/', lambda r: JsonResponse({
         'branch': settings.GIT_BRANCH,
         'commit': settings.GIT_COMMIT,
         'environment': settings.RAILWAY_ENVIRONMENT,
     }), name='build-info'),
-    path('api/skills/skills.md', skills_md_view, name='skills-md'),
-    path('api/skills/heartbeat.md', heartbeat_md_view, name='heartbeat-md'),
+    path('api/v1/skills/skills.md', skills_md_view, name='skills-md'),
+    path('api/v1/skills/heartbeat.md', heartbeat_md_view, name='heartbeat-md'),
 ]

@@ -44,9 +44,9 @@ docker compose up
 
 Then open:
 - **Frontend:** http://localhost:3000
-- **Backend API:** http://localhost:8000/api/
+- **Backend API:** http://localhost:8000/api/v1/
 - **Admin:** http://localhost:8000/admin/ (admin / admin123)
-- **API Docs:** http://localhost:8000/api/docs/
+- **API Docs:** http://localhost:8000/api/v1/docs/
 
 ## Architecture
 
