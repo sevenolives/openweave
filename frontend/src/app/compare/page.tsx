@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import PublicNav from '@/components/PublicNav';
+import PublicFooter from '@/components/PublicFooter';
 
 function Check() {
   return (
@@ -176,18 +177,7 @@ export default function ComparePage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-white/5 py-8">
-        <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-600">
-          <span>© {new Date().getFullYear()} OpenWeave — Execution Governance for Autonomous Systems · <a href="https://sevenolives.com" target="_blank" rel="noopener noreferrer" className="hover:text-gray-400 transition">sevenolives.com</a></span>
-          <div className="flex gap-6">
-            <a href="/pricing" className="hover:text-gray-400 transition">Pricing</a>
-            <a href="/compare" className="hover:text-gray-400 transition">Compare</a>
-            <a href="/policies" className="hover:text-gray-400 transition">Policies</a>
-            <a href="https://backend.openweave.dev/api/docs/" className="hover:text-gray-400 transition">API</a>
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import PublicFooter from '@/components/PublicFooter';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://backend.openweave.dev/api';
 const SITE_URL = 'https://openweave.dev';
@@ -120,11 +121,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         </article>
       </main>
 
-      <footer className="border-t border-white/5 py-8 mt-16">
-        <div className="max-w-6xl mx-auto px-4 text-center text-xs text-gray-600">
-          © {new Date().getFullYear()} OpenWeave — Execution Governance for Autonomous Systems · <a href="https://sevenolives.com" target="_blank" rel="noopener noreferrer" className="hover:text-gray-400 transition">sevenolives.com</a>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

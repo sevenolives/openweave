@@ -1,8 +1,13 @@
 'use client'
+import PublicNav from '@/components/PublicNav';
+import PublicFooter from '@/components/PublicFooter';
 
 export default function ApifirstaiscalableinterfacesintelligentapplicationsPost() {
   return (
-    <article className="max-w-4xl mx-auto px-6 py-12">
+    <div className="min-h-screen bg-gray-950 text-gray-100">
+      <PublicNav />
+      <main>
+        <article className="max-w-4xl mx-auto px-6 py-12">
       <header className="mb-8">
         <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
           API-First AI: Designing Scalable Interfaces for Intelligent Applications
@@ -201,6 +206,10 @@ async function reviewPullRequest(prData) {
           </div>
         </div>
       </div>
-    </article>
+        </article>
+      </main>
+
+      <PublicFooter />
+    </div>
   );
 }
