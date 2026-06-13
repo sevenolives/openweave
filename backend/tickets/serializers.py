@@ -94,6 +94,11 @@ class EpicSerializer(serializers.ModelSerializer):
             instance.project.current_epic = instance
             instance.project.save(update_fields=['current_epic'])
             return instance
+        if new_status == 'INACTIVE' and instance.status == 'ACTIVE':
+            instance = super().update(instance, validated_data)
+            instance.project.current_epic = None
+            instance.project.save(update_fields=['current_epic'])
+            return instance
         return super().update(instance, validated_data)
 
 

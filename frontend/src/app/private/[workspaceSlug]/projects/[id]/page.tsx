@@ -329,7 +329,7 @@ export default function ProjectSettingsPage() {
                           <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${badgeColors[epic.status] || badgeColors.INACTIVE}`}>{epic.status === 'ACTIVE' ? 'Active' : 'Inactive'}</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          {epic.status !== 'ACTIVE' && (
+                          {epic.status !== 'ACTIVE' ? (
                             <button onClick={async () => {
                               try {
                                 await api.updateEpic(epic.id, { status: 'ACTIVE' });
@@ -338,6 +338,16 @@ export default function ProjectSettingsPage() {
                               } catch (err: any) { toast(err?.message || 'Failed', 'error'); }
                             }} className="px-3 py-1.5 text-xs font-medium text-indigo-400 hover:bg-indigo-900/20 rounded-lg">
                               Set Active
+                            </button>
+                          ) : (
+                            <button onClick={async () => {
+                              try {
+                                await api.updateEpic(epic.id, { status: 'INACTIVE' });
+                                const ep = await api.getEpics(projectSlug); setEpics(ep);
+                                toast('Epic deactivated');
+                              } catch (err: any) { toast(err?.message || 'Failed', 'error'); }
+                            }} className="px-3 py-1.5 text-xs font-medium text-gray-400 hover:bg-[#1a1a2e] rounded-lg">
+                              Set Inactive
                             </button>
                           )}
                           <button onClick={() => { setEditingEpic(epic.id); setEditEpicName(epic.name || ''); setEditEpicDesc(epic.description || ''); }}

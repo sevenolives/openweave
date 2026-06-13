@@ -11,6 +11,10 @@ function useReveal() {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      el.classList.remove('opacity-0');
+      return;
+    }
     const obs = new IntersectionObserver(
       ([e]) => { if (e.isIntersecting) { el.classList.add('landing-fade-in'); obs.unobserve(el); } },
       { threshold: 0.1 }

@@ -21,7 +21,8 @@ services:
     environment:
       DATABASE_URL: postgresql://openweave:openweave@db:5432/openweave
       SECRET_KEY: dev-local-secret-key
-      SUPERUSER_PASSWORD: admin123
+      DJANGO_ROOT_USER_EMAIL: admin@example.com
+      DJANGO_ROOT_USER_PASSWORD: admin123
       DEBUG: "1"
     depends_on:
       - db

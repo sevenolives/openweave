@@ -68,6 +68,21 @@ input, select, textarea {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Anchor scroll clears the sticky nav (64px nav + 8px breathing room) */
+html {
+  scroll-padding-top: 72px;
+}
+section {
+  scroll-margin-top: 72px;
+}
+
+/* Reduced-motion: skip reveal animations, make content immediately visible */
+@media (prefers-reduced-motion: reduce) {
+  .landing-fade-in {
+    animation: none;
+  }
+}
+
 /* Normalize select elements in app pages (not public/custom-styled pages) */
 .app-selects select {
   min-height: 44px;
